@@ -29,7 +29,7 @@
                 
             @foreach ($fishes as $fish)
                 <div class="card">
-                    <div class="image" style="background-image: url('@if($fish->image != null) {{asset('/images/'.$fish->image)}} @else {{asset('/images/default.png')}} @endif')">
+                    <div class="image" style="background-image: url('@if($fish->image != null) {{secure_asset('/images/'.$fish->image)}} @else {{secure_asset('/images/default.png')}} @endif')">
                     </div>
                     <div class="info">
                         <p>{{$fish->traditional_name}}</p>
