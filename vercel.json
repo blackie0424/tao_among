@@ -7,15 +7,15 @@
         }
     },
     "builds": [
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "index.php",
-      "use": "@vercel/php"
-    }
-  ],
+        {
+            "src": "public/**",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "index.php",
+            "use": "@vercel/php"
+        }
+    ],
     "routes": [
         {
             "src": "/(.*)",
@@ -23,7 +23,7 @@
         }
     ],
     "env": {
-        "APP_ENV": "Development",
+        "APP_ENV": "production",
         "APP_DEBUG": "true",
         "APP_URL": "https://tao-amiong.vercel.app",
         "APP_KEY": "base64:7lIzDrCDSyDaWp4jrVlfri8Al3f+ztkM3QT5bL+2f4M=",
