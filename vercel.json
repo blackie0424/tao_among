@@ -6,10 +6,20 @@
             "runtime": "vercel-php@0.6.0"
         }
     },
+    "builds": [
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "index.php",
+      "use": "@vercel/php"
+    }
+  ],
     "routes": [
         {
             "src": "/(.*)",
-            "dest": "/api/index.php"
+            "dest": "/api/index.php/$1"
         }
     ],
     "env": {
