@@ -11,7 +11,62 @@
     float: left;
     border-radius: 5%;
     position: relative;
+
+    perspective: 1000px;
+    /* 保持 3D 翻轉效果 */
+    transition: border-color 0.6s;
+    /* **新增，邊框顏色過渡效果** */
+
 }
+
+/* **新增：當卡片翻轉時，邊框顏色變為更深的紫色 (#8C75E8)** */
+.card.flipped {
+    border-color: #8C75E8;
+    /* **翻轉後的深紫色外框** */
+}
+
+/* **新增 card-inner，控制卡片內部前後的翻轉效果** */
+.card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    /* 保持 3D 效果 */
+    transition: transform 0.6s;
+    /* 翻轉效果時間 */
+}
+
+/* **正面與反面樣式：保持一致，並隱藏背面** */
+.card-front,
+.card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    /* 隱藏背面內容 */
+    border-radius: 5%;
+    /* 保持邊框圓角一致 */
+}
+
+/* 正面樣式，未改動 */
+.card-front {
+    background-color: #fff;
+}
+
+/* **新增：背面樣式，背景色可調整** */
+.card-back {
+    background-color: #f8f9fa;
+    /* 可根據需求調整 */
+    transform: rotateY(180deg);
+    /* 背面旋轉 180 度 */
+}
+
+/* **新增：當卡片翻轉時，內部旋轉 180 度** */
+.card.flipped .card-inner {
+    transform: rotateY(180deg);
+    /* 翻轉效果 */
+}
+
 
 .image {
     margin: auto;

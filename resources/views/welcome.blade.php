@@ -24,13 +24,24 @@
             <div class="main">
                 
             @foreach ($fishes as $fish)
-                <div class="card">
-                    <div class="image" style="background-image: url('@if($fish->image != null) {{secure_asset('/images/'.$fish->image)}} @else {{secure_asset('/images/default.png')}} @endif')">
-                    </div>
-                    <div class="info">
-                        <p>{{$fish->traditional_name}}</p>
-                        <p>{{$fish->name}}</p>
-                        <div class="type">{{$fish->type}}</div>
+                <div class="card" onclick="flipCard(this)"> <!-- **新增 onclick="flipCard(this)"，實現點擊翻轉效果** -->
+                    <div class="card-inner"> <!-- **新增 card-inner 容器，負責前後翻轉效果** -->
+                        <!-- 正面內容 -->
+                        <div class="card-front"> <!-- **新增 card-front，定義卡片正面** -->
+                            <div class="image" 
+                                style="background-image: url('@if($fish->image != null) {{secure_asset('/images/'.$fish->image)}} @else {{secure_asset('/images/default.png')}} @endif')">
+                            </div>
+                            <div class="info">
+                                <p>{{$fish->traditional_name}}</p>
+                                <p>{{$fish->name}}</p>
+                                <div class="type">{{$fish->type}}</div>
+                            </div>
+                        </div>
+                        <!-- 反面內容 -->
+                        <div class="card-back"> <!-- **新增 card-back，定義卡片反面** -->
+                            <p>這是翻面後的內容</p> <!-- 這裡可以根據需求放入反面的資料 -->
+                            <img src="{{ secure_asset('/images/default.png') }}" alt="Back Image" width="250px" height="150px"/>
+                        </div>
                     </div>
                 </div>
             @endforeach
@@ -39,3 +50,8 @@
         </div>
     </body>
 </html>
+<script>
+    function flipCard(card) {
+        card.classList.toggle('flipped'); // **切換 flipped 樣式來觸發 CSS 翻轉效果**
+    }
+</script>
