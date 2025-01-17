@@ -39,8 +39,11 @@
                         </div>
                         <!-- 反面內容 -->
                         <div class="card-back"> <!-- **新增 card-back，定義卡片反面** -->
-                            <p>這是翻面後的內容</p> <!-- 這裡可以根據需求放入反面的資料 -->
-                            <img src="{{ secure_asset('/images/default.png') }}" alt="Back Image" width="250px" height="150px"/>
+                            @if($fish->description != null)
+                                <div class="info description">{{$fish->description}}</div>
+                            @else
+                                <div class="info description" style="text-align:center">尚未有資料</div>
+                            @endif
                         </div>
                     </div>
                 </div>

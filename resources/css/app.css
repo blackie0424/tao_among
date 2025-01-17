@@ -55,10 +55,9 @@
 
 /* **新增：背面樣式，背景色可調整** */
 .card-back {
-    background-color: #f8f9fa;
-    /* 可根據需求調整 */
-    transform: rotateY(180deg);
     /* 背面旋轉 180 度 */
+    transform: rotateY(180deg);
+
 }
 
 /* **新增：當卡片翻轉時，內部旋轉 180 度** */
@@ -93,6 +92,14 @@
     min-height: 199px;
     border-radius: 0 0 5% 5%;
 }
+
+.description {
+    top: 20px;
+    background-color: chocolate;
+    color: #fff;
+    border-radius: 5%;
+}
+
 
 .type {
     margin: 0 5px;
