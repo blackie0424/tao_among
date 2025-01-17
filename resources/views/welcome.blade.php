@@ -21,10 +21,6 @@
     </head>
     <body class="font-sans antialiased dark:bg-black dark:text-white/50">
         <div class="container mx-auto">
-            <nav>
-                <li>關於我們</li>
-                <li>魚類圖鑑</li>
-            </nav>
             <div class="main">
                 
             @foreach ($fishes as $fish)
