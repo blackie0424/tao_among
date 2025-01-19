@@ -43,7 +43,7 @@
                                 <div class="info description" style="text-align:center">尚未有資料</div>
                             @endif
                         </div>
-=                </div>
+                </div>
             @endforeach
             </div>
             <div id="load_more">查看更多</div>
