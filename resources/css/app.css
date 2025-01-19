@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.main {
+    position: relative;
+}
+
 .card {
     border-color: #BEB4FA;
     border-width: 2px;
@@ -10,12 +14,11 @@
     min-height: 280px;
     float: left;
     border-radius: 5%;
-    position: relative;
 
-    perspective: 1000px;
-    /* 保持 3D 翻轉效果 */
-    transition: border-color 0.6s;
-    /* **新增，邊框顏色過渡效果** */
+    transform-style: preserve-3d;
+    /* 保持 3D 效果 */
+    transition: transform 0.6s;
+    /* 翻轉效果時間 */
 
 }
 
@@ -23,17 +26,6 @@
 .card.flipped {
     border-color: #8C75E8;
     /* **翻轉後的深紫色外框** */
-}
-
-/* **新增 card-inner，控制卡片內部前後的翻轉效果** */
-.card-inner {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    /* 保持 3D 效果 */
-    transition: transform 0.6s;
-    /* 翻轉效果時間 */
 }
 
 /* **正面與反面樣式：保持一致，並隱藏背面** */
@@ -61,7 +53,7 @@
 }
 
 /* **新增：當卡片翻轉時，內部旋轉 180 度** */
-.card.flipped .card-inner {
+.card.flipped {
     transform: rotateY(180deg);
     /* 翻轉效果 */
 }
@@ -112,6 +104,12 @@
     text-align: center;
     font-weight: bold;
     border: 2px solid #d9534f;
+}
+
+#load_more {
+    position: absolute;
+    left: 50%;
+    bottom: 10%;
 }
 
 footer {

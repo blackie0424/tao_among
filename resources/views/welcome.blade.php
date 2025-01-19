@@ -21,11 +21,9 @@
     </head>
     <body class="font-sans antialiased">
         <div class="container mx-auto">
-            <div class="main">
-                
+            <div class="main"> 
             @foreach ($fishes as $fish)
                 <div class="card" onclick="flipCard(this)"> <!-- **新增 onclick="flipCard(this)"，實現點擊翻轉效果** -->
-                    <div class="card-inner"> <!-- **新增 card-inner 容器，負責前後翻轉效果** -->
                         <!-- 正面內容 -->
                         <div class="card-front"> <!-- **新增 card-front，定義卡片正面** -->
                             <div class="image" 
@@ -45,10 +43,10 @@
                                 <div class="info description" style="text-align:center">尚未有資料</div>
                             @endif
                         </div>
-                    </div>
-                </div>
+=                </div>
             @endforeach
             </div>
+            <div id="load_more">查看更多</div>
             <footer>Copyright © 2025 Chungyueh</footer>
         </div>
     </body>
