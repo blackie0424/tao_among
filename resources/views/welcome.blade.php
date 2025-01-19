@@ -46,7 +46,9 @@
                 </div>
             @endforeach
             </div>
-            <div id="load_more">查看更多</div>
+            <div id="load_more">
+                <a>查看更多</a>
+            </div>
             <footer>Copyright © 2025 Chungyueh</footer>
         </div>
     </body>
