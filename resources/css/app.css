@@ -4,10 +4,10 @@
 
 header {
     width: 100%;
-    height: auto;
+    height: 50vh;
     background-image: url("../../images/header-l.png");
     background-size: cover;
-    background-position: center;
+    background-position: contain;
     background-repeat: no-repeat;
 }
 
