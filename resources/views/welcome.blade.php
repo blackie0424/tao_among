@@ -21,13 +21,20 @@
     </head>
     <body class="font-sans antialiased">
         <div class="container mx-auto">
+            <header>
+                
+            </header>
             <div class="main"> 
             @foreach ($fishes as $fish)
                 <div class="card" onclick="flipCard(this)"> <!-- **新增 onclick="flipCard(this)"，實現點擊翻轉效果** -->
                         <!-- 正面內容 -->
                         <div class="card-front"> <!-- **新增 card-front，定義卡片正面** -->
-                            <div class="image" 
-                                style="background-image: url('@if($fish->image != null) {{secure_asset('/images/'.$fish->image)}} @else {{secure_asset('/images/default.png')}} @endif')">
+                            <div class="image">
+                                @if($fish->image != null)
+                                <img src="{{secure_asset('/images/'.$fish->image)}}" alt="" loading="lazy">
+                                @else
+                                <img src="{{secure_asset('/images/default.png')}}" alt="" loading="lazy">
+                                @endif
                             </div>
                             <div class="info">
                                 <p>{{$fish->traditional_name}}</p>
