@@ -4,7 +4,7 @@
 
 header {
     width: 100%;
-    height: 50vh;
+    height: auto;
     background-image: url("../../images/header-l.png");
     background-size: cover;
     background-position: center;
