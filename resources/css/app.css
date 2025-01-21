@@ -4,30 +4,17 @@
 
 header {
     width: 100%;
-    height: 50vh;
-    background-image: url("../../images/header-l.png");
-    background-size: cover;
-    background-position: contain;
-    background-repeat: no-repeat;
+    height: auto;
+    /* 根據圖片比例調整高度 */
 }
 
-/* 平板裝置 */
-@media (max-width: 1024px) {
-    header {
-        background-image: url('../../images/header-m.png');
-        /* 載入中圖 */
-    }
+.responsive-img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    /* 保持圖片完整顯示 */
 }
 
-/* 手機裝置 */
-@media (max-width: 768px) {
-    header {
-        background-image: url('../../images/header-s.png');
-        /* 載入小圖 */
-        height: 25vh;
-        /* 可根據需求縮小高度 */
-    }
-}
 
 .main {
     position: relative;
