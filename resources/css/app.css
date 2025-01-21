@@ -24,7 +24,7 @@ header {
     header {
         background-image: url('../../images/header-s.png');
         /* 載入小圖 */
-        height: 40vh;
+        height: 25vh;
         /* 可根據需求縮小高度 */
     }
 }
