@@ -27,6 +27,9 @@
                     <source media="(min-width: 481px)" srcset="{{secure_asset('/images/header-s.png')}}">
                     <img src="{{secure_asset('/images/header-l.png')}}"  class="responsive-img" loading="lazy">
                 </picture>
+                <div class="header-content">
+                    <h1>我們用手竿釣的魚</h1>
+                </div>
             </header>
             <div class="main"> 
             @foreach ($fishes as $fish)
