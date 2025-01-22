@@ -10,6 +10,10 @@ class FishController extends Controller
     //
     public function index()
     {
+        return view('index');
+    }
+
+    public function getList(){
         $fishes = Fish::all();
         return view('welcome',['fishes'=>$fishes]);
     }

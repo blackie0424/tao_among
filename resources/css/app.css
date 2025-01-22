@@ -123,7 +123,6 @@ header {
     /* 圖片高度填滿容器 */
     object-fit: contain;
     /* 保持圖片比例並完整顯示 */
-
 }
 
 .info {
@@ -191,3 +190,4 @@ footer {
 .text {
     color: #555;
 }
+
