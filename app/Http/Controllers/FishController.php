@@ -13,4 +13,9 @@ class FishController extends Controller
         $fishes = Fish::all();
         return view('welcome',['fishes'=>$fishes]);
     }
+
+    public function getFish($id){
+        $fish = Fish::find($id);
+        return view('fish',['fish'=>$fish]);
+    }
 }

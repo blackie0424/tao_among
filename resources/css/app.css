@@ -177,3 +177,17 @@ footer {
     clear: both;
     text-align: center;
 }
+
+.section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.text {
+    color: #555;
+}

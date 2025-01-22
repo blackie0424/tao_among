@@ -23,36 +23,41 @@
         <div class="container mx-auto">
             @include('header')
             <div class="main"> 
-            @foreach ($fishes as $fish)
-                <div class="card" onclick="flipCard(this)"> <!-- **新增 onclick="flipCard(this)"，實現點擊翻轉效果** -->
-                        <!-- 正面內容 -->
-                        <div class="card-front"> <!-- **新增 card-front，定義卡片正面** -->
-                            <div class="image">
-                                @if($fish->image != null)
-                                <img src="{{secure_asset('/images/'.$fish->image)}}" alt="" loading="lazy">
-                                @else
-                                <img src="{{secure_asset('/images/default.png')}}" alt="" loading="lazy">
-                                @endif
-                            </div>
-                            <div class="info">
-                                <p><a href="/fish/{{$fish->id}}">{{$fish->traditional_name}}</a></p>
-                                <p>{{$fish->name}}</p>
-                                <div class="type">{{$fish->type}}</div>
-                            </div>
-                        </div>
-                        <!-- 反面內容 -->
-                        <div class="card-back"> <!-- **新增 card-back，定義卡片反面** -->
-                            @if($fish->description != null)
-                                <div class="info description">{{$fish->description}}</div>
-                            @else
-                                <div class="info description" style="text-align:center">尚未有資料</div>
-                            @endif
-                        </div>
+                <div class="show_image">
+                    @if($fish->image != null)
+                    <img src="{{secure_asset('/images/'.$fish->image)}}" alt="" loading="lazy">
+                    @else
+                    <img src="{{secure_asset('/images/default.png')}}" alt="" loading="lazy">
+                    @endif
                 </div>
-            @endforeach
-            </div>
-            <div id="load_more">
-                <a>查看更多</a>
+                <div class="section">
+                    <div class="section-title">名稱</div>
+                    <div class="text">{{$fish->traditional_name}}</div>
+                </div>
+                <div class="section">
+                    <div class="section-title">學名</div>
+                    <div class="text">{{$fish->name}}</div>
+                </div>
+                <div class="section">
+                    <div class="section-title">分類</div>
+                    <div class="text">{{$fish->type}}</div>
+                </div>
+                <div class="section">
+                    <div class="section-title">分布地區</div>
+                    <div class="text">{{$fish->distribution_area}}</div>
+                </div>
+                <div class="section">
+                    <div class="section-title">傳統價值</div>
+                    <div class="text">{{$fish->traditional_value}}</div>
+                </div>
+                <div class="section">
+                    <div class="section-title">游棲生態</div>
+                    <div class="text">{{$fish->ecology}}</div>
+                </div>
+                <div class="section">
+                    <div class="section-title">經驗分享</div>
+                    <div class="text">{{$fish->experience_share}}</div>
+                </div>
             </div>
             <footer>Copyright © 2025 Chungyueh</footer>
         </div>
