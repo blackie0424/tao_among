@@ -40,6 +40,14 @@ header {
     /* 文字陰影讓文字更清晰 */
 }
 
+/* 手機裝置 */
+@media (max-width: 768px) {
+    .header-content h1 {
+        /* 標題字體大小 */
+        font-size: 1rem;
+    }
+}
+
 
 .main {
     position: relative;
