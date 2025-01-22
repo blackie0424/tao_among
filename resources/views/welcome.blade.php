@@ -21,16 +21,7 @@
     </head>
     <body class="font-sans antialiased">
         <div class="container mx-auto">
-            <header>
-                <picture>
-                    <source media="(min-width: 1025px)" srcset="{{secure_asset('/images/header-m.png')}}">
-                    <source media="(min-width: 481px)" srcset="{{secure_asset('/images/header-s.png')}}">
-                    <img src="{{secure_asset('/images/header-l.png')}}"  class="responsive-img" loading="lazy">
-                </picture>
-                <div class="header-content">
-                    <h1>我們用手竿釣的魚</h1>
-                </div>
-            </header>
+            @include('header')
             <div class="main"> 
             @foreach ($fishes as $fish)
                 <div class="card" onclick="flipCard(this)"> <!-- **新增 onclick="flipCard(this)"，實現點擊翻轉效果** -->
