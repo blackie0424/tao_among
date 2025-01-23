@@ -1,0 +1,65 @@
+/* 手機橫向模式強制滿版 */
+@media (max-width: 768px) {
+    body {
+        background-color: beige;
+        width: 100vh;
+        /* 橫向模式的寬度 */
+        height: 100vw;
+        /* 橫向模式的高度 */
+        overflow: hidden;
+        /* 防止多餘滾動 */
+        transform: rotate(-90deg);
+        /* 整體內容旋轉 */
+        transform-origin: left top;
+        /* 基於左上角旋轉 */
+        position: absolute;
+        top: 100%;
+        /* 避免裁切內容 */
+        left: 0;
+    }
+
+    .main {
+        width: 100vh;
+        height: 100vw;
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: hidden;
+    }
+
+    .responsive-img {
+        width: 100vh;
+        /* 圖片寬度與手機高度對應 */
+        height: auto;
+        /* 保持圖片不等比例縮放 */
+        object-fit: none;
+        /* 防止圖片縮放 */
+        object-position: center center;
+        /* 圖片置中顯示 */
+    }
+
+    .header-content {
+        position: absolute;
+        width: 100%;
+        height: auto;
+        top: 50%;
+        /* 讓文字容器垂直居中 */
+        left: 50%;
+        transform: rotate(90deg) translate(-50%, -50%);
+        /* 文字轉回正向並居中 */
+        transform-origin: center center;
+        /* 基於容器中心旋轉 */
+        color: #ffffff;
+        text-align: center;
+        z-index: 1;
+    }
+
+    .header-content h1 {
+        font-size: 2rem;
+        /* 手機橫向適配的字體大小 */
+        font-weight: bold;
+        margin: 0;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        /* 增加文字可讀性 */
+    }
+}

@@ -9,46 +9,6 @@ header {
     position: relative;
 }
 
-.responsive-img {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    /* 保持圖片完整顯示 */
-}
-
-/* 文字容器樣式 */
-.header-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    /* 讓文字居中 */
-    color: #ffffff;
-    /* 設定文字顏色 */
-    text-align: center;
-    z-index: 1;
-    /* 確保文字在圖片上方 */
-}
-
-/* 文字樣式調整 */
-.header-content h1 {
-    font-size: 2.5rem;
-    /* 標題字體大小 */
-    font-weight: bold;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-    /* 文字陰影讓文字更清晰 */
-}
-
-/* 手機裝置 */
-@media (max-width: 768px) {
-    .header-content h1 {
-        /* 標題字體大小 */
-        font-size: 1rem;
-    }
-}
-
-
 .main {
     position: relative;
 }
@@ -190,4 +150,3 @@ footer {
 .text {
     color: #555;
 }
-
