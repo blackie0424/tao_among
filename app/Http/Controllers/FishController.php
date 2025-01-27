@@ -18,4 +18,12 @@ class FishController extends Controller
         $fish = Fish::find($id);
         return view('fish',['fish'=>$fish]);
     }
+
+    public function getFishs(){
+        $fishes = Fish::all();
+        if ($fishes->isEmpty()) {
+            return response()->json(['message' => '沒有資料']);
+        }
+        return response()->json($fishes);
+    }
 }
