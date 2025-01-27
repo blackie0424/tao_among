@@ -24,6 +24,11 @@ class FishController extends Controller
         if ($fishes->isEmpty()) {
             return response()->json(['message' => '沒有資料']);
         }
+
+        $assetUrl = env('ASSET_URL', 'https://example.com/images/');
+        foreach ($fishes as $fish) {
+            $fish->image = $assetUrl ."/images/". $fish->image;
+        }
         return response()->json($fishes);
     }
 }
