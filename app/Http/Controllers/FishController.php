@@ -27,7 +27,7 @@ class FishController extends Controller
 
         $assetUrl = env('ASSET_URL', 'https://example.com/images/');
         foreach ($fishes as $fish) {
-            if ($fishes->isEmpty()) {
+            if ($fishes->isEmpty() || $fish->image == null) {
                 $fish->image = $assetUrl ."/images/default.png";
             } else {
                 $fish->image = $assetUrl ."/images/".$fish->image;
