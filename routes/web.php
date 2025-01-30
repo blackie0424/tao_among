@@ -6,7 +6,7 @@ use App\Http\Controllers\FishController;
 
 Route::get('/', [FishController::class, 'index']);
 
-Route::get('/api/fish/{id}', [FishController::class, 'getFishById']);
+Route::get('/apifish/{id}', [FishController::class, 'getFishById']);
 Route::get('/fishs', [FishController::class, 'getFishs']);
 
 Route::get('/fish/{id}', [FishController::class, 'getFish']);
