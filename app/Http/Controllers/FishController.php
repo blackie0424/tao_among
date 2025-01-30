@@ -35,4 +35,9 @@ class FishController extends Controller
         }
         return response()->json($fishes);
     }
+    
+    public function getFishById($id) {
+        $fish = Fish::find($id);
+        return response()->json($fish);
+    }
 }
