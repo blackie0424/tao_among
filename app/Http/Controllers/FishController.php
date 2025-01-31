@@ -38,6 +38,16 @@ class FishController extends Controller
     
     public function getFishById($id) {
         $fish = Fish::find($id);
+        if($fish == null) {
+            return response()->json(['message' => '沒有資料']);
+        }
+        $assetUrl = env('ASSET_URL', 'https://example.com/images/');
+        if($fish->image == null || $fish->image == ''){
+            $fish->image = $assetUrl ."/images/default.png";
+        }else{
+            $fish->image = $assetUrl ."/images/".$fish->image;
+        }
+       
         return response()->json($fish);
     }
 }
