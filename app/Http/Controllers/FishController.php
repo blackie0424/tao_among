@@ -37,6 +37,9 @@ class FishController extends Controller
     }
     
     public function getFishById($id) {
+        if($id == null || $id == ''){ {
+            return response()->json(['message' => '沒有資料']);
+        }
         $fish = Fish::find($id);
         if($fish == null) {
             return response()->json(['message' => '沒有資料']);
