@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CreateFishRequest;
 use App\Models\Fish;
-use Illuminate\Http\Request;
 
 class FishController extends Controller
 {
@@ -60,16 +60,9 @@ class FishController extends Controller
         return response()->json($fish);
     }
 
-    public function create(Request $request)
+    public function create(CreateFishRequest $request)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string'],
-            'type' => ['nullable', 'string'],
-            'locate' => ['required', 'string'],
-            'image' => ['required', 'string'],
-        ]);
-
-        $fish = Fish::create($validated);
+        $fish = Fish::create($request->validated());
 
         return response()->json(['message' => 'fish created successfully', 'data' => $fish], 201);
     }
