@@ -40,8 +40,10 @@ it('can not  create a fish ,  fish name is empty', function () {
     // 確保回應正確
     $response->assertStatus(422)
         ->assertJson([
-            'message' => 'fish can not created',
-            'data' => $data,
+            'message' => 'The name field is required.',
+            'errors' => [
+                'name' => ['The name field is required.'],
+            ],
         ]);
 
 });
@@ -62,8 +64,10 @@ it('can not  create a fish ,  fish locate is empty', function () {
     // 確保回應正確
     $response->assertStatus(422)
         ->assertJson([
-            'message' => 'fish can not created',
-            'data' => $data,
+            'message' => 'The locate field is required.',
+            'errors' => [
+                'locate' => ['The locate field is required.'],
+            ],
         ]);
 
 });
@@ -84,8 +88,10 @@ it('can not  create a fish ,  fish image is empty', function () {
     // 確保回應正確
     $response->assertStatus(422)
         ->assertJson([
-            'message' => 'fish can not created',
-            'data' => $data,
+            'message' => 'The image field is required.',
+            'errors' => [
+                'image' => ['The image field is required.'],
+            ],
         ]);
 
 });
