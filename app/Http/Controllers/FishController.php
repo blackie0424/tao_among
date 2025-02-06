@@ -63,6 +63,15 @@ class FishController extends Controller
     public function create(Request $request)
     {
         $data = $request->all();
+        if ($data['name'] == null || $data['name'] == '') {
+            return response()->json(['message' => 'fish can not created', 'data' => $data], 201);
+        }
+        if ($data['locate'] == null || $data['locate'] == '') {
+            return response()->json(['message' => 'fish can not created', 'data' => $data], 201);
+        }
+        if ($data['image'] == null || $data['image'] == '') {
+            return response()->json(['message' => 'fish can not created', 'data' => $data], 201);
+        }
         $fish = new Fish;
         $fish->name = $data['name'];
         $fish->type = $data['type'];
