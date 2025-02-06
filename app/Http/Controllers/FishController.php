@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Fish;
 
 class FishController extends Controller
@@ -11,15 +10,19 @@ class FishController extends Controller
     public function index()
     {
         $fishes = Fish::all();
-        return view('welcome',['fishes'=>$fishes]);
+
+        return view('welcome', ['fishes' => $fishes]);
     }
 
-    public function getFish($id){
+    public function getFish($id)
+    {
         $fish = Fish::find($id);
-        return view('fish',['fish'=>$fish]);
+
+        return view('fish', ['fish' => $fish]);
     }
 
-    public function getFishs(){
+    public function getFishs()
+    {
         $fishes = Fish::all();
         if ($fishes->isEmpty()) {
             return response()->json(['message' => '沒有資料']);
@@ -28,29 +31,31 @@ class FishController extends Controller
         $assetUrl = env('ASSET_URL', 'https://example.com/images/');
         foreach ($fishes as $fish) {
             if ($fishes->isEmpty() || $fish->image == null) {
-                $fish->image = $assetUrl ."/images/default.png";
+                $fish->image = $assetUrl.'/images/default.png';
             } else {
-                $fish->image = $assetUrl ."/images/".$fish->image;
+                $fish->image = $assetUrl.'/images/'.$fish->image;
             }
         }
+
         return response()->json($fishes);
     }
-    
-    public function getFishById($id) {
-        if($id == null || $id == '' || $id == 'index'){
+
+    public function getFishById($id)
+    {
+        if ($id == null || $id == '' || $id == 'index') {
             return response()->json(['message' => '沒有資料']);
         }
         $fish = Fish::find($id);
-        if($fish == null) {
+        if ($fish == null) {
             return response()->json(['message' => '沒有資料']);
         }
         $assetUrl = env('ASSET_URL', 'https://example.com/images/');
-        if($fish->image == null || $fish->image == ''){
-            $fish->image = $assetUrl ."/images/default.png";
-        }else{
-            $fish->image = $assetUrl ."/images/".$fish->image;
+        if ($fish->image == null || $fish->image == '') {
+            $fish->image = $assetUrl.'/images/default.png';
+        } else {
+            $fish->image = $assetUrl.'/images/'.$fish->image;
         }
-       
+
         return response()->json($fish);
     }
 }
