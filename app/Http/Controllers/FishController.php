@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fish;
+use Illuminate\Http\Request;
 
 class FishController extends Controller
 {
@@ -57,5 +58,18 @@ class FishController extends Controller
         }
 
         return response()->json($fish);
+    }
+
+    public function create(Request $request)
+    {
+        $data = $request->all();
+        $fish = new Fish;
+        $fish->name = $data['name'];
+        $fish->type = $data['type'];
+        $fish->locate = $data['locate'];
+        $fish->image = $data['image'];
+        $fish->save();
+
+        return response()->json(['message' => 'fish created successfully', 'data' => $data], 201);
     }
 }
