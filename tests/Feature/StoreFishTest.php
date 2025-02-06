@@ -38,7 +38,7 @@ it('can not  create a fish ,  fish name is empty', function () {
     $response = $this->postJson('/apifish', $data);
 
     // 確保回應正確
-    $response->assertStatus(201)
+    $response->assertStatus(422)
         ->assertJson([
             'message' => 'fish can not created',
             'data' => $data,
@@ -60,7 +60,7 @@ it('can not  create a fish ,  fish locate is empty', function () {
     $response = $this->postJson('/apifish', $data);
 
     // 確保回應正確
-    $response->assertStatus(201)
+    $response->assertStatus(422)
         ->assertJson([
             'message' => 'fish can not created',
             'data' => $data,
@@ -82,7 +82,7 @@ it('can not  create a fish ,  fish image is empty', function () {
     $response = $this->postJson('/apifish', $data);
 
     // 確保回應正確
-    $response->assertStatus(201)
+    $response->assertStatus(422)
         ->assertJson([
             'message' => 'fish can not created',
             'data' => $data,
@@ -97,7 +97,7 @@ it('can  create a fish ,  fish type is empty string', function () {
         'name' => 'ilek',
         'type' => '',
         'locate' => 'Iraraley',
-        'image' => '',
+        'image' => 'ilek.png',
     ];
 
     // 發送 POST 請求
@@ -106,7 +106,7 @@ it('can  create a fish ,  fish type is empty string', function () {
     // 確保回應正確
     $response->assertStatus(201)
         ->assertJson([
-            'message' => 'fish can not created',
+            'message' => 'fish created successfully',
             'data' => $data,
         ]);
 
@@ -119,7 +119,7 @@ it('can  create a fish ,  fish type is null', function () {
         'name' => 'ilek',
         'type' => null,
         'locate' => 'Iraraley',
-        'image' => '',
+        'image' => 'ilek.png',
     ];
 
     // 發送 POST 請求
@@ -128,7 +128,7 @@ it('can  create a fish ,  fish type is null', function () {
     // 確保回應正確
     $response->assertStatus(201)
         ->assertJson([
-            'message' => 'fish can not created',
+            'message' => 'fish created successfully',
             'data' => $data,
         ]);
 

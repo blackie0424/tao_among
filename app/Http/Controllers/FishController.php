@@ -64,13 +64,13 @@ class FishController extends Controller
     {
         $data = $request->all();
         if ($data['name'] == null || $data['name'] == '') {
-            return response()->json(['message' => 'fish can not created', 'data' => $data], 201);
+            return response()->json(['message' => 'fish can not created', 'data' => $data], 422);
         }
         if ($data['locate'] == null || $data['locate'] == '') {
-            return response()->json(['message' => 'fish can not created', 'data' => $data], 201);
+            return response()->json(['message' => 'fish can not created', 'data' => $data], 422);
         }
         if ($data['image'] == null || $data['image'] == '') {
-            return response()->json(['message' => 'fish can not created', 'data' => $data], 201);
+            return response()->json(['message' => 'fish can not created', 'data' => $data], 422);
         }
         $fish = new Fish;
         $fish->name = $data['name'];
