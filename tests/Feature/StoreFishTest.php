@@ -17,7 +17,7 @@ it('can create a fish', function () {
     ];
 
     // 發送 POST 請求
-    $response = $this->postJson('/apifish', $data);
+    $response = $this->postJson('/api/fish', $data);
 
     // 確保回應正確
     $response->assertStatus(201)
@@ -41,7 +41,7 @@ it('can not  create a fish ,  fish name is empty', function () {
     ];
 
     // 發送 POST 請求
-    $response = $this->postJson('/apifish', $data);
+    $response = $this->postJson('/api/fish', $data);
 
     // 確保回應正確
     $response->assertStatus(422)
@@ -65,7 +65,7 @@ it('can not  create a fish ,  fish locate is empty', function () {
     ];
 
     // 發送 POST 請求
-    $response = $this->postJson('/apifish', $data);
+    $response = $this->postJson('/api/fish', $data);
 
     // 確保回應正確
     $response->assertStatus(422)
@@ -89,7 +89,7 @@ it('can not  create a fish ,  fish image is empty', function () {
     ];
 
     // 發送 POST 請求
-    $response = $this->postJson('/apifish', $data);
+    $response = $this->postJson('/api/fish', $data);
 
     // 確保回應正確
     $response->assertStatus(422)
@@ -113,7 +113,7 @@ it('can  create a fish ,  fish type is empty string', function () {
     ];
 
     // 發送 POST 請求
-    $response = $this->postJson('/apifish', $data);
+    $response = $this->postJson('/api/fish', $data);
 
     // 確保回應正確
     $response->assertStatus(201)
@@ -135,7 +135,7 @@ it('can  create a fish ,  fish type is null', function () {
     ];
 
     // 發送 POST 請求
-    $response = $this->postJson('/apifish', $data);
+    $response = $this->postJson('/api/fish', $data);
 
     // 確保回應正確
     $response->assertStatus(201)
@@ -151,7 +151,7 @@ it('fish image can be uploaded, check response is 201 and message is image uploa
 
     $file = UploadedFile::fake()->image('ilek.jpg');
 
-    $response = $this->post('/apifish/upload', [
+    $response = $this->post('/api/fish/upload', [
         'image' => $file,
     ]);
 
@@ -167,7 +167,7 @@ it('fish image can be uploaded, check image exist', function () {
 
     $file = UploadedFile::fake()->image('ilek.jpg');
 
-    $response = $this->post('/apifish/upload', [
+    $response = $this->post('/api/fish/upload', [
         'image' => $file,
     ]);
 
@@ -179,7 +179,7 @@ it('Fish image upload failed due to excessive file size', function () {
 
     $file = UploadedFile::fake()->image('ilek.jpg')->size(10240);
 
-    $response = $this->post('/apifish/upload', [
+    $response = $this->post('/api/fish/upload', [
         'image' => $file,
     ]);
 
@@ -198,7 +198,7 @@ it('Fish image upload failed due to an unsupported file type.', function () {
 
     $file = UploadedFile::fake()->create('document.pdf', 1024);
 
-    $response = $this->post('/apifish/upload', [
+    $response = $this->post('/api/fish/upload', [
         'image' => $file,
     ]);
 
