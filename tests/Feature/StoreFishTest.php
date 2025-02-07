@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
 it('can create a fish', function () {
 
     // 測試資料
@@ -138,4 +141,32 @@ it('can  create a fish ,  fish type is null', function () {
             'data' => $data,
         ]);
 
+});
+
+it('fish image can be uploaded, check response is 201 and message is image uploaded successfully', function () {
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->image('ilek.jpg');
+
+    $response = $this->post('/apifish/upload', [
+        'image' => $file,
+    ]);
+
+    $response->assertStatus(201)
+        ->assertJson([
+            'message' => 'image uploaded successfully',
+            'data' => 'images/'.$file->hashName(),
+        ]);
+});
+
+it('fish image can be uploaded, check image exist', function () {
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->image('ilek.jpg');
+
+    $response = $this->post('/apifish/upload', [
+        'image' => $file,
+    ]);
+
+    Storage::disk('public')->assertExists('images/'.$file->hashName());
 });

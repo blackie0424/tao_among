@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [FishController::class, 'index']);
 Route::get('/apifish', [FishController::class, 'getFishs']);
 Route::post('/apifish', [FishController::class, 'create']);
+Route::post('/apifish/upload', [FishController::class, 'uploadImage']);
 
 Route::get('/apifish/{id}', [FishController::class, 'getFishById']);
 

@@ -66,4 +66,16 @@ class FishController extends Controller
 
         return response()->json(['message' => 'fish created successfully', 'data' => $fish], 201);
     }
+
+    public function uploadImage()
+    {
+        $request = request();
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        $imagePath = $request->file('image')->store('images', 'public');
+
+        return response()->json(['message' => 'image uploaded successfully', 'data' => $imagePath], 201);
+    }
 }
