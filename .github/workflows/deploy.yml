@@ -1,0 +1,40 @@
+name: Deploy Laravel Application
+
+on:
+  push:
+    branches:
+      - main  # 只有當代碼推送到 main 分支時觸發工作流
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # 在 Ubuntu 環境中運行
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # 檢出代碼
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'  # 設定 PHP 版本
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist  # 安裝 Composer 依賴
+
+      - name: Set up environment variables for Neon DB
+        run: |
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
+          echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
+          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+      - name: Run database migrations
+        run: php artisan migrate --force  # 強制執行資料庫遷移
