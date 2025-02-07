@@ -173,3 +173,22 @@ it('fish image can be uploaded, check image exist', function () {
 
     Storage::disk('public')->assertExists('images/'.$file->hashName());
 });
+
+it('Fish image upload failed due to excessive file size', function () {
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->image('ilek.jpg')->size(10240);
+
+    $response = $this->post('/apifish/upload', [
+        'image' => $file,
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => 'image upload failed',
+            'data' => [
+                'image' => ['The image field must not be greater than 2048 kilobytes.'],
+            ],
+        ]);
+
+});
