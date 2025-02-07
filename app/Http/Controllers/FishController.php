@@ -83,7 +83,8 @@ class FishController extends Controller
         }
 
         $imagePath = $request->file('image')->store('images', 'public');
+        $imageName = basename($imagePath);
 
-        return response()->json(['message' => 'image uploaded successfully', 'data' => $imagePath], 201);
+        return response()->json(['message' => 'image uploaded successfully', 'data' => $imageName], 201);
     }
 }

@@ -158,7 +158,7 @@ it('fish image can be uploaded, check response is 201 and message is image uploa
     $response->assertStatus(201)
         ->assertJson([
             'message' => 'image uploaded successfully',
-            'data' => 'images/'.$file->hashName(),
+            'data' => $file->hashName(),
         ]);
 });
 
