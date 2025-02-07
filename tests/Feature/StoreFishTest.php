@@ -192,3 +192,25 @@ it('Fish image upload failed due to excessive file size', function () {
         ]);
 
 });
+
+it('Fish image upload failed due to an unsupported file type.', function () {
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->create('document.pdf', 1024);
+
+    $response = $this->post('/apifish/upload', [
+        'image' => $file,
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => 'image upload failed',
+            'data' => [
+                'image' => [
+                    'The image field must be an image.',
+                    'The image field must be a file of type: jpeg, png, jpg, gif, svg.',
+                ],
+            ],
+        ]);
+
+});
