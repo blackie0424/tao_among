@@ -16,7 +16,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'  # 設定 PHP 版本
+          php-version: '8.2'  # 設定 PHP 版本
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist  # 安裝 Composer 依賴
