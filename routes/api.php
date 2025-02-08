@@ -14,4 +14,4 @@ Route::post('/fish', [FishController::class, 'create']);
 Route::post('/fish/upload', [UploadController::class, 'uploadImage']);
 Route::get('/fish/{id}', [FishController::class, 'getFishById']);
 
-Route::post('/fish/upload2', [UploadController::class, 'uploadImageToSupabase']);
+Route::post('/fish/uploadTest', [UploadController::class, 'uploadImageToSupabase']);
