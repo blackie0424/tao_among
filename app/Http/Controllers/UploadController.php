@@ -13,6 +13,8 @@ class UploadController extends Controller
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['message' => 'image upload failed', 'data' => $e->errors()], 400);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Upload failed', 'error' => $e->getMessage()], 500);
         }
 
         $imagePath = $request->file('image')->store('images', 'public');
