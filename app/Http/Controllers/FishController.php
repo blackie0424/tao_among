@@ -54,12 +54,10 @@ class FishController extends Controller
 
     public function getFishById($id)
     {
-        if ($id == null || $id == '' || $id == 'index') {
-            return response()->json(['message' => '沒有資料']);
-        }
+
         $fish = Fish::find($id);
-        if ($fish == null) {
-            return response()->json(['message' => '沒有資料']);
+        if (empty($fish)) {
+            return response()->json(['message' => 'data not found']);
         }
         $assetUrl = env('ASSET_URL', 'https://example.com/images/');
         if ($fish->image == null || $fish->image == '') {
