@@ -19,10 +19,26 @@ class UploadController extends Controller
             return response()->json(['message' => 'Upload failed', 'error' => $e->getMessage()], 500);
         }
 
-        $imagePath = $request->file('image')->store('images', 'public');
-        $imageName = basename($imagePath);
+        if (env('APP_ENV') === 'local' || env('APP_ENV') === 'testing') {
+            $imagePath = $request->file('image')->store('images', 'public');
+            $imageName = basename($imagePath);
 
-        return response()->json(['message' => 'image uploaded successfully', 'data' => $imageName], 201);
+            return response()->json(['message' => 'image uploaded successfully', 'data' => $imageName], 201);
+
+        } else {
+            $file = $request->file('image');
+            $path = 'images';
+            $storageService = new SupabaseStorageService;
+
+            $filePath = $storageService->uploadFile($file, $path);
+            if (! $filePath) {
+                return response()->json(['message' => 'Upload failed'], 500);
+            }
+            $url = $storageService->getUrl($filePath);
+            $imageName = basename($filePath);
+
+            return response()->json(['message' => 'image uploaded successfully', 'data' => $imageName], 201);
+        }
     }
 
     public function uploadImageToSupabase()
