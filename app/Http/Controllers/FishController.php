@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateFishRequest;
 use App\Models\Fish;
+use App\Services\SupabaseStorageService;
 
 class FishController extends Controller
 {
