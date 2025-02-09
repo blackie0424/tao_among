@@ -28,11 +28,7 @@
                         <!-- 正面內容 -->
                         <div class="card-front"> <!-- **新增 card-front，定義卡片正面** -->
                             <div class="image">
-                                @if($fish->image != null)
-                                <img src="{{secure_asset('/images/'.$fish->image)}}" alt="" loading="lazy">
-                                @else
-                                <img src="{{secure_asset('/images/default.png')}}" alt="" loading="lazy">
-                                @endif
+                                <img src="{{$fish->image}}" alt="" loading="lazy">
                             </div>
                             <div class="info">
                                 <p><a href="/fish/{{$fish->id}}">{{$fish->traditional_name}}</a></p>
