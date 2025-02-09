@@ -4,35 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateFishRequest;
 use App\Models\Fish;
+use App\Services\FishService;
 use App\Services\SupabaseStorageService;
 
 class FishController extends Controller
 {
-    //
-    public function index()
-    {
-        $fishes = Fish::all();
-        if (env('APP_ENV') == 'local' || env('APP_ENV') == 'testing') {
-            $assetUrl = env('ASSET_URL');
-            foreach ($fishes as $fish) {
-                if ($fishes->isEmpty() || $fish->image == null) {
-                    $fish->image = $assetUrl.'/images/default.png';
-                } else {
-                    $fish->image = $assetUrl.'/images/'.$fish->image;
-                }
-            }
-        } else {
-            foreach ($fishes as $fish) {
-                $storageService = new SupabaseStorageService;
-                if ($fishes->isEmpty() || $fish->image == null) {
-                    $fish->image = $storageService->getUrl('default.png');
-                } else {
-                    $fish->image = $storageService->getUrl($fish->image);
-                }
-            }
-        }
+    protected $fishService;
 
-        return view('welcome', ['fishes' => $fishes]);
+    public function __construct(FishService $fishService)
+    {
+        $this->fishService = $fishService;
+    }
+
+    public function index(): View
+    {
+        return view('welcome', ['fishes' => $this->fishService->getAllFishes()]);
     }
 
     public function getFish($id)
