@@ -21,11 +21,9 @@ class FishController extends Controller
         return view('welcome', ['fishes' => $this->fishService->getAllFishes()]);
     }
 
-    public function getFish($id)
+    public function getFish($id): View
     {
-        $fish = Fish::find($id);
-
-        return view('fish', ['fish' => $fish]);
+        return view('fish', ['fish' => $this->fishService->getFishById($id)]);
     }
 
     public function getFishs()
