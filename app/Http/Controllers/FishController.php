@@ -59,11 +59,20 @@ class FishController extends Controller
         if (empty($fish)) {
             return response()->json(['message' => 'data not found']);
         }
-        $assetUrl = env('ASSET_URL', 'https://example.com/images/');
-        if ($fish->image == null || $fish->image == '') {
-            $fish->image = $assetUrl.'/images/default.png';
+        if (env('APP_ENV') == 'local' || env('APP_ENV') == 'testing') {
+            $assetUrl = env('ASSET_URL');
+            if ($fish->image == null || $fish->image == '') {
+                $fish->image = $assetUrl.'/images/default.png';
+            } else {
+                $fish->image = $assetUrl.'/images/'.$fish->image;
+            }
         } else {
-            $fish->image = $assetUrl.'/images/'.$fish->image;
+            $storageService = new SupabaseStorageService;
+            if ($fish->image == null || $fish->image == '') {
+                $fish->image = $storageService->getUrl('default.png');
+            } else {
+                $fish->image = $storageService->getUrl($fish->image);
+            }
         }
 
         return response()->json(['message' => 'success', 'data' => $fish]);
