@@ -43,6 +43,25 @@ it('can get no data', function () {
         ]);
 });
 
+it('can get a fish data by fish id', function () {
+
+    // 測試資料
+    $fish = Fish::factory()->create();
+
+    // 構建完整的圖片路徑
+    $fish->image = env('ASSET_URL').'/images/'.$fish->image;
+
+    // 發送 GET 請求
+    $response = $this->get('/prefix/api/fish/'.$fish->id);
+
+    // 確保回應正確
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => $fish->toArray(),
+        ]);
+});
+
 it('can create a fish', function () {
 
     // 測試資料

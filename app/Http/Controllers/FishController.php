@@ -68,7 +68,7 @@ class FishController extends Controller
             $fish->image = $assetUrl.'/images/'.$fish->image;
         }
 
-        return response()->json($fish);
+        return response()->json(['message' => 'success', 'data' => $fish]);
     }
 
     public function create(CreateFishRequest $request)
