@@ -7,7 +7,7 @@ it('fish image can be uploaded, check response is 201 and message is image uploa
 
     $file = UploadedFile::fake()->image('ilek.jpg');
 
-    $response = $this->post('/prefix/api/fish/upload', [
+    $response = $this->post('/prefix/api/upload', [
         'image' => $file,
     ]);
 
@@ -23,7 +23,7 @@ it('fish image can be uploaded, check image exist', function () {
 
     $file = UploadedFile::fake()->image('ilek.jpg');
 
-    $response = $this->post('/prefix/api/fish/upload', [
+    $response = $this->post('/prefix/api/upload', [
         'image' => $file,
     ]);
 
@@ -35,7 +35,7 @@ it('Fish image upload failed due to excessive file size', function () {
 
     $file = UploadedFile::fake()->image('ilek.jpg')->size(10240);
 
-    $response = $this->post('/prefix/api/fish/upload', [
+    $response = $this->post('/prefix/api/upload', [
         'image' => $file,
     ]);
 
@@ -54,7 +54,7 @@ it('Fish image upload failed due to an unsupported file type.', function () {
 
     $file = UploadedFile::fake()->create('document.pdf', 1024);
 
-    $response = $this->post('/prefix/api/fish/upload', [
+    $response = $this->post('/prefix/api/upload', [
         'image' => $file,
     ]);
 
