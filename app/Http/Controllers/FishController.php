@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CreateFishRequest;
 use App\Models\Fish;
 use App\Services\FishService;
-use App\Services\SupabaseStorageService;
 use Illuminate\Http\JsonResponse;
 
 class FishController extends Controller
@@ -37,30 +36,14 @@ class FishController extends Controller
         ]);
     }
 
-    public function getFishById($id)
+    public function getFishById($id): JsonResponse
     {
+        $fish = $this->fishService->getFishById($id);
 
-        $fish = Fish::find($id);
-        if (empty($fish)) {
-            return response()->json(['message' => 'data not found']);
-        }
-        if (env('APP_ENV') == 'local' || env('APP_ENV') == 'testing') {
-            $assetUrl = env('ASSET_URL');
-            if ($fish->image == null || $fish->image == '') {
-                $fish->image = $assetUrl.'/images/default.png';
-            } else {
-                $fish->image = $assetUrl.'/images/'.$fish->image;
-            }
-        } else {
-            $storageService = new SupabaseStorageService;
-            if ($fish->image == null || $fish->image == '') {
-                $fish->image = $storageService->getUrl('default.png');
-            } else {
-                $fish->image = $storageService->getUrl($fish->image);
-            }
-        }
-
-        return response()->json(['message' => 'success', 'data' => $fish]);
+        return response()->json([
+            'message' => ! empty($fish) ? 'success' : 'data not found',
+            'data' => ! empty($fish) ? $fish : [],
+        ]);
     }
 
     public function create(CreateFishRequest $request)
