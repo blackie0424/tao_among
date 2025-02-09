@@ -28,13 +28,23 @@ class FishController extends Controller
         if ($fishes->isEmpty()) {
             return response()->json(['message' => 'No data available', 'data' => []]);
         }
-
-        $assetUrl = env('ASSET_URL');
-        foreach ($fishes as $fish) {
-            if ($fishes->isEmpty() || $fish->image == null) {
-                $fish->image = $assetUrl.'/images/default.png';
-            } else {
-                $fish->image = $assetUrl.'/images/'.$fish->image;
+        if (env('APP_ENV') == 'local' || env('APP_ENV') == 'testing') {
+            $assetUrl = env('ASSET_URL');
+            foreach ($fishes as $fish) {
+                if ($fishes->isEmpty() || $fish->image == null) {
+                    $fish->image = $assetUrl.'/images/default.png';
+                } else {
+                    $fish->image = $assetUrl.'/images/'.$fish->image;
+                }
+            }
+        } else {
+            foreach ($fishes as $fish) {
+                $storageService = new SupabaseStorageService;
+                if ($fishes->isEmpty() || $fish->image == null) {
+                    $fish->image = $storageService->getUrl('default.png');
+                } else {
+                    $fish->image = $storageService->getUrl($fish->image);
+                }
             }
         }
 

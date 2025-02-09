@@ -41,6 +41,6 @@ class SupabaseStorageService
 
     public function getUrl(string $filename): string
     {
-        return "{$this->storageUrl}/object/public/{$this->bucket}/{$filename}";
+        return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
     }
 }
