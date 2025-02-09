@@ -1,8 +1,47 @@
 <?php
 
+use App\Models\Fish;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+it('can get fish list', function () {
+
+    // 測試資料
+    $fishs = Fish::factory()->count(3)->create();
+
+    // 構建完整的圖片路徑
+    $fishsWithImageUrl = $fishs->map(function ($fish) {
+        // 假設你的 ASSET_URL 是存儲在 config('app.asset_url') 中
+        $fish->image = env('ASSET_URL').'/images/'.$fish->image;
+    });
+
+    // 發送 GET 請求
+    $response = $this->get('/prefix/api/fish');
+
+    // 確保回應正確
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => $fishs->toArray(),
+        ]);
+});
+
+it('can get no data', function () {
+
+    // 測試資料
+    $fishs = Fish::factory()->count(0)->create();
+
+    // 發送 GET 請求
+    $response = $this->get('/prefix/api/fish');
+
+    // 確保回應正確
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'No data available',
+            'data' => $fishs->toArray(),
+        ]);
+});
 
 it('can create a fish', function () {
 

@@ -26,10 +26,10 @@ class FishController extends Controller
     {
         $fishes = Fish::all();
         if ($fishes->isEmpty()) {
-            return response()->json(['message' => '沒有資料']);
+            return response()->json(['message' => 'No data available', 'data' => []]);
         }
 
-        $assetUrl = env('ASSET_URL', 'https://example.com/images/');
+        $assetUrl = env('ASSET_URL');
         foreach ($fishes as $fish) {
             if ($fishes->isEmpty() || $fish->image == null) {
                 $fish->image = $assetUrl.'/images/default.png';
@@ -38,7 +38,7 @@ class FishController extends Controller
             }
         }
 
-        return response()->json($fishes);
+        return response()->json(['message' => 'success', 'data' => $fishes]);
     }
 
     public function getFishById($id)
