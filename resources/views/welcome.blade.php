@@ -24,25 +24,18 @@
             @include('header')
             <div class="main"> 
             @foreach ($fishes as $fish)
-                <div class="card" onclick="flipCard(this)"> <!-- **新增 onclick="flipCard(this)"，實現點擊翻轉效果** -->
-                        <!-- 正面內容 -->
-                        <div class="card-front"> <!-- **新增 card-front，定義卡片正面** -->
+                <div class="card"> 
+                        <div class="card-front"> 
                             <div class="image">
                                 <img src="{{$fish->image}}" alt="" loading="lazy">
                             </div>
                             <div class="info">
-                                <p><a href="/fish/{{$fish->id}}">{{$fish->traditional_name}}</a></p>
-                                <p>{{$fish->name}}</p>
+                                <div class="name">
+                                    <a href="/fish/{{$fish->id}}">{{$fish->name}}</a>
+                                </div>
+                                <div class="locate">{{$fish->locate}}</div>
                                 <div class="type">{{$fish->type}}</div>
                             </div>
-                        </div>
-                        <!-- 反面內容 -->
-                        <div class="card-back"> <!-- **新增 card-back，定義卡片反面** -->
-                            @if($fish->description != null)
-                                <div class="info description">{{$fish->description}}</div>
-                            @else
-                                <div class="info description" style="text-align:center">尚未有資料</div>
-                            @endif
                         </div>
                 </div>
             @endforeach
