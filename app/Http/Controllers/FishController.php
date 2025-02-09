@@ -50,10 +50,12 @@ class FishController extends Controller
     {
         try {
             $fish = Fish::create($request->validated());
+
+            return response()->json(['message' => 'fish created successfully', 'data' => $fish], 201);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['message' => 'fish created failed', 'data' => $e->errors()], 400);
         }
 
-        return response()->json(['message' => 'fish created successfully', 'data' => $fish], 201);
     }
 }
