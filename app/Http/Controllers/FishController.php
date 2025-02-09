@@ -6,6 +6,7 @@ use App\Http\Requests\CreateFishRequest;
 use App\Models\Fish;
 use App\Services\FishService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 class FishController extends Controller
 {
