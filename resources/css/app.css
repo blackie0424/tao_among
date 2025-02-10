@@ -78,17 +78,12 @@ header {
     left: 25px;
     display: flex;
     overflow: hidden;
-    /* 防止超出範圍 */
 }
 
 .image img {
     width: 100%;
-    /* 圖片寬度填滿容器 */
     height: 100%;
-    /* 圖片高度填滿容器 */
     object-fit: contain;
-    /* 保持圖片比例並完整顯示 */
-
 }
 
 .info {

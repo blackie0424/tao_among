@@ -24,22 +24,14 @@
             @include('header')
             <div class="main"> 
                 <div class="show_image">
-                    @if($fish->image != null)
-                    <img src="{{secure_asset('/images/'.$fish->image)}}" alt="" loading="lazy">
-                    @else
-                    <img src="{{secure_asset('/images/default.png')}}" alt="" loading="lazy">
-                    @endif
+                    <img src="{{$fish->image}}" alt="" loading="lazy">
                 </div>
                 <div class="section">
-                    <div class="section-title">名稱</div>
-                    <div class="text">{{$fish->traditional_name}}</div>
-                </div>
-                <div class="section">
-                    <div class="section-title">學名</div>
+                    <div class="section-title">ngaran no among</div>
                     <div class="text">{{$fish->name}}</div>
                 </div>
                 <div class="section">
-                    <div class="section-title">分類</div>
+                    <div class="section-title">oyod kano rahet</div>
                     <div class="text">{{$fish->type}}</div>
                 </div>
                 <div class="section">
