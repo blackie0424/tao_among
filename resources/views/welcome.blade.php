@@ -30,11 +30,13 @@
                                 <img src="{{$fish->image}}" alt="" loading="lazy">
                             </div>
                             <div class="info">
-                                <div class="name">
+                                <div class="textFrame">
                                     <a href="/fish/{{$fish->id}}">{{$fish->name}}</a>
                                 </div>
-                                <div class="locate">{{$fish->locate}}</div>
-                                <div class="type">{{$fish->type}}</div>
+                                <div class="row">
+                                    <div class="textFrame" id="locate">{{$fish->locate}}</div>
+                                    <div class="textFrame" id="type">{{$fish->type}}</div>
+                                </div>
                             </div>
                         </div>
                 </div>
