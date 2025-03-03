@@ -33,7 +33,7 @@ class FishController extends Controller
 
         return response()->json([
             'message' => $fishes->isNotEmpty() ? 'success' : 'No data available',
-            'data' => $fishes->isNotEmpty() ? $fishes : [],
+            'data' => $fishes->isNotEmpty() ? $fishes : null,
         ]);
     }
 
@@ -43,7 +43,7 @@ class FishController extends Controller
 
         return response()->json([
             'message' => ! empty($fish) ? 'success' : 'data not found',
-            'data' => ! empty($fish) ? $fish : [],
+            'data' => ! empty($fish) ? $fish : null,
         ]);
     }
 
