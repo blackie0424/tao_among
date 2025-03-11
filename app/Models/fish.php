@@ -16,5 +16,5 @@ class fish extends Model
      */
     protected $table = 'fish';
 
-    protected $fillable = ['name', 'type', 'locate', 'image'];
+    protected $fillable = ['name', 'type', 'locate', 'image','process'];
 }
