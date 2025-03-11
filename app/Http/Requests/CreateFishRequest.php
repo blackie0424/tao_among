@@ -18,6 +18,7 @@ class CreateFishRequest extends FormRequest
             'type' => ['nullable', 'string'],
             'locate' => ['required', 'string'],
             'image' => ['required', 'string'],
+            'process' => ['required', 'string'],
         ];
     }
 }
