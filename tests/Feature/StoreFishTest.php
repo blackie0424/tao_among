@@ -103,6 +103,7 @@ it('can create a fish', function () {
         'type' => 'oyod',
         'locate' => 'Iraraley',
         'image' => 'ilek.jpg',
+        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -127,6 +128,7 @@ it('can not  create a fish ,  fish name is empty', function () {
         'type' => 'oyod',
         'locate' => 'Iraraley',
         'image' => 'ilek.jpg',
+        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -151,6 +153,7 @@ it('can not  create a fish ,  fish locate is empty', function () {
         'type' => 'oyod',
         'locate' => '',
         'image' => 'ilek.jpg',
+        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -175,6 +178,7 @@ it('can not  create a fish ,  fish image is empty', function () {
         'type' => 'oyod',
         'locate' => 'Iraraley',
         'image' => '',
+        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -199,6 +203,7 @@ it('can  create a fish ,  fish type is empty string', function () {
         'type' => '',
         'locate' => 'Iraraley',
         'image' => 'ilek.png',
+        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -221,6 +226,7 @@ it('can  create a fish ,  fish type is null', function () {
         'type' => null,
         'locate' => 'Iraraley',
         'image' => 'ilek.png',
+        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -234,3 +240,48 @@ it('can  create a fish ,  fish type is null', function () {
         ]);
 
 });
+
+it('can not  create a fish ,  missing  a process data', function () {
+
+    // 測試資料
+    $data = [
+        'name' => 'ilek',
+        'type' => 'oyod',
+        'locate' => 'Iraraley',
+        'image' => 'ilek.png',
+    ];
+
+    // 發送 POST 請求
+    $response = $this->postJson('/prefix/api/fish', $data);
+
+    // 確保回應正確
+    $response->assertStatus(422)
+    ->assertJson([
+        'message' => 'The process field is required.',
+        'errors' => [
+            'process' => ['The process field is required.'],
+        ],
+    ]);
+
+});
+
+it('can not  create a fish ,  missing  are process and locate data', function () {
+
+    // 測試資料
+    $data = [
+        'name' => 'ilek',
+        'type' => 'oyod',
+        'image' => 'ilek.png',
+    ];
+
+    // 發送 POST 請求
+    $response = $this->postJson('/prefix/api/fish', $data);
+
+    // 確保回應正確
+    $response->assertStatus(422)
+    ->assertJson([
+        'message' => 'The locate field is required. (and 1 more error)',
+    ]);
+
+});
+
