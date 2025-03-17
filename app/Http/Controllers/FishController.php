@@ -34,6 +34,7 @@ class FishController extends Controller
         return response()->json([
             'message' => $fishes->isNotEmpty() ? 'success' : 'No data available',
             'data' => $fishes->isNotEmpty() ? $fishes : null,
+            'lastUpdateTime' => time()
         ]);
     }
 

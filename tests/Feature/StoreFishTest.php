@@ -24,6 +24,7 @@ it('can get fish list', function () {
         ->assertJson([
             'message' => 'success',
             'data' => $fishs->toArray(),
+            'lastUpdateTime' => time()
         ]);
 });
 
