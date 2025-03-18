@@ -394,3 +394,16 @@ it('can get 0 fishes by time condition', function () {
             'lastUpdateTime' => time()
         ])->assertJsonCount(0, 'data');
 });
+
+it('returns empty array when database is empty', function () {
+    $since = strtotime("2025/03/07");
+    $response = $this->get('/prefix/api/fish?since=' . $since);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'No data available',
+            'data' => [],
+            'lastUpdateTime' => time()
+        ])
+        ->assertJsonCount(0, 'data');
+});
