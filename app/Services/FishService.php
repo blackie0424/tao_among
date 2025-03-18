@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use \Carbon\Carbon;
+
 use App\Models\Fish;
 
 class FishService
@@ -16,6 +18,14 @@ class FishService
     public function getAllFishes()
     {
         $fishes = Fish::all();
+
+        return $this->assignImageUrls($fishes);
+    }
+
+    public function getFishesBySince($since)
+    {
+        $sinceDate =Carbon::createFromTimestamp($since);
+        $fishes = Fish::where('created_at', '>', $sinceDate)->get();
 
         return $this->assignImageUrls($fishes);
     }

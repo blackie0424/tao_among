@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Http\Request;
 use App\Http\Requests\CreateFishRequest;
 use App\Models\Fish;
 use App\Services\FishService;
@@ -27,13 +27,18 @@ class FishController extends Controller
         return view('fish', ['fish' => $this->fishService->getFishById($id)]);
     }
 
-    public function getFishs(): JsonResponse
+    public function getFishs(Request $request): JsonResponse
     {
-        $fishes = $this->fishService->getAllFishes();
-
+        // 獲取查詢參數 since，若無則設為 null
+        $since = $request->query('since') ?  $request->query('since') : null;
+        if($since){
+            $fishes = $this->fishService->getFishesBySince($since);
+        }else{
+            $fishes = $this->fishService->getAllFishes();
+        }
         return response()->json([
             'message' => $fishes->isNotEmpty() ? 'success' : 'No data available',
-            'data' => $fishes->isNotEmpty() ? $fishes : null,
+            'data' =>  $fishes->isNotEmpty() ? $fishes : null,
             'lastUpdateTime' => time()
         ]);
     }
