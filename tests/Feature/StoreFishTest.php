@@ -407,3 +407,10 @@ it('returns empty array when database is empty', function () {
         ])
         ->assertJsonCount(0, 'data');
 });
+
+it('handles invalid since parameter gracefully', function () {
+    // 測試非數值
+    $response = $this->get('/prefix/api/fish?since=invalid');
+    $response->assertStatus(400)
+        ->assertJson(['message' => 'Invalid since parameter']);
+});
