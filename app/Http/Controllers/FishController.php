@@ -30,19 +30,21 @@ class FishController extends Controller
 
     public function getFishs(Request $request): JsonResponse
     {
-        // 獲取查詢參數 since，若無則設為 null
-        $since = $request->query('since') ? $request->query('since') : null;
-        if ($since) {
-            if (!is_numeric($since)) {
-                return response()->json(['message' => 'Invalid since parameter'], 400);
-            }
-            $fishes = $this->fishService->getFishesBySince($since);
-        } else {
-            $fishes = $this->fishService->getAllFishes();
+
+        $since = $request->query('since');
+        if ($since && !is_numeric($since)) {
+            return response()->json([
+                'message' => 'Invalid since parameter',
+                'data' => null,
+                'lastUpdateTime' => time()
+            ], 400);
         }
+
+        $fishes = $since ? $this->fishService->getFishesBySince($since) : $this->fishService->getAllFishes();
+
         return response()->json([
             'message' => $fishes->isNotEmpty() ? 'success' : 'No data available',
-            'data' =>  $fishes->isNotEmpty() ? $fishes : [],
+            'data' => $fishes->isNotEmpty() ? $fishes : [],
             'lastUpdateTime' => time()
         ]);
     }

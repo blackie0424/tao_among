@@ -412,5 +412,6 @@ it('handles invalid since parameter gracefully', function () {
     // 測試非數值
     $response = $this->get('/prefix/api/fish?since=invalid');
     $response->assertStatus(400)
-        ->assertJson(['message' => 'Invalid since parameter']);
+        ->assertJson(['message' => 'Invalid since parameter'])
+        ->assertJson(['data' => null]);
 });
