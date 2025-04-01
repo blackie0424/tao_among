@@ -32,7 +32,7 @@ class FishService
 
     public function getFishById($id)
     {
-        $fish = Fish::find($id);
+        $fish = Fish::with('notes')->findOrFail($id);
 
         return $fish ? $this->assignImageUrls([$fish])[0] : null;
     }
