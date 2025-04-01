@@ -71,4 +71,24 @@ class FishController extends Controller
         }
 
     }
+
+    public function addFishNote(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'note' => 'required|string',
+            'note_type' => 'required|string|max:50',
+        ]);
+
+        $fishNote = $this->fishService->addFishNote(
+            $id, // 直接從路由參數取得 fish_id
+            $request->note,
+            $request->note_type
+        );
+
+        return response()->json([
+            'message' => 'Note added successfully',
+            'data' => $fishNote,
+            'lastUpdateTime' => time()
+        ], 201);
+    }
 }

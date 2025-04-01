@@ -56,4 +56,12 @@ class FishService
 
         return $fishes;
     }
+
+    public function addFishNote($fishId, $note, $noteType)
+    {
+        return Fish::findOrFail($fishId)->notes()->create([
+            'note' => $note,
+            'note_type' => $noteType,
+        ]);
+    }
 }
