@@ -51,12 +51,20 @@ class FishController extends Controller
 
     public function getFishById($id): JsonResponse
     {
-        $fish = $this->fishService->getFishById($id);
-
-        return response()->json([
-            'message' => ! empty($fish) ? 'success' : 'data not found',
-            'data' => ! empty($fish) ? $fish : null,
-        ]);
+        try {
+            $fish = $this->fishService->getFishById($id);
+            return response()->json([
+                'message' => 'success',
+                'data' => $fish,
+                'lastUpdateTime' => time()
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'data not found',
+                'data' => null,
+                'lastUpdateTime' => time()
+            ], 404);
+        }
     }
 
     public function create(CreateFishRequest $request)

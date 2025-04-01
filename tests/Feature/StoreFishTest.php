@@ -90,7 +90,7 @@ it('can not find fish data beacuse fish id is not exist', function () {
     $response = $this->get('/prefix/api/fish/'.$fish->id + 1);
 
     // 確保回應正確
-    $response->assertStatus(200)
+    $response->assertStatus(404)
         ->assertJson([
             'message' => 'data not found',
         ]);
