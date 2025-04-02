@@ -65,8 +65,8 @@ it('returns fish details with notes', function () {
     ]);
 
     $response = $this->getJson("/prefix/api/fish/{$fish->id}");
-    
-    $response->assertStatus(200)
+
+    $response->assertStatus(200)    
         ->assertJson([
             'message' => 'success',
             'data' => [
@@ -82,7 +82,26 @@ it('returns fish details with notes', function () {
                         'note' => 'Found in deep water.',
                         'note_type' => 'habitat',
                     ],
+                ]
+            ],
+        ])
+        ->assertJsonStructure([
+            'message',
+            'data' => [
+                'id',
+                'name',
+                'type',
+                'locate',
+                'process',
+                'image',
+                'notes' => [
+                    '*' => [
+                        'fish_id',
+                        'note',
+                        'note_type',
+                    ],
                 ],
             ],
-        ]);
+            'lastUpdateTime'
+        ]); 
 });
