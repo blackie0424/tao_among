@@ -42,3 +42,14 @@ it('returns 404 when querying non-existent fish id', function () {
             'data' => null,
         ]);
 });
+
+it('fails to add note with missing required fields', function () {
+    $fish = Fish::factory()->create();
+    
+    $response = $this->postJson("/prefix/api/fish/{$fish->id}/note", [
+        'note_type' => 'observation', // 缺少 note
+    ]);
+
+    $response->assertStatus(422) // 驗證失敗返回 422
+        ->assertJsonValidationErrors(['note']);
+});
