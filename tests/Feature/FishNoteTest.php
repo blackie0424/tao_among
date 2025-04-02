@@ -53,3 +53,36 @@ it('fails to add note with missing required fields', function () {
     $response->assertStatus(422) // 驗證失敗返回 422
         ->assertJsonValidationErrors(['note']);
 });
+
+
+// 測試案例 4：查詢魚類詳細資料包含筆記
+it('returns fish details with notes', function () {
+    $fish = Fish::factory()->create(['name' => 'cilat','type'=>'rahet','locate'=>'yayo','process' => 'isisan','image'=>'cilat.png' ]);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'Found in deep water.',
+        'note_type' => 'habitat',
+    ]);
+
+    $response = $this->getJson("/prefix/api/fish/{$fish->id}");
+    
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => [
+                'id' => $fish->id,
+                'name' => 'cilat',
+                'type'=>'rahet',
+                'locate'=>'yayo',
+                'process' => 'isisan',
+                'image'=>'http://tao_among.test/images/cilat.png',
+                'notes' => [
+                    [
+                        'fish_id' => $fish->id,
+                        'note' => 'Found in deep water.',
+                        'note_type' => 'habitat',
+                    ],
+                ],
+            ],
+        ]);
+});
