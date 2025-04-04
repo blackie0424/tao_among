@@ -3,6 +3,8 @@
 use App\Models\Fish;
 use App\Models\FishNote;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Carbon\Carbon;
+
 
 uses(RefreshDatabase::class);
 
@@ -104,4 +106,71 @@ it('returns fish details with notes', function () {
             ],
             'lastUpdateTime'
         ]); 
+});
+
+it('returns notes since a given time for a fish', function () {
+    $fish = Fish::factory()->create(['name' => 'cilat']);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'Old note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-03-01'),
+    ]);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'Recent note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-04-02'),
+    ]);
+
+    $since = Carbon::parse('2025-04-01')->timestamp;
+    $response = $this->getJson("/prefix/api/fish/{$fish->id}/notes?since={$since}");
+    
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => [
+                [
+                    'fish_id' => $fish->id,
+                    'note' => 'Recent note',
+                    'note_type' => 'habitat',
+                ],
+            ],
+        ])
+        ->assertJsonStructure([
+            'message',
+            'data' => ['*' => ['fish_id', 'note', 'note_type']],
+            'lastUpdateTime',
+        ]);
+});
+
+it('returns no notes since a given time for a fish', function () {
+    $fish = Fish::factory()->create(['name' => 'cilat']);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'Old note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-03-01'),
+    ]);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'Recent note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-03-31'),
+    ]);
+
+    $since = Carbon::parse('2025-04-01')->timestamp;
+    $response = $this->getJson("/prefix/api/fish/{$fish->id}/notes?since={$since}");
+    
+    $response->assertStatus(200)
+        ->assertExactJson([
+            'message' => 'success',
+            'data' => [],
+            'lastUpdateTime' => $response->json('lastUpdateTime')
+        ])
+        ->assertJsonStructure([
+            'message',
+            'data',
+            'lastUpdateTime',
+        ]);
 });

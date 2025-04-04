@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests\CreateFishRequest;
 use App\Models\Fish;
+use App\Models\FishNote;
 use App\Services\FishService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
+use Carbon\Carbon;
+
 
 class FishController extends Controller
 {
@@ -66,6 +69,39 @@ class FishController extends Controller
             ], 404);
         }
     }
+
+    public function getFishNotesSince($id,Request $request): JsonResponse
+    {
+        $since = $request->query('since');
+        if ($since && !is_numeric($since)) {
+            return response()->json([
+                'message' => 'Invalid since parameter',
+                'data' => null,
+                'lastUpdateTime' => time()
+            ], 400);
+        }
+
+        $sinceDate = $since ? Carbon::createFromTimestamp($since) : null;
+        $notes = FishNote::where('fish_id', $id)
+            ->where('created_at', '>', $sinceDate)
+            ->get();
+
+        if ($notes->isEmpty() && !Fish::find($id)) {
+            return response()->json([
+                'message' => 'Fish not found',
+                'data' => null,
+                'lastUpdateTime' => time()
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $notes,
+            'lastUpdateTime' => time()
+        ]);
+    }
+
+    
 
     public function create(CreateFishRequest $request)
     {
