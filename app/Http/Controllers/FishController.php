@@ -82,9 +82,12 @@ class FishController extends Controller
         }
 
         $sinceDate = $since ? Carbon::createFromTimestamp($since) : null;
-        $notes = FishNote::where('fish_id', $id)
-            ->where('created_at', '>', $sinceDate)
-            ->get();
+
+        if($since){
+            $notes = FishNote::where('fish_id', $id)->where('created_at', '>', $sinceDate)->get();
+        }else{
+            $notes = FishNote::where('fish_id', $id)->get();
+        }
 
         if ($notes->isEmpty() && !Fish::find($id)) {
             return response()->json([
@@ -99,6 +102,7 @@ class FishController extends Controller
             'data' => $notes,
             'lastUpdateTime' => time()
         ]);
+        
     }
 
     

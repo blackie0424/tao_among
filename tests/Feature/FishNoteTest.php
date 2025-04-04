@@ -154,7 +154,7 @@ it('returns no notes since a given time for a fish', function () {
     ]);
     FishNote::factory()->create([
         'fish_id' => $fish->id,
-        'note' => 'Recent note',
+        'note' => 'Old note',
         'note_type' => 'habitat',
         'created_at' => Carbon::parse('2025-03-31'),
     ]);
@@ -166,6 +166,45 @@ it('returns no notes since a given time for a fish', function () {
         ->assertExactJson([
             'message' => 'success',
             'data' => [],
+            'lastUpdateTime' => $response->json('lastUpdateTime')
+        ])
+        ->assertJsonStructure([
+            'message',
+            'data',
+            'lastUpdateTime',
+        ]);
+});
+
+it('returns all notes when since is not provided for a fish', function () {
+    $fish = Fish::factory()->create(['name' => 'cilat']);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'note1',
+        'note_type' => 'habitat',
+    ]);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'note2',
+        'note_type' => 'habitat',
+    ]);
+
+    $response = $this->getJson("/prefix/api/fish/{$fish->id}/notes");
+    
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => [
+                [
+                    'fish_id' => $fish->id,
+                    'note' => 'note1',
+                    'note_type' => 'habitat',
+                ],
+                [
+                    'fish_id' => $fish->id,
+                    'note' => 'note2',
+                    'note_type' => 'habitat',
+                ]
+            ],
             'lastUpdateTime' => $response->json('lastUpdateTime')
         ])
         ->assertJsonStructure([
