@@ -133,20 +133,6 @@ header {
     border: 2px solid #e88e35;
 }
 
-#load_more {
-    clear: both;
-
-    margin: 0 5px;
-    padding: 5px;
-    border-radius: 50px;
-
-    text-align: center;
-    font-weight: bold;
-    border: 2px solid #6f4fd9;
-
-    cursor: pointer;
-}
-
 footer {
     clear: both;
     text-align: center;
