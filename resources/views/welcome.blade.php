@@ -35,6 +35,7 @@
                                 </div>
                                 <div class="row">
                                     <div class="textFrame" id="locate">{{$fish->locate}}</div>
+                                    <div class="textFrame" id="process">{{$fish->process}}</div>
                                     <div class="textFrame" id="type">{{$fish->type}}</div>
                                 </div>
                             </div>
