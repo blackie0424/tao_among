@@ -20,12 +20,13 @@
         @endif
     </head>
     <body class="font-sans antialiased">
+        <!-- 色調切換按鈕 -->
+    <button id="theme-toggle">Toggle Theme</button>
         <div class="container mx-auto">
             @include('header')
             <div class="main"> 
             @foreach ($fishes as $fish)
                 <div class="card"> 
-                        <div class="card-front"> 
                             <div class="image">
                                 <img src="{{$fish->image}}" alt="" loading="lazy">
                             </div>
@@ -39,7 +40,6 @@
                                     <div class="textFrame" id="type">{{$fish->type}}</div>
                                 </div>
                             </div>
-                        </div>
                 </div>
             @endforeach
             </div>
@@ -47,3 +47,42 @@
         </div>
     </body>
 </html>
+<!-- JavaScript 切換黑夜模式 -->
+<script>
+        function toggleDarkMode() {
+            const now = new Date();
+            const hour = now.getHours();
+            // 白天：6:00 AM - 6:00 PM，否則為黑夜
+            const isDayTime = hour >= 6 && hour < 18;
+            document.documentElement.classList.toggle('dark', !isDayTime);
+            updateToggleButton();
+        }
+
+        function updateToggleButton() {
+            const toggleButton = document.getElementById('theme-toggle');
+            if (document.documentElement.classList.contains('dark')) {
+                toggleButton.textContent = 'Light Mode';
+            } else {
+                toggleButton.textContent = 'Dark Mode';
+            }
+        }
+
+        // 初次載入時檢查
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+        } else {
+            toggleDarkMode();
+        }
+
+        // 切換按鈕事件
+        const toggleButton = document.getElementById('theme-toggle');
+        toggleButton.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            updateToggleButton();
+        });
+
+        // 可選：每分鐘檢查一次時間
+        setInterval(toggleDarkMode, 60000);
+    </script>
