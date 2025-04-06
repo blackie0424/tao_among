@@ -155,6 +155,16 @@ footer {
     padding: 1.5rem 0;
 }
 
+.section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
 .text {
     color: #555;
 }
