@@ -19,7 +19,6 @@
     "env": {
         "APP_ENV": "production",
         "APP_DEBUG": "true",
-        "APP_URL": "https://tao-amiong.vercel.app",
         "APP_KEY": "base64:7lIzDrCDSyDaWp4jrVlfri8Al3f+ztkM3QT5bL+2f4M=",
         "APP_CONFIG_CACHE": "/tmp/config.php",
         "APP_EVENTS_CACHE": "/tmp/events.php",
@@ -29,7 +28,6 @@
         "VIEW_COMPILED_PATH": "/tmp",
         "CACHE_DRIVER": "array",
         "LOG_CHANNEL": "stderr",
-        "SESSION_DRIVER": "cookie",
-        "ASSET_URL": "https://tao-among.vercel.app"
+        "SESSION_DRIVER": "cookie"
     }
 }
