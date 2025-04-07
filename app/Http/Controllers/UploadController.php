@@ -11,7 +11,7 @@ class UploadController extends Controller
         $request = request();
         try {
             $request->validate([
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:4403',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['message' => 'image upload failed', 'data' => $e->errors()], 400);
