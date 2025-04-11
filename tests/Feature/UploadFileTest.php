@@ -43,7 +43,7 @@ it('Fish image upload failed due to excessive file size', function () {
         ->assertJson([
             'message' => 'image upload failed',
             'data' => [
-                'image' => ['The image field must not be greater than 2048 kilobytes.'],
+                'image' => ['The image field must not be greater than 4403 kilobytes.'],
             ],
         ]);
 
