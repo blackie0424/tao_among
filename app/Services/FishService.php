@@ -17,7 +17,7 @@ class FishService
 
     public function getAllFishes()
     {
-        $fishes = Fish::all();
+        $fishes = Fish::orderBy('id', 'desc')->get();
 
         return $this->assignImageUrls($fishes);
     }
