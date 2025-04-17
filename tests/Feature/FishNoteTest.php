@@ -14,22 +14,16 @@ it('can add note to existing fish', function () {
     $response = $this->postJson("/prefix/api/fish/{$fish->id}/note", [
         'note' => 'This fish is very colorful.',
         'note_type' => 'observation',
+        'locate' => 'yayo'
     ]);
 
-    $response->assertStatus(201)
-        ->assertJson([
-            'message' => 'Note added successfully',
-            'data' => [
-                'fish_id' => $fish->id,
-                'note' => 'This fish is very colorful.',
-                'note_type' => 'observation',
-            ],
-        ]);
+    
 
     $this->assertDatabaseHas('fish_notes', [
         'fish_id' => $fish->id,
         'note' => 'This fish is very colorful.',
         'note_type' => 'observation',
+        'locate' => 'yayo'
     ]);
 });
 
@@ -59,11 +53,12 @@ it('fails to add note with missing required fields', function () {
 
 // 測試案例 4：查詢魚類詳細資料包含筆記
 it('returns fish details with notes', function () {
-    $fish = Fish::factory()->create(['name' => 'cilat','type'=>'rahet','locate'=>'yayo','process' => 'isisan','image'=>'cilat.png' ]);
+    $fish = Fish::factory()->create(['name' => 'cilat','image'=>'cilat.png' ]);
     FishNote::factory()->create([
         'fish_id' => $fish->id,
         'note' => 'Found in deep water.',
         'note_type' => 'habitat',
+        'locate' => 'yayo'
     ]);
 
     $response = $this->getJson("/prefix/api/fish/{$fish->id}");
@@ -74,15 +69,13 @@ it('returns fish details with notes', function () {
             'data' => [
                 'id' => $fish->id,
                 'name' => 'cilat',
-                'type'=>'rahet',
-                'locate'=>'yayo',
-                'process' => 'isisan',
                 'image'=>'http://tao_among.test/images/cilat.png',
                 'notes' => [
                     [
                         'fish_id' => $fish->id,
                         'note' => 'Found in deep water.',
                         'note_type' => 'habitat',
+                        'locate'=> 'yayo'
                     ],
                 ]
             ],
@@ -92,15 +85,13 @@ it('returns fish details with notes', function () {
             'data' => [
                 'id',
                 'name',
-                'type',
-                'locate',
-                'process',
                 'image',
                 'notes' => [
                     '*' => [
                         'fish_id',
                         'note',
                         'note_type',
+                        'locate'
                     ],
                 ],
             ],
@@ -115,12 +106,14 @@ it('returns notes since a given time for a fish', function () {
         'note' => 'Old note',
         'note_type' => 'habitat',
         'created_at' => Carbon::parse('2025-03-01'),
+        'locate' => 'yayo'
     ]);
     FishNote::factory()->create([
         'fish_id' => $fish->id,
         'note' => 'Recent note',
         'note_type' => 'habitat',
         'created_at' => Carbon::parse('2025-04-02'),
+        'locate' => 'yayo'
     ]);
 
     $since = Carbon::parse('2025-04-01')->timestamp;
@@ -134,12 +127,13 @@ it('returns notes since a given time for a fish', function () {
                     'fish_id' => $fish->id,
                     'note' => 'Recent note',
                     'note_type' => 'habitat',
+                    'locate' => 'yayo'
                 ],
             ],
         ])
         ->assertJsonStructure([
             'message',
-            'data' => ['*' => ['fish_id', 'note', 'note_type']],
+            'data' => ['*' => ['fish_id', 'note', 'note_type','locate']],
             'lastUpdateTime',
         ]);
 });

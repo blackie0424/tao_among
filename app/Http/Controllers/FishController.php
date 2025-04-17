@@ -125,12 +125,14 @@ class FishController extends Controller
         $request->validate([
             'note' => 'required|string',
             'note_type' => 'required|string|max:50',
+            'locate' => 'required|string|max:20',
         ]);
 
         $fishNote = $this->fishService->addFishNote(
             $id, // 直接從路由參數取得 fish_id
             $request->note,
-            $request->note_type
+            $request->note_type,
+            $request->locate
         );
 
         return response()->json([

@@ -17,7 +17,7 @@ class fish extends Model
      */
     protected $table = 'fish';
 
-    protected $fillable = ['name', 'type', 'locate', 'image','process'];
+    protected $fillable = ['name', 'image'];
 
     // 一對多關聯：一隻魚有多個筆記
     public function notes(): HasMany

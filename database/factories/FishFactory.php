@@ -18,10 +18,7 @@ class FishFactory extends Factory
     {
         return [
             'name' => $this->faker->name,
-            'type' => $this->faker->randomElement(['oyod', 'rahet']),
-            'locate' => $this->faker->randomElement(['Iraraley', 'yayo']),
             'image' => $this->faker->unique()->regexify('[a-z0-9]{10}\.(png|jpg|jpeg)'),
-            'process' => $this->faker->randomElement(['isisan', 'jingisisi','kolitan']),
             'created_at' => now(),
             'updated_at' => now(),
         ];

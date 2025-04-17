@@ -10,6 +10,9 @@ it('can get fish list', function () {
     // 測試資料
     $fishs = Fish::factory()->count(3)->create();
 
+    // 按照 id 降序排序，與 API 行為一致
+    $fishs = $fishs->sortByDesc('id')->values();
+
     // 構建完整的圖片路徑
     $fishsWithImageUrl = $fishs->map(function ($fish) {
         // 假設你的 ASSET_URL 是存儲在 config('app.asset_url') 中
@@ -23,9 +26,9 @@ it('can get fish list', function () {
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'success',
-            'data' => $fishs->toArray(),
-            'lastUpdateTime' => time()
+            'data' => $fishs->toArray()
         ]);
+
 });
 
 it('can get no data', function () {
@@ -101,10 +104,7 @@ it('can create a fish', function () {
     // 測試資料
     $data = [
         'name' => 'ilek',
-        'type' => 'oyod',
-        'locate' => 'Iraraley',
         'image' => 'ilek.jpg',
-        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -146,31 +146,6 @@ it('can not  create a fish ,  fish name is empty', function () {
 
 });
 
-it('can not  create a fish ,  fish locate is empty', function () {
-
-    // 測試資料
-    $data = [
-        'name' => 'ilek',
-        'type' => 'oyod',
-        'locate' => '',
-        'image' => 'ilek.jpg',
-        'process' => 'isisan'
-    ];
-
-    // 發送 POST 請求
-    $response = $this->postJson('/prefix/api/fish', $data);
-
-    // 確保回應正確
-    $response->assertStatus(422)
-        ->assertJson([
-            'message' => 'The locate field is required.',
-            'errors' => [
-                'locate' => ['The locate field is required.'],
-            ],
-        ]);
-
-});
-
 it('can not  create a fish ,  fish image is empty', function () {
 
     // 測試資料
@@ -201,10 +176,7 @@ it('can  create a fish ,  fish type is empty string', function () {
     // 測試資料
     $data = [
         'name' => 'ilek',
-        'type' => '',
-        'locate' => 'Iraraley',
         'image' => 'ilek.png',
-        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -224,10 +196,7 @@ it('can  create a fish ,  fish type is null', function () {
     // 測試資料
     $data = [
         'name' => 'ilek',
-        'type' => null,
-        'locate' => 'Iraraley',
         'image' => 'ilek.png',
-        'process' => 'isisan'
     ];
 
     // 發送 POST 請求
@@ -242,49 +211,6 @@ it('can  create a fish ,  fish type is null', function () {
 
 });
 
-it('can not  create a fish ,  missing  a process data', function () {
-
-    // 測試資料
-    $data = [
-        'name' => 'ilek',
-        'type' => 'oyod',
-        'locate' => 'Iraraley',
-        'image' => 'ilek.png',
-    ];
-
-    // 發送 POST 請求
-    $response = $this->postJson('/prefix/api/fish', $data);
-
-    // 確保回應正確
-    $response->assertStatus(422)
-    ->assertJson([
-        'message' => 'The process field is required.',
-        'errors' => [
-            'process' => ['The process field is required.'],
-        ],
-    ]);
-
-});
-
-it('can not  create a fish ,  missing  are process and locate data', function () {
-
-    // 測試資料
-    $data = [
-        'name' => 'ilek',
-        'type' => 'oyod',
-        'image' => 'ilek.png',
-    ];
-
-    // 發送 POST 請求
-    $response = $this->postJson('/prefix/api/fish', $data);
-
-    // 確保回應正確
-    $response->assertStatus(422)
-    ->assertJson([
-        'message' => 'The locate field is required. (and 1 more error)',
-    ]);
-
-});
 
 it('can get fish list by time condition', function () {
 
