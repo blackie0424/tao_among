@@ -104,7 +104,7 @@ header {
     flex-direction: column;
     align-items: center;
     min-width: 300px;
-    min-height: 100px;
+    min-height: 50px;
 }
 
 .textFrame {
@@ -120,32 +120,6 @@ header {
     width: max-content;
     max-width: 300px;
     min-width: 80px;
-}
-
-.row {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    background-color: var(--bg-buttons);
-    padding: 5px;
-    border-radius: 0 0 5% 5%;
-}
-
-#locate {
-    flex-grow: 1;
-    border: 2px solid var(--border-buttons);
-    min-width: 100px;
-}
-
-#process {
-    flex-grow: 1;
-    border: 2px solid var(--border-buttons);
-    min-width: 100px;
-}
-
-#type {
-    width: 80px;
-    border: 2px solid var(--border-buttons);
 }
 
 footer {
@@ -232,4 +206,31 @@ body {
     color: var(--text-primary);
     border-radius: 0.5rem;
     cursor: pointer;
+}
+
+.locate-filter.active {
+    /* 選中狀態：更深的背景色 */
+    background-color: #63b3ed;
+    /* 淺色模式：藍色（bg-blue-400） */
+    color: #1a202c;
+    /* 淺色模式：深灰色文字（text-gray-900） */
+}
+
+.dark .locate-filter.active {
+    /* 深色模式下的選中狀態 */
+    background-color: #2b6cb0;
+    /* 深色模式：深藍色（bg-blue-900） */
+    color: #b91c1c;
+    /* 深色模式：淺灰色文字（text-gray-200） */
+}
+
+/* 選中狀態時移除懸停效果 */
+.locate-filter.active:hover {
+    background-color: #63b3ed;
+    /* 淺色模式：保持選中顏色 */
+}
+
+.dark .locate-filter.active:hover {
+    background-color: #2b6cb0;
+    /* 深色模式：保持選中顏色 */
 }

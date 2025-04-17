@@ -109,9 +109,12 @@
 
             <!-- 按鈕區塊 -->
             <div class="section-buttons flex space-x-4 my-4 p-4 rounded-lg">
-                <button class="px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700">{{$fish->locate}}</button>
-                <button class="px-6 py-2 bg-teal-100 dark:bg-teal-800 text-teal-800 dark:text-teal-200 rounded-full hover:bg-teal-200 dark:hover:bg-teal-700">{{$fish->type}}</button>
-                <button class="px-6 py-2 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 rounded-full hover:bg-purple-200 dark:hover:bg-purple-700">{{$fish->process}}</button>
+                <a href="?locate=iraraley" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iraraley' ? 'active' : '' }}">Iraraley</a>
+                <a href="?locate=iranmailek" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iranmailek' ? 'active' : '' }}">Iranmailek</a>
+                <a href="?locate=ivalino" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'ivalino' ? 'active' : '' }}">Ivalino</a>
+                <a href="?locate=imorod" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'imorod' ? 'active' : '' }}">Imorod</a>
+                <a href="?locate=iratay" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iratay' ? 'active' : '' }}">Iratay | Iratey</a>
+                <a href="?locate=yayo" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'yayo' ? 'active' : '' }}">Yayo</a>
             </div>
 
             <!-- 筆記區塊 -->
