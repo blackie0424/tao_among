@@ -26,9 +26,11 @@ class FishController extends Controller
         return view('welcome', ['fishes' => $this->fishService->getAllFishes()]);
     }
 
-    public function getFish($id): View
+    public function getFish($id,Request $request): View
     {
-        return view('fish', ['fish' => $this->fishService->getFishById($id)]);
+        $locate = $request->query('locate') ?? 'Iraraley';
+        
+        return view('fish', ['fish' =>$this->fishService->getFishByIdAndLocate($id,$locate)]);
     }
 
     public function getFishs(Request $request): JsonResponse

@@ -37,6 +37,14 @@ class FishService
         return $fish ? $this->assignImageUrls([$fish])[0] : null;
     }
 
+    public function getFishByIdAndLocate($id,$locate)  {
+        $fish = Fish::with(['notes' => function ($query) use ($locate) {
+            $query->where('locate', $locate);
+        }])->findOrFail($id);
+
+        return $fish ? $this->assignImageUrls([$fish])[0] : null;
+    }
+
     private function assignImageUrls($fishes)
     {
         if (empty($fishes)) {
