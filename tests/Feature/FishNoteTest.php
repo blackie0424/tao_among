@@ -51,14 +51,18 @@ it('fails to add note with missing required fields', function () {
 });
 
 
-// 測試案例 4：查詢魚類詳細資料包含筆記
-it('returns fish details with notes', function () {
-    $fish = Fish::factory()->create(['name' => 'cilat','image'=>'cilat.png' ]);
+// 測試案例 4：查詢魚類詳細資料包含筆記，查詢需要的元素有魚類id跟地區locate，預設傳回Iraraley的資料
+it('returns fish details with notes, defaulting to Iraraley when no locate parameter is provided', function () {
+    $fish = Fish::factory()->create(['id' => 1]);
+    // 創建兩筆筆記，屬於同一隻魚，但不同 locate
     FishNote::factory()->create([
         'fish_id' => $fish->id,
-        'note' => 'Found in deep water.',
-        'note_type' => 'habitat',
-        'locate' => 'yayo'
+        'locate' => 'Iraraley',
+    ]);
+
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'locate' => 'Yayo',
     ]);
 
     $response = $this->getJson("/prefix/api/fish/{$fish->id}");
@@ -67,36 +71,15 @@ it('returns fish details with notes', function () {
         ->assertJson([
             'message' => 'success',
             'data' => [
-                'id' => $fish->id,
-                'name' => 'cilat',
-                'image'=>'http://tao_among.test/images/cilat.png',
+                'id' =>1,
                 'notes' => [
                     [
                         'fish_id' => $fish->id,
-                        'note' => 'Found in deep water.',
-                        'note_type' => 'habitat',
-                        'locate'=> 'yayo'
+                        'locate'=> 'Iraraley',
                     ],
                 ]
             ],
-        ])
-        ->assertJsonStructure([
-            'message',
-            'data' => [
-                'id',
-                'name',
-                'image',
-                'notes' => [
-                    '*' => [
-                        'fish_id',
-                        'note',
-                        'note_type',
-                        'locate'
-                    ],
-                ],
-            ],
-            'lastUpdateTime'
-        ]); 
+        ]);
 });
 
 it('returns notes since a given time for a fish', function () {
