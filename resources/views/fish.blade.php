@@ -96,6 +96,9 @@
         <button id="theme-toggle" class="fixed top-4 right-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
             版面色調切換
         </button>
+        <a href="/" class="fixed top-4 left-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
+            nivasilan ko a among
+        </a>
             <!-- 圖片區塊 -->
             <div class="show_image w-full max-w-3xl mx-auto mb-6 p-4 rounded-lg shadow-custom">
                 <img src="{{$fish->image}}" alt="{{$fish->name}}" loading="lazy" class="w-full h-auto rounded-lg object-contain">
