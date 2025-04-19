@@ -28,7 +28,7 @@ class FishController extends Controller
 
     public function getFish($id,Request $request): View
     {
-        $locate = $request->query('locate') ?? 'Iraraley';
+        $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
         
         return view('fish', ['fish' =>$this->fishService->getFishByIdAndLocate($id,$locate)]);
     }
