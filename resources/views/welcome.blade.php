@@ -24,23 +24,23 @@
         <button id="theme-toggle" class="fixed top-4 right-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
             版面色調切換
         </button>
-        <div class="container mx-auto">
+        <div class="container mx-auto p-4">
             @include('header')
-            <div class="main"> 
-            @foreach ($fishes as $fish)
-                <div class="card"> 
-                            <div class="image">
-                                <img src="{{$fish->image}}" alt="" loading="lazy">
+            <div class="main grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                @foreach ($fishes as $fish)
+                    <div class="card flex flex-col items-center">
+                        <div class="image w-full h-48 overflow-hidden">
+                            <img src="{{$fish->image}}" alt="{{$fish->name}}" loading="lazy" class="w-full h-full object-contain rounded-lg">
+                        </div>
+                        <div class="info w-full flex justify-center">
+                            <div class="textFrame">
+                                <a href="/fish/{{$fish->id}}" class="text-lg font-bold text-gray-800 dark:text-gray-100">{{$fish->name}}</a>
                             </div>
-                            <div class="info">
-                                <div class="textFrame">
-                                    <a href="/fish/{{$fish->id}}">{{$fish->name}}</a>
-                                </div>
-                            </div>
-                </div>
-            @endforeach
+                        </div>
+                    </div>
+                @endforeach
             </div>
-            <footer>Copyright © 2025 Chungyueh</footer>
+            <footer class="mt-8">Copyright © 2025 Chungyueh</footer>
         </div>
     </body>
 </html>

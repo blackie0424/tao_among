@@ -2,10 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Header styles */
 header {
     width: 100%;
     height: auto;
-    /* 根據圖片比例調整高度 */
     position: relative;
 }
 
@@ -13,78 +13,62 @@ header {
     width: 100%;
     height: auto;
     object-fit: contain;
-    /* 保持圖片完整顯示 */
 }
 
-/* 文字容器樣式 */
+/* Header text positioning */
 .header-content {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    /* 讓文字居中 */
     color: #ffffff;
-    /* 設定文字顏色 */
     text-align: center;
     z-index: 1;
-    /* 確保文字在圖片上方 */
 }
 
-/* 文字樣式調整 */
 .header-content h1 {
     font-size: 2.5rem;
-    /* 標題字體大小 */
     font-weight: bold;
     margin: 0;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-    /* 文字陰影讓文字更清晰 */
 }
 
-/* 手機裝置 */
 @media (max-width: 768px) {
     .header-content h1 {
-        /* 標題字體大小 */
         font-size: 1rem;
     }
 }
 
-
+/* Main container using Tailwind grid (already applied in HTML) */
 .main {
     position: relative;
 }
 
+/* Card styles */
 .card {
     background-color: var(--bg-card);
     border-color: var(--border-card);
     box-shadow: var(--shadow);
     border-width: 2px;
-    margin: 5px;
-    min-width: 330px;
-    min-height: 285px;
-    float: left;
-    border-radius: 5%;
-
-    transform-style: preserve-3d;
-    /* 保持 3D 效果 */
-    transition: transform 0.6s;
-    /* 翻轉效果時間 */
+    border-radius: 10px;
+    /* Rounded corners for the card */
+    min-height: 280px;
+    /* Adjusted height for consistency */
+    transition: transform 0.3s ease;
 }
-
-
 
 .card:hover {
     transform: translateY(-5px);
 }
 
-
+/* Image container */
 .image {
-    margin: auto;
-    width: 250px;
-    height: 150px;
-    position: absolute;
-    top: 25px;
-    left: 25px;
+    width: 100%;
+    height: 200px;
+    /* Increased height to maximize image size */
     display: flex;
+    justify-content: center;
+    align-items: center;
     overflow: hidden;
 }
 
@@ -92,64 +76,56 @@ header {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    border-radius: 8px;
+    /* Rounded corners for images */
 }
 
+/* Info section */
 .info {
-    top: 176px;
-    left: 3px;
-    margin: 0;
-    position: absolute;
+    margin-top: 8px;
+    /* Space between image and text */
     background-color: var(--bg-info);
+    width: 100%;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    min-width: 300px;
-    min-height: 50px;
+    padding: 8px;
+    border-radius: 0 0 8px 8px;
+    /* Match card rounding at the bottom */
 }
 
 .textFrame {
-    border-radius: 50px;
     text-align: center;
-    font-weight: bold;
     padding: 5px 10px;
-    margin: 5px;
 }
 
-.name {
-    border: 2px solid var(--border-name);
-    width: max-content;
-    max-width: 300px;
-    min-width: 80px;
+.textFrame a {
+    color: var(--text-primary);
+    font-weight: bold;
+    transition: color 0.3s ease;
 }
 
+/* Ensure text contrast in dark mode */
+.dark .textFrame a {
+    color: #e5e7eb;
+    /* Lighter text for dark mode (text-gray-200) */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    /* Subtle shadow for better readability */
+}
+
+/* Footer */
 footer {
-    clear: both;
     text-align: center;
     color: var(--text-secondary);
     padding: 1.5rem 0;
 }
 
-.section {
-    margin-bottom: 20px;
-}
-
-.section-title {
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 8px;
-}
-
-.text {
-    color: #555;
-}
-
-/* 自訂樣式 */
-/* CSS 變數定義 */
+/* CSS Variables */
 :root {
     --bg-primary: #f3f4f6;
     /* bg-gray-100 */
     --bg-card: #ffffff;
-    /* 卡片白色背景 */
+    /* Card white background */
     --bg-info: #eff6ff;
     /* bg-blue-50 */
     --bg-buttons: #e5e7eb;
@@ -159,20 +135,20 @@ footer {
     --text-secondary: #4b5563;
     /* text-gray-600 */
     --border-card: #BEB4FA;
-    /* 卡片邊框 */
+    /* Card border */
     --border-name: #d9534f;
-    /* 名稱邊框 */
+    /* Name border */
     --border-buttons: #e88e35;
-    /* 按鈕邊框 */
+    /* Button border */
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* 黑夜模式 */
+/* Dark mode */
 .dark {
     --bg-primary: #1f2937;
     /* bg-gray-800 */
     --bg-card: #374151;
-    /* 卡片深灰 */
+    /* Card dark gray */
     --bg-info: #1e3a8a;
     /* bg-blue-900 */
     --bg-buttons: #4b5563;
@@ -182,55 +158,24 @@ footer {
     --text-secondary: #d1d5db;
     /* text-gray-300 */
     --border-card: #6b7280;
-    /* 深灰邊框 */
+    /* Dark gray border */
     --border-name: #b91c1c;
-    /* 深紅邊框 */
+    /* Dark red border */
     --border-buttons: #c2410c;
-    /* 深橙邊框 */
+    /* Dark orange border */
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
 }
 
-/* 應用變數 */
+/* Apply variables */
 body {
     background-color: var(--bg-primary);
 }
 
-/* 切換按鈕樣式 */
+/* Theme toggle button */
 #theme-toggle {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
     z-index: 1000;
-    padding: 0.5rem 1rem;
     background-color: var(--bg-buttons);
     color: var(--text-primary);
     border-radius: 0.5rem;
     cursor: pointer;
-}
-
-.locate-filter.active {
-    /* 選中狀態：更深的背景色 */
-    background-color: #63b3ed;
-    /* 淺色模式：藍色（bg-blue-400） */
-    color: #1a202c;
-    /* 淺色模式：深灰色文字（text-gray-900） */
-}
-
-.dark .locate-filter.active {
-    /* 深色模式下的選中狀態 */
-    background-color: #2b6cb0;
-    /* 深色模式：深藍色（bg-blue-900） */
-    color: #b91c1c;
-    /* 深色模式：淺灰色文字（text-gray-200） */
-}
-
-/* 選中狀態時移除懸停效果 */
-.locate-filter.active:hover {
-    background-color: #63b3ed;
-    /* 淺色模式：保持選中顏色 */
-}
-
-.dark .locate-filter.active:hover {
-    background-color: #2b6cb0;
-    /* 深色模式：保持選中顏色 */
 }
