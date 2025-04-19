@@ -54,10 +54,11 @@ class FishController extends Controller
         ]);
     }
 
-    public function getFishById($id): JsonResponse
+    public function getFishById($id,Request $request): JsonResponse
     {
         try {
-            $fish = $this->fishService->getFishById($id);
+            $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
+            $fish = $this->fishService->getFishByIdAndLocate($id,$locate);
             return response()->json([
                 'message' => 'success',
                 'data' => $fish,
