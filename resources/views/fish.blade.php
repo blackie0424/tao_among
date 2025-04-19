@@ -112,12 +112,12 @@
 
             <!-- 按鈕區塊 -->
             <div class="section-buttons flex space-x-4 my-4 p-4 rounded-lg">
-                <a href="?locate=iraraley" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iraraley' ? 'active bg-yellow-500 dark:bg-yellow-600' : '' }}">Iraraley</a>
-                <a href="?locate=iranmailek" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iranmailek' ? 'active bg-yellow-500 dark:bg-yellow-600' : '' }}">Iranmailek</a>
-                <a href="?locate=ivalino" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'ivalino' ? 'active bg-yellow-500 dark:bg-yellow-600' : '' }}">Ivalino</a>
-                <a href="?locate=imorod" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'imorod' ? 'active bg-yellow-500 dark:bg-yellow-600' : '' }}">Imorod</a>
-                <a href="?locate=iratay" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iratay' ? 'active bg-yellow-500 dark:bg-yellow-600' : '' }}">Iratay | Iratey</a>
-                <a href="?locate=yayo" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'yayo' ? 'active bg-yellow-500 dark:bg-yellow-600' : '' }}">Yayo</a>
+                <a href="?locate=iraraley" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iraraley' ? ' bg-yellow-500 dark:bg-yellow-600' : '' }}">Iraraley</a>
+                <a href="?locate=iranmailek" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iranmailek' ? ' bg-yellow-500 dark:bg-yellow-600' : '' }}">Iranmailek</a>
+                <a href="?locate=ivalino" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'ivalino' ? ' bg-yellow-500 dark:bg-yellow-600' : '' }}">Ivalino</a>
+                <a href="?locate=imorod" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'imorod' ? ' bg-yellow-500 dark:bg-yellow-600' : '' }}">Imorod</a>
+                <a href="?locate=iratay" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iratay' ? ' bg-yellow-500 dark:bg-yellow-600' : '' }}">Iratay | Iratey</a>
+                <a href="?locate=yayo" class="locate-filter px-6 py-2 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'yayo' ? ' bg-yellow-500 dark:bg-yellow-600' : '' }}">Yayo</a>
             </div>
 
             <!-- 筆記區塊 -->
