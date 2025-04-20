@@ -71,6 +71,7 @@ header {
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    margin: 10px;
 }
 
 .image img {
@@ -83,7 +84,6 @@ header {
 
 /* Info section */
 .info {
-    margin-top: 8px;
     /* Space between image and text */
     background-color: var(--bg-info);
     width: 100%;
