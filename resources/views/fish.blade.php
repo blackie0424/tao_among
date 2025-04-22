@@ -34,6 +34,9 @@
         /* 應用變數 */
         body {
             background-color: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
         }
 
         .bg-beige-100 {
@@ -88,17 +91,37 @@
                 max-width: 720px;
             }
         }
+
+        /* 調整 section-buttons 的父容器 */
+        .button-container {
+            width: 100%;
+            max-width: none; /* 移除 max-width 限制 */
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 調整 section-buttons */
+        .section-buttons {
+            width: fit-content; /* 根據按鈕的實際內容寬度調整 */
+            max-width: 100%; /* 確保不超出父容器 */
+        }
+
+        @media (max-width: 640px) {
+            .section-buttons {
+                width: 100%; /* 小螢幕下保持 100% 寬度 */
+            }
+        }
     </style>
 </head>
 <body class="font-sans antialiased">
     <div class="container mx-auto py-6">
-        <div class="main flex flex-col items-center">
-        <button id="theme-toggle" class="fixed top-4 right-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
-            版面色調切換
-        </button>
-        <a href="/" class="fixed top-4 left-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
-            nivasilan ko a among
-        </a>
+        <div class="flex flex-col items-center">
+            <button id="theme-toggle" class="fixed top-4 right-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
+                版面色調切換
+            </button>
+            <a href="/" class="fixed top-4 left-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
+                nivasilan ko a among
+            </a>
             <!-- 圖片區塊 -->
             <div class="show_image w-full max-w-3xl mx-auto mb-6 p-4 rounded-lg shadow-custom">
                 <img src="{{$fish->image}}" alt="{{$fish->name}}" loading="lazy" class="w-full h-auto rounded-lg object-contain">
@@ -111,13 +134,15 @@
             </div>
 
             <!-- 按鈕區塊 -->
-            <div class="section-buttons flex flex-wrap md:flex-nowrap gap-2 md:gap-4 my-4 p-4 rounded-lg w-full">
-                <a href="?locate=iraraley" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iraraley' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Iraraley</a>
-                <a href="?locate=iranmailek" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iranmailek' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Iranmailek</a>
-                <a href="?locate=ivalino" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'ivalino' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Ivalino</a>
-                <a href="?locate=imorod" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'imorod' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Imorod</a>
-                <a href="?locate=iratay" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iratay' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Iratay | Iratey</a>
-                <a href="?locate=yayo" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'yayo' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Yayo</a>
+            <div class="button-container">
+                <div class="section-buttons flex flex-wrap md:flex-nowrap gap-2 md:gap-4 my-4 p-4 rounded-lg">
+                    <a href="?locate=iraraley" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iraraley' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Iraraley</a>
+                    <a href="?locate=iranmailek" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iranmailek' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Iranmailek</a>
+                    <a href="?locate=ivalino" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'ivalino' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Ivalino</a>
+                    <a href="?locate=imorod" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'imorod' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Imorod</a>
+                    <a href="?locate=iratay" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'iratay' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Iratay | Iratey</a>
+                    <a href="?locate=yayo" class="locate-filter block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 {{ request()->query('locate') === 'yayo' ? 'bg-yellow-500 dark:bg-yellow-600' : '' }} text-center md:text-center">Yayo</a>
+                </div>
             </div>
 
             <!-- 筆記區塊 -->
@@ -149,20 +174,20 @@
         // 可選：每分鐘檢查一次（如果需要動態更新）
         setInterval(toggleDarkMode, 60000);
     </script>
+
+    <script>
+        const toggleButton = document.getElementById('theme-toggle');
+        toggleButton.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+
+        // 載入時檢查使用者偏好
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            toggleDarkMode();
+        }
+    </script>
 </body>
-
-<script>
-    const toggleButton = document.getElementById('theme-toggle');
-    toggleButton.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-    });
-
-    // 載入時檢查使用者偏好
-    if (localStorage.getItem('theme') === 'dark') {
-        document.documentElement.classList.add('dark');
-    } else {
-        toggleDarkMode();
-    }
-</script>
 </html>
