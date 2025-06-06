@@ -411,3 +411,21 @@ it('returns 422 when updating a fish with invalid data', function () {
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['name']);
 });
+
+it('returns 422 when updating a fish with too long name', function () {
+    $fish = Fish::factory()->create([
+        'name' => 'Original Name',
+        'image' => 'original.png',
+    ]);
+
+    $updateData = [
+        'name' => str_repeat('a', 300),
+        'image' => 'updated.png',
+    ];
+
+    $response = $this->putJson('/prefix/api/fish/' . $fish->id, $updateData);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['name']);
+});
+

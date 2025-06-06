@@ -9,8 +9,8 @@ class UpdateFishRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string'],
-            'image' => ['sometimes', 'required', 'string'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'image' => ['sometimes', 'required', 'string', 'max:255'],
         ];
     }
 }
