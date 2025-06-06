@@ -341,3 +341,38 @@ it('handles invalid since parameter gracefully', function () {
         ->assertJson(['message' => 'Invalid since parameter'])
         ->assertJson(['data' => null]);
 });
+
+it('can update a fish record', function () {
+    // 建立一筆魚類資料
+    $fish = Fish::factory()->create([
+        'name' => 'Original Name',
+        'image' => 'original.png',
+    ]);
+
+    // 準備要更新的資料
+    $updateData = [
+        'name' => 'Updated Name',
+        'image' => 'updated.png',
+    ];
+
+    // 發送 PUT 請求進行更新
+    $response = $this->putJson('/prefix/api/fish/' . $fish->id, $updateData);
+
+    // 驗證回應狀態與內容
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'fish updated successfully',
+            'data' => [
+                'id' => $fish->id,
+                'name' => 'Updated Name',
+                'image' => 'updated.png',
+            ],
+        ]);
+
+    // 驗證資料庫確實已更新
+    $this->assertDatabaseHas('fish', [
+        'id' => $fish->id,
+        'name' => 'Updated Name',
+        'image' => 'updated.png',
+    ]);
+});

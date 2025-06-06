@@ -14,6 +14,8 @@ Route::post('/fish', [FishController::class, 'create']);
 Route::get('/fish/{id}', [FishController::class, 'getFishById'])->whereNumber('id');
 Route::get('/fish/{id}/notes', [FishController::class, 'getFishNotesSince'])->whereNumber('id');
 
+// 新增更新魚類資料的路由
+Route::put('/fish/{id}', [FishController::class, 'update'])->whereNumber('id');
 
 Route::post('/upload', [UploadController::class, 'uploadImage']);
 Route::post('/fish/{id}/note', [FishController::class, 'addFishNote']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Requests\CreateFishRequest;
+use App\Http\Requests\UpdateFishRequest;
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Services\FishService;
@@ -143,5 +144,28 @@ class FishController extends Controller
             'data' => $fishNote,
             'lastUpdateTime' => time()
         ], 201);
+    }
+
+    // 修正：使用 UpdateFishRequest 進行驗證
+    public function update(UpdateFishRequest $request, $id): JsonResponse
+    {
+        // 取得驗證後的資料
+        $validated = $request->validated();
+
+        // 嘗試尋找並更新資料
+        $fish = Fish::find($id);
+        if (!$fish) {
+            return response()->json([
+                'message' => 'fish not found',
+                'data' => null,
+            ], 404);
+        }
+
+        $fish->update($validated);
+
+        return response()->json([
+            'message' => 'fish updated successfully',
+            'data' => $fish,
+        ]);
     }
 }
