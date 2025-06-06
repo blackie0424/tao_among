@@ -1,66 +1,45 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Tao Among 專案
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+本專案為基於 Laravel 的魚類資料管理 API，支援 RESTful 操作、驗證、測試與自動化部署。
 
-## About Laravel
+## 主要功能
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- 魚類資料 CRUD（建立、查詢、更新、刪除）
+- 魚類筆記管理
+- 圖片上傳
+- 完整 API 驗證（含自訂 Request 驗證）
+- Pest 驗證測試案例
+- 支援 Vercel 雲端部署
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 專案結構簡介
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- `app/Http/Controllers/`：控制器（如 FishController，負責 API 邏輯）
+- `app/Models/`：Eloquent ORM 資料模型
+- `app/Http/Requests/`：表單驗證（如 CreateFishRequest、UpdateFishRequest）
+- `routes/api.php`：API 路由設定
+- `tests/Feature/`：功能測試（Pest 語法）
+- `resources/views/`：Blade 前端模板
+- `public/`：靜態資源與入口
+- 其他：設定檔、資料庫 migration、CI/CD 等
 
-## Learning Laravel
+## API 範例
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- 取得魚類列表：`GET /prefix/api/fish`
+- 新增魚類：`POST /prefix/api/fish`
+- 更新魚類：`PUT /prefix/api/fish/{id}`
+- 取得單一魚類：`GET /prefix/api/fish/{id}`
+- 上傳圖片：`POST /prefix/api/upload`
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 測試案例說明
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+本專案使用 Pest 撰寫測試，涵蓋：
 
-## Laravel Sponsors
+- 正常取得、建立、更新魚類資料
+- 更新不存在資料時回傳 404
+- 欄位驗證失敗時回傳 422（如 name 為空、型別錯誤、長度超過 255）
+- since 參數錯誤時回傳 400
+- 空資料、資料庫為空等情境
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+執行測試：
+```sh
+./vendor/bin/pest
