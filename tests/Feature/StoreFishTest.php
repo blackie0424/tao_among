@@ -376,3 +376,38 @@ it('can update a fish record', function () {
         'image' => 'updated.png',
     ]);
 });
+
+it('returns 404 when updating a non-existent fish', function () {
+    $updateData = [
+        'name' => 'Not Exist',
+        'image' => 'not_exist.png',
+    ];
+
+    // 假設 id 99999 不存在
+    $response = $this->putJson('/prefix/api/fish/99999', $updateData);
+
+    $response->assertStatus(404)
+        ->assertJson([
+            'message' => 'fish not found',
+            'data' => null,
+        ]);
+});
+
+it('returns 422 when updating a fish with invalid data', function () {
+    // 建立一筆魚類資料
+    $fish = Fish::factory()->create([
+        'name' => 'Original Name',
+        'image' => 'original.png',
+    ]);
+
+    // 傳送不合法資料（name 為空）
+    $updateData = [
+        'name' => '',
+        'image' => 'updated.png',
+    ];
+
+    $response = $this->putJson('/prefix/api/fish/' . $fish->id, $updateData);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['name']);
+});
