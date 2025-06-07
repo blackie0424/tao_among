@@ -85,3 +85,17 @@ it('fails when uploading an empty image file', function () {
             'message' => 'image upload failed',
         ]);
 });
+
+it('fails when no image is provided', function () {
+    Storage::fake('public');
+
+    $response = $this->post('/prefix/api/upload', []);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => 'image upload failed',
+            'data' => [
+                'image' => ['The image field is required.'],
+            ],
+        ]);
+});
