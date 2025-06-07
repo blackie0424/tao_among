@@ -446,3 +446,20 @@ it('returns 422 when updating a fish with wrong type', function () {
         ->assertJsonValidationErrors(['name', 'image']);
 });
 
+it('ignores unknown fields when updating a fish', function () {
+    $fish = Fish::factory()->create([
+        'name' => 'Original Name',
+        'image' => 'original.png',
+    ]);
+
+    $updateData = [
+        'name' => 'Updated Name',
+        'unknown_field' => 'should be ignored',
+    ];
+
+    $response = $this->putJson('/prefix/api/fish/' . $fish->id, $updateData);
+
+    $response->assertStatus(200)
+        ->assertJsonMissing(['unknown_field']);
+});
+
