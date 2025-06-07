@@ -55,14 +55,14 @@ it('fails to add note with missing required fields', function () {
 it('returns fish details with notes, defaulting to Iraraley when no locate parameter is provided', function () {
     $fish = Fish::factory()->create(['id' => 1]);
     // 創建兩筆筆記，屬於同一隻魚，但不同 locate
-    FishNote::factory()->create([
+    $fishNote1 = FishNote::factory()->create([
         'fish_id' => $fish->id,
-        'locate' => 'Iraraley',
+        'locate' => 'iraraley',
     ]);
 
-    FishNote::factory()->create([
-        'fish_id' => $fish->id,
-        'locate' => 'Yayo',
+    $fishNote2 =FishNote::factory()->create([
+        'fish_id' =>  $fish->id,
+        'locate' => 'yayo',
     ]);
 
     $response = $this->getJson("/prefix/api/fish/{$fish->id}");
@@ -74,8 +74,8 @@ it('returns fish details with notes, defaulting to Iraraley when no locate param
                 'id' =>1,
                 'notes' => [
                     [
-                        'fish_id' => $fish->id,
-                        'locate'=> 'Iraraley',
+                        'fish_id' =>  $fish->id,
+                        'locate'=> 'iraraley',
                     ],
                 ]
             ],
