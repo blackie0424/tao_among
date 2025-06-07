@@ -13,4 +13,13 @@ class UpdateFishRequest extends FormRequest
             'image' => ['sometimes', 'required', 'string', 'max:255'],
         ];
     }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            if (!$this->hasAny(['name', 'image'])) {
+                $validator->errors()->add('update', 'At least one field (name or image) must be provided.');
+            }
+        });
+    }
 }

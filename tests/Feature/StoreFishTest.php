@@ -463,3 +463,16 @@ it('ignores unknown fields when updating a fish', function () {
         ->assertJsonMissing(['unknown_field']);
 });
 
+it('returns 422 when updating a fish with empty body', function () {
+    $fish = Fish::factory()->create([
+        'name' => 'Original Name',
+        'image' => 'original.png',
+    ]);
+
+    $response = $this->putJson('/prefix/api/fish/' . $fish->id, []);
+
+    // 兩個欄位都沒傳，應該至少有一個錯誤
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['update']);
+});
+
