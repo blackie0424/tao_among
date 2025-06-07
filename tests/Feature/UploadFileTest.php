@@ -5,7 +5,7 @@ use Illuminate\Http\UploadedFile;
 it('fish image can be uploaded, check response is 201 and message is image uploaded successfully', function () {
     Storage::fake('public');
 
-    $file = UploadedFile::fake()->image('ilek.jpg');
+    $file = UploadedFile::fake()->image('ilek.jpg', 640, 480);
 
     $response = $this->post('/prefix/api/upload', [
         'image' => $file,
@@ -21,7 +21,7 @@ it('fish image can be uploaded, check response is 201 and message is image uploa
 it('fish image can be uploaded, check image exist', function () {
     Storage::fake('public');
 
-    $file = UploadedFile::fake()->image('ilek.jpg');
+    $file = UploadedFile::fake()->image('ilek.jpg', 640, 480);
 
     $response = $this->post('/prefix/api/upload', [
         'image' => $file,
@@ -69,4 +69,19 @@ it('Fish image upload failed due to an unsupported file type.', function () {
             ],
         ]);
 
+});
+
+it('fails when uploading an empty image file', function () {
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->create('empty.jpg', 0);
+
+    $response = $this->post('/prefix/api/upload', [
+        'image' => $file,
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => 'image upload failed',
+        ]);
 });
