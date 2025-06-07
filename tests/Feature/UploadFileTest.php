@@ -99,3 +99,18 @@ it('fails when no image is provided', function () {
             ],
         ]);
 });
+
+it('fails when file extension is image but content is not', function () {
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->create('fake.jpg', 10, 'text/plain');
+
+    $response = $this->post('/prefix/api/upload', [
+        'image' => $file,
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => 'image upload failed',
+        ]);
+});
