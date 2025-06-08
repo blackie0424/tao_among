@@ -41,9 +41,9 @@ it('Fish image upload failed due to excessive file size', function () {
 
     $response->assertStatus(400)
         ->assertJson([
-            'message' => 'image upload failed',
-            'data' => [
-                'image' => ['The image field must not be greater than 4403 kilobytes.'],
+            'message' => '驗證失敗',
+            'errors' => [
+                'image' => ['圖片大小不可超過 4403 KB。'],
             ],
         ]);
 
@@ -60,11 +60,11 @@ it('Fish image upload failed due to an unsupported file type.', function () {
 
     $response->assertStatus(400)
         ->assertJson([
-            'message' => 'image upload failed',
-            'data' => [
+            'message' => '驗證失敗',
+            'errors' => [
                 'image' => [
-                    'The image field must be an image.',
-                    'The image field must be a file of type: jpeg, png, jpg, gif, svg.',
+                    '只能上傳單一圖片檔案。',
+                    '圖片格式僅限 jpeg, png, jpg, gif, svg。',
                 ],
             ],
         ]);
@@ -82,7 +82,7 @@ it('fails when uploading an empty image file', function () {
 
     $response->assertStatus(400)
         ->assertJson([
-            'message' => 'image upload failed',
+            'message' => '驗證失敗',
         ]);
 });
 
@@ -93,9 +93,9 @@ it('fails when no image is provided', function () {
 
     $response->assertStatus(400)
         ->assertJson([
-            'message' => 'image upload failed',
-            'data' => [
-                'image' => ['The image field is required.'],
+            'message' => '驗證失敗',
+            'errors' => [
+                'image' => ['請選擇要上傳的圖片。'],
             ],
         ]);
 });
@@ -111,6 +111,22 @@ it('fails when file extension is image but content is not', function () {
 
     $response->assertStatus(400)
         ->assertJson([
-            'message' => 'image upload failed',
+            'message' => '驗證失敗',
+        ]);
+});
+
+it('fails when multiple images are provided', function () {
+    Storage::fake('public');
+
+    $file1 = UploadedFile::fake()->image('a.jpg');
+    $file2 = UploadedFile::fake()->image('b.jpg');
+
+    $response = $this->post('/prefix/api/upload', [
+        'image' => [$file1, $file2],
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => '驗證失敗',
         ]);
 });
