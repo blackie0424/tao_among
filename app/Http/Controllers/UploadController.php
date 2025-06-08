@@ -7,6 +7,30 @@ use App\Http\Requests\UploadImageRequest;
 
 class UploadController extends Controller
 {
+
+    /**
+ * @OA\Post(
+ *     path="/prefix/api/upload",
+ *     summary="上傳魚類圖片",
+ *     tags={"Upload"},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 required={"image"},
+ *                 @OA\Property(
+ *                     property="image",
+ *                     type="file",
+ *                     description="要上傳的圖片"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(response=201, description="上傳成功"),
+ *     @OA\Response(response=400, description="驗證失敗")
+ * )
+ */
     public function uploadImage(UploadImageRequest $request)
     {
         try {
