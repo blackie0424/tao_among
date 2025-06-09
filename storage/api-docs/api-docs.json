@@ -12,6 +12,7 @@
                     "Upload"
                 ],
                 "summary": "上傳魚類圖片",
+                "description": "上傳魚類圖片",
                 "operationId": "a4bcb2e378bd169697ceb21dae229c40",
                 "requestBody": {
                     "required": true,
@@ -67,6 +68,7 @@
                                         "errors": {
                                             "properties": {
                                                 "image": {
+                                                    "description": "可能的錯誤訊息：只能上傳單一圖片檔案。|請選擇要上傳的圖片。|圖片格式僅限 jpeg, png, jpg, gif, svg。|圖片大小不可超過 4403 KB。|圖片檔案不可為空。",
                                                     "type": "array",
                                                     "items": {
                                                         "type": "string",
