@@ -34,9 +34,16 @@ class FishController extends Controller
         return view('fish', ['fish' =>$this->fishService->getFishByIdAndLocate($id,$locate)]);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/prefix/api/fish",
+     *     summary="取得魚類列表",
+     *     tags={"Fish"},
+     *     @OA\Response(response=200, description="成功")
+     * )
+     */
     public function getFishs(Request $request): JsonResponse
     {
-
         $since = $request->query('since');
         if ($since && !is_numeric($since)) {
             return response()->json([
@@ -55,6 +62,22 @@ class FishController extends Controller
         ]);
     }
 
+
+    /**
+     * @OA\Get(
+     *     path="/prefix/api/fish/{id}",
+     *     summary="取得單一魚類資料",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="成功"),
+     *     @OA\Response(response=404, description="找不到資料")
+     * )
+     */
     public function getFishById($id,Request $request): JsonResponse
     {
         try {
@@ -74,6 +97,27 @@ class FishController extends Controller
         }
     }
 
+
+    /**
+     * @OA\Get(
+     *     path="/prefix/api/fish/{id}/notes",
+     *     summary="取得指定魚類的筆記（可用 since 篩選）",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="since",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="成功")
+     * )
+     */
     public function getFishNotesSince($id,Request $request): JsonResponse
     {
         $since = $request->query('since');
@@ -110,7 +154,22 @@ class FishController extends Controller
     }
 
     
-
+    /**
+     * @OA\Post(
+     *     path="/prefix/api/fish",
+     *     summary="新增魚類",
+     *     tags={"Fish"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "image"},
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="image", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="建立成功")
+     * )
+     */
     public function create(CreateFishRequest $request)
     {
         try {
@@ -124,6 +183,29 @@ class FishController extends Controller
 
     }
 
+
+    /**
+     * @OA\Post(
+     *     path="/prefix/api/fish/{id}/note",
+     *     summary="新增魚類筆記",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"note", "locate"},
+     *             @OA\Property(property="note", type="string"),
+     *             @OA\Property(property="locate", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="建立成功")
+     * )
+     */
     public function addFishNote(Request $request, $id): JsonResponse
     {
         $request->validate([
@@ -146,7 +228,29 @@ class FishController extends Controller
         ], 201);
     }
 
-    // 修正：使用 UpdateFishRequest 進行驗證
+
+    /**
+     * @OA\Put(
+     *     path="/prefix/api/fish/{id}",
+     *     summary="更新魚類資料",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="image", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="更新成功"),
+     *     @OA\Response(response=404, description="找不到資料")
+     * )
+     */
     public function update(UpdateFishRequest $request, $id): JsonResponse
     {
         // 取得驗證後的資料

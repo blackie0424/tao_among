@@ -6,6 +6,202 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/prefix/api/fish": {
+            "get": {
+                "tags": [
+                    "Fish"
+                ],
+                "summary": "取得魚類列表",
+                "operationId": "ac87b45ae47ca5cffec8042966c45f19",
+                "responses": {
+                    "200": {
+                        "description": "成功"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Fish"
+                ],
+                "summary": "新增魚類",
+                "operationId": "142f1d930e7dc4c4955170ee29ad493d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "image"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "image": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "建立成功"
+                    }
+                }
+            }
+        },
+        "/prefix/api/fish/{id}": {
+            "get": {
+                "tags": [
+                    "Fish"
+                ],
+                "summary": "取得單一魚類資料",
+                "operationId": "f7ec228b21fc8b187cb4dcf0444fabfd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功"
+                    },
+                    "404": {
+                        "description": "找不到資料"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Fish"
+                ],
+                "summary": "更新魚類資料",
+                "operationId": "d0f609b6381f0513e6b0cddc908950c9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "image": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "更新成功"
+                    },
+                    "404": {
+                        "description": "找不到資料"
+                    }
+                }
+            }
+        },
+        "/prefix/api/fish/{id}/notes": {
+            "get": {
+                "tags": [
+                    "Fish"
+                ],
+                "summary": "取得指定魚類的筆記（可用 since 篩選）",
+                "operationId": "82abcf9855855374fd59e623aac0f578",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "since",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功"
+                    }
+                }
+            }
+        },
+        "/prefix/api/fish/{id}/note": {
+            "post": {
+                "tags": [
+                    "Fish"
+                ],
+                "summary": "新增魚類筆記",
+                "operationId": "e152a7c1bf52f4a0e1d42b43a89911ff",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "note",
+                                    "locate"
+                                ],
+                                "properties": {
+                                    "note": {
+                                        "type": "string"
+                                    },
+                                    "locate": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "建立成功"
+                    }
+                }
+            }
+        },
         "/prefix/api/upload": {
             "post": {
                 "tags": [
@@ -89,6 +285,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Fish",
+            "description": "Fish"
+        },
         {
             "name": "Upload",
             "description": "Upload"
