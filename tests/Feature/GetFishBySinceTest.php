@@ -2,6 +2,8 @@
 
 use App\Models\Fish;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Carbon\Carbon;
+
 
 uses(RefreshDatabase::class);
 
@@ -167,4 +169,33 @@ it('returns error when since parameter is negative', function () {
     $response->assertStatus(400)
         ->assertJson(['message' => 'Invalid since parameter'])
         ->assertJson(['data' => null]);
+});
+
+it('does not return data when created_at is exactly equal to since', function () {
+    $since = strtotime('2025-06-11 12:00:00');
+
+    // 建立一筆 created_at 剛好等於 since 的資料
+    $fishEqual = Fish::factory()->create([
+        'created_at' => Carbon::createFromTimestamp($since),
+        'updated_at' => Carbon::createFromTimestamp($since),
+    ]);
+
+    // 建立一筆 created_at 大於 since 的資料
+    $fishGreater = Fish::factory()->create([
+        'created_at' => Carbon::createFromTimestamp($since + 60),
+        'updated_at' => Carbon::createFromTimestamp($since + 60),
+    ]);
+
+    $response = $this->get('/prefix/api/fish?since=' . $since);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+        ])
+        ->assertJsonMissing([
+            'id' => $fishEqual->id,
+        ])
+        ->assertJsonFragment([
+            'id' => $fishGreater->id,
+        ]);
 });
