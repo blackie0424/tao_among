@@ -38,28 +38,37 @@ class FishNoteController extends Controller
      */
     public function store(FishNoteRequest $request, $id): JsonResponse
     {
-        // 確認 fish 存在
-        $fish = Fish::find($id);
-        if (!$fish) {
-            return response()->json([
-                'message' => 'fish not found',
-                'data' => null,
-            ], 404);
-        }
+        $fish = $this->findFishOrFail($id);
 
-        // 直接建立 FishNote
-        $fishNote = FishNote::create([
-            'fish_id' => $fish->id,
-            'note' => $request->note,
-            'note_type' => $request->note_type,
-            'locate' => $request->locate,
-        ]);
+        $fishNote = $this->createFishNote($fish, $request);
 
         return response()->json([
             'message' => 'Note added successfully',
             'data' => $fishNote,
             'lastUpdateTime' => time()
         ], 201);
+    }
+
+    private function findFishOrFail($id)
+    {
+        $fish = Fish::find($id);
+        if (!$fish) {
+            abort(response()->json([
+                'message' => 'fish not found',
+                'data' => null,
+            ], 404));
+        }
+        return $fish;
+    }
+
+    private function createFishNote(Fish $fish, FishNoteRequest $request)
+    {
+        return FishNote::create([
+            'fish_id' => $fish->id,
+            'note' => $request->note,
+            'note_type' => $request->note_type,
+            'locate' => $request->locate,
+        ]);
     }
 
     /**
