@@ -19,3 +19,4 @@ Route::put('/fish/{id}', [FishController::class, 'update'])->whereNumber('id');
 
 Route::post('/upload', [UploadController::class, 'uploadImage']);
 Route::post('/fish/{id}/note', [FishController::class, 'addFishNote']);
+Route::post('/supabase/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
