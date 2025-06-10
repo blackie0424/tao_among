@@ -282,6 +282,94 @@
                     }
                 }
             }
+        },
+        "/prefix/api/get-signed-upload-url": {
+            "post": {
+                "tags": [
+                    "Upload"
+                ],
+                "summary": "獲取 Supabase 簽名上傳 URL",
+                "description": "獲取 Supabase 簽名上傳 URL",
+                "operationId": "1ce6f9f6a282b8c86c41d647a02b8202",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "filename"
+                                ],
+                                "properties": {
+                                    "filename": {
+                                        "description": "原始檔名",
+                                        "type": "string"
+                                    },
+                                    "path": {
+                                        "description": "儲存路徑",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功獲取簽名上傳 URL",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "url": {
+                                            "type": "string",
+                                            "example": "https://your-project-id.supabase.co/storage/v1/object/public/images/filename.jpg"
+                                        },
+                                        "path": {
+                                            "type": "string",
+                                            "example": "images/filename.jpg"
+                                        },
+                                        "filename": {
+                                            "type": "string",
+                                            "example": "filename.jpg"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "驗證失敗",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "驗證失敗"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "filename": {
+                                                    "description": "可能的錯誤訊息：檔名格式不正確。|請提供有效的檔名。",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "檔名格式不正確。"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "tags": [
