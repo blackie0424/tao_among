@@ -13,12 +13,16 @@ Route::get('/user', function (Request $request) {
 Route::get('/fish', [FishController::class, 'getFishs']);
 Route::post('/fish', [FishController::class, 'create']);
 Route::get('/fish/{id}', [FishController::class, 'getFishById'])->whereNumber('id');
-Route::get('/fish/{id}/notes', [FishController::class, 'getFishNotesSince'])->whereNumber('id');
 
 // 新增更新魚類資料的路由
 Route::put('/fish/{id}', [FishController::class, 'update'])->whereNumber('id');
 
 Route::post('/upload', [UploadController::class, 'uploadImage']);
-Route::post('/fish/{id}/note', [FishNoteController::class, 'store']);
 Route::post('/supabase/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
-Route::put('/fish/{fish}/note/{note}', [FishNoteController::class, 'update']);
+
+
+Route::get('/fish/{id}/notes', [FishController::class, 'getFishNotesSince'])->whereNumber('id');
+Route::post('/fish/{id}/note', [FishNoteController::class, 'store'])->whereNumber('id');
+Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])
+    ->whereNumber('id')
+    ->whereNumber('note_id');

@@ -190,3 +190,39 @@ it('returns all notes when since is not provided for a fish', function () {
             'lastUpdateTime',
         ]);
 });
+
+it('can update an existing fish note', function () {
+    $fish = Fish::factory()->create();
+    $note = FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'original note',
+        'note_type' => 'observation',
+        'locate' => 'yayo'
+    ]);
+
+    $response = $this->putJson("/prefix/api/fish/{$fish->id}/note/{$note->id}", [
+        'note' => 'updated note',
+        'note_type' => 'research',
+        'locate' => 'iraraley'
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'Fish note updated successfully',
+            'data' => [
+                'id' => $note->id,
+                'fish_id' => $fish->id,
+                'note' => 'updated note',
+                'note_type' => 'research',
+                'locate' => 'iraraley',
+            ]
+        ]);
+
+    $this->assertDatabaseHas('fish_notes', [
+        'id' => $note->id,
+        'fish_id' => $fish->id,
+        'note' => 'updated note',
+        'note_type' => 'research',
+        'locate' => 'iraraley',
+    ]);
+});

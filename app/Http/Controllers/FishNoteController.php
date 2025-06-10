@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use App\Services\FishService;
 use App\Http\Requests\FishNoteRequest;
 use App\Http\Requests\UpdateFishNoteRequest;
+use App\Models\FishNote;
 
 class FishNoteController extends Controller
 {
@@ -79,19 +80,22 @@ class FishNoteController extends Controller
      *     @OA\Response(response=404, description="找不到該筆記")
      * )
      */
-    public function update(UpdateFishNoteRequest $request, $id): JsonResponse
+    public function update(UpdateFishNoteRequest $request, $fishId, $noteId)
     {
-        $fishNote = $this->fishService->updateFishNote(
-            $id,
-            $request->note,
-            $request->note_type,
-            $request->locate
-        );
+        $fishNote = FishNote::where('fish_id', $fishId)->where('id', $noteId)->first();
+
+        if (!$fishNote) {
+            return response()->json([
+                'message' => 'fish note not found',
+                'data' => null,
+            ], 404);
+        }
+
+        $fishNote->update($request->validated());
 
         return response()->json([
-            'message' => 'Note updated successfully',
+            'message' => 'Fish note updated successfully',
             'data' => $fishNote,
-            'lastUpdateTime' => time()
-        ], 200);
+        ]);
     }
 }

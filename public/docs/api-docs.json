@@ -159,10 +159,10 @@
         "/prefix/api/fish/{id}/note": {
             "post": {
                 "tags": [
-                    "Fish"
+                    "FishNote"
                 ],
                 "summary": "新增魚類筆記",
-                "operationId": "e152a7c1bf52f4a0e1d42b43a89911ff",
+                "operationId": "3d2297c17648d57bd9e0e31b18edab0a",
                 "parameters": [
                     {
                         "name": "id",
@@ -186,6 +186,9 @@
                                     "note": {
                                         "type": "string"
                                     },
+                                    "note_type": {
+                                        "type": "string"
+                                    },
                                     "locate": {
                                         "type": "string"
                                     }
@@ -198,6 +201,54 @@
                 "responses": {
                     "201": {
                         "description": "建立成功"
+                    }
+                }
+            }
+        },
+        "/prefix/api/fish/note/{id}": {
+            "put": {
+                "tags": [
+                    "FishNote"
+                ],
+                "summary": "更新魚類筆記",
+                "operationId": "4811c9adf39794f625fc62d44f3dc2e1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "note": {
+                                        "type": "string"
+                                    },
+                                    "note_type": {
+                                        "type": "string"
+                                    },
+                                    "locate": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "更新成功"
+                    },
+                    "404": {
+                        "description": "找不到該筆記"
                     }
                 }
             }
@@ -376,6 +427,10 @@
         {
             "name": "Fish",
             "description": "Fish"
+        },
+        {
+            "name": "FishNote",
+            "description": "FishNote"
         },
         {
             "name": "Upload",
