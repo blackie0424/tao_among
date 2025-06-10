@@ -154,3 +154,17 @@ it('returns no data when since parameter is a future timestamp', function () {
         ])
         ->assertJsonCount(0, 'data');
 });
+
+it('returns error when since parameter is zero', function () {
+    $response = $this->get('/prefix/api/fish?since=0');
+    $response->assertStatus(400)
+        ->assertJson(['message' => 'Invalid since parameter'])
+        ->assertJson(['data' => null]);
+});
+
+it('returns error when since parameter is negative', function () {
+    $response = $this->get('/prefix/api/fish?since=-12345');
+    $response->assertStatus(400)
+        ->assertJson(['message' => 'Invalid since parameter'])
+        ->assertJson(['data' => null]);
+});

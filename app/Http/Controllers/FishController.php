@@ -45,7 +45,8 @@ class FishController extends Controller
     public function getFishs(Request $request): JsonResponse
     {
         $since = $request->query('since');
-        if ($since && !is_numeric($since)) {
+        if ($since !== null && (!is_numeric($since) || $since <= 0)) {
+            // 只有有帶且不合法才報錯
             return response()->json([
                 'message' => 'Invalid since parameter',
                 'data' => null,
@@ -53,6 +54,7 @@ class FishController extends Controller
             ], 400);
         }
 
+        // 沒帶 since，回傳全部資料
         $fishes = $since ? $this->fishService->getFishesBySince($since) : $this->fishService->getAllFishes();
 
         return response()->json([
