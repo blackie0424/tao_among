@@ -185,51 +185,6 @@ class FishController extends Controller
 
 
     /**
-     * @OA\Post(
-     *     path="/prefix/api/fish/{id}/note",
-     *     summary="新增魚類筆記",
-     *     tags={"Fish"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"note", "locate"},
-     *             @OA\Property(property="note", type="string"),
-     *             @OA\Property(property="locate", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="建立成功")
-     * )
-     */
-    public function addFishNote(Request $request, $id): JsonResponse
-    {
-        $request->validate([
-            'note' => 'required|string',
-            'note_type' => 'required|string|max:50',
-            'locate' => 'required|string|max:20',
-        ]);
-
-        $fishNote = $this->fishService->addFishNote(
-            $id, // 直接從路由參數取得 fish_id
-            $request->note,
-            $request->note_type,
-            $request->locate
-        );
-
-        return response()->json([
-            'message' => 'Note added successfully',
-            'data' => $fishNote,
-            'lastUpdateTime' => time()
-        ], 201);
-    }
-
-
-    /**
      * @OA\Put(
      *     path="/prefix/api/fish/{id}",
      *     summary="更新魚類資料",

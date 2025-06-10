@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\FishController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\FishNoteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,5 +19,5 @@ Route::get('/fish/{id}/notes', [FishController::class, 'getFishNotesSince'])->wh
 Route::put('/fish/{id}', [FishController::class, 'update'])->whereNumber('id');
 
 Route::post('/upload', [UploadController::class, 'uploadImage']);
-Route::post('/fish/{id}/note', [FishController::class, 'addFishNote']);
+Route::post('/fish/{id}/note', [FishNoteController::class, 'store']);
 Route::post('/supabase/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
