@@ -4,19 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use App\Services\FishService;
 use App\Http\Requests\FishNoteRequest;
 use App\Http\Requests\UpdateFishNoteRequest;
 use App\Models\FishNote;
+use App\Models\Fish;
 
 class FishNoteController extends Controller
 {
-    protected $fishService;
 
-    public function __construct(FishService $fishService)
-    {
-        $this->fishService = $fishService;
-    }
 
     /**
      * @OA\Post(
@@ -43,12 +38,22 @@ class FishNoteController extends Controller
      */
     public function store(FishNoteRequest $request, $id): JsonResponse
     {
-        $fishNote = $this->fishService->addFishNote(
-            $id,
-            $request->note,
-            $request->note_type,
-            $request->locate
-        );
+        // 確認 fish 存在
+        $fish = Fish::find($id);
+        if (!$fish) {
+            return response()->json([
+                'message' => 'fish not found',
+                'data' => null,
+            ], 404);
+        }
+
+        // 直接建立 FishNote
+        $fishNote = FishNote::create([
+            'fish_id' => $fish->id,
+            'note' => $request->note,
+            'note_type' => $request->note_type,
+            'locate' => $request->locate,
+        ]);
 
         return response()->json([
             'message' => 'Note added successfully',
