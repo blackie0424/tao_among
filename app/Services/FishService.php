@@ -24,8 +24,8 @@ class FishService
 
     public function getFishesBySince($since)
     {
-        $sinceDate =Carbon::createFromTimestamp($since);
-        $fishes = Fish::where('created_at', '>', $sinceDate)->get();
+        $sinceDate = Carbon::createFromTimestamp($since);
+        $fishes = Fish::where('updated_at', '>', $sinceDate)->get();
 
         return $this->assignImageUrls($fishes);
     }

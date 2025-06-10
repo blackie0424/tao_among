@@ -61,7 +61,7 @@ it('can get 6 fishes by time condition', function () {
     )->create();
 
     $expectedFishs = $fishs->filter(function ($fish) use ($since) {
-        return $fish->created_at->timestamp > $since;
+        return $fish->updated_at->timestamp > $since;
     })->values();
 
     // 構建完整的圖片路徑
@@ -90,13 +90,13 @@ it('can get 0 fishes by time condition', function () {
     // 測試資料
     $fishs = Fish::factory()->count(9)->sequence(
         ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
-        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-2 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since))],
-        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-3 days', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 days', $since))],
-        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-2 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-2 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-3 days', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-3 days', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-4 day', $since))],
     )->create();
 
     $expectedFishs = $fishs->filter(function ($fish) use ($since) {
-        return $fish->created_at->timestamp > $since;
+        return $fish->updated_at->timestamp > $since;
     })->values();
 
     // 構建完整的圖片路徑
