@@ -243,3 +243,35 @@ it('returns 404 when updating a non-existent fish note', function () {
             'data' => null,
         ]);
 });
+
+it('can update only note_type without note', function () {
+    $fish = Fish::factory()->create();
+    $note = FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'original note',
+        'note_type' => 'observation',
+        'locate' => 'yayo'
+    ]);
+
+    $response = $this->putJson("/prefix/api/fish/{$fish->id}/note/{$note->id}", [
+        // 不帶 note，只更新 note_type
+        'note_type' => 'research',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'Fish note updated successfully',
+            'data' => [
+                'id' => $note->id,
+                'note' => 'original note', // note 不變
+                'note_type' => 'research', // note_type 有變
+            ]
+        ]);
+
+    $this->assertDatabaseHas('fish_notes', [
+        'id' => $note->id,
+        'note' => 'original note',
+        'note_type' => 'research',
+    ]);
+});
+
