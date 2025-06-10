@@ -1,0 +1,136 @@
+<?php
+
+use App\Models\Fish;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('can get fish list by time condition', function () {
+
+    //條件時間
+    $date = "2025/03/07";
+    $since = strtotime($date);
+
+    // 測試資料
+    $fishs = Fish::factory()->count(3)->sequence(
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 days', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 days', $since))]
+    )->create();
+
+    $expectedFishs = $fishs->filter(function ($fish) use ($since) {
+        return $fish->created_at->timestamp > $since;
+    })->values();
+
+    // 構建完整的圖片路徑
+    $expectedFishs->map(function ($fish) {
+        $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
+    });
+
+    // 發送 GET 請求
+    $response = $this->get('/prefix/api/fish?since='.$since);
+
+    // 確保回應正確
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => $expectedFishs->toArray(),
+            'lastUpdateTime' => time()
+        ])->assertJsonCount(2, 'data');
+});
+
+it('can get 6 fishes by time condition', function () {
+
+    //條件時間
+    $date = "2025/03/07";
+    $since = strtotime($date);
+
+    // 測試資料
+    $fishs = Fish::factory()->count(9)->sequence(
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-2 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-3 days', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 days', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+3 days', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 days', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+4 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+5 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+6 days', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 days', $since))],
+    )->create();
+
+    $expectedFishs = $fishs->filter(function ($fish) use ($since) {
+        return $fish->created_at->timestamp > $since;
+    })->values();
+
+    // 構建完整的圖片路徑
+    $expectedFishs->map(function ($fish) {
+        $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
+    });
+
+    // 發送 GET 請求
+    $response = $this->get('/prefix/api/fish?since='.$since);
+
+    // 確保回應正確
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => $expectedFishs->toArray(),
+            'lastUpdateTime' => time()
+        ])->assertJsonCount(6, 'data');
+});
+
+it('can get 0 fishes by time condition', function () {
+
+    //條件時間
+    $date = "2025/03/07";
+    $since = strtotime($date);
+
+    // 測試資料
+    $fishs = Fish::factory()->count(9)->sequence(
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-2 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+1 day', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-3 days', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('+2 days', $since))],
+        ['created_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since)), 'updated_at' => \Carbon\Carbon::createFromTimestamp(strtotime('-1 day', $since))],
+    )->create();
+
+    $expectedFishs = $fishs->filter(function ($fish) use ($since) {
+        return $fish->created_at->timestamp > $since;
+    })->values();
+
+    // 構建完整的圖片路徑
+    $expectedFishs->map(function ($fish) {
+        $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
+    });
+
+    // 發送 GET 請求
+    $response = $this->get('/prefix/api/fish?since='.$since);
+
+    // 確保回應正確
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'No data available',
+            'data' => null,
+            'lastUpdateTime' => time()
+        ])->assertJsonCount(0, 'data');
+});
+
+it('returns empty array when database is empty', function () {
+    $since = strtotime("2025/03/07");
+    $response = $this->get('/prefix/api/fish?since=' . $since);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'No data available',
+            'data' => [],
+            'lastUpdateTime' => time()
+        ])
+        ->assertJsonCount(0, 'data');
+});
+
+it('handles invalid since parameter gracefully', function () {
+    // 測試非數值
+    $response = $this->get('/prefix/api/fish?since=invalid');
+    $response->assertStatus(400)
+        ->assertJson(['message' => 'Invalid since parameter'])
+        ->assertJson(['data' => null]);
+});
