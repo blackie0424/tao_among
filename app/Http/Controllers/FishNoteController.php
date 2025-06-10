@@ -112,4 +112,21 @@ class FishNoteController extends Controller
             'data' => $fishNote,
         ]);
     }
+    public function destroy($fishId, $noteId)
+    {
+        $fishNote = FishNote::where('fish_id', $fishId)->where('id', $noteId)->first();
+
+        if (!$fishNote) {
+            return response()->json([
+                'message' => 'fish note not found',
+                'data' => null,
+            ], 404);
+        }
+
+        $fishNote->delete();
+
+        return response()->json([
+            'message' => 'Fish note deleted successfully',
+        ]);
+    }
 }

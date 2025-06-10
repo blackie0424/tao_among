@@ -26,3 +26,6 @@ Route::post('/fish/{id}/note', [FishNoteController::class, 'store'])->whereNumbe
 Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])
     ->whereNumber('id')
     ->whereNumber('note_id');
+Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'])
+    ->whereNumber('id')
+    ->whereNumber('note_id');

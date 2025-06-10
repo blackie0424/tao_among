@@ -275,3 +275,38 @@ it('can update only note_type without note', function () {
     ]);
 });
 
+it('can delete a fish note', function () {
+    $fish = Fish::factory()->create();
+    $note = FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'to be deleted',
+        'note_type' => 'observation',
+        'locate' => 'yayo'
+    ]);
+
+    $response = $this->deleteJson("/prefix/api/fish/{$fish->id}/note/{$note->id}");
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'Fish note deleted successfully',
+        ]);
+
+    $this->assertDatabaseMissing('fish_notes', [
+        'id' => $note->id,
+        'fish_id' => $fish->id,
+    ]);
+});
+
+it('returns 404 when deleting a non-existent fish note', function () {
+    $fish = Fish::factory()->create();
+    $invalidNoteId = 9999;
+
+    $response = $this->deleteJson("/prefix/api/fish/{$fish->id}/note/{$invalidNoteId}");
+
+    $response->assertStatus(404)
+        ->assertJson([
+            'message' => 'fish note not found',
+            'data' => null,
+        ]);
+});
+
