@@ -227,4 +227,42 @@ class FishController extends Controller
             'data' => $fish,
         ]);
     }
+
+    /**
+     * @OA\Delete(
+     *     path="/prefix/api/fish/{id}",
+     *     summary="刪除魚類",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="魚類 ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="刪除成功", @OA\JsonContent(
+     *         @OA\Property(property="message", type="string", example="Fish deleted successfully")
+     *     )),
+     *     @OA\Response(response=404, description="找不到魚類", @OA\JsonContent(
+     *         @OA\Property(property="message", type="string", example="fish not found"),
+     *         @OA\Property(property="data", type="string", example=null)
+     *     ))
+     * )
+     */
+    public function destroy($id): JsonResponse
+    {
+        $fish = Fish::find($id);
+        if (!$fish) {
+            return response()->json([
+                'message' => 'fish not found',
+                'data' => null,
+            ], 404);
+        }
+
+        $fish->delete();
+
+        return response()->json([
+            'message' => 'Fish deleted successfully',
+        ]);
+    }
 }

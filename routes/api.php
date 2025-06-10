@@ -13,6 +13,7 @@ Route::get('/user', function (Request $request) {
 Route::get('/fish', [FishController::class, 'getFishs']);
 Route::post('/fish', [FishController::class, 'create']);
 Route::get('/fish/{id}', [FishController::class, 'getFishById'])->whereNumber('id');
+Route::delete('/fish/{id}', [FishController::class, 'destroy'])->whereNumber('id');
 
 // 新增更新魚類資料的路由
 Route::put('/fish/{id}', [FishController::class, 'update'])->whereNumber('id');

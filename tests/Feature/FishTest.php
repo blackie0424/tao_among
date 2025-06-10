@@ -476,3 +476,30 @@ it('returns 422 when updating a fish with empty body', function () {
         ->assertJsonValidationErrors(['update']);
 });
 
+it('can delete a fish', function () {
+    $fish = Fish::factory()->create();
+
+    $response = $this->deleteJson('/prefix/api/fish/' . $fish->id);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'Fish deleted successfully',
+        ]);
+
+    $this->assertDatabaseMissing('fish', [
+        'id' => $fish->id,
+    ]);
+});
+
+it('returns 404 when deleting a non-existent fish', function () {
+    $invalidFishId = 99999;
+
+    $response = $this->deleteJson('/prefix/api/fish/' . $invalidFishId);
+
+    $response->assertStatus(404)
+        ->assertJson([
+            'message' => 'fish not found',
+            'data' => null,
+        ]);
+});
+
