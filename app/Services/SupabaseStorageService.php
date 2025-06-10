@@ -43,4 +43,21 @@ class SupabaseStorageService
     {
         return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
     }
+
+    public function createSignedUploadUrl(string $filePath, int $expiresIn = 60): ?string
+    {
+        $response = Http::withHeaders([
+            'apikey' => $this->apiKey,
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Content-Type' => 'application/json',
+        ])->post("{$this->storageUrl}/object/upload/sign/{$this->bucket}/{$filePath}", [
+            'expiresIn' => $expiresIn,
+        ]);
+
+        if ($response->successful()) {
+            return $response->json('url');
+        }
+
+        return null;
+    }
 }
