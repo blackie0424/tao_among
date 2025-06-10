@@ -226,3 +226,20 @@ it('can update an existing fish note', function () {
         'locate' => 'iraraley',
     ]);
 });
+
+it('returns 404 when updating a non-existent fish note', function () {
+    $fish = Fish::factory()->create();
+    $invalidNoteId = 9999;
+
+    $response = $this->putJson("/prefix/api/fish/{$fish->id}/note/{$invalidNoteId}", [
+        'note' => 'should not update',
+        'note_type' => 'observation',
+        'locate' => 'yayo'
+    ]);
+
+    $response->assertStatus(404)
+        ->assertJson([
+            'message' => 'fish note not found',
+            'data' => null,
+        ]);
+});
