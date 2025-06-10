@@ -253,6 +253,43 @@
                 }
             }
         },
+        "/prefix/api/fish/{id}/note/{note_id}": {
+            "delete": {
+                "tags": [
+                    "FishNote"
+                ],
+                "summary": "刪除魚類筆記",
+                "operationId": "b44e4b08d9036b5a88f1093006ab2e61",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "魚類 ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "note_id",
+                        "in": "path",
+                        "description": "筆記 ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "刪除成功"
+                    },
+                    "404": {
+                        "description": "找不到該筆記"
+                    }
+                }
+            }
+        },
         "/prefix/api/upload": {
             "post": {
                 "tags": [

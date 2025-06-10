@@ -112,6 +112,30 @@ class FishNoteController extends Controller
             'data' => $fishNote,
         ]);
     }
+    
+    /**
+     * @OA\Delete(
+     *     path="/prefix/api/fish/{id}/note/{note_id}",
+     *     summary="刪除魚類筆記",
+     *     tags={"FishNote"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="魚類 ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="note_id",
+     *         in="path",
+     *         required=true,
+     *         description="筆記 ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="刪除成功"),
+     *     @OA\Response(response=404, description="找不到該筆記")
+     * )
+     */
     public function destroy($fishId, $noteId)
     {
         $fishNote = FishNote::where('fish_id', $fishId)->where('id', $noteId)->first();
