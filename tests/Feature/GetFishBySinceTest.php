@@ -134,3 +134,23 @@ it('handles invalid since parameter gracefully', function () {
         ->assertJson(['message' => 'Invalid since parameter'])
         ->assertJson(['data' => null]);
 });
+
+it('returns no data when since parameter is a future timestamp', function () {
+    // 設定一個未來的時間戳
+    $futureSince = strtotime('+10 days');
+
+    // 建立一些舊資料
+    Fish::factory()->count(3)->create([
+        'created_at' => now()->subDays(5),
+        'updated_at' => now()->subDays(5),
+    ]);
+
+    $response = $this->get('/prefix/api/fish?since=' . $futureSince);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'No data available',
+            'data' => [],
+        ])
+        ->assertJsonCount(0, 'data');
+});
