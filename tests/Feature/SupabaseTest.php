@@ -38,3 +38,37 @@ it('returns null if create signed upload url fails', function () {
 
     expect($signedUrl)->toBeNull();
 });
+
+it('can delete file successfully', function () {
+    $service = new SupabaseStorageService();
+    $filename = 'test.jpg';
+    $storageUrl = env('SUPABASE_STORAGE_URL');
+    $bucket = env('SUPABASE_BUCKET');
+    $filePath = "images/{$filename}";
+    $deleteUrl = "{$storageUrl}/object/{$bucket}/{$filePath}";
+
+    Http::fake([
+        $deleteUrl => Http::response([], 200),
+    ]);
+
+    $result = $service->delete($filename);
+
+    expect($result)->toBeTrue();
+});
+
+it('returns false if delete file fails', function () {
+    $service = new SupabaseStorageService();
+    $filename = 'test.jpg';
+    $storageUrl = env('SUPABASE_STORAGE_URL');
+    $bucket = env('SUPABASE_BUCKET');
+    $filePath = "images/{$filename}";
+    $deleteUrl = "{$storageUrl}/object/{$bucket}/{$filePath}";
+
+    Http::fake([
+        $deleteUrl => Http::response([], 404),
+    ]);
+
+    $result = $service->delete($filename);
+
+    expect($result)->toBeFalse();
+});

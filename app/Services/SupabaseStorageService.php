@@ -60,4 +60,17 @@ class SupabaseStorageService
 
         return null;
     }
+    
+    public function delete(string $filename): bool
+    {
+        $filePath = "images/{$filename}";
+
+        $response = Http::withHeaders([
+            'apikey' => $this->apiKey,
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Content-Type' => 'application/json',
+        ])->delete("{$this->storageUrl}/object/{$this->bucket}/{$filePath}");
+
+        return $response->successful();
+    }
 }
