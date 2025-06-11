@@ -6,10 +6,20 @@
             "runtime": "vercel-php@0.6.0"
         }
     },
+    "crons": [
+        {
+            "path": "/prefix/api/schedule-run",
+            "schedule": "0 0 * * *"
+        }
+    ],
     "routes": [
         {
             "src": "/(.*\\.(?:css|js|png|jpg|jpeg|gif|svg|ico|ttf|woff|woff2|eot|otf|webp|avif|txt))$",
             "dest": "/public/$1"
+        },
+        {
+            "src": "/prefix/api/schedule-run",
+            "dest": "/api"
         },
         {
             "src": "/(.*)",

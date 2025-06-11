@@ -6,6 +6,10 @@ use App\Http\Controllers\FishNoteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
+
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -30,3 +34,13 @@ Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])
 Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'])
     ->whereNumber('id')
     ->whereNumber('note_id');
+
+// Route to trigger the cron job manually
+Route::get('/schedule-run', function () {
+    Log::info('Cron job triggered at ' . now()->toDateTimeString());
+    $output = Artisan::call('schedule:run');
+    return response()->json([
+        'message' => 'Cron job executed successfully',
+        'output' => Artisan::output()
+    ]);
+});
