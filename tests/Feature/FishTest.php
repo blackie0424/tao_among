@@ -355,7 +355,7 @@ it('can delete a fish', function () {
             'message' => 'Fish deleted successfully',
         ]);
 
-    $this->assertDatabaseMissing('fish', [
+    $this->assertSoftDeleted('fish', [
         'id' => $fish->id,
     ]);
 });
