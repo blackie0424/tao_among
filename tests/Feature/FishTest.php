@@ -14,9 +14,8 @@ it('can get fish list', function () {
     $fishs = $fishs->sortByDesc('id')->values();
 
     // 構建完整的圖片路徑
-    $fishsWithImageUrl = $fishs->map(function ($fish) {
-        // 假設你的 ASSET_URL 是存儲在 config('app.asset_url') 中
-        $fish->image = env('ASSET_URL').'/images/'.$fish->image;
+    $fishs->map(function ($fish) {
+        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     });
 
     // 發送 GET 請求
@@ -53,7 +52,8 @@ it('can get a fish data by fish id', function () {
     $fish = Fish::factory()->create();
 
     // 構建完整的圖片路徑
-    $fish->image = env('ASSET_URL').'/images/'.$fish->image;
+    $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
+
 
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish/'.$fish->id);

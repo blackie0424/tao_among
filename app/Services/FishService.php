@@ -52,13 +52,12 @@ class FishService
         }
 
         $assetUrl = env('ASSET_URL');
-        $isLocal = in_array(env('APP_ENV'), ['local', 'testing']);
 
         foreach ($fishes as $fish) {
             if ($fish->image == null || $fish->image == '') {
-                $fish->image = $isLocal ? $assetUrl.'/images/default.png' : $this->storageService->getUrl('default.png');
+                $fish->image =  $this->storageService->getUrl('default.png');
             } else {
-                $fish->image = $isLocal ? $assetUrl.'/images/'.$fish->image : $this->storageService->getUrl($fish->image);
+                $fish->image =  $this->storageService->getUrl($fish->image);
             }
         }
 

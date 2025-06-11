@@ -26,7 +26,7 @@ it('can get fish list by time condition', function () {
 
     // 構建完整的圖片路徑
     $expectedFishs->map(function ($fish) {
-        $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
+        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     });
 
     $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
@@ -70,7 +70,7 @@ it('can get 6 fishes by time condition', function () {
 
     // 構建完整的圖片路徑
     $expectedFishs->map(function ($fish) {
-        $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
+        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     });
 
     $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
@@ -109,7 +109,7 @@ it('can get 0 fishes by time condition', function () {
 
     // 構建完整的圖片路徑
     $expectedFishs->map(function ($fish) {
-        $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
+        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     });
 
     $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
