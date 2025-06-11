@@ -49,7 +49,7 @@ class FishController extends Controller
             return response()->json([
                 'message' => 'Invalid since parameter',
                 'data' => null,
-                'lastUpdateTime' => time()
+                'lastUpdateTime' => null
             ], 400);
         }
 
@@ -58,10 +58,15 @@ class FishController extends Controller
             ? $this->fishService->getFishesBySince($since)
             : $this->fishService->getAllFishes();
 
+        // 取得本次資料的最大 updated_at 作為 lastUpdateTime
+        $lastUpdateTime = $fishes->isNotEmpty()
+            ? strtotime($fishes->max('updated_at'))
+            : null;
+
         return response()->json([
             'message' => $fishes->isNotEmpty() ? 'success' : 'No data available',
             'data' => $fishes->isNotEmpty() ? $fishes : [],
-            'lastUpdateTime' => time()
+            'lastUpdateTime' => $lastUpdateTime
         ]);
     }
 

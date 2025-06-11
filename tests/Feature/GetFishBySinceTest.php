@@ -29,6 +29,10 @@ it('can get fish list by time condition', function () {
         $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
     });
 
+    $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
+        ? $expectedFishs->max('updated_at')->timestamp
+        : null;
+
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish?since='.$since);
 
@@ -37,7 +41,7 @@ it('can get fish list by time condition', function () {
         ->assertJson([
             'message' => 'success',
             'data' => $expectedFishs->toArray(),
-            'lastUpdateTime' => time()
+            'lastUpdateTime' => $expectedLastUpdateTime
         ])->assertJsonCount(2, 'data');
 });
 
@@ -69,6 +73,10 @@ it('can get 6 fishes by time condition', function () {
         $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
     });
 
+    $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
+        ? $expectedFishs->max('updated_at')->timestamp
+        : null;
+
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish?since='.$since);
 
@@ -77,7 +85,7 @@ it('can get 6 fishes by time condition', function () {
         ->assertJson([
             'message' => 'success',
             'data' => $expectedFishs->toArray(),
-            'lastUpdateTime' => time()
+            'lastUpdateTime' => $expectedLastUpdateTime
         ])->assertJsonCount(6, 'data');
 });
 
@@ -104,6 +112,10 @@ it('can get 0 fishes by time condition', function () {
         $fish->image = env('ASSET_URL') . '/images/' . $fish->image;
     });
 
+    $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
+        ? $expectedFishs->max('updated_at')->timestamp
+        : null;
+
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish?since='.$since);
 
@@ -112,19 +124,20 @@ it('can get 0 fishes by time condition', function () {
         ->assertJson([
             'message' => 'No data available',
             'data' => null,
-            'lastUpdateTime' => time()
+            'lastUpdateTime' => $expectedLastUpdateTime
         ])->assertJsonCount(0, 'data');
 });
 
 it('returns empty array when database is empty', function () {
     $since = strtotime("2025/03/07");
+    
     $response = $this->get('/prefix/api/fish?since=' . $since);
 
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'No data available',
             'data' => [],
-            'lastUpdateTime' => time()
+            'lastUpdateTime' => null
         ])
         ->assertJsonCount(0, 'data');
 });
