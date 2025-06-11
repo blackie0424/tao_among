@@ -42,6 +42,13 @@
             </div>
             <footer class="mt-8">Copyright © 2025 Chungyueh</footer>
         </div>
+
+        <!-- 固定右下角新增魚類按鈕 -->
+        <a href="{{ route('fish.create') }}"
+           class="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg px-6 py-3 text-lg font-bold transition duration-300 z-50"
+           style="box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+            ＋ 新增魚類
+        </a>
     </body>
 </html>
 <!-- JavaScript 切換黑夜模式 -->
