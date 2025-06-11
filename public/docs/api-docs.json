@@ -427,14 +427,14 @@
                 }
             }
         },
-        "/prefix/api/get-signed-upload-url": {
+        "/prefix/api/supabase/signed-upload-url": {
             "post": {
                 "tags": [
                     "Upload"
                 ],
-                "summary": "獲取 Supabase 簽名上傳 URL",
+                "summary": "取得 Supabase 簽名上傳 URL",
                 "description": "獲取 Supabase 簽名上傳 URL",
-                "operationId": "1ce6f9f6a282b8c86c41d647a02b8202",
+                "operationId": "4e50a3d7177f275f7f09e622dc332b11",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -447,10 +447,6 @@
                                     "filename": {
                                         "description": "原始檔名",
                                         "type": "string"
-                                    },
-                                    "path": {
-                                        "description": "儲存路徑",
-                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -460,22 +456,22 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "成功獲取簽名上傳 URL",
+                        "description": "成功取得簽名上傳 URL",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "url": {
                                             "type": "string",
-                                            "example": "https://your-project-id.supabase.co/storage/v1/object/public/images/filename.jpg"
+                                            "example": "https://your-project-id.supabase.co/storage/v1/object/upload/sign/bucket/images/uuid.jpg"
                                         },
                                         "path": {
                                             "type": "string",
-                                            "example": "images/filename.jpg"
+                                            "example": "images/uuid.jpg"
                                         },
                                         "filename": {
                                             "type": "string",
-                                            "example": "filename.jpg"
+                                            "example": "uuid.jpg"
                                         }
                                     },
                                     "type": "object"
@@ -496,7 +492,6 @@
                                         "errors": {
                                             "properties": {
                                                 "filename": {
-                                                    "description": "可能的錯誤訊息：檔名格式不正確。|請提供有效的檔名。",
                                                     "type": "array",
                                                     "items": {
                                                         "type": "string",
@@ -505,6 +500,22 @@
                                                 }
                                             },
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "產生簽名上傳 URL 失敗",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to create signed upload URL"
                                         }
                                     },
                                     "type": "object"

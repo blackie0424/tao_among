@@ -92,35 +92,27 @@ class UploadController extends Controller
      * 獲取 Supabase 簽名上傳 URL
      *
      * @OA\Post(
-     *     path="/prefix/api/get-signed-upload-url",
-     *     summary="獲取 Supabase 簽名上傳 URL",
+     *     path="/prefix/api/supabase/signed-upload-url",
+     *     summary="取得 Supabase 簽名上傳 URL",
      *     tags={"Upload"},
      *     @OA\RequestBody(
      *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 required={"filename"},
-     *                 @OA\Property(
-     *                     property="filename",
-     *                     type="string",
-     *                     description="原始檔名"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="path",
-     *                     type="string",
-     *                     description="儲存路徑"
-     *                 )
+     *         @OA\JsonContent(
+     *             required={"filename"},
+     *             @OA\Property(
+     *                 property="filename",
+     *                 type="string",
+     *                 description="原始檔名"
      *             )
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="成功獲取簽名上傳 URL",
+     *         description="成功取得簽名上傳 URL",
      *         @OA\JsonContent(
-     *             @OA\Property(property="url", type="string", example="https://your-project-id.supabase.co/storage/v1/object/public/images/filename.jpg"),
-     *             @OA\Property(property="path", type="string", example="images/filename.jpg"),
-     *             @OA\Property(property="filename", type="string", example="filename.jpg")
+     *             @OA\Property(property="url", type="string", example="https://your-project-id.supabase.co/storage/v1/object/upload/sign/bucket/images/uuid.jpg"),
+     *             @OA\Property(property="path", type="string", example="images/uuid.jpg"),
+     *             @OA\Property(property="filename", type="string", example="uuid.jpg")
      *         )
      *     ),
      *     @OA\Response(
@@ -134,24 +126,26 @@ class UploadController extends Controller
      *                 @OA\Property(
      *                     property="filename",
      *                     type="array",
-     *                     @OA\Items(
-     *                         type="string",
-     *                         example="檔名格式不正確。"
-     *                     ),
-     *                     description="可能的錯誤訊息：檔名格式不正確。|請提供有效的檔名。"
+     *                     @OA\Items(type="string", example="檔名格式不正確。")
      *                 )
      *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="產生簽名上傳 URL 失敗",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to create signed upload URL")
      *         )
      *     )
      * )
      */
     public function getSignedUploadUrl(SupabaseSignedUploadUrlRequest $request)
     {
-        $path = $request->input('path', 'images');
+        $path = 'images'; // 寫死路徑
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
 
-        // 只保留唯一名稱（uuid）加副檔名
         $uniqueName = Str::uuid()->toString() . ($ext ? '.' . $ext : '');
         $filePath = $path . '/' . $uniqueName;
 
@@ -159,7 +153,7 @@ class UploadController extends Controller
         $url = $service->createSignedUploadUrl($filePath);
 
         if ($url) {
-            $storageBaseUrl = env('SUPABASE_STORAGE_URL'); // 例如 https://your-project-id.supabase.co/storage/v1
+            $storageBaseUrl = env('SUPABASE_STORAGE_URL');
             $fullUrl = $storageBaseUrl . $url;
 
             return response()->json([

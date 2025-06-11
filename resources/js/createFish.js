@@ -25,24 +25,28 @@ createApp({
             uploadError.value = '';
             submitSuccess.value = false;
 
-            const fileName = Date.now() + '_' + selectedFile.value.name.replace(/\s+/g, '_');
+            // 產生安全檔名
+            const fileName = Date.now() + '_' + selectedFile.value.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             try {
+                // 1. 取得 signed upload url
                 const res = await fetch('/prefix/api/supabase/signed-upload-url', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fileName })
+                    body: JSON.stringify({ filename: fileName })
                 });
                 const data = await res.json();
-                if (!data.url) throw new Error(data.message || '取得上傳網址失敗');
+                if (!data.url || !data.filename) throw new Error(data.message || '取得上傳網址失敗');
 
+                // 2. 用 PUT 上傳檔案到 Supabase
                 const uploadRes = await fetch(data.url, {
                     method: 'PUT',
                     body: selectedFile.value
                 });
                 if (!uploadRes.ok) throw new Error('圖片上傳失敗');
 
+                // 3. 保留後端回傳的 filename
                 imageUploaded.value = true;
-                uploadedFileName.value = fileName;
+                uploadedFileName.value = data.filename;
             } catch (e) {
                 uploadError.value = e.message || '上傳失敗';
             } finally {
@@ -68,6 +72,10 @@ createApp({
                 if (!res.ok) throw new Error(data.message || '新增失敗');
                 submitSuccess.value = true;
                 fishName.value = '';
+                // 新增成功後 1 秒跳轉回首頁
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
             } catch (e) {
                 submitError.value = e.message || '新增失敗';
             } finally {
