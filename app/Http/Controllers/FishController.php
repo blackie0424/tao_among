@@ -178,7 +178,7 @@ class FishController extends Controller
      *     @OA\Response(response=201, description="建立成功")
      * )
      */
-    public function create(CreateFishRequest $request)
+    public function store(CreateFishRequest $request): JsonResponse
     {
         try {
             $fish = Fish::create($request->validated());

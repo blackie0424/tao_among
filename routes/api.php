@@ -15,7 +15,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/fish', [FishController::class, 'getFishs']);
-Route::post('/fish', [FishController::class, 'create']);
+Route::post('/fish', [FishController::class, 'store']);
 Route::get('/fish/{id}', [FishController::class, 'getFishById'])->whereNumber('id');
 Route::delete('/fish/{id}', [FishController::class, 'destroy'])->whereNumber('id');
 
