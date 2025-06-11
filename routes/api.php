@@ -1,11 +1,10 @@
 <?php
 
-use App\Http\Controllers\FishController;
+use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 
@@ -14,19 +13,18 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/fish', [FishController::class, 'getFishs']);
-Route::post('/fish', [FishController::class, 'store']);
-Route::get('/fish/{id}', [FishController::class, 'getFishById'])->whereNumber('id');
-Route::delete('/fish/{id}', [FishController::class, 'destroy'])->whereNumber('id');
+// 將 fish 相關 API 路由指向 ApiFishController
+Route::get('/fish', [ApiFishController::class, 'getFishs']);
+Route::post('/fish', [ApiFishController::class, 'store']);
+Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
+Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
+Route::put('/fish/{id}', [ApiFishController::class, 'update'])->whereNumber('id');
+Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotesSince'])->whereNumber('id');
 
-// 新增更新魚類資料的路由
-Route::put('/fish/{id}', [FishController::class, 'update'])->whereNumber('id');
-
+// 其他 API
 Route::post('/upload', [UploadController::class, 'uploadImage']);
 Route::post('/supabase/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
 
-
-Route::get('/fish/{id}/notes', [FishController::class, 'getFishNotesSince'])->whereNumber('id');
 Route::post('/fish/{id}/note', [FishNoteController::class, 'store'])->whereNumber('id');
 Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])
     ->whereNumber('id')

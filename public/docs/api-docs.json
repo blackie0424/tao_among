@@ -12,7 +12,7 @@
                     "Fish"
                 ],
                 "summary": "取得魚類列表",
-                "operationId": "ac87b45ae47ca5cffec8042966c45f19",
+                "operationId": "b13e244d4a771b8009d46e33e736683b",
                 "responses": {
                     "200": {
                         "description": "成功"
@@ -24,7 +24,7 @@
                     "Fish"
                 ],
                 "summary": "新增魚類",
-                "operationId": "142f1d930e7dc4c4955170ee29ad493d",
+                "operationId": "9f5210dbcf0bf1a8abc77322f544d10b",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -60,7 +60,7 @@
                     "Fish"
                 ],
                 "summary": "取得單一魚類資料",
-                "operationId": "f7ec228b21fc8b187cb4dcf0444fabfd",
+                "operationId": "151ff128ee6f94ff1cce32f5405b16d0",
                 "parameters": [
                     {
                         "name": "id",
@@ -85,7 +85,7 @@
                     "Fish"
                 ],
                 "summary": "更新魚類資料",
-                "operationId": "d0f609b6381f0513e6b0cddc908950c9",
+                "operationId": "c6eb628750cf59e859da2ce731a77ab8",
                 "parameters": [
                     {
                         "name": "id",
@@ -128,7 +128,7 @@
                     "Fish"
                 ],
                 "summary": "刪除魚類",
-                "operationId": "a91349e0b3adf7d3feea8d71e3731f5d",
+                "operationId": "48836c10037d57f5e64d7c14b0ffc64b",
                 "parameters": [
                     {
                         "name": "id",
@@ -186,7 +186,7 @@
                     "Fish"
                 ],
                 "summary": "取得指定魚類的筆記（可用 since 篩選）",
-                "operationId": "82abcf9855855374fd59e623aac0f578",
+                "operationId": "a14992bf01c82151212cd99c8c19d14b",
                 "parameters": [
                     {
                         "name": "id",
