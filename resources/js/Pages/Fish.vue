@@ -15,15 +15,12 @@
       </a>
 
       <!-- 圖片區塊 -->
-      <div class="show_image w-full max-w-3xl mx-auto mb-6 p-4 rounded-lg shadow-custom">
-        <img :src="fish.image" :alt="fish.name" loading="lazy" class="w-full h-auto rounded-lg object-contain" />
-      </div>
+      <FishImage :image="fish.image" :name="fish.name" />
+
 
       <!-- 魚類名稱 -->
-      <div class="section section-name w-full max-w-md text-center p-4 rounded-lg shadow-custom mb-4">
-        <div class="text text-xl text-secondary">ngaran no among</div>
-        <div class="section-title text-2xl font-bold text-primary mb-2">{{ fish.name }}</div>
-      </div>
+      <FishName :name="fish.name" />
+
 
       <!-- 按鈕區塊 -->
       <div class="button-container">
@@ -59,6 +56,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
+
+import FishImage from '@/Components/FishImage.vue';
+import FishName from '@/Components/FishName.vue';
+
+
 
 const props = defineProps({
   fish: {
