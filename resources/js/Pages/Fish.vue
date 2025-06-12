@@ -16,29 +16,14 @@
 
       <!-- 圖片區塊 -->
       <FishImage :image="fish.image" :name="fish.name" />
-
-
       <!-- 魚類名稱 -->
       <FishName :name="fish.name" />
-
-
       <!-- 按鈕區塊 -->
       <FishLocateButtons :locates="locates" />
-
-
       <!-- 筆記區塊 -->
-      <div v-if="fish.notes && fish.notes.length" class="w-full flex flex-col items-center">
-        <div
-          v-for="note in fish.notes"
-          :key="note.id"
-          class="section w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
-        >
-          <div class="section-title text-xl font-semibold text-primary mb-2">{{ note.note_type }}</div>
-          <div class="text text-secondary">{{ note.note }}</div>
-        </div>
-      </div>
+      <FishNotes :notes="fish.notes" />
     </div>
-    
+
     <footer class="text-center text-secondary mt-8">Copyright © 2025 Chungyueh</footer>
   </div>
 </template>
@@ -50,6 +35,7 @@ import { router } from '@inertiajs/vue3';
 import FishImage from '@/Components/FishImage.vue';
 import FishName from '@/Components/FishName.vue';
 import FishLocateButtons from '@/Components/FishLocateButtons.vue';
+import FishNotes from '@/Components/FishNotes.vue';
 
 
 
