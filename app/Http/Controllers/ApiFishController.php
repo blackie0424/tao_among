@@ -113,9 +113,10 @@ class ApiFishController extends Controller
      *     @OA\Response(response=200, description="成功")
      * )
      */
-    public function getFishNotesSince($id,Request $request): JsonResponse
+    public function getFishNotes($id,Request $request): JsonResponse
     {
         $since = $request->query('since');
+        $locate = $request->query('locate');
         if ($since && !is_numeric($since)) {
             return response()->json([
                 'message' => 'Invalid since parameter',
@@ -126,8 +127,10 @@ class ApiFishController extends Controller
 
         $sinceDate = $since ? Carbon::createFromTimestamp($since) : null;
 
-        if($since){
+        if($sinceDate){
             $notes = FishNote::where('fish_id', $id)->where('created_at', '>', $sinceDate)->get();
+        }else if($locate){
+            $notes = FishNote::where('fish_id', $id)->where('locate', $locate)->get();
         }else{
             $notes = FishNote::where('fish_id', $id)->get();
         }

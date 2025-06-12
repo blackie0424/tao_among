@@ -121,6 +121,78 @@ it('returns notes since a given time for a fish', function () {
         ]);
 });
 
+it('returns null notes when given not exist locate', function () {
+    $fish = Fish::factory()->create(['name' => 'cilat']);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'yayo note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-03-01'),
+        'locate' => 'yayo'
+    ]);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'iraraley note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-04-02'),
+        'locate' => 'iraraley'
+    ]);
+
+    $locate = 'iranmailek';
+    $response = $this->getJson("/prefix/api/fish/{$fish->id}/notes?locate={$locate}");
+    
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => null
+        ])
+        ->assertJsonStructure([
+            'message',
+            'data' => ['*' => ['fish_id', 'note', 'note_type','locate']],
+            'lastUpdateTime',
+        ]);
+});
+
+it('returns notes since a given locate for a fish', function () {
+    $fish = Fish::factory()->create(['name' => 'cilat']);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'yayo note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-03-01'),
+        'locate' => 'yayo'
+    ]);
+    FishNote::factory()->create([
+        'fish_id' => $fish->id,
+        'note' => 'iraraley note',
+        'note_type' => 'habitat',
+        'created_at' => Carbon::parse('2025-04-02'),
+        'locate' => 'iraraley'
+    ]);
+
+    $locate = 'yayo';
+    $response = $this->getJson("/prefix/api/fish/{$fish->id}/notes?locate={$locate}");
+    
+    $response->assertStatus(200)
+        ->assertJson([
+            'message' => 'success',
+            'data' => [
+                [
+                    'fish_id' => $fish->id,
+                    'note' => 'yayo note',
+                    'note_type' => 'habitat',
+                    'locate' => 'yayo'
+                ],
+            ],
+        ])
+        ->assertJsonStructure([
+            'message',
+            'data' => ['*' => ['fish_id', 'note', 'note_type','locate']],
+            'lastUpdateTime',
+        ]);
+});
+
+
 it('returns no notes since a given time for a fish', function () {
     $fish = Fish::factory()->create(['name' => 'cilat']);
     FishNote::factory()->create([
@@ -309,4 +381,5 @@ it('returns 404 when deleting a non-existent fish note', function () {
             'data' => null,
         ]);
 });
+
 

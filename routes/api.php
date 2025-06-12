@@ -19,7 +19,7 @@ Route::post('/fish', [ApiFishController::class, 'store']);
 Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
 Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
 Route::put('/fish/{id}', [ApiFishController::class, 'update'])->whereNumber('id');
-Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotesSince'])->whereNumber('id');
+Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotes'])->whereNumber('id');
 
 // 其他 API
 Route::post('/upload', [UploadController::class, 'uploadImage']);
