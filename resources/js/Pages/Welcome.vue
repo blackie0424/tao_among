@@ -1,4 +1,3 @@
-<!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/Welcome.vue -->
 <template>
   <div class="container mx-auto p-4">
     <!-- 色調切換按鈕 -->
@@ -41,13 +40,21 @@
 
     <footer class="mt-8">Copyright © 2025 Chungyueh</footer>
 
-    <!-- 固定右下角新增魚類按鈕 -->
+    <!-- 固定左下角新增魚類按鈕 -->
     <a
       href="/fish/create"
-      class="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg px-6 py-3 text-lg font-bold transition duration-300 z-50"
-      style="box-shadow:0 4px 16px rgba(0,0,0,0.15);"
+      class="fixed bottom-6 right-6 group z-50"
+      style="background:transparent; box-shadow:0 4px 16px rgba(0,0,0,0.15);"
     >
-      ＋ 新增魚類
+      <!-- 展開的膠囊形按鈕 -->
+      <span
+        class="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-full transition-all duration-300 px-0 w-14 h-14 group-hover:px-6 group-hover:w-auto group-hover:h-14"
+        style="box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:3.5rem;"
+      >
+        <span class="transition-all duration-300">
+          ＋<span class="ml-0 group-hover:ml-2 group-hover:inline hidden">新增魚類</span>
+        </span>
+      </span>
     </a>
   </div>
 </template>
