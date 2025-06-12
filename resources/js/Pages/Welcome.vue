@@ -28,7 +28,7 @@
         <div class="info w-full flex justify-center">
           <div class="textFrame">
             <a
-              :href="`/fish/${fish.id}?locate=iraraley`"
+              :href="`/fish/${fish.id}`"
               class="text-lg font-bold text-gray-800 dark:text-gray-100"
             >
               {{ fish.name }}

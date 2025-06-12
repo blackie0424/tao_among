@@ -1,7 +1,7 @@
 <template>
     <div v-if="notes && notes.length" class="w-full flex flex-col items-center">
         <div
-          v-for="note in fish.notes"
+          v-for="note in notes"
           :key="note.id"
           class="section w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
         >
