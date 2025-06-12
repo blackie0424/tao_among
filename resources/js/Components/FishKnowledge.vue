@@ -5,13 +5,9 @@
       v-for="locate in locates"
       :key="locate.value"
       type="button"
+      class="block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center text-blue-800 dark:text-blue-200 rounded-full"
+      :class="getBtnClass(locate.value)"
       @click="changeLocate(locate.value)"
-      :class="[
-        'block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center text-blue-800 dark:text-blue-200 rounded-full',
-        currentLocate === locate.value
-          ? 'bg-yellow-500 dark:bg-yellow-600 !hover:bg-yellow-500 !dark:hover:bg-yellow-600'
-          : 'bg-blue-100 dark:bg-blue-800 hover:bg-blue-200 dark:hover:bg-blue-700'
-      ]"
     >
       {{ locate.label }}
     </button>
@@ -43,6 +39,23 @@ const props = defineProps({
 });
 
 const loading = ref(false);
+
+function getBtnClass(value) {
+  if (props.currentLocate === value) {
+    return [
+      'bg-yellow-500',
+      'dark:bg-yellow-600',
+      '!hover:bg-yellow-500',
+      '!dark:hover:bg-yellow-600'
+    ];
+  }
+  return [
+    'bg-blue-100',
+    'dark:bg-blue-800',
+    'hover:bg-blue-200',
+    'dark:hover:bg-blue-700'
+  ];
+}
 
 function changeLocate(locate) {
   // 1. 立即 emit，讓父層 currentLocate 立刻變色，notes 設為空陣列
