@@ -11,6 +11,7 @@ use App\Services\FishService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Carbon\Carbon;
+use Inertia\Inertia;
 
 
 class FishController extends Controller
@@ -22,22 +23,23 @@ class FishController extends Controller
         $this->fishService = $fishService;
     }
 
-    public function index(): View
+    public function index()
     {
-        return view('welcome', ['fishes' => $this->fishService->getAllFishes()]);
+        $fishes = $this->fishService->getAllFishes();
+        return Inertia::render('Welcome', [
+            'fishes' => $fishes
+        ]);
     }
 
-    public function getFish($id,Request $request): View
+    public function getFish($id, Request $request)
     {
         $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
-        
-        return view('fish', ['fish' =>$this->fishService->getFishByIdAndLocate($id,$locate)]);
+        $fish = $this->fishService->getFishByIdAndLocate($id, $locate);
+        return Inertia::render('Fish', ['fish' => $fish]);
     }
 
-    public function create(): View
+    public function create()
     {
-        return view('createFish');
+        return Inertia::render('CreateFish');
     }
-
-    
 }
