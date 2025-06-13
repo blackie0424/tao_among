@@ -35,7 +35,8 @@ body {
     background-color: var(--bg-section);
 }
 
-.section-name {
+.section-name,
+.section-locate {
     background-color: var(--bg-name);
 }
 

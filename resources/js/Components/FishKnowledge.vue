@@ -1,34 +1,37 @@
 <template>
   <div class="w-full flex flex-col items-center">
-    <!-- 下拉選單 -->
-    <div class="relative mb-6 w-full flex justify-center">
-      <button
-        class="px-6 py-2 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
-        @click="toggleDropdown"
-        type="button"
-      >
-        {{ currentLabel }}
-        <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      <div
-        v-if="dropdownOpen"
-        class="absolute left-0 mt-2 w-full bg-white border rounded-xl shadow-lg z-10"
-      >
-        <ul>
-          <li
-            v-for="loc in locates"
-            :key="loc.value"
-            @click="selectLocate(loc.value)"
-            class="px-6 py-2 cursor-pointer hover:bg-yellow-100 rounded-full transition"
-            :class="loc.value === selectedLocate ? 'font-bold text-yellow-600' : ''"
-          >
-            {{ loc.label }}
-          </li>
-        </ul>
-      </div>
+    <!-- Locate 區塊 -->
+<div class="section section-locate w-full max-w-3xl text-center p-4 rounded-lg shadow-custom mb-4 bg-gray-100">
+  <div class="text text-xl text-secondary mb-2">地區筆記</div>
+  <div class="relative flex justify-center">
+    <button
+      class="px-6 py-2 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
+      @click="toggleDropdown"
+      type="button"
+    >
+      {{ currentLabel }}
+      <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    <div
+      v-if="dropdownOpen"
+      class="absolute left-0 mt-2 w-full bg-white border rounded-xl shadow-lg z-10"
+    >
+      <ul>
+        <li
+          v-for="loc in locates"
+          :key="loc.value"
+          @click="selectLocate(loc.value)"
+          class="px-6 py-2 cursor-pointer hover:bg-yellow-100 rounded-full transition"
+          :class="loc.value === selectedLocate ? 'font-bold text-yellow-600' : ''"
+        >
+          {{ loc.label }}
+        </li>
+      </ul>
     </div>
+  </div>
+</div>
     <!-- 筆記區塊 -->
     <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
       <div
