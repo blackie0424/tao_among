@@ -116,7 +116,7 @@ class ApiFishController extends Controller
     public function getFishNotes($id,Request $request): JsonResponse
     {
         $since = $request->query('since');
-        $locate = $request->query('locate');
+        $locate = strtolower($request->query('locate'));
         if ($since && !is_numeric($since)) {
             return response()->json([
                 'message' => 'Invalid since parameter',

@@ -133,7 +133,7 @@ async function submitNote() {
       body: JSON.stringify({
         note: note.value,
         note_type: selectedType.value,
-        locate: selectedLocate.value,
+        locate: selectedLocate.value.toLowerCase(),
       }),
     });
     const data = await res.json();
