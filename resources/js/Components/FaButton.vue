@@ -1,0 +1,53 @@
+<template>
+  <div class="fixed right-6 bottom-6 z-50 group">
+    <button
+      :class="[
+        'flex items-center justify-center h-16 transition-all duration-300 shadow-lg font-bold',
+        bgClass,
+        hoverClass,
+        textClass,
+        'overflow-hidden',
+        expanded ? 'px-6 w-auto rounded-full' : 'w-16 px-0 rounded-full'
+      ]"
+      :title="title"
+      @mouseenter="expanded = true"
+      @mouseleave="expanded = false"
+      @focus="expanded = true"
+      @blur="expanded = false"
+      @click="handleClick"
+      style="min-width: 4rem;"
+    >
+      <span class="text-2xl">{{ icon }}</span>
+      <span
+        class="ml-2 whitespace-nowrap transition-opacity duration-200"
+        :class="expanded ? 'opacity-100' : 'opacity-0 w-0'"
+      >{{ label }}</span>
+    </button>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+const props = defineProps({
+  label: { type: String, default: '新增' },
+  icon: { type: String, default: '+' },
+  title: { type: String, default: '新增' },
+  to: { type: String, default: '' },
+  bgClass: { type: String, default: 'bg-green-600' },
+  hoverClass: { type: String, default: 'hover:bg-green-700' },
+  textClass: { type: String, default: 'text-white' },
+});
+
+const expanded = ref(false);
+
+const emit = defineEmits(['click']);
+
+function handleClick() {
+  if (props.to) {
+    window.location.href = props.to;
+  } else {
+    emit('click');
+  }
+}
+</script>

@@ -41,28 +41,21 @@
     <footer class="mt-8">Copyright © 2025 Chungyueh</footer>
 
     <!-- 固定左下角新增魚類按鈕 -->
-    <a
-      href="/fish/create"
-      class="fixed bottom-6 right-6 group z-50"
-      style="background:transparent; box-shadow:0 4px 16px rgba(0,0,0,0.15);"
-    >
-      <!-- 展開的膠囊形按鈕 -->
-      <span
-        class="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-full transition-all duration-300 px-0 w-14 h-14 group-hover:px-6 group-hover:w-auto group-hover:h-14"
-        style="box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:3.5rem;"
-      >
-        <span class="transition-all duration-300">
-          ＋<span class="ml-0 group-hover:ml-2 group-hover:inline hidden">新增魚類</span>
-        </span>
-      </span>
-    </a>
+    <FabButton
+      bgClass="bg-blue-600"
+      hoverClass="hover:bg-blue-700"
+      textClass="text-white"
+      label="新增魚類"
+      icon="＋"
+      to="/fish/create"
+    />
   </div>
 </template>
 
 <script setup>
 import { onMounted } from 'vue';
 import HeaderComponent from '@/Components/HeaderComponent.vue'; // 請根據你的 header 實際路徑調整
-
+import FabButton from '@/Components/FaButton.vue'; // 新增魚類按鈕
 
 defineProps({
   fishes: {

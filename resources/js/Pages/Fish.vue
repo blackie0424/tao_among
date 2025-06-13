@@ -18,13 +18,14 @@
     <footer class="text-center text-secondary mt-8">Copyright © 2025 Chungyueh</footer>
 
     <!-- 左下角圓形新增知識按鈕 -->
-    <button
-      @click="goToCreateNote"
-      class="fixed right-6 bottom-6 z-50 w-16 h-16 rounded-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center shadow-lg text-3xl"
-      title="新增魚類知識"
-    >
-      +
-    </button>
+    <FabButton
+      bgClass="bg-blue-600"
+      hoverClass="hover:bg-blue-700"
+      textClass="text-white"
+      label="新增筆記"
+      icon="＋"
+      :to="`/fish/${fishId}/create`"
+    />
   </div>
 </template>
 
@@ -33,6 +34,8 @@ import { ref } from 'vue';
 import FishImage from '@/Components/FishImage.vue';
 import FishName from '@/Components/FishName.vue';
 import FishKnowledge from '@/Components/FishKnowledge.vue';
+import FabButton from '@/Components/FaButton.vue'; // 新增魚類按鈕
+
 
 const props = defineProps({
   fish: Object,
@@ -60,10 +63,5 @@ const notes = ref(props.fish.notes || []);
 function handleLocateData({ locate, notes:newNotes }) {
   currentLocate.value = locate; // 更新目前地區
   notes.value = newNotes;
-}
-
-// 跳轉到新增魚類知識頁面
-function goToCreateNote() {
-  window.location.href = `/fish/${fishId}/create`;
 }
 </script>
