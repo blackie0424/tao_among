@@ -1,75 +1,96 @@
 <template>
-  <!-- 地區按鈕 -->
-  <div class="section-buttons flex flex-wrap md:flex-nowrap gap-2 md:gap-4 my-4 p-4 rounded-lg">
-    <button
-      v-for="locate in locates"
-      :key="locate.value"
-      type="button"
-      class="block w-full sm:w-1/2 md:w-auto md:min-w-[120px] px-6 py-2 min-h-[48px] flex items-center justify-center text-blue-800 dark:text-blue-200 rounded-full"
-      :class="getBtnClass(locate.value)"
-      @click="changeLocate(locate.value)"
-    >
-      {{ locate.label }}
-    </button>
-  </div>
-
-  <!-- 筆記區塊 -->
-  <div v-if="notes && notes.length" class="w-full flex flex-col items-center">
-    <div
-      v-for="note in notes"
-      :key="note.id"
-      class="section w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
-    >
-      <div class="section-title text-xl font-semibold text-primary mb-2">{{ note.note_type }}</div>
-      <div class="text text-secondary">{{ note.note }}</div>
+  <div class="w-full flex flex-col items-center">
+    <!-- 地區下拉膠囊 -->
+    <div class="relative mb-6">
+      <button
+        class="px-6 py-2 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
+        @click="toggleDropdown"
+        type="button"
+      >
+        {{ currentLabel }}
+        <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        v-if="dropdownOpen"
+        class="absolute left-0 mt-2 w-full bg-white border rounded-xl shadow-lg z-10"
+      >
+        <ul>
+          <li
+            v-for="loc in locates"
+            :key="loc.value"
+            @click="selectLocate(loc.value)"
+            class="px-6 py-2 cursor-pointer hover:bg-yellow-100 rounded-full transition"
+            :class="loc.value === selectedLocate ? 'font-bold text-yellow-600' : ''"
+          >
+            {{ loc.label }}
+          </li>
+        </ul>
+      </div>
     </div>
+
+    <!-- 筆記區塊 -->
+    <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
+      <div
+        v-for="note in notes"
+        :key="note.id"
+        class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
+      >
+        <div class="text-xl font-semibold text-primary mb-2">{{ note.note_type }}</div>
+        <div class="text text-secondary">{{ note.note }}</div>
+      </div>
+    </div>
+    <div v-else class="text-center text-gray-500 mt-4">沒有筆記資料</div>
   </div>
-  <div v-else class="text-center text-gray-500 mt-4">沒有筆記資料</div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-const emit = defineEmits(['update:locateData']);
+import { ref, computed, watch, onMounted } from 'vue';
 
 const props = defineProps({
   locates: Array,
   fishId: Number,
-  currentLocate: String,
-  notes: Array,
+  currentLocate: {
+    type: String,
+    default: 'iraraley'
+  },
 });
 
-const loading = ref(false);
+const emit = defineEmits(['update:locateData']);
 
-function getBtnClass(value) {
-  if (props.currentLocate === value) {
-    return [
-      'bg-yellow-500',
-      'dark:bg-yellow-600',
-      '!hover:bg-yellow-500',
-      '!dark:hover:bg-yellow-600'
-    ];
-  }
-  return [
-    'bg-blue-100',
-    'dark:bg-blue-800',
-    'hover:bg-blue-200',
-    'dark:hover:bg-blue-700'
-  ];
+const dropdownOpen = ref(false);
+const selectedLocate = ref(props.currentLocate || 'iraraley');
+const notes = ref([]);
+
+const currentLabel = computed(() => {
+  const found = props.locates.find(l => l.value === selectedLocate.value);
+  return found ? found.label : '';
+});
+
+function toggleDropdown() {
+  dropdownOpen.value = !dropdownOpen.value;
 }
 
-function changeLocate(locate) {
-  // 1. 立即 emit，讓父層 currentLocate 立刻變色，notes 設為空陣列
-  emit('update:locateData', { locate, notes: [] });
-
-  // 2. 再發 API 取得新資料
-  loading.value = true;
-  fetch(`/prefix/api/fish/${props.fishId}/notes?locate=${locate}`)
-    .then(res => res.json())
-    .then(data => {
-      emit('update:locateData', { locate, notes: data.data || [] });
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+async function fetchNotes() {
+  const res = await fetch(`/prefix/api/fish/${props.fishId}/notes?locate=${selectedLocate.value}`);
+  const data = await res.json();
+  notes.value = data.data || [];
+  emit('update:locateData', { locate: selectedLocate.value, notes: notes.value });
 }
+
+function selectLocate(value) {
+  selectedLocate.value = value;
+  dropdownOpen.value = false;
+  fetchNotes();
+}
+
+// 初始化時自動取得 notes
+onMounted(fetchNotes);
+
+// 若父層 currentLocate 有變動，需同步
+watch(() => props.currentLocate, (val) => {
+  selectedLocate.value = val;
+  fetchNotes();
+});
 </script>
