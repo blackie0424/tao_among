@@ -49,7 +49,7 @@ const props = defineProps({
 // 前端自行定義 locates
 const locates = [
   { value: 'iraraley', label: 'Iraraley' },
-  { value: 'iranmailek', label: 'Iranmailek' },
+  { value: 'iranmeylek', label: 'Iranmeylek' },
   { value: 'ivalino', label: 'Ivalino' },
   { value: 'imorod', label: 'Imorod' },
   { value: 'iratay', label: 'Iratay | Iratey' },
