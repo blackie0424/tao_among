@@ -6,7 +6,7 @@
       <div class="w-full md:w-2/3 flex flex-col items-center">
         <div class="w-full bg-gray-100 max-w-3xl mx-auto rounded-xl shadow p-6 mb-6 flex flex-col items-center">
           <FishName :name="fishName" class="w-full max-w-2xl text-2xl font-bold mb-4" />
-          <FishImage :image="fishImage" :name="fishName" class="w-full max-w-2xl h-[32rem] object-cover rounded-xl" />
+          <FishImage :image="fishImage" :name="fishName" class="w-full max-w-2xl object-cover rounded-xl" />
         </div>
       </div>
       <!-- 右欄：FishKnowledge -->
