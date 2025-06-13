@@ -1,7 +1,7 @@
 <template>
   <div class="w-full flex flex-col items-center">
-    <!-- 地區下拉膠囊 -->
-    <div class="relative mb-6">
+    <!-- 下拉選單 -->
+    <div class="relative mb-6 w-full flex justify-center">
       <button
         class="px-6 py-2 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
         @click="toggleDropdown"
@@ -29,7 +29,6 @@
         </ul>
       </div>
     </div>
-
     <!-- 筆記區塊 -->
     <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
       <div
