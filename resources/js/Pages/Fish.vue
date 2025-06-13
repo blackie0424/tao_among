@@ -34,7 +34,7 @@ import { ref } from 'vue';
 import FishImage from '@/Components/FishImage.vue';
 import FishName from '@/Components/FishName.vue';
 import FishKnowledge from '@/Components/FishKnowledge.vue';
-import FabButton from '@/Components/FaButton.vue'; // 新增魚類按鈕
+import FabButton from '@/Components/FabButton.vue'; // 新增魚類按鈕
 
 
 const props = defineProps({

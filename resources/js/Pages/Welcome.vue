@@ -55,7 +55,7 @@
 <script setup>
 import { onMounted } from 'vue';
 import HeaderComponent from '@/Components/HeaderComponent.vue'; // 請根據你的 header 實際路徑調整
-import FabButton from '@/Components/FaButton.vue'; // 新增魚類按鈕
+import FabButton from '@/Components/FabButton.vue'; // 新增魚類按鈕
 
 defineProps({
   fishes: {
