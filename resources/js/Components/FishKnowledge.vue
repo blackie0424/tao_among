@@ -5,7 +5,7 @@
   <div class="text text-xl text-secondary mb-2">地區筆記</div>
   <div class="relative flex justify-center">
     <button
-      class="px-6 py-2 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
+      class="px-6 py-1 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
       @click="toggleDropdown"
       type="button"
     >
