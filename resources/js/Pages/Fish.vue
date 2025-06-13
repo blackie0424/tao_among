@@ -16,6 +16,15 @@
       />
     </div>
     <footer class="text-center text-secondary mt-8">Copyright © 2025 Chungyueh</footer>
+
+    <!-- 左下角圓形新增知識按鈕 -->
+    <button
+      @click="goToCreateNote"
+      class="fixed right-6 bottom-6 z-50 w-16 h-16 rounded-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center shadow-lg text-3xl"
+      title="新增魚類知識"
+    >
+      +
+    </button>
   </div>
 </template>
 
@@ -46,11 +55,15 @@ const fishName = props.fish.name;
 
 // 狀態：目前地區與筆記
 const currentLocate = ref(props.initialLocate || 'iraraley');
-
 const notes = ref(props.fish.notes || []);
 
 function handleLocateData({ locate, notes:newNotes }) {
   currentLocate.value = locate; // 更新目前地區
   notes.value = newNotes;
+}
+
+// 跳轉到新增魚類知識頁面
+function goToCreateNote() {
+  window.location.href = `/fish/${fishId}/create`;
 }
 </script>
