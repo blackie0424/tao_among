@@ -1,6 +1,7 @@
 <!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/Fish.vue -->
 <template>
   <div class="container mx-auto py-8">
+    <Breadcrumb :fishName="fishName" />
     <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
       <!-- 左欄：魚名與圖片（圖片區塊佔2/3寬度） -->
       <div class="w-full md:w-2/3 flex flex-col items-center">
@@ -45,6 +46,8 @@ import LazyImage from '@/Components/LazyImage.vue';
 import FishName from '@/Components/FishName.vue';
 import FishKnowledge from '@/Components/FishKnowledge.vue';
 import FabButton from '@/Components/FabButton.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
+
 
 const props = defineProps({
   fish: Object,
