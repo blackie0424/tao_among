@@ -6,7 +6,12 @@
       <div class="w-full md:w-2/3 flex flex-col items-center">
         <div class="w-full bg-gray-100 max-w-3xl mx-auto rounded-xl shadow p-6 mb-6 flex flex-col items-center">
           <FishName :name="fishName" class="w-full max-w-2xl text-2xl font-bold mb-4" />
-          <FishImage :image="fishImage" :name="fishName" class="w-full max-w-2xl object-cover rounded-xl" />
+          <LazyImage
+            :src="fishImage"
+            :alt="fishName"
+            wrapperClass="show_image w-full max-w-3xl mx-auto flex items-center justify-center mb-6 p-4 rounded-lg shadow-custom bg-white"
+            imgClass="max-h-full max-w-full object-contain rounded-lg"
+          />
         </div>
       </div>
       <!-- 右欄：FishKnowledge -->
@@ -36,7 +41,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import FishImage from '@/Components/FishImage.vue';
+import LazyImage from '@/Components/LazyImage.vue';
 import FishName from '@/Components/FishName.vue';
 import FishKnowledge from '@/Components/FishKnowledge.vue';
 import FabButton from '@/Components/FabButton.vue';
