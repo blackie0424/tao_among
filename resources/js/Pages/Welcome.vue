@@ -10,32 +10,12 @@
     </button>
     <HeaderComponent />
 
-
     <div class="main grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <div
+      <FishCard
         v-for="fish in fishes"
         :key="fish.id"
-        class="card flex flex-col items-center"
-      >
-        <div class="image w-full h-48 overflow-hidden">
-          <img
-            :src="fish.image"
-            :alt="fish.name"
-            loading="lazy"
-            class="w-full h-full object-contain rounded-lg"
-          />
-        </div>
-        <div class="info w-full flex justify-center">
-          <div class="textFrame">
-            <a
-              :href="`/fish/${fish.id}`"
-              class="text-lg font-bold text-gray-800 dark:text-gray-100"
-            >
-              {{ fish.name }}
-            </a>
-          </div>
-        </div>
-      </div>
+        :fish="fish"
+      />
     </div>
 
     <footer class="mt-8">Copyright © 2025 Chungyueh</footer>
@@ -54,8 +34,9 @@
 
 <script setup>
 import { onMounted } from 'vue';
-import HeaderComponent from '@/Components/HeaderComponent.vue'; // 請根據你的 header 實際路徑調整
-import FabButton from '@/Components/FabButton.vue'; // 新增魚類按鈕
+import HeaderComponent from '@/Components/HeaderComponent.vue';
+import FabButton from '@/Components/FabButton.vue';
+import FishCard from '@/Components/FishCard.vue';
 
 defineProps({
   fishes: {
@@ -73,7 +54,6 @@ function toggleDarkMode() {
 }
 
 onMounted(() => {
-  // 載入時檢查使用者偏好
   if (localStorage.getItem('theme') === 'dark') {
     document.documentElement.classList.add('dark');
   }
