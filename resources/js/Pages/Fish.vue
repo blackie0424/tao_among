@@ -12,6 +12,11 @@
         :handle-locate-data="handleLocateData"
       />
     </div>
+    
+    <ArmSelector @update:selectedSegments="onSelect" />
+    <pre>{{ selected }}</pre>
+
+
     <FabButton
       :to="`/fish/${fish.id}/create`"
       label="新增知識"
@@ -50,5 +55,13 @@ const notes = ref(props.fish.notes || []);
 function handleLocateData({ locate, notes: newNotes }) {
   currentLocate.value = locate;
   notes.value = newNotes;
+}
+
+import ArmSelector from '@/Components/ArmSelector.vue'
+
+const selected = ref([])
+
+const onSelect = (val) => {
+  selected.value = val
 }
 </script>
