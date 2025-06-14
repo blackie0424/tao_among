@@ -10,15 +10,19 @@
     </button>
     <HeaderComponent />
 
-    <div class="main grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <FishCard
-        v-for="fish in fishes"
-        :key="fish.id"
-        :fish="fish"
-      />
-    </div>
+    <main>
+      <section class="main grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <FishCard
+          v-for="fish in fishes"
+          :key="fish.id"
+          :fish="fish"
+        />
+      </section>
+    </main>
 
-    <footer class="mt-8">Copyright © 2025 Chungyueh</footer>
+    <footer class="mt-8 text-center text-gray-500">
+      Copyright © 2025 Chungyueh
+    </footer>
 
     <!-- 固定左下角新增魚類按鈕 -->
     <FabButton
