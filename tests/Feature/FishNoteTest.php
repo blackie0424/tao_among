@@ -382,4 +382,14 @@ it('returns 404 when deleting a non-existent fish note', function () {
         ]);
 });
 
+it('deleting a fish_note does not soft delete its related fish', function () {
+    $fish = Fish::factory()->create();
+    $note = FishNote::factory()->create(['fish_id' => $fish->id]);
+
+    $note->delete();
+
+    expect($note->fresh()->deleted_at)->not->toBeNull();
+    expect($fish->fresh()->deleted_at)->toBeNull();
+});
+
 
