@@ -2,10 +2,10 @@
 <template>
   <div class="w-full md:w-2/3 flex flex-col items-center">
     <div class="fish-section-card">
-      <FishName :name="fishName" class="w-full max-w-2xl text-2xl font-bold mb-4" />
+      <FishName :name="fish.name" class="w-full max-w-2xl text-2xl font-bold mb-4" />
       <LazyImage
-        :src="fishImage"
-        :alt="fishName"
+        :src="fish.image"
+        :alt="fish.name"
         wrapperClass="fish-image-wrapper"
         imgClass="fish-image"
       />
@@ -18,7 +18,6 @@ import FishName from '@/Components/FishName.vue';
 import LazyImage from '@/Components/LazyImage.vue';
 
 defineProps({
-  fishName: String,
-  fishImage: String,
+  fish: Object
 });
 </script>
