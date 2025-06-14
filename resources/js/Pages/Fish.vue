@@ -3,31 +3,14 @@
   <div class="container mx-auto py-8">
     <Breadcrumb :fishName="fishName" />
     <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
-      <!-- 左欄：魚名與圖片（圖片區塊佔2/3寬度） -->
-      <div class="w-full md:w-2/3 flex flex-col items-center">
-        <div class="w-full bg-gray-100 max-w-3xl mx-auto rounded-xl shadow p-6 mb-6 flex flex-col items-center">
-          <FishName :name="fishName" class="w-full max-w-2xl text-2xl font-bold mb-4" />
-          <LazyImage
-            :src="fishImage"
-            :alt="fishName"
-            wrapperClass="show_image w-full max-w-3xl mx-auto flex items-center justify-center mb-6 p-4 rounded-lg shadow-custom bg-white"
-            imgClass="max-h-full max-w-full object-contain rounded-lg"
-          />
-        </div>
-      </div>
-      <!-- 右欄：FishKnowledge -->
-      <div class="w-full md:w-1/3 flex flex-col items-center">
-        <div class="w-full bg-gray-100 rounded-xl shadow p-6 mb-6 flex flex-col items-center">
-          <FishKnowledge
-            :locates="locates"
-            :fish-id="fishId"
-            :current-locate="currentLocate"
-            :notes="notes"
-            mode="dropdown"
-            @update:locateData="handleLocateData"
-          />
-        </div>
-      </div>
+      <FishDetailLeft :fishName="fishName" :fishImage="fishImage" />
+      <FishDetailRight
+        :locates="locates"
+        :fish-id="fishId"
+        :current-locate="currentLocate"
+        :notes="notes"
+        :handle-locate-data="handleLocateData"
+      />
     </div>
     <FabButton
       :to="`/fish/${fishId}/create`"
@@ -41,13 +24,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import LazyImage from '@/Components/LazyImage.vue';
-import FishName from '@/Components/FishName.vue';
-import FishKnowledge from '@/Components/FishKnowledge.vue';
-import FabButton from '@/Components/FabButton.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
-
+import FishDetailLeft from '@/Components/FishDetailLeft.vue';
+import FishDetailRight from '@/Components/FishDetailRight.vue';
+import FabButton from '@/Components/FabButton.vue';
 
 const props = defineProps({
   fish: Object,
@@ -68,7 +48,7 @@ const fishId = props.fish.id;
 const fishImage = props.fish.image;
 const fishName = props.fish.name;
 
-// 狀態：目前地區與筆記
+import { ref } from 'vue';
 const currentLocate = ref(props.initialLocate || locates[0].value);
 const notes = ref(props.fish.notes || []);
 
