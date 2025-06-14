@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Fish;
+use App\Models\FishNote;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -370,5 +371,18 @@ it('returns 404 when deleting a non-existent fish', function () {
             'message' => 'fish not found',
             'data' => null,
         ]);
+});
+
+it('soft deletes fish and its related fish_notes', function () {
+    $fish = Fish::factory()->create();
+    $notes = FishNote::factory()->count(2)->create(['fish_id' => $fish->id]);
+
+    $fish->delete();
+
+    expect($fish->fresh()->deleted_at)->not->toBeNull();
+
+    foreach ($notes as $note) {
+        expect($note->fresh()->deleted_at)->not->toBeNull();
+    }
 });
 

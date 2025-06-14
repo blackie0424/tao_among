@@ -25,4 +25,16 @@ class Fish extends Model
     {
         return $this->hasMany(FishNote::class, 'fish_id');
     }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($fish) {
+            // 如果是軟刪除，才 cascade
+            if (! $fish->isForceDeleting()) {
+                $fish->notes()->delete();
+            }
+        });
+    }
 }
