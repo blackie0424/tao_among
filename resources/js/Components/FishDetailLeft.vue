@@ -1,6 +1,6 @@
 <!-- filepath: resources/js/Components/FishDetailLeft.vue -->
 <template>
-  <div class="w-full md:w-2/3 flex flex-col items-center">
+  <div class="w-full flex flex-col items-center">
     <div class="fish-section-card">
       <FishName :name="fish.name" class="w-full max-w-2xl text-2xl font-bold mb-4" />
       <LazyImage

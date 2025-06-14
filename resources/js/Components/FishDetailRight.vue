@@ -1,6 +1,6 @@
 <!-- filepath: resources/js/Components/FishDetailRight.vue -->
 <template>
-  <div class="w-full md:w-1/3 flex flex-col items-center">
+  <div class="w-full flex flex-col items-center">
     <div class="fish-section-card">
       <FishKnowledge
         :locates="locates"

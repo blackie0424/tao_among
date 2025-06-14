@@ -3,20 +3,26 @@
   <div class="container mx-auto py-8">
     <Breadcrumb :fishName="fish.name" />
     <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
-      <FishDetailLeft :fish="fish" />
-      <FishDetailRight
-        :locates="locates"
-        :fish-id="fish.id"
-        :current-locate="currentLocate"
-        :notes="notes"
-        :handle-locate-data="handleLocateData"
-      />
+      <!-- 左欄：魚資訊 -->
+      <div class="w-full md:w-2/4">
+        <FishDetailLeft :fish="fish" />
+      </div>
+      <!-- 中欄：ArmSelector -->
+      <div class="w-full md:w-1/4 flex flex-col items-center">
+        <ArmSelector @update:selectedSegments="onSelect" />
+        <pre>{{ selected }}</pre>
+      </div>
+      <!-- 右欄：知識 -->
+      <div class="w-full md:w-1/4">
+        <FishDetailRight
+          :locates="locates"
+          :fish-id="fish.id"
+          :current-locate="currentLocate"
+          :notes="notes"
+          :handle-locate-data="handleLocateData"
+        />
+      </div>
     </div>
-    
-    <ArmSelector @update:selectedSegments="onSelect" />
-    <pre>{{ selected }}</pre>
-
-
     <FabButton
       :to="`/fish/${fish.id}/create`"
       label="新增知識"
