@@ -1,10 +1,9 @@
-<!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/CreateFish.vue -->
 <template>
   <div class="container mx-auto p-4">
     <h2 class="text-2xl font-bold mb-4">新增魚類</h2>
 
     <!-- 步驟一：上傳圖片 -->
-    <div v-if="!imageUploaded" class="bg-white p-6 rounded shadow-md max-w-md mx-auto mb-6">
+    <div v-if="!imageUploaded && !showArmSelector" class="bg-white p-6 rounded shadow-md max-w-md mx-auto mb-6">
       <div class="mb-4">
         <label for="image" class="block font-semibold mb-2">魚類圖片</label>
         <input type="file" id="image" @change="onFileChange" accept="image/*" class="w-full border rounded px-3 py-2">
@@ -19,7 +18,7 @@
     </div>
 
     <!-- 步驟二：輸入名稱並送出 -->
-    <form v-if="imageUploaded" @submit.prevent="submitFish" class="bg-white p-6 rounded shadow-md max-w-md mx-auto">
+    <form v-if="imageUploaded && !showArmSelector" @submit.prevent="submitFish" class="bg-white p-6 rounded shadow-md max-w-md mx-auto">
       <div class="mb-4">
         <div class="text-green-600 mb-2">圖片已上傳，檔名：{{ uploadedFileName }}</div>
         <label for="name" class="block font-semibold mb-2">魚類名稱</label>
@@ -33,6 +32,17 @@
       <div v-if="submitError" class="text-red-600 mt-2">{{ submitError }}</div>
       <div v-if="submitSuccess" class="text-green-600 mt-2">魚類新增成功！</div>
     </form>
+
+    <!-- 步驟三 -->
+    <div v-if="showArmSelector" class="bg-white p-6 rounded shadow-md max-w-md mx-auto">
+      <h3 class="text-xl font-bold mb-4">選擇魚的尺寸</h3>
+      <ArmSelector v-model="selectedParts" />
+      <button class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 mt-4"
+              @click="submitFishSize">
+        送出尺寸
+      </button>
+    </div>
+
   </div>
 </template>
 
@@ -48,6 +58,12 @@ const fishName = ref('');
 const submitting = ref(false);
 const submitError = ref('');
 const submitSuccess = ref(false);
+
+//ArmSelector
+import ArmSelector from '@/Components/ArmSelector.vue'; // 請依實際路徑調整
+const fishId = ref(null); // 新增，儲存新增魚的 id
+const showArmSelector = ref(false);
+const selectedParts = ref([]);
 
 function onFileChange(e) {
   selectedFile.value = e.target.files[0];
@@ -109,13 +125,32 @@ async function submitFish() {
     if (!res.ok) throw new Error(data.message || '新增失敗');
     submitSuccess.value = true;
     fishName.value = '';
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 1000);
+    fishId.value = data.id; // 假設後端回傳新魚的 id
+    showArmSelector.value = true; // 顯示第三步驟
   } catch (e) {
     submitError.value = e.message || '新增失敗';
   } finally {
     submitting.value = false;
+  }
+}
+
+async function submitFishSize() {
+  if (!fishId.value || !selectedParts.value.length) return;
+  try {
+    const res = await fetch('/prefix/api/fishSize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fish_id: fishId.value,
+        parts: selectedParts.value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || '尺寸新增失敗');
+    // 完成後導回首頁或顯示成功訊息
+    window.location.href = '/';
+  } catch (e) {
+    alert(e.message || '尺寸新增失敗');
   }
 }
 </script>
