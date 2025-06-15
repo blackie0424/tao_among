@@ -66,3 +66,28 @@ it('returns 200 and empty parts array when fish_size exists but parts is empty',
             ],
         ]);
 });
+
+it('can create a new fish size', function () {
+    $fish = \App\Models\Fish::factory()->create();
+    $payload = [
+        'fish_id' => $fish->id,
+        'parts' => ["手指1", "手指2", "半掌1"],
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(201)
+        ->assertJson([
+            'status' => 'success',
+            'message' => '建立成功',
+            'data' => [
+                'fish_id' => $fish->id,
+                'parts' => $payload['parts'],
+            ],
+        ]);
+
+    $this->assertDatabaseHas('fish_size', [
+        'fish_id' => $fish->id,
+        'parts' => json_encode($payload['parts']),
+    ]);
+});

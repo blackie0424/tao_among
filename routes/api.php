@@ -35,6 +35,7 @@ Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'
     ->whereNumber('note_id');
 
 Route::get('/fishSize/{fish_id}', [FishSizeController::class, 'show']);
+Route::post('/fishSize', [FishSizeController::class, 'store']);
 
 
 
