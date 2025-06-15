@@ -46,3 +46,23 @@ it('returns 404 when fish_id is not a number', function () {
             'data' => null,
         ]);
 });
+
+it('returns 200 and empty parts array when fish_size exists but parts is empty', function () {
+    $fish = Fish::factory()->create();
+    FishSize::create([
+        'fish_id' => $fish->id,
+        'parts' => [],
+    ]);
+
+    $response = $this->getJson("/prefix/api/fishSize/{$fish->id}");
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'status' => 'success',
+            'message' => '取得成功',
+            'data' => [
+                'fish_id' => $fish->id,
+                'parts' => [],
+            ],
+        ]);
+});
