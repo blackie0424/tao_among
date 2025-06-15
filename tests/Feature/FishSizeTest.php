@@ -103,3 +103,16 @@ it('returns 422 when creating fish size without fish_id', function () {
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['fish_id']);
 });
+
+it('returns 422 when creating fish size without parts', function () {
+    $fish = Fish::factory()->create();
+    $payload = [
+        'fish_id' => $fish->id,
+        // 'parts' => 缺少
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['parts']);
+});
