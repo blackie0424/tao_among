@@ -190,3 +190,15 @@ it('returns 422 when creating fish size with non-string items in parts array', f
     $response2->assertStatus(422)
         ->assertJsonValidationErrors(['parts.1']);
 });
+
+it('returns 422 when creating fish size with non-existent fish_id', function () {
+    $payload = [
+        'fish_id' => 999999, // 假設這個 fish_id 不存在
+        'parts' => ['手指1', '手指2'],
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['fish_id']);
+});
