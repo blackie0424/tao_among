@@ -116,3 +116,29 @@ it('returns 422 when creating fish size without parts', function () {
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['parts']);
 });
+
+it('returns 422 when creating fish size with parts set to null', function () {
+    $fish = \App\Models\Fish::factory()->create();
+    $payload = [
+        'fish_id' => $fish->id,
+        'parts' => null,
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['parts']);
+});
+
+it('returns 422 when creating fish size with empty parts array', function () {
+    $fish = \App\Models\Fish::factory()->create();
+    $payload = [
+        'fish_id' => $fish->id,
+        'parts' => [],
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['parts']);
+});
