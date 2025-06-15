@@ -26,3 +26,15 @@ it('can get fish size by fish_id', function () {
             'parts' => $parts,
         ]);
 });
+
+it('returns 404 when fish_id does not exist', function () {
+    $response = $this->getJson('/prefix/api/fishSize/999999');
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Not Found']);
+});
+
+it('returns 404 when fish_id is not a number', function () {
+    $response = $this->getJson('/prefix/api/fishSize/abc');
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Not Found']);
+});
