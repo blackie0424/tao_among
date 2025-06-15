@@ -168,3 +168,25 @@ it('returns 422 when creating fish size with parts as a number', function () {
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['parts']);
 });
+
+it('returns 422 when creating fish size with non-string items in parts array', function () {
+    $fish = Fish::factory()->create();
+
+    // parts 包含數字
+    $payload1 = [
+        'fish_id' => $fish->id,
+        'parts' => ['手指1', 123, '手指2'],
+    ];
+    $response1 = $this->postJson('/prefix/api/fishSize', $payload1);
+    $response1->assertStatus(422)
+        ->assertJsonValidationErrors(['parts.1']);
+
+    // parts 包含物件
+    $payload2 = [
+        'fish_id' => $fish->id,
+        'parts' => ['手指1', ['not' => 'string'], '手指2'],
+    ];
+    $response2 = $this->postJson('/prefix/api/fishSize', $payload2);
+    $response2->assertStatus(422)
+        ->assertJsonValidationErrors(['parts.1']);
+});
