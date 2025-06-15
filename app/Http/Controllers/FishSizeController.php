@@ -9,15 +9,23 @@ class FishSizeController extends Controller
 {
     public function show($fish_id)
     {
-        $fishSize = FishSize::where('fish_id', $fish_id)->first();
+        $fishSize = \App\Models\FishSize::where('fish_id', $fish_id)->first();
 
         if (!$fishSize) {
-            return response()->json(['message' => 'Not Found'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Not Found',
+                'data' => null,
+            ], 404);
         }
 
         return response()->json([
-            'fish_id' => $fishSize->fish_id,
-            'parts' => $fishSize->parts,
+            'status' => 'success',
+            'message' => '取得成功',
+            'data' => [
+                'fish_id' => $fishSize->fish_id,
+                'parts' => $fishSize->parts,
+            ],
         ]);
     }
 }
