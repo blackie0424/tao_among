@@ -186,7 +186,7 @@
                     "Fish"
                 ],
                 "summary": "取得指定魚類的筆記（可用 since 篩選）",
-                "operationId": "a14992bf01c82151212cd99c8c19d14b",
+                "operationId": "1f1e47ef1614f3b3bffafc9efebe611f",
                 "parameters": [
                     {
                         "name": "id",
@@ -342,6 +342,89 @@
                     },
                     "404": {
                         "description": "找不到該筆記"
+                    }
+                }
+            }
+        },
+        "/prefix/api/fishSize/{fish_id}": {
+            "get": {
+                "tags": [
+                    "FishSize"
+                ],
+                "summary": "取得指定 fish_id 的 fish_size",
+                "description": "取得指定魚種的尺寸資訊",
+                "operationId": "83e75c75cbbdf5e144284f393d51fa4c",
+                "parameters": [
+                    {
+                        "name": "fish_id",
+                        "in": "path",
+                        "description": "魚種 ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "取得成功"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "fish_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "parts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "手指1"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "找不到資料",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Not Found"
+                                        },
+                                        "data": {
+                                            "type": "string",
+                                            "example": null
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -535,6 +618,10 @@
         {
             "name": "FishNote",
             "description": "FishNote"
+        },
+        {
+            "name": "FishSize",
+            "description": "FishSize"
         },
         {
             "name": "Upload",
