@@ -14,35 +14,28 @@
         :d="d"
         :fill="isSelected(keys[idx]) ? selectedColor : defaultColor"
         class="segment"
-        @mousedown.stop.prevent="toggleSegment(keys[idx])"
+        @mousedown.stop.prevent="onToggle(keys[idx])"
         :data-key="keys[idx]"
+        :style="readonly ? 'cursor:default;' : ''"
       />
     </svg>
-    <div class="mt-2 text-center text-sm">
-      已選取：
-      <span v-if="selected.length === 0" class="text-gray-400">無</span>
-      <span v-else>
-        <span
-          v-for="seg in selected"
-          :key="seg"
-          class="inline-block px-2 py-1 mx-1 rounded bg-yellow-100 text-yellow-800"
-        >
-          {{ partLabel(seg) }}
-        </span>
-      </span>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, defineEmits } from 'vue'
+import { defineProps, defineEmits } from 'vue'
 
-const emit = defineEmits(['update:selectedSegments'])
+const props = defineProps({
+  modelValue: {
+    type: Array,
+    default: () => []
+  },
+  readonly: Boolean
+});
+const emit = defineEmits(['update:modelValue'])
 
 const selectedColor = '#f29e4c'
 const defaultColor = '#FED8A8'
-
-const selected = ref([])
 
 const keys = [
   "手指1", "手指2", "半掌1", "半掌2", "手掌", "下臂1",
@@ -88,21 +81,19 @@ const paths = [
   "M358.009 164.262L366.315 258.699C366.882 259.692 367.158 260.177 367.315 260.698C367.465 261.194 367.507 261.723 367.588 262.757C370.036 291.518 377.002 319.536 387.34 346.453L388.753 350.074C392.828 360.531 397.521 370.511 402.315 380.699H462.315C461.647 356.237 460.664 331.802 459.543 307.356C459.294 301.923 459.046 296.49 458.8 291.057C458.334 280.767 457.865 270.477 457.395 260.188C456.856 248.401 456.32 236.615 455.784 224.829C454.631 199.452 453.475 174.076 452.315 148.699C449.845 148.699 448.9 148.699 447.975 148.833C447.402 148.916 446.836 149.05 445.921 149.268C431.43 153.523 416.599 156.365 401.585 157.963L398.003 158.324C395.618 158.565 393.232 158.804 390.847 159.043C379.732 160.151 368.854 161.514 358.009 164.262Z"
 ]
 
-const selectedIdx = ref(-1)
-
 function isSelected(key) {
-  const idx = keys.indexOf(key)
-  return selectedIdx.value >= 0 && idx <= selectedIdx.value
+  return props.modelValue.includes(key)
 }
-function toggleSegment(key) {
-  const idx = keys.indexOf(key)
-  if (selectedIdx.value === idx) {
-    selectedIdx.value = -1
-    emit('update:selectedSegments', [])
+
+function onToggle(key) {
+  if (props.readonly) return
+  let newSelected
+  if (props.modelValue.includes(key)) {
+    newSelected = props.modelValue.filter(k => k !== key)
   } else {
-    selectedIdx.value = idx
-    emit('update:selectedSegments', keys.slice(0, idx + 1))
+    newSelected = [...props.modelValue, key]
   }
+  emit('update:modelValue', newSelected)
 }
 
 function partLabel(key) {

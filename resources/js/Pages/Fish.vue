@@ -9,8 +9,7 @@
       </div>
       <!-- 中欄：ArmSelector -->
       <div class="w-full md:w-1/4 flex flex-col items-center">
-        <ArmSelector @update:selectedSegments="onSelect" />
-        <pre>{{ selected }}</pre>
+        <ArmSelector  v-model="selectedParts" :readonly="true"/>
       </div>
       <!-- 右欄：知識 -->
       <div class="w-full md:w-1/4">
@@ -35,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref ,onMounted} from 'vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import FishDetailLeft from '@/Components/FishDetailLeft.vue';
 import FishDetailRight from '@/Components/FishDetailRight.vue';
@@ -65,9 +64,14 @@ function handleLocateData({ locate, notes: newNotes }) {
 
 import ArmSelector from '@/Components/ArmSelector.vue'
 
-const selected = ref([])
+const selectedParts = ref([])
+const fishId = ref(22);
 
-const onSelect = (val) => {
-  selected.value = val
-}
+onMounted(async () => {
+  const res = await fetch(`/prefix/api/fishSize/${fishId.value}`);
+  const data = await res.json();
+  if (res.ok && data.data?.parts) {
+    selectedParts.value = data.data.parts;
+  }
+});
 </script>
