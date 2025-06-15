@@ -1,7 +1,7 @@
 <!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/Fish.vue -->
 <template>
   <div class="container mx-auto py-8">
-    <Breadcrumb :fishName="fish.name" />
+    <Breadcrumb :second="fish.name" />
     <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
       <!-- 左欄：魚資訊 -->
       <div class="w-full md:w-2/4">

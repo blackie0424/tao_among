@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4">
-    <h2 class="text-2xl font-bold mb-4">新增魚類</h2>
+    <Breadcrumb second="新增魚類"/>
 
     <!-- 步驟一：上傳圖片 -->
     <div v-if="!imageUploaded && !showArmSelector" class="bg-white p-6 rounded shadow-md max-w-md mx-auto mb-6">
@@ -53,6 +53,8 @@
 
 <script setup>
 import { ref } from 'vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
+
 
 const selectedFile = ref(null);
 const uploading = ref(false);

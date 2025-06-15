@@ -15,7 +15,7 @@
       </li>
       <li>
         <span class="px-4 py-1 rounded-full bg-gray-200 text-gray-700 font-bold">
-          {{ fishName }}
+          {{ second }}
         </span>
       </li>
     </ol>
@@ -24,7 +24,7 @@
 
 <script setup>
 defineProps({
-  fishName: {
+  second: {
     type: String,
     required: true
   }
