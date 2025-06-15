@@ -142,3 +142,29 @@ it('returns 422 when creating fish size with empty parts array', function () {
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['parts']);
 });
+
+it('returns 422 when creating fish size with parts as a string', function () {
+    $fish = \App\Models\Fish::factory()->create();
+    $payload = [
+        'fish_id' => $fish->id,
+        'parts' => '這不是陣列',
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['parts']);
+});
+
+it('returns 422 when creating fish size with parts as a number', function () {
+    $fish = \App\Models\Fish::factory()->create();
+    $payload = [
+        'fish_id' => $fish->id,
+        'parts' => 123,
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['parts']);
+});
