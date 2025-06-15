@@ -82,23 +82,21 @@ const paths = [
 ]
 
 function isSelected(key) {
-  return props.modelValue.includes(key)
-}
+  const idx = keys.indexOf(key)
+  return idx >= 0 && idx < props.modelValue.length}
 
 function onToggle(key) {
   if (props.readonly) return
-  let newSelected
-  if (props.modelValue.includes(key)) {
-    newSelected = props.modelValue.filter(k => k !== key)
+  const idx = keys.indexOf(key)
+  if (idx === -1) return
+  // 如果已經選到這個，則清空
+  if (props.modelValue.length === idx + 1) {
+    emit('update:modelValue', [])
   } else {
-    newSelected = [...props.modelValue, key]
+    emit('update:modelValue', keys.slice(0, idx + 1))
   }
-  emit('update:modelValue', newSelected)
 }
 
-function partLabel(key) {
-  return key
-}
 </script>
 
 <style scoped>

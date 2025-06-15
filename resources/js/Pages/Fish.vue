@@ -65,7 +65,7 @@ function handleLocateData({ locate, notes: newNotes }) {
 import ArmSelector from '@/Components/ArmSelector.vue'
 
 const selectedParts = ref([])
-const fishId = ref(22);
+const fishId = ref(25);
 
 onMounted(async () => {
   const res = await fetch(`/prefix/api/fishSize/${fishId.value}`);
