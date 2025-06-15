@@ -91,3 +91,15 @@ it('can create a new fish size', function () {
         'parts' => json_encode($payload['parts']),
     ]);
 });
+
+it('returns 422 when creating fish size without fish_id', function () {
+    $payload = [
+        // 'fish_id' => 缺少
+        'parts' => ["手指1", "手指2"],
+    ];
+
+    $response = $this->postJson('/prefix/api/fishSize', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['fish_id']);
+});
