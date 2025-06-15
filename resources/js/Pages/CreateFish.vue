@@ -36,11 +36,16 @@
     <!-- 步驟三 -->
     <div v-if="showArmSelector" class="bg-white p-6 rounded shadow-md max-w-md mx-auto">
       <h3 class="text-xl font-bold mb-4">選擇魚的尺寸</h3>
-      <ArmSelector v-model="selectedParts" />
+      <ArmSelector @update:selectedSegments="onSelectedParts" />
+      <pre>{{ selectedParts }}</pre>
       <button class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 mt-4"
-              @click="submitFishSize">
-        送出尺寸
+              @click="submitFishSize"
+              :disabled="sizeSubmitting">
+        <span v-if="sizeSubmitting">送出中...</span>
+        <span v-else>送出尺寸</span>
       </button>
+      <div v-if="sizeSubmitError" class="text-red-600 mt-2">{{ sizeSubmitError }}</div>
+      <div v-if="sizeSubmitSuccess" class="text-green-600 mt-2">尺寸新增成功！</div>
     </div>
 
   </div>
@@ -59,11 +64,19 @@ const submitting = ref(false);
 const submitError = ref('');
 const submitSuccess = ref(false);
 
+
 //ArmSelector
 import ArmSelector from '@/Components/ArmSelector.vue'; // 請依實際路徑調整
 const fishId = ref(null); // 新增，儲存新增魚的 id
 const showArmSelector = ref(false);
 const selectedParts = ref([]);
+const sizeSubmitting = ref(false);
+const sizeSubmitError = ref('');
+const sizeSubmitSuccess = ref(false);
+
+const onSelectedParts = (val) => {
+  selectedParts.value = val
+}
 
 function onFileChange(e) {
   selectedFile.value = e.target.files[0];
@@ -125,7 +138,7 @@ async function submitFish() {
     if (!res.ok) throw new Error(data.message || '新增失敗');
     submitSuccess.value = true;
     fishName.value = '';
-    fishId.value = data.id; // 假設後端回傳新魚的 id
+    fishId.value = data.data.id; // 假設後端回傳新魚的 id
     showArmSelector.value = true; // 顯示第三步驟
   } catch (e) {
     submitError.value = e.message || '新增失敗';
@@ -135,7 +148,13 @@ async function submitFish() {
 }
 
 async function submitFishSize() {
-  if (!fishId.value || !selectedParts.value.length) return;
+  if (!fishId.value || !selectedParts.value.length) {
+    sizeSubmitError.value = '請選擇尺寸';
+    return;
+  }
+  sizeSubmitting.value = true;
+  sizeSubmitError.value = '';
+  sizeSubmitSuccess.value = false;
   try {
     const res = await fetch('/prefix/api/fishSize', {
       method: 'POST',
@@ -147,10 +166,14 @@ async function submitFishSize() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || '尺寸新增失敗');
-    // 完成後導回首頁或顯示成功訊息
-    window.location.href = '/';
+    sizeSubmitSuccess.value = true;
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1000);
   } catch (e) {
-    alert(e.message || '尺寸新增失敗');
+    sizeSubmitError.value = e.message || '尺寸新增失敗';
+  } finally {
+    sizeSubmitting.value = false;
   }
 }
 </script>
