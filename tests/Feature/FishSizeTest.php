@@ -202,3 +202,24 @@ it('returns 422 when creating fish size with non-existent fish_id', function () 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['fish_id']);
 });
+
+it('deletes fish and soft deletes related fish_size', function () {
+    $fish = Fish::factory()->create();
+    $fishSize = FishSize::factory()->create(['fish_id' => $fish->id]);
+
+    $this->delete("/prefix/api/fish/{$fish->id}")
+        ->assertOk();
+
+    // fish 應該被軟刪除
+    $this->assertNull(Fish::find($fish->id));
+    $this->assertNotNull(Fish::withTrashed()->find($fish->id));
+    $this->assertNotNull(Fish::withTrashed()->find($fish->id)->deleted_at);
+
+    // fish_size 也應該被軟刪除
+    $this->assertNull(FishSize::find($fishSize->id));
+    $this->assertNotNull(FishSize::withTrashed()->find($fishSize->id));
+    $this->assertNotNull(FishSize::withTrashed()->find($fishSize->id)->deleted_at);
+
+
+    
+});

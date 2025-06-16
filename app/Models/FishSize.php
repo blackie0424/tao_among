@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+
+
 
 class FishSize extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes,HasFactory;
 
     protected $table = 'fish_size';
 
@@ -20,7 +25,7 @@ class FishSize extends Model
         'parts' => 'array',
     ];
 
-    public function fish()
+    public function fish(): BelongsTo
     {
         return $this->belongsTo(Fish::class, 'fish_id');
     }
