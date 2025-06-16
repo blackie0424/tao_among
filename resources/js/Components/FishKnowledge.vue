@@ -1,46 +1,41 @@
 <template>
   <div class="w-full flex flex-col items-center">
     <!-- Locate 區塊 -->
-<div class="section section-locate w-full max-w-3xl text-center p-4 rounded-lg shadow-custom mb-4 bg-gray-100">
-  <div class="text text-xl text-secondary mb-2">地區筆記</div>
-  <div class="relative flex justify-center">
-    <button
-      class="px-6 py-1 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
-      @click="toggleDropdown"
-      type="button"
-    >
-      {{ currentLabel }}
-      <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
-    <div
-      v-if="dropdownOpen"
-      class="absolute left-0 mt-2 w-full bg-white border rounded-xl shadow-lg z-50"
-    >
-      <ul>
-        <li
-          v-for="loc in locates"
-          :key="loc.value"
-          @click="selectLocate(loc.value)"
-          class="px-6 py-2 cursor-pointer hover:bg-yellow-100 rounded-full transition"
-          :class="loc.value === selectedLocate ? 'font-bold text-yellow-600' : ''"
+    <div class="section section-locate w-full max-w-3xl text-center p-4 rounded-lg shadow-custom mb-4 bg-gray-100">
+      <div class="text text-xl text-secondary mb-2">地區筆記</div>
+      <div class="relative flex justify-center">
+        <button
+          class="px-6 py-1 rounded-full border bg-yellow-500 text-white font-bold shadow transition flex items-center min-w-[120px]"
+          @click="toggleDropdown"
+          type="button"
         >
-          {{ loc.label }}
-        </li>
-      </ul>
+          {{ currentLabel }}
+          <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div
+          v-if="dropdownOpen"
+          class="absolute left-0 mt-2 w-full bg-white border rounded-xl shadow-lg z-50"
+        >
+          <ul>
+            <li
+              v-for="loc in locates"
+              :key="loc.value"
+              @click="selectLocate(loc.value)"
+              class="px-6 py-2 cursor-pointer hover:bg-yellow-100 rounded-full transition"
+              :class="loc.value === selectedLocate ? 'font-bold text-yellow-600' : ''"
+            >
+              {{ loc.label }}
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
- <!-- 載入動畫 -->
-    <div v-if="loading" class="flex justify-center items-center my-8">
-      <svg class="animate-spin h-8 w-8 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-      </svg>
-      <span class="ml-3 text-yellow-600">載入中...</span>
-    </div>
+    <!-- LoadingBar -->
+    <LoadingBar :loading="loading" :error="error" type="text" loading-text="筆記載入中..." />
 
+<LoadingBar :loading="loading" :error="error" type="text" loading-text="資料載入中..." />
     <!-- 筆記區塊 -->
     <div v-if="!loading">
       <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
@@ -60,6 +55,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import LoadingBar from '@/Components/LoadingBar.vue';
+
 
 const props = defineProps({
   locates: Array,
