@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed right-6 bottom-6 z-50 group">
+  <div :class="['fixed  z-50 group',positionClass]">
     <button
       :class="[
         'flex items-center justify-center h-16 transition-all duration-300 shadow-lg font-bold',
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref,computed } from 'vue';
 
 const props = defineProps({
   label: { type: String, default: '新增' },
@@ -37,6 +37,11 @@ const props = defineProps({
   bgClass: { type: String, default: 'bg-green-600' },
   hoverClass: { type: String, default: 'hover:bg-green-700' },
   textClass: { type: String, default: 'text-white' },
+  position: { 
+    type: String, 
+    default: 'right-bottom', // 'left-top', 'right-top', 'left-bottom', 'right-bottom'
+    validator: v => ['left-top', 'right-top', 'left-bottom', 'right-bottom'].includes(v)
+  },
 });
 
 const expanded = ref(false);
@@ -50,4 +55,14 @@ function handleClick() {
     emit('click');
   }
 }
+
+const positionClass = computed(() => {
+  switch (props.position) {
+    case 'left-top': return 'left-6 top-6';
+    case 'right-top': return 'right-6 top-6';
+    case 'left-bottom': return 'left-6 bottom-6';
+    case 'right-bottom': return 'right-6 bottom-6';
+    default: return 'right-6 bottom-6';
+  }
+});
 </script>

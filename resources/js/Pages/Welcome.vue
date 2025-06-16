@@ -32,6 +32,7 @@
       label="新增魚類"
       icon="＋"
       to="/fish/create"
+      position="right-bottom"
     />
   </div>
 </template>
