@@ -51,7 +51,31 @@
           :key="note.id"
           class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
         >
-          <div class="text-xl font-semibold text-primary mb-2">{{ note.note_type }}</div>
+          <div class="flex items-center justify-between mb-2 w-full">
+            <div class="text-xl font-semibold text-primary truncate">
+              {{ note.note_type }}
+            </div>
+            <button
+              @click="deleteNote(note.id)"
+              class="ml-2 text-red-500 hover:text-red-700 flex-shrink-0"
+              title="刪除"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
           <div class="text text-secondary">{{ note.note }}</div>
         </div>
       </div>
@@ -119,4 +143,16 @@ watch(
     fetchNotes()
   }
 )
+
+async function deleteNote(noteId) {
+  console.log(`/prefix/api/fish/${props.fishId}/note/${noteId}`)
+  if (!confirm('確定要刪除這則筆記嗎？')) return
+  const res = await fetch(`/prefix/api/fish/${props.fishId}/note/${noteId}`, { method: 'DELETE' })
+  if (res.ok) {
+    // 刪除成功後可重新載入 notes 或從 notes 移除該筆
+    notes.value = notes.value.filter((n) => n.id !== noteId)
+  } else {
+    alert('刪除失敗')
+  }
+}
 </script>
