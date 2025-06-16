@@ -35,7 +35,6 @@
     <!-- LoadingBar -->
     <LoadingBar :loading="loading" :error="error" type="text" loading-text="筆記載入中..." />
 
-<LoadingBar :loading="loading" :error="error" type="text" loading-text="資料載入中..." />
     <!-- 筆記區塊 -->
     <div v-if="!loading">
       <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
