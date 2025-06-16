@@ -24,6 +24,7 @@ class Fish extends Model
     {
         static::deleting(function ($fish) {        
             $fish->size()->delete();
+            $fish->notes()->delete();
         });
     }
 
@@ -37,17 +38,5 @@ class Fish extends Model
     public function size()
     {
         return $this->hasOne(FishSize::class, 'fish_id');
-    }
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::deleting(function ($fish) {
-            // 如果是軟刪除，才 cascade
-            if (! $fish->isForceDeleting()) {
-                $fish->notes()->delete();
-            }
-        });
     }
 }

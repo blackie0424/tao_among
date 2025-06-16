@@ -392,4 +392,20 @@ it('deleting a fish_note does not soft delete its related fish', function () {
     expect($fish->fresh()->deleted_at)->toBeNull();
 });
 
+it('deletes fish and soft deletes related fish_notes', function () {
+    $fish = Fish::factory()->create();
+    $fishNote = FishNote::factory()->create(['fish_id' => $fish->id]);
 
+    $this->delete("/prefix/api/fish/{$fish->id}")
+        ->assertOk();
+
+    // fish 應該被軟刪除
+    $this->assertNull(Fish::find($fish->id));
+    $this->assertNotNull(Fish::withTrashed()->find($fish->id));
+    $this->assertNotNull(Fish::withTrashed()->find($fish->id)->deleted_at);
+
+    // fish_note 也應該被軟刪除
+    $this->assertNull(FishNote::find($fishNote->id));
+    $this->assertNotNull(FishNote::withTrashed()->find($fishNote->id));
+    $this->assertNotNull(FishNote::withTrashed()->find($fishNote->id)->deleted_at);
+});
