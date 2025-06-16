@@ -1,13 +1,10 @@
 <template>
   <div class="container mx-auto p-4">
-    <!-- 色調切換按鈕 -->
-    <button
-      id="theme-toggle"
-      class="fixed top-4 right-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded"
-      @click="toggleDarkMode"
-    >
-      版面色調切換
-    </button>
+    <!-- 色調切換按鈕（改用 DarkModeSwitcher） -->
+    <DarkModeSwitcher
+      :show-button="false"
+    />
+
     <HeaderComponent />
 
     <main>
@@ -38,29 +35,16 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
 import HeaderComponent from '@/Components/HeaderComponent.vue';
 import FabButton from '@/Components/FabButton.vue';
 import FishCard from '@/Components/FishCard.vue';
+import DarkModeSwitcher from '@/Components/DarkModeSwitcher.vue';
+
 
 defineProps({
   fishes: {
     type: Array,
     required: true
-  }
-});
-
-function toggleDarkMode() {
-  document.documentElement.classList.toggle('dark');
-  localStorage.setItem(
-    'theme',
-    document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-  );
-}
-
-onMounted(() => {
-  if (localStorage.getItem('theme') === 'dark') {
-    document.documentElement.classList.add('dark');
   }
 });
 </script>
