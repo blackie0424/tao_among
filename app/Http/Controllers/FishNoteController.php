@@ -11,7 +11,6 @@ use App\Models\Fish;
 use Inertia\Inertia;
 use App\Services\SupabaseStorageService;
 
-
 class FishNoteController extends Controller
 {
 

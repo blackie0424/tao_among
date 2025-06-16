@@ -4,7 +4,6 @@ use App\Models\Fish;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
 
-
 uses(RefreshDatabase::class);
 
 it('can get fish list by time condition', function () {

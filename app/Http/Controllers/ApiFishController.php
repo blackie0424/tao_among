@@ -73,11 +73,11 @@ class ApiFishController extends Controller
      *     @OA\Response(response=404, description="找不到資料")
      * )
      */
-    public function getFishById($id,Request $request): JsonResponse
+    public function getFishById($id, Request $request): JsonResponse
     {
         try {
             $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
-            $fish = $this->fishService->getFishByIdAndLocate($id,$locate);
+            $fish = $this->fishService->getFishByIdAndLocate($id, $locate);
             return response()->json([
                 'message' => 'success',
                 'data' => $fish,
@@ -113,7 +113,7 @@ class ApiFishController extends Controller
      *     @OA\Response(response=200, description="成功")
      * )
      */
-    public function getFishNotes($id,Request $request): JsonResponse
+    public function getFishNotes($id, Request $request): JsonResponse
     {
         $since = $request->query('since');
         $locate = strtolower($request->query('locate'));
@@ -127,11 +127,11 @@ class ApiFishController extends Controller
 
         $sinceDate = $since ? Carbon::createFromTimestamp($since) : null;
 
-        if($sinceDate){
+        if ($sinceDate) {
             $notes = FishNote::where('fish_id', $id)->where('created_at', '>', $sinceDate)->get();
-        }else if($locate){
+        } elseif ($locate) {
             $notes = FishNote::where('fish_id', $id)->where('locate', $locate)->get();
-        }else{
+        } else {
             $notes = FishNote::where('fish_id', $id)->get();
         }
 

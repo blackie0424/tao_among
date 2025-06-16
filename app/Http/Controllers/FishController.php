@@ -13,7 +13,6 @@ use Illuminate\View\View;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
-
 class FishController extends Controller
 {
     protected $fishService;

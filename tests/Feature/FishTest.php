@@ -385,4 +385,3 @@ it('soft deletes fish and its related fish_notes', function () {
         expect($note->fresh()->deleted_at)->not->toBeNull();
     }
 });
-

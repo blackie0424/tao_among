@@ -8,7 +8,6 @@ use \App\Models\FishNote;
 use \App\Models\FishSize;
 use \App\Models\Fish;
 
-
 class FishSeeder extends Seeder
 {
     /**

@@ -5,7 +5,6 @@ use App\Models\FishNote;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
 
-
 uses(RefreshDatabase::class);
 
 it('can add note to existing fish', function () {
@@ -67,7 +66,7 @@ it('returns fish details with notes, defaulting to Iraraley when no locate param
 
     $response = $this->getJson("/prefix/api/fish/{$fish->id}");
 
-    $response->assertStatus(200)    
+    $response->assertStatus(200)
         ->assertJson([
             'message' => 'success',
             'data' => [

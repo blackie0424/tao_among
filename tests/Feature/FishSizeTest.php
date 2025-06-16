@@ -221,5 +221,5 @@ it('deletes fish and soft deletes related fish_size', function () {
     $this->assertNotNull(FishSize::withTrashed()->find($fishSize->id)->deleted_at);
 
 
-    
+
 });
