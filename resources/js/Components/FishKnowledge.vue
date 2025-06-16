@@ -32,6 +32,15 @@
     </div>
   </div>
 </div>
+ <!-- 載入動畫 -->
+    <div v-if="loading" class="flex justify-center items-center my-8">
+      <svg class="animate-spin h-8 w-8 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+      </svg>
+      <span class="ml-3 text-yellow-600">載入中...</span>
+    </div>
+
     <!-- 筆記區塊 -->
     <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
       <div
@@ -64,6 +73,8 @@ const emit = defineEmits(['update:locateData']);
 const dropdownOpen = ref(false);
 const selectedLocate = ref(props.currentLocate || 'iraraley');
 const notes = ref([]);
+const loading = ref(false);
+
 
 const currentLabel = computed(() => {
   const found = props.locates.find(l => l.value === selectedLocate.value);
@@ -75,12 +86,15 @@ function toggleDropdown() {
 }
 
 async function fetchNotes() {
-  const res = await fetch(`/prefix/api/fish/${props.fishId}/notes?locate=${selectedLocate.value}`);
-  console.log(`/prefix/api/fish/${props.fishId}/notes?locate=${selectedLocate.value}`)
-  const data = await res.json();
-  console.log('取得筆記資料:', data);
-  notes.value = data.data || [];
-  emit('update:locateData', { locate: selectedLocate.value, notes: notes.value });
+  loading.value = true;
+  try {
+    const res = await fetch(`/prefix/api/fish/${props.fishId}/notes?locate=${selectedLocate.value}`);
+    const data = await res.json();
+    notes.value = data.data || [];
+    emit('update:locateData', { locate: selectedLocate.value, notes: notes.value });
+  } finally {
+    loading.value = false;
+  }
 }
 
 function selectLocate(value) {
