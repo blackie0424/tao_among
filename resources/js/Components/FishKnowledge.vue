@@ -16,7 +16,7 @@
     </button>
     <div
       v-if="dropdownOpen"
-      class="absolute left-0 mt-2 w-full bg-white border rounded-xl shadow-lg z-10"
+      class="absolute left-0 mt-2 w-full bg-white border rounded-xl shadow-lg z-50"
     >
       <ul>
         <li
@@ -76,12 +76,15 @@ function toggleDropdown() {
 
 async function fetchNotes() {
   const res = await fetch(`/prefix/api/fish/${props.fishId}/notes?locate=${selectedLocate.value}`);
+  console.log(`/prefix/api/fish/${props.fishId}/notes?locate=${selectedLocate.value}`)
   const data = await res.json();
+  console.log('取得筆記資料:', data);
   notes.value = data.data || [];
   emit('update:locateData', { locate: selectedLocate.value, notes: notes.value });
 }
 
 function selectLocate(value) {
+  console.log(`選擇地區: ${value}`);
   selectedLocate.value = value;
   dropdownOpen.value = false;
   fetchNotes();
