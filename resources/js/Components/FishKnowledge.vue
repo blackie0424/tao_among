@@ -42,18 +42,20 @@
     </div>
 
     <!-- 筆記區塊 -->
-    <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
-      <div
-        v-for="note in notes"
-        :key="note.id"
-        class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
-      >
-        <div class="text-xl font-semibold text-primary mb-2">{{ note.note_type }}</div>
-        <div class="text text-secondary">{{ note.note }}</div>
+    <div v-if="!loading">
+      <div v-if="notes.length" class="w-full flex flex-col items-center mt-6">
+        <div
+          v-for="note in notes"
+          :key="note.id"
+          class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
+        >
+          <div class="text-xl font-semibold text-primary mb-2">{{ note.note_type }}</div>
+          <div class="text text-secondary">{{ note.note }}</div>
+        </div>
       </div>
+      <div v-else class="text-center text-gray-500 mt-4">沒有筆記資料</div>
     </div>
-    <div v-else class="text-center text-gray-500 mt-4">沒有筆記資料</div>
-  </div>
+   </div>
 </template>
 
 <script setup>
