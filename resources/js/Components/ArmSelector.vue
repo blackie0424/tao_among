@@ -1,4 +1,16 @@
 <template>
+  <div class="w-full flex flex-col items-center">
+     <div class="fish-section-card">
+  <div class="section section-name w-full max-w-3xl text-center p-4 rounded-lg shadow-custom mb-4 flex flex-col items-center">
+    <div class="flex items-center justify-center w-full gap-2 mb-1">
+      <div class="text text-xl text-secondary">魚的尺寸</div>
+    </div>
+    <!-- 魚名與 icon 水平排列 -->
+    <div class="section-title text-2xl font-bold text-primary mb-2 flex items-center justify-center w-full">
+      <span>！預留顯示長度的族語</span>
+      <Volume class="ml-2" />
+    </div>
+  </div>
   <div class="arm-selector">
     <svg
       ref="svgRef"
@@ -19,6 +31,8 @@
         :style="readonly ? 'cursor:default;' : ''"
       />
     </svg>
+  </div>
+  </div>
   </div>
 </template>
 
@@ -83,7 +97,8 @@ const paths = [
 
 function isSelected(key) {
   const idx = keys.indexOf(key)
-  return idx >= 0 && idx < props.modelValue.length}
+  return idx >= 0 && idx < props.modelValue.length
+}
 
 function onToggle(key) {
   if (props.readonly) return
