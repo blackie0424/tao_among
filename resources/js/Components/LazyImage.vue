@@ -1,5 +1,11 @@
 <template>
-  <div :class="['relative flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden', wrapperClass]" :style="wrapperStyle">
+  <div
+    :class="[
+      'relative flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden',
+      wrapperClass,
+    ]"
+    :style="wrapperStyle"
+  >
     <LoadingBar :loading="loading" :error="error" type="image" loading-text="資料載入中..." />
     <img
       v-show="!loading && !error"
@@ -15,8 +21,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import LoadingBar from '@/Components/LoadingBar.vue';
+import { ref, watch } from 'vue'
+import LoadingBar from '@/Components/LoadingBar.vue'
 
 const props = defineProps({
   src: String,
@@ -25,22 +31,25 @@ const props = defineProps({
   wrapperStyle: { type: [String, Object], default: '' },
   imgClass: { type: String, default: '' },
   imgStyle: { type: [String, Object], default: '' },
-});
+})
 
-const loading = ref(true);
-const error = ref(false);
+const loading = ref(true)
+const error = ref(false)
 
 function onLoad() {
-  loading.value = false;
+  loading.value = false
 }
 function onError() {
-  loading.value = false;
-  error.value = true;
+  loading.value = false
+  error.value = true
 }
 
 // 當 src 改變時重設 loading 狀態
-watch(() => props.src, () => {
-  loading.value = true;
-  error.value = false;
-});
+watch(
+  () => props.src,
+  () => {
+    loading.value = true
+    error.value = false
+  }
+)
 </script>

@@ -5,12 +5,12 @@ import './bootstrap'
 const pages = import.meta.glob('./Pages/**/*.vue')
 
 createInertiaApp({
-    resolve: name => {
-        return pages[`./Pages/${name}.vue`]().then(module => module.default)
-    },
-    setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
-            .use(plugin)
-            .mount(el)
-    },
+  resolve: (name) => {
+    return pages[`./Pages/${name}.vue`]().then((module) => module.default)
+  },
+  setup({ el, App, props, plugin }) {
+    createApp({ render: () => h(App, props) })
+      .use(plugin)
+      .mount(el)
+  },
 })

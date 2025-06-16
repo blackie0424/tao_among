@@ -4,218 +4,218 @@
 
 /* Header styles */
 header {
-    width: 100%;
-    height: auto;
-    position: relative;
+  width: 100%;
+  height: auto;
+  position: relative;
 }
 
 .responsive-img {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Header text positioning */
 .header-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ffffff;
-    text-align: center;
-    z-index: 1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  text-align: center;
+  z-index: 1;
 }
 
 .header-content h1 {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 @media (max-width: 768px) {
-    .header-content h1 {
-        font-size: 1rem;
-    }
+  .header-content h1 {
+    font-size: 1rem;
+  }
 }
 
 /* Main container using Tailwind grid (already applied in HTML) */
 .main {
-    position: relative;
-    margin-top: 10px;
+  position: relative;
+  margin-top: 10px;
 }
 
 /* Card styles */
 .card {
-    background-color: var(--bg-card);
-    border-color: var(--border-card);
-    box-shadow: var(--shadow);
-    border-width: 2px;
-    border-radius: 10px;
-    /* Rounded corners for the card */
-    min-height: 260px;
-    /* Adjusted height for consistency */
-    transition: transform 0.3s ease;
+  background-color: var(--bg-card);
+  border-color: var(--border-card);
+  box-shadow: var(--shadow);
+  border-width: 2px;
+  border-radius: 10px;
+  /* Rounded corners for the card */
+  min-height: 260px;
+  /* Adjusted height for consistency */
+  transition: transform 0.3s ease;
 }
 
 .card:hover {
-    transform: translateY(-5px);
+  transform: translateY(-5px);
 }
 
 /* Image container */
 .image {
-    width: 100%;
-    height: 200px;
-    /* Increased height to maximize image size */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    margin: 10px;
+  width: 100%;
+  height: 200px;
+  /* Increased height to maximize image size */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  margin: 10px;
 }
 
 .image img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 8px;
-    /* Rounded corners for images */
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  /* Rounded corners for images */
 }
 
 /* Info section */
 .info {
-    /* Space between image and text */
-    background-color: var(--bg-info);
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 8px;
-    border-radius: 0 0 8px 8px;
-    /* Match card rounding at the bottom */
+  /* Space between image and text */
+  background-color: var(--bg-info);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  border-radius: 0 0 8px 8px;
+  /* Match card rounding at the bottom */
 }
 
 .textFrame {
-    text-align: center;
-    padding: 5px 10px;
+  text-align: center;
+  padding: 5px 10px;
 }
 
 .textFrame a {
-    color: var(--text-primary);
-    font-weight: bold;
-    transition: color 0.3s ease;
+  color: var(--text-primary);
+  font-weight: bold;
+  transition: color 0.3s ease;
 }
 
 /* Ensure text contrast in dark mode */
 .dark .textFrame a {
-    color: #e5e7eb;
-    /* Lighter text for dark mode (text-gray-200) */
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    /* Subtle shadow for better readability */
+  color: #e5e7eb;
+  /* Lighter text for dark mode (text-gray-200) */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  /* Subtle shadow for better readability */
 }
 
 /* Footer */
 footer {
-    text-align: center;
-    color: var(--text-secondary);
-    padding: 1.5rem 0;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 1.5rem 0;
 }
 
 /* CSS Variables */
 :root {
-    --bg-primary: #f3f4f6;
-    /* bg-gray-100 */
-    --bg-card: #ffffff;
-    /* Card white background */
-    --bg-info: #eff6ff;
-    /* bg-blue-50 */
-    --bg-buttons: #e5e7eb;
-    /* bg-gray-200 */
-    --text-primary: #1f2937;
-    /* text-gray-800 */
-    --text-secondary: #4b5563;
-    /* text-gray-600 */
-    --border-card: #BEB4FA;
-    /* Card border */
-    --border-name: #d9534f;
-    /* Name border */
-    --border-buttons: #e88e35;
-    /* Button border */
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --bg-primary: #f3f4f6;
+  /* bg-gray-100 */
+  --bg-card: #ffffff;
+  /* Card white background */
+  --bg-info: #eff6ff;
+  /* bg-blue-50 */
+  --bg-buttons: #e5e7eb;
+  /* bg-gray-200 */
+  --text-primary: #1f2937;
+  /* text-gray-800 */
+  --text-secondary: #4b5563;
+  /* text-gray-600 */
+  --border-card: #beb4fa;
+  /* Card border */
+  --border-name: #d9534f;
+  /* Name border */
+  --border-buttons: #e88e35;
+  /* Button border */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* Dark mode */
 .dark {
-    --bg-primary: #1f2937;
-    /* bg-gray-800 */
-    --bg-card: #374151;
-    /* Card dark gray */
-    --bg-info: #1e3a8a;
-    /* bg-blue-900 */
-    --bg-buttons: #4b5563;
-    /* bg-gray-600 */
-    --text-primary: #e5e7eb;
-    /* text-gray-200 */
-    --text-secondary: #d1d5db;
-    /* text-gray-300 */
-    --border-card: #6b7280;
-    /* Dark gray border */
-    --border-name: #b91c1c;
-    /* Dark red border */
-    --border-buttons: #c2410c;
-    /* Dark orange border */
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --bg-primary: #1f2937;
+  /* bg-gray-800 */
+  --bg-card: #374151;
+  /* Card dark gray */
+  --bg-info: #1e3a8a;
+  /* bg-blue-900 */
+  --bg-buttons: #4b5563;
+  /* bg-gray-600 */
+  --text-primary: #e5e7eb;
+  /* text-gray-200 */
+  --text-secondary: #d1d5db;
+  /* text-gray-300 */
+  --border-card: #6b7280;
+  /* Dark gray border */
+  --border-name: #b91c1c;
+  /* Dark red border */
+  --border-buttons: #c2410c;
+  /* Dark orange border */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
 }
 
 /* Apply variables */
 body {
-    background-color: var(--bg-primary);
+  background-color: var(--bg-primary);
 }
 
 /* Theme toggle button */
 #theme-toggle {
-    z-index: 1000;
-    background-color: var(--bg-buttons);
-    color: var(--text-primary);
-    border-radius: 0.5rem;
-    cursor: pointer;
+  z-index: 1000;
+  background-color: var(--bg-buttons);
+  color: var(--text-primary);
+  border-radius: 0.5rem;
+  cursor: pointer;
 }
 
 .fish-section-card {
-    width: 100%;
-    max-width: 48rem;
-    /* 3xl */
-    margin-left: auto;
-    margin-right: auto;
-    background-color: #f3f4f6;
-    /* gray-100 */
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  width: 100%;
+  max-width: 48rem;
+  /* 3xl */
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #f3f4f6;
+  /* gray-100 */
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .fish-image-wrapper {
-    background-color: #fff;
-    width: 100%;
-    max-width: 48rem;
-    margin-left: auto;
-    margin-right: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  width: 100%;
+  max-width: 48rem;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .fish-image {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    border-radius: 0.75rem;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 0.75rem;
 }

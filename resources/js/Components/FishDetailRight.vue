@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import FishKnowledge from '@/Components/FishKnowledge.vue';
+import FishKnowledge from '@/Components/FishKnowledge.vue'
 
 defineProps({
   locates: Array,
@@ -23,5 +23,5 @@ defineProps({
   currentLocate: String,
   notes: Array,
   handleLocateData: Function,
-});
+})
 </script>

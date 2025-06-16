@@ -1,5 +1,8 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+  <div
+    v-if="visible"
+    class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50"
+  >
     <div class="bg-white rounded-lg shadow-lg p-6 w-80 text-center">
       <div :class="iconClass" class="text-4xl mb-2">
         <span v-if="type === 'success'">✅</span>
@@ -7,10 +10,7 @@
         <span v-else>ℹ️</span>
       </div>
       <div class="mb-4 text-lg">{{ message }}</div>
-      <button
-        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-        @click="onConfirm"
-      >
+      <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded" @click="onConfirm">
         確認
       </button>
     </div>
@@ -34,9 +34,12 @@ const emit = defineEmits(['update:modelValue'])
 
 const visible = ref(props.modelValue)
 
-watch(() => props.modelValue, (val) => {
-  visible.value = val
-})
+watch(
+  () => props.modelValue,
+  (val) => {
+    visible.value = val
+  }
+)
 
 function onConfirm() {
   emit('update:modelValue', false)

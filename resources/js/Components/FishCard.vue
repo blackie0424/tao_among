@@ -8,10 +8,7 @@
     />
     <div class="info w-full flex justify-center">
       <div class="textFrame">
-        <a
-          :href="`/fish/${fish.id}`"
-          class="text-lg font-bold text-gray-800 dark:text-gray-100"
-        >
+        <a :href="`/fish/${fish.id}`" class="text-lg font-bold text-gray-800 dark:text-gray-100">
           {{ fish.name }}
         </a>
       </div>
@@ -20,6 +17,6 @@
 </template>
 
 <script setup>
-import LazyImage from '@/Components/LazyImage.vue';
-const props = defineProps({ fish: Object });
+import LazyImage from '@/Components/LazyImage.vue'
+const props = defineProps({ fish: Object })
 </script>

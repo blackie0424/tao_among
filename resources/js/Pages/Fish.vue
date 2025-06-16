@@ -9,7 +9,7 @@
       </div>
       <!-- 中欄：ArmSelector -->
       <div class="w-full md:w-1/4">
-        <ArmSelector  v-model="selectedParts" :readonly="true"/>
+        <ArmSelector v-model="selectedParts" :readonly="true" />
       </div>
       <!-- 右欄：知識 -->
       <div class="w-full md:w-1/4">
@@ -45,16 +45,16 @@
 </template>
 
 <script setup>
-import { ref ,onMounted} from 'vue';
-import Breadcrumb from '@/Components/Breadcrumb.vue';
-import FishDetailLeft from '@/Components/FishDetailLeft.vue';
-import FishDetailRight from '@/Components/FishDetailRight.vue';
-import FabButton from '@/Components/FabButton.vue';
+import { ref, onMounted } from 'vue'
+import Breadcrumb from '@/Components/Breadcrumb.vue'
+import FishDetailLeft from '@/Components/FishDetailLeft.vue'
+import FishDetailRight from '@/Components/FishDetailRight.vue'
+import FabButton from '@/Components/FabButton.vue'
 
 const props = defineProps({
   fish: Object,
   initialLocate: String,
-});
+})
 
 const locates = [
   { value: 'iraraley', label: 'Iraraley' },
@@ -63,39 +63,39 @@ const locates = [
   { value: 'imorod', label: 'Imorod' },
   { value: 'iratay', label: 'Iratay | Iratey' },
   { value: 'yayo', label: 'Yayo' },
-];
+]
 
-const currentLocate = ref(props.initialLocate || locates[0].value);
-const notes = ref(props.fish.notes || []);
+const currentLocate = ref(props.initialLocate || locates[0].value)
+const notes = ref(props.fish.notes || [])
 
 function handleLocateData({ locate, notes: newNotes }) {
-  currentLocate.value = locate;
-  notes.value = newNotes;
+  currentLocate.value = locate
+  notes.value = newNotes
 }
 
 import ArmSelector from '@/Components/ArmSelector.vue'
 
 const selectedParts = ref([])
-const fishId = ref(props.fish.id);
+const fishId = ref(props.fish.id)
 
 onMounted(async () => {
-  const res = await fetch(`/prefix/api/fishSize/${fishId.value}`);
-  const data = await res.json();
+  const res = await fetch(`/prefix/api/fishSize/${fishId.value}`)
+  const data = await res.json()
   if (res.ok && data.data?.parts) {
-    selectedParts.value = data.data.parts;
+    selectedParts.value = data.data.parts
   }
-});
+})
 
 async function deleteFish() {
-  if (!confirm('確定要刪除這筆資料嗎？')) return;
+  if (!confirm('確定要刪除這筆資料嗎？')) return
   try {
     const res = await fetch(`/prefix/api/fish/${props.fish.id}`, {
-      method: 'DELETE'
-    });
-    if (!res.ok) throw new Error('刪除失敗');
-    window.location.href = '/';
+      method: 'DELETE',
+    })
+    if (!res.ok) throw new Error('刪除失敗')
+    window.location.href = '/'
   } catch (e) {
-    alert(e.message || '刪除失敗');
+    alert(e.message || '刪除失敗')
   }
 }
 </script>

@@ -14,10 +14,10 @@
 </template>
 
 <script setup>
-import FishName from '@/Components/FishName.vue';
-import LazyImage from '@/Components/LazyImage.vue';
+import FishName from '@/Components/FishName.vue'
+import LazyImage from '@/Components/LazyImage.vue'
 
 defineProps({
-  fish: Object
-});
+  fish: Object,
+})
 </script>
