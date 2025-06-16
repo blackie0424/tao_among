@@ -1,14 +1,6 @@
 <template>
   <div :class="['relative flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden', wrapperClass]" :style="wrapperStyle">
-    <template v-if="loading">
-      <svg class="animate-spin h-8 w-8 text-gray-400" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-      </svg>
-    </template>
-    <template v-else-if="error">
-      <span class="text-gray-400 text-sm">圖片載入失敗</span>
-    </template>
+    <LoadingBar :loading="loading" :error="error" type="image" loading-text="資料載入中..." />
     <img
       v-show="!loading && !error"
       :src="src"
@@ -24,6 +16,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import LoadingBar from '@/Components/LoadingBar.vue';
 
 const props = defineProps({
   src: String,
