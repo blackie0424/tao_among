@@ -2,7 +2,6 @@
   <div class="bg-white p-6 rounded shadow-md max-w-md mx-auto">
     <h3 class="text-xl font-bold mb-4">選擇魚的尺寸</h3>
     <ArmSelector v-model="selectedParts" :readonly="false" />
-    <pre>{{ selectedParts }}</pre>
     <button class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 mt-4"
             @click="submitFishSize"
             :disabled="sizeSubmitting">
