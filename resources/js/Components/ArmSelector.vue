@@ -20,9 +20,9 @@
           ref="svgRef"
           version="1.1"
           xmlns="http://www.w3.org/2000/svg"
-          width="300"
-          height="300"
-          viewBox="0 0 600 600"
+          width="200"
+          height="200"
+          viewBox="0 0 500 400"
         >
           <path
             v-for="(d, idx) in paths"
@@ -134,7 +134,7 @@ function onToggle(key) {
 <style scoped>
 .arm-selector {
   max-width: 420px;
-  margin: 0 auto 1rem auto;
+  margin: 0 auto;
   user-select: none;
 }
 .segment {
