@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import Breadcrumb from '@/Components/Breadcrumb.vue'
+import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
 import FishDetailRight from '@/Components/FishDetailRight.vue'
 import FabButton from '@/Components/FabButton.vue'

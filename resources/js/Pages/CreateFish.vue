@@ -13,7 +13,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import Breadcrumb from '@/Components/Breadcrumb.vue'
+import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishImageUploader from '@/Components/FishImageUploader.vue'
 import FishNameForm from '@/Components/FishNameForm.vue'
 import FishSizeSelector from '@/Components/FishSizeSelector.vue'
