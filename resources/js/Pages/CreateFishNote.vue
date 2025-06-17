@@ -1,5 +1,6 @@
 <template>
-  <div class="container mx-auto p-4 max-w-lg">
+  <div class="container mx-auto p-4">
+    <Breadcrumb second="新增知識" />
     <!-- 魚圖片與名稱 -->
     <div class="flex flex-col items-center mb-8">
       <div class="w-256 h-256 mb-2">
@@ -96,6 +97,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import { router } from '@inertiajs/vue3'
 import FishImage from '@/Components/FishImage.vue'
 import FishName from '@/Components/FishName.vue'
