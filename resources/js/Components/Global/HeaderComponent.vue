@@ -14,5 +14,5 @@
 <script setup>
 const headerM = '/images/header-m.png'
 const headerS = '/images/header-s.png'
-const headerL = '/images/header-l.png'
+const headerL = '/images/header-l.jpg'
 </script>
