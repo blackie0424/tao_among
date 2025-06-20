@@ -31,16 +31,6 @@
       textClass="text-white"
       position="right-bottom"
     />
-
-    <FabButton
-      label="刪除資料"
-      icon="x"
-      bgClass="bg-red-600"
-      hoverClass="hover:bg-red-700"
-      textClass="text-white"
-      position="right-top"
-      @click="deleteFish"
-    />
   </div>
 </template>
 
@@ -85,17 +75,4 @@ onMounted(async () => {
     selectedParts.value = data.data.parts
   }
 })
-
-async function deleteFish() {
-  if (!confirm('確定要刪除這筆資料嗎？')) return
-  try {
-    const res = await fetch(`/prefix/api/fish/${props.fish.id}`, {
-      method: 'DELETE',
-    })
-    if (!res.ok) throw new Error('刪除失敗')
-    window.location.href = '/'
-  } catch (e) {
-    alert(e.message || '刪除失敗')
-  }
-}
 </script>
