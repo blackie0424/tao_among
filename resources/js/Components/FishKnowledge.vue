@@ -80,11 +80,14 @@
                 class="absolute right-0 mt-2 w-24 bg-white border rounded shadow z-50"
               >
                 <ul>
-                  <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer" @click="editNote(note.id)">
+                  <li
+                    class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base"
+                    @click="editNote(note.id)"
+                  >
                     編輯
                   </li>
                   <li
-                    class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer"
+                    class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer text-base"
                     @click="deleteNote(note.id)"
                   >
                     刪除

@@ -1,11 +1,11 @@
 <template>
   <div class="section section-name w-full max-w-3xl p-4 mb-4 flex flex-col items-end relative">
-    <div class="flex items-center justify-center w-full mb-1">
+    <div class="flex items-center justify-center w-full mb-4">
       <div class="text text-xl text-secondary">ngaran no among</div>
     </div>
     <!-- 魚名與 icon 水平排列 -->
     <div
-      class="section-title text-2xl font-bold text-primary mb-2 flex items-center justify-center w-full"
+      class="section-title text-2xl font-bold text-primary flex items-center justify-center w-full"
     >
       <span>{{ fish.name }}</span>
       <Volume class="ml-2" />
@@ -32,8 +32,11 @@
         </button>
         <div v-if="menuOpen" class="absolute right-0 mt-2 w-24 bg-white border rounded shadow z-50">
           <ul>
-            <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer">編輯</li>
-            <li @click="deleteFish" class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer">
+            <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base">編輯</li>
+            <li
+              @click="deleteFish"
+              class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer text-base"
+            >
               刪除
             </li>
           </ul>
