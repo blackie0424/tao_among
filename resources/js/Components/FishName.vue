@@ -8,7 +8,7 @@
       class="section-title text-2xl font-bold text-primary flex items-center justify-center w-full"
     >
       <span>{{ fish.name }}</span>
-      <Volume class="ml-2" />
+      <Volume class="ml-4" />
     </div>
 
     <div class="absolute right-0 top-0 h-full rounded-lg p-4">
