@@ -45,11 +45,11 @@
 
     <!-- 筆記區塊 -->
     <div v-if="!loading">
-      <div v-if="notes.length" class="w-full flex flex-col items-center">
+      <div v-if="notes.length" class="w-full flex flex-col items-center mb-2">
         <div
           v-for="note in notes"
           :key="note.id"
-          class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom"
+          class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
         >
           <div class="flex items-center justify-between w-full">
             <div class="text-xl font-semibold text-primary truncate">
