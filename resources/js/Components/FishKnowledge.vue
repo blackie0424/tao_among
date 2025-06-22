@@ -51,12 +51,11 @@
           :key="note.id"
           class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-6"
         >
-          <div class="flex items-center justify-between mb-2 w-full relative">
+          <div class="flex items-center justify-between mb-2 w-full">
             <div class="text-xl font-semibold text-primary truncate">
               {{ note.note_type }}
             </div>
             <OverflowMenu
-              class="absolute right-0 top-0"
               :apiUrl="`/prefix/api/fish/${fishId}/note/${note.id}`"
               @deleted="notes = notes.filter((n) => n.id !== note.id)"
             />
