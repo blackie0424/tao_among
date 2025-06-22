@@ -1,5 +1,5 @@
 <template>
-  <div class="flex right-0 top-0 h-full rounded-lg p-4">
+  <div class="flex right-0 top-0 h-full rounded-lg p-2">
     <div class="relative overflow-menu">
       <button
         class="ml-2 text-gray-500 hover:text-gray-700 flex-shrink-0"
