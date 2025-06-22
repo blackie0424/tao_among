@@ -49,53 +49,19 @@
         <div
           v-for="note in notes"
           :key="note.id"
-          class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-4"
+          class="w-full max-w-md p-4 bg-beige-100 rounded-lg shadow-custom mb-6"
         >
           <div class="flex items-center justify-between mb-2 w-full relative">
             <div class="text-xl font-semibold text-primary truncate">
               {{ note.note_type }}
             </div>
-            <div class="relative note-menu">
-              <button
-                @click.stop="toggleMenu(note.id)"
-                class="ml-2 text-gray-500 hover:text-gray-700 flex-shrink-0"
-                title="更多操作"
-              >
-                <!-- 三個垂直點點 -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-                  <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                  <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-                </svg>
-              </button>
-              <!-- 下拉選單 -->
-              <div
-                v-if="menuOpenId === note.id"
-                class="absolute right-0 mt-2 w-24 bg-white border rounded shadow z-50"
-              >
-                <ul>
-                  <li
-                    class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base"
-                    @click="editNote(note.id)"
-                  >
-                    編輯
-                  </li>
-                  <li
-                    class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer text-base"
-                    @click="deleteNote(note.id)"
-                  >
-                    刪除
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <OverflowMenu
+              class="absolute right-0 top-0"
+              :apiUrl="`/prefix/api/fish/${fishId}/note/${note.id}`"
+              @deleted="notes = notes.filter((n) => n.id !== note.id)"
+            />
           </div>
+
           <div class="text text-secondary">{{ note.note }}</div>
         </div>
       </div>
@@ -107,6 +73,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import LoadingBar from '@/Components/LoadingBar.vue'
+import OverflowMenu from '@/Components/OverflowMenu.vue'
 
 const props = defineProps({
   locates: Array,
@@ -165,14 +132,6 @@ watch(
   }
 )
 
-function toggleMenu(id) {
-  menuOpenId.value = menuOpenId.value === id ? null : id
-}
-
-function editNote(id) {
-  menuOpenId.value = null
-}
-
 async function deleteNote(id) {
   menuOpenId.value = null
   if (!confirm('確定要刪除這則筆記嗎？')) return
@@ -183,19 +142,4 @@ async function deleteNote(id) {
     alert('刪除失敗')
   }
 }
-
-// 點擊外部自動關閉選單
-function handleClickOutside(event) {
-  // 如果點擊的不是三點按鈕或選單本身，關閉選單
-  if (!event.target.closest('.note-menu')) {
-    menuOpenId.value = null
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 </script>

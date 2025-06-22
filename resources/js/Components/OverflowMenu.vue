@@ -38,9 +38,11 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const menuOpen = ref(false)
 const props = defineProps({
-  apiUrl: String,
-  redirectUrl: String,
+  apiUrl: { type: String, required: true },
+  redirectUrl: { type: String, default: '' },
 })
+
+const emit = defineEmits(['deleted'])
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
@@ -51,8 +53,11 @@ async function deleteData() {
   if (!confirm('確定要刪除此魚類嗎？')) return
   const res = await fetch(props.apiUrl, { method: 'DELETE' })
   if (res.ok) {
-    // 可重新整理或導向
-    window.location.href = props.redirectUrl
+    if (props.redirectUrl) {
+      window.location.href = props.redirectUrl
+    } else {
+      emit('deleted')
+    }
   } else {
     alert('刪除失敗')
   }
