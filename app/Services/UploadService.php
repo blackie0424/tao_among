@@ -26,4 +26,18 @@ class UploadService
         }
 
     }
+    public function uploadAudio(Request $request): ?string
+    {
+        if (env('APP_ENV') === 'local' || env('APP_ENV') === 'testing') {
+            return basename($request->file('audio')->store('audio', 'public'));
+        } else {
+            $file = $request->file('audio');
+            $path = 'audio';
+            $storageService = new SupabaseStorageService;
+
+            $filePath = $storageService->uploadFile($file, $path);
+
+            return $filePath ? basename($filePath) : null;
+        }
+    }
 }

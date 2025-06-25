@@ -130,3 +130,20 @@ it('fails when multiple images are provided', function () {
             'message' => '驗證失敗',
         ]);
 });
+
+it('audio 檔案可以上傳，回應 201 並訊息為 audio uploaded successfully', function () {
+    $audio = UploadedFile::fake()->create('test-audio.mp3', 100, 'audio/mpeg');
+
+    $response = $this->postJson('/prefix/api/upload-audio', [
+        'audio' => $audio,
+    ]);
+
+    $response->assertStatus(201)
+        ->assertJson([
+            'message' => 'audio uploaded successfully',
+        ]);
+
+    // 檢查檔案是否真的被儲存
+    $savedPath = 'audio/' . $audio->hashName();
+    \Storage::disk('public')->assertExists($savedPath);
+});

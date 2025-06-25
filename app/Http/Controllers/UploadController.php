@@ -11,6 +11,45 @@ use Illuminate\Support\Str;
 
 class UploadController extends Controller
 {
+    public function uploadAudio(Request $request)
+    {
+        try {
+            // 驗證 audio 檔案
+            $request->validate([
+                'audio' => 'required|file|mimes:mp3,wav,ogg|max:10240', // 10MB
+            ], [
+                'audio.required' => '請選擇要上傳的音訊檔案。',
+                'audio.file' => '只能上傳單一音訊檔案。',
+                'audio.mimes' => '音訊格式僅限 mp3, wav, ogg。',
+                'audio.max' => '音訊大小不可超過 10MB。',
+            ]);
+
+            $uploadService = new UploadService;
+            $audioName = $uploadService->uploadAudio($request);
+
+            if ($audioName) {
+                return response()->json([
+                    'message' => 'audio uploaded successfully',
+                    'data' => $audioName,
+                ], 201);
+            } else {
+                return response()->json([
+                    'message' => '音訊儲存失敗，請稍後再試。',
+                ], 500);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => '驗證失敗',
+                'errors' => $e->errors(),
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => '伺服器內部錯誤，請稍後再試。',
+                'error' => app()->environment('production') ? null : $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * 上傳魚類圖片
      *
