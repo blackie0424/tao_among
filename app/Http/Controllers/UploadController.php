@@ -13,6 +13,65 @@ use Illuminate\Validation\ValidationException;
 
 class UploadController extends Controller
 {
+    /**
+     * 上傳音訊檔案
+     *
+     * @OA\Post(
+     *     path="/prefix/api/upload-audio",
+     *     summary="上傳音訊檔案",
+     *     tags={"Upload"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"audio"},
+     *                 @OA\Property(
+     *                     property="audio",
+     *                     type="string",
+     *                     format="binary",
+     *                     description="要上傳的音訊檔案（mp3, wav, ogg，最大 10MB，長度不超過 6 秒）"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="上傳成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="audio uploaded successfully"),
+     *             @OA\Property(property="data", type="string", example="filename.mp3")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="驗證失敗",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="驗證失敗"),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="audio",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="音訊格式僅限 mp3, wav, ogg。|音訊大小不可超過 10MB。|音訊長度不可超過 6 秒。"
+     *                     ),
+     *                     description="可能的錯誤訊息：請選擇要上傳的音訊檔案。|只能上傳單一音訊檔案。|音訊格式僅限 mp3, wav, ogg。|音訊大小不可超過 10MB。|音訊長度不可超過 6 秒。"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="音訊儲存失敗",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="音訊儲存失敗，請稍後再試。")
+     *         )
+     *     )
+     * )
+     */
     public function uploadAudio(UploadAudioRequest $request)
     {
         try {
