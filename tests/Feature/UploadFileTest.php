@@ -166,9 +166,9 @@ it('audio 上傳失敗，檔案格式錯誤', function () {
     ]);
     $response->assertStatus(422)
         ->assertJson([
-            'message' => 'The audio field must be a file of type: mp3, wav.',
+            'message' => '音訊格式僅限 mp3, wav',
             'errors' => [
-                'audio' => ['The audio field must be a file of type: mp3, wav.'],
+                'audio' => ['音訊格式僅限 mp3, wav'],
             ],
         ]);
 });
