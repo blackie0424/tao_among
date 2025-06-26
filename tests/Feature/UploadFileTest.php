@@ -209,3 +209,14 @@ it('audio 上傳失敗，檔案為 0 位元組', function () {
             'message' => '音訊檔案不可為空。',
         ]);
 });
+
+it('audio 上傳失敗，副檔名為 mp3 但內容不是 audio', function () {
+    $file = UploadedFile::fake()->create('fake-audio.mp3', 10, 'text/plain');
+    $response = $this->postJson('/prefix/api/upload-audio', [
+        'audio' => $file,
+    ]);
+    $response->assertStatus(422)
+        ->assertJson([
+            'message' => '音訊格式僅限 mp3, wav',
+        ]);
+});
