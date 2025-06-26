@@ -147,3 +147,14 @@ it('audio 檔案可以上傳，回應 201 並訊息為 audio uploaded successful
     $savedPath = 'audio/' . $audio->hashName();
     \Storage::disk('public')->assertExists($savedPath);
 });
+
+it('audio 上傳失敗，未提供檔案', function () {
+    $response = $this->postJson('/prefix/api/upload-audio', []);
+    $response->assertStatus(422)
+        ->assertJson([
+            'message' => '請選擇要上傳的音訊檔案。',
+            'errors' => [
+                'audio' => ['請選擇要上傳的音訊檔案。'],
+            ],
+        ]);
+});
