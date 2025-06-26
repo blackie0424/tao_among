@@ -172,3 +172,17 @@ it('audio 上傳失敗，檔案格式錯誤', function () {
             ],
         ]);
 });
+
+it('audio 上傳失敗，檔案過大', function () {
+    $file = UploadedFile::fake()->create('big-audio.mp3', 20480, 'audio/mpeg'); // 20MB
+    $response = $this->postJson('/prefix/api/upload-audio', [
+        'audio' => $file,
+    ]);
+    $response->assertStatus(422)
+        ->assertJson([
+            'message' => '音訊大小不可超過 10MB。',
+            'errors' => [
+                'audio' => ['音訊大小不可超過 10MB。'],
+            ],
+        ]);
+});
