@@ -158,3 +158,17 @@ it('audio 上傳失敗，未提供檔案', function () {
             ],
         ]);
 });
+
+it('audio 上傳失敗，檔案格式錯誤', function () {
+    $file = UploadedFile::fake()->create('not-audio.txt', 100, 'text/plain');
+    $response = $this->postJson('/prefix/api/upload-audio', [
+        'audio' => $file,
+    ]);
+    $response->assertStatus(422)
+        ->assertJson([
+            'message' => 'The audio field must be a file of type: mp3, wav.',
+            'errors' => [
+                'audio' => ['The audio field must be a file of type: mp3, wav.'],
+            ],
+        ]);
+});
