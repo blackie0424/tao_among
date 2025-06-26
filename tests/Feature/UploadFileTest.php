@@ -131,6 +131,27 @@ it('fails when multiple images are provided', function () {
         ]);
 });
 
+it('image 上傳失敗，檔案格式為 heic', function () {
+    Storage::fake('public');
+
+    $file = UploadedFile::fake()->create('photo.heic', 100, 'image/heic');
+
+    $response = $this->post('/prefix/api/upload', [
+        'image' => $file,
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => '驗證失敗',
+            'errors' => [
+                'image' => [
+                    '只能上傳單一圖片檔案。',
+                    '圖片格式僅限 jpeg, png, jpg, gif, svg。',
+                ],
+            ],
+        ]);
+});
+
 it('audio 檔案可以上傳，回應 201 並訊息為 audio uploaded successfully', function () {
     $audio = UploadedFile::fake()->create('test-audio.mp3', 100, 'audio/mpeg');
 
