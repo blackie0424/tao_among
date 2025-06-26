@@ -186,3 +186,15 @@ it('audio 上傳失敗，檔案過大', function () {
             ],
         ]);
 });
+
+it('audio 上傳失敗，傳送多個檔案', function () {
+    $file1 = UploadedFile::fake()->create('a.mp3', 10, 'audio/mpeg');
+    $file2 = UploadedFile::fake()->create('b.mp3', 10, 'audio/mpeg');
+    $response = $this->postJson('/prefix/api/upload-audio', [
+        'audio' => [$file1, $file2],
+    ]);
+    $response->assertStatus(422)
+        ->assertJson([
+            'message' => '只能上傳單一音訊檔案。 (and 1 more error)',
+        ]);
+});
