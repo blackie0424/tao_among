@@ -198,3 +198,14 @@ it('audio 上傳失敗，傳送多個檔案', function () {
             'message' => '只能上傳單一音訊檔案。 (and 1 more error)',
         ]);
 });
+
+it('audio 上傳失敗，檔案為 0 位元組', function () {
+    $file = UploadedFile::fake()->create('empty.mp3', 0, 'audio/mpeg');
+    $response = $this->postJson('/prefix/api/upload-audio', [
+        'audio' => $file,
+    ]);
+    $response->assertStatus(422)
+        ->assertJson([
+            'message' => '音訊檔案不可為空。',
+        ]);
+});
