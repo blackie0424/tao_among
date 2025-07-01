@@ -249,8 +249,7 @@ class UploadController extends Controller
         ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => '驗證失敗',
-                'errors' => $e->errors(),
+                'message' => '檔名格式不正確。',
             ], 400);
         }
 
