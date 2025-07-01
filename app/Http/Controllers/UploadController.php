@@ -255,4 +255,98 @@ class UploadController extends Controller
 
         return response()->json(['message' => 'Failed to create signed upload URL'], 500);
     }
+
+    /**
+     * 獲取 Supabase 音訊檔案簽名上傳 URL
+     *
+     * @OA\Post(
+     *     path="/prefix/api/supabase/signed-upload-audio-url",
+     *     summary="取得 Supabase 音訊檔案簽名上傳 URL",
+     *     tags={"Upload"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"filename"},
+     *             @OA\Property(
+     *                 property="filename",
+     *                 type="string",
+     *                 description="原始音訊檔名"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="成功取得簽名上傳 URL",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="url", type="string", example="https://your-project-id.supabase.co/storage/v1/object/upload/sign/bucket/audio/uuid.mp3"),
+     *             @OA\Property(property="path", type="string", example="audio/uuid.mp3"),
+     *             @OA\Property(property="filename", type="string", example="uuid.mp3")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="驗證失敗",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="驗證失敗"),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="filename",
+     *                     type="array",
+     *                     @OA\Items(type="string", example="音訊檔案格式僅限 mp3, wav。")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="產生簽名上傳 URL 失敗",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to create signed upload URL")
+     *         )
+     *     )
+     * )
+     */
+    public function getSignedUploadAudioUrl(Request $request)
+    {
+        // 驗證 audio 檔案副檔名
+        $request->validate([
+            'filename' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['mp3', 'wav'])) {
+                        $fail('音訊檔案格式僅限 mp3, wav。');
+                    }
+                }
+            ],
+        ], [
+            'filename.required' => '請提供音訊檔案名稱。',
+        ]);
+
+        $path = 'audio';
+        $originalName = $request->input('filename');
+        $ext = pathinfo($originalName, PATHINFO_EXTENSION);
+
+        $uniqueName = \Illuminate\Support\Str::uuid()->toString() . ($ext ? '.' . $ext : '');
+        $filePath = $path . '/' . $uniqueName;
+
+        $service = new \App\Services\SupabaseStorageService();
+        $url = $service->createSignedUploadUrl($filePath);
+
+        if ($url) {
+            $storageBaseUrl = env('SUPABASE_STORAGE_URL');
+            $fullUrl = $storageBaseUrl . $url;
+
+            return response()->json([
+                'url' => $fullUrl,
+                'path' => $filePath,
+                'filename' => $uniqueName,
+            ]);
+        }
+
+        return response()->json(['message' => 'Failed to create signed upload URL'], 500);
+    }
 }

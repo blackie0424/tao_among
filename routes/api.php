@@ -26,6 +26,8 @@ Route::post('/upload', [UploadController::class, 'uploadImage']);
 Route::post('/supabase/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
 
 Route::post('/upload-audio', [UploadController::class, 'uploadAudio']);
+Route::post('/supabase/signed-upload-audio-url', [UploadController::class, 'getSignedUploadAudioUrl']);
+
 
 Route::post('/fish/{id}/note', [FishNoteController::class, 'store'])->whereNumber('id');
 Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])

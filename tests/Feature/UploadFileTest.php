@@ -241,3 +241,17 @@ it('audio 上傳失敗，副檔名為 mp3 但內容不是 audio', function () {
             'message' => '音訊格式僅限 mp3, wav',
         ]);
 });
+
+it('取得 supabase audio 檔案簽名上傳網址', function () {
+    $response = $this->postJson('/prefix/api/supabase/signed-upload-audio-url', [
+        'filename' => 'test-audio.mp3',
+        'content_type' => 'audio/mpeg',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'url',
+            'path',
+            'filename'
+        ]);
+});
