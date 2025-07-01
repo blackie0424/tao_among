@@ -268,3 +268,19 @@ it('取得 supabase image 檔案簽名上傳網址', function () {
             'filename',
         ]);
 });
+
+it('取得 supabase image 檔案簽名上傳網址失敗，副檔名錯誤', function () {
+    $response = $this->postJson('/prefix/api/supabase/signed-upload-url', [
+        'filename' => 'test-image.exe',
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'message' => '驗證失敗',
+            'errors' => [
+                'filename' => [
+                    '檔名格式不正確。',
+                ],
+            ],
+        ]);
+});
