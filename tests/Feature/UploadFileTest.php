@@ -255,3 +255,16 @@ it('取得 supabase audio 檔案簽名上傳網址', function () {
             'filename'
         ]);
 });
+
+it('取得 supabase image 檔案簽名上傳網址', function () {
+    $response = $this->postJson('/prefix/api/supabase/signed-upload-url', [
+        'filename' => 'test-image.jpg',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'url',
+            'path',
+            'filename',
+        ]);
+});
