@@ -50,6 +50,14 @@ async function uploadImage() {
       body: JSON.stringify({ filename: fileName }),
     })
     const data = await res.json()
+    if (!res.ok) {
+      // 組合主訊息與所有錯誤細節
+      let detail = ''
+      if (data.errors) {
+        detail = Object.values(data.errors).flat().join('；')
+      }
+      throw new Error((data.message || '取得上傳網址失敗') + (detail ? `：${detail}` : ''))
+    }
     if (!data.url || !data.filename) throw new Error(data.message || '取得上傳網址失敗')
 
     const uploadRes = await fetch(data.url, {
