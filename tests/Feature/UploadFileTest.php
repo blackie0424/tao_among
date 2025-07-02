@@ -276,6 +276,9 @@ it('取得 supabase image 檔案簽名上傳網址失敗，副檔名錯誤', fun
 
     $response->assertStatus(400)
         ->assertJson([
-            'message' => '檔名格式不正確。'
+            'message' => '驗證失敗',
+            'errors' => [
+                'filename' => ['檔名格式不正確。'],
+            ],
         ]);
 });

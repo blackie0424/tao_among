@@ -10,7 +10,16 @@ class SupabaseSignedUploadUrlRequest extends FormRequest
     public function rules()
     {
         return [
-            'filename' => ['required', 'string'],
+            'filename' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['jpeg', 'png', 'jpg', 'gif', 'svg'])) {
+                        $fail('檔名格式不正確。');
+                    }
+                }
+            ],
             'path' => ['nullable', 'string'],
         ];
     }

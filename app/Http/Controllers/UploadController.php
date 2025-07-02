@@ -232,27 +232,6 @@ class UploadController extends Controller
      */
     public function getSignedUploadUrl(SupabaseSignedUploadUrlRequest $request)
     {
-        try {
-            $request->validate([
-                'filename' => [
-                    'required',
-                    'string',
-                    function ($attribute, $value, $fail) {
-                        $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
-                        if (!in_array($ext, ['jpeg', 'png', 'jpg', 'gif', 'svg'])) {
-                            $fail('檔名格式不正確。');
-                        }
-                    }
-                ],
-            ], [
-            'filename.required' => '請提供圖片檔案名稱。',
-        ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-            ], 400);
-        }
-
         $path = 'images'; // 寫死路徑
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
