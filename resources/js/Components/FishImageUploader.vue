@@ -26,6 +26,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import heic2any from 'heic2any'
 const emit = defineEmits(['uploaded'])
 
 const selectedFile = ref(null)
@@ -33,8 +34,14 @@ const uploading = ref(false)
 const uploadError = ref('')
 
 function onFileChange(e) {
-  selectedFile.value = e.target.files[0]
+  const file = e.target.files[0]
   uploadError.value = ''
+  if (file && file.name.toLowerCase().endsWith('.heic')) {
+    uploadError.value = '偵測到 HEIC 檔案，將自動轉換為 JPEG 上傳。'
+    selectedFile.value = file
+  } else {
+    selectedFile.value = file
+  }
 }
 
 async function uploadImage() {
@@ -42,7 +49,22 @@ async function uploadImage() {
   uploading.value = true
   uploadError.value = ''
 
-  const fileName = Date.now() + '_' + selectedFile.value.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  let uploadFile = selectedFile.value
+  let fileName = Date.now() + '_' + uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+
+  // HEIC 自動轉檔流程
+  if (uploadFile.name.toLowerCase().endsWith('.heic')) {
+    try {
+      const convertedBlob = await heic2any({ blob: uploadFile, toType: 'image/jpeg' })
+      fileName = fileName.replace(/\.heic$/i, '.jpg')
+      uploadFile = new File([convertedBlob], fileName, { type: 'image/jpeg' })
+    } catch (err) {
+      uploadError.value = 'HEIC 轉檔失敗，請手動轉換後再上傳。'
+      uploading.value = false
+      return
+    }
+  }
+
   try {
     const res = await fetch('/prefix/api/supabase/signed-upload-url', {
       method: 'POST',
@@ -51,7 +73,6 @@ async function uploadImage() {
     })
     const data = await res.json()
     if (!res.ok) {
-      // 組合主訊息與所有錯誤細節
       let detail = ''
       if (data.errors) {
         detail = Object.values(data.errors).flat().join('；')
@@ -62,7 +83,7 @@ async function uploadImage() {
 
     const uploadRes = await fetch(data.url, {
       method: 'PUT',
-      body: selectedFile.value,
+      body: uploadFile,
     })
     if (!uploadRes.ok) throw new Error('圖片上傳失敗')
 
