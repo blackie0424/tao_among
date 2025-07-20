@@ -24,10 +24,7 @@ class FishController extends Controller
 
     public function index()
     {
-        $fishes = $this->fishService->getAllFishes();
-        return Inertia::render('Welcome', [
-            'fishes' => $fishes
-        ]);
+        return Inertia::render('Welcome');
     }
 
     public function getFish($id, Request $request)
@@ -35,6 +32,14 @@ class FishController extends Controller
         $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
         $fish = $this->fishService->getFishByIdAndLocate($id, $locate);
         return Inertia::render('Fish', ['fish' => $fish]);
+    }
+
+    public function getFishs(Request $request)
+    {
+        $fishes = $this->fishService->getAllFishes();
+        return Inertia::render('Fishs', [
+            'fishes' => $fishes
+        ]);
     }
 
     public function create()
