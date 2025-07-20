@@ -24,7 +24,6 @@
 </template>
 
 <script setup>
-import HeaderComponent from '@/Components/Global/HeaderComponent.vue'
 import FabButton from '@/Components/FabButton.vue'
 import FishCard from '@/Components/FishCard.vue'
 import DarkModeSwitcher from '@/Components/DarkModeSwitcher.vue'

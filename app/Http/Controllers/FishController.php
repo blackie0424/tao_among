@@ -24,7 +24,7 @@ class FishController extends Controller
 
     public function index()
     {
-        return Inertia::render('Welcome');
+        return Inertia::render('Index');
     }
 
     public function getFish($id, Request $request)
