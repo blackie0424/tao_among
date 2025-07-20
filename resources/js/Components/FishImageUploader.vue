@@ -26,7 +26,6 @@
 
 <script setup>
 import { ref } from 'vue'
-import heic2any from 'heic2any'
 const emit = defineEmits(['uploaded'])
 
 const selectedFile = ref(null)
@@ -52,10 +51,15 @@ async function uploadImage() {
   let uploadFile = selectedFile.value
   let fileName = Date.now() + '_' + uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
 
-  // HEIC 自動轉檔流程
+  // HEIC 自動轉檔流程（使用 CDN 方式）
   if (uploadFile.name.toLowerCase().endsWith('.heic')) {
     try {
-      const convertedBlob = await heic2any({ blob: uploadFile, toType: 'image/jpeg' })
+      if (!window.heic2any) {
+        uploadError.value = '找不到 heic2any 函式庫，請確認 CDN 已載入。'
+        uploading.value = false
+        return
+      }
+      const convertedBlob = await window.heic2any({ blob: uploadFile, toType: 'image/jpeg' })
       fileName = fileName.replace(/\.heic$/i, '.jpg')
       uploadFile = new File([convertedBlob], fileName, { type: 'image/jpeg' })
     } catch (err) {

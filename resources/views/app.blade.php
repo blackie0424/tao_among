@@ -7,6 +7,7 @@
     @inertiaHead
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1976d2">
+    <script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
