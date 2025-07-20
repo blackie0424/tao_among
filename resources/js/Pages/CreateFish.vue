@@ -13,6 +13,8 @@
 
 <script setup>
 import { ref } from 'vue'
+import { router } from '@inertiajs/vue3'
+
 import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishImageUploader from '@/Components/FishImageUploader.vue'
 import FishNameForm from '@/Components/FishNameForm.vue'
@@ -31,6 +33,6 @@ function onFishSubmitted(id) {
   step.value = 3
 }
 function onSizeFinished() {
-  window.location.href = '/'
+  router.visit('/fishs')
 }
 </script>
