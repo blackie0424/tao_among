@@ -35,6 +35,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { router } from '@inertiajs/vue3'
 
 const menuOpen = ref(false)
 const props = defineProps({
@@ -54,7 +55,7 @@ async function deleteData() {
   const res = await fetch(props.apiUrl, { method: 'DELETE' })
   if (res.ok) {
     if (props.redirectUrl) {
-      window.location.href = props.redirectUrl
+      router.visit('/fishs')
     } else {
       emit('deleted')
     }
