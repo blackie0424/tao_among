@@ -9,23 +9,11 @@
     </main>
 
     <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
-
-    <!-- 固定左下角新增魚類按鈕 -->
-    <FabButton
-      bgClass="bg-blue-600"
-      hoverClass="hover:bg-blue-700"
-      textClass="text-white"
-      label="新增魚類"
-      icon="＋"
-      to="/fish/create"
-      position="right-bottom"
-    />
+    <BottomNavBar label="新增魚類" icon="＋" to="/fish/create" />
   </div>
-  <BottomNavBar />
 </template>
 
 <script setup>
-import FabButton from '@/Components/FabButton.vue'
 import FishCard from '@/Components/FishCard.vue'
 import DarkModeSwitcher from '@/Components/DarkModeSwitcher.vue'
 import BottomNavBar from '../Components/Global/BottomNavBar.vue'
