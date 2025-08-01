@@ -1,7 +1,6 @@
 <!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/Fish.vue -->
 <template>
   <div class="container mx-auto py-8">
-    <Breadcrumb :second="fish.name" />
     <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
       <!-- 左欄：魚資訊 -->
       <div class="w-full md:w-2/4">
@@ -22,18 +21,9 @@
         />
       </div>
     </div>
-    <FabButton
-      :to="`/fish/${fish.id}/create`"
-      label="新增知識"
-      icon="＋"
-      bgClass="bg-green-600"
-      hoverClass="hover:bg-green-700"
-      textClass="text-white"
-      position="right-bottom"
-    />
-  </div>
 
-  <BottomNavBar />
+    <BottomNavBar :to="`/fish/${fish.id}/create`" label="新增知識" icon="＋" />
+  </div>
 </template>
 
 <script setup>
