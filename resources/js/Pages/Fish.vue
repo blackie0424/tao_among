@@ -32,6 +32,8 @@
       position="right-bottom"
     />
   </div>
+
+  <BottomNavBar />
 </template>
 
 <script setup>
@@ -40,6 +42,7 @@ import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
 import FishDetailRight from '@/Components/FishDetailRight.vue'
 import FabButton from '@/Components/FabButton.vue'
+import BottomNavBar from '../Components/Global/BottomNavBar.vue'
 
 const props = defineProps({
   fish: Object,

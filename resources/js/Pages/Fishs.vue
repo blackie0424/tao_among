@@ -21,12 +21,14 @@
       position="right-bottom"
     />
   </div>
+  <BottomNavBar />
 </template>
 
 <script setup>
 import FabButton from '@/Components/FabButton.vue'
 import FishCard from '@/Components/FishCard.vue'
 import DarkModeSwitcher from '@/Components/DarkModeSwitcher.vue'
+import BottomNavBar from '../Components/Global/BottomNavBar.vue'
 
 defineProps({
   fishes: {
