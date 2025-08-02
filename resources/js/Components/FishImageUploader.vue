@@ -11,15 +11,7 @@
       />
       <div v-if="selectedFile" class="text-gray-700 mt-2">已選擇檔案：{{ selectedFile.name }}</div>
     </div>
-    <button
-      type="button"
-      class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-      @click="uploadImage"
-      :disabled="!selectedFile || uploading"
-    >
-      <span v-if="uploading">上傳中...</span>
-      <span v-else>上傳圖片</span>
-    </button>
+
     <div v-if="uploadError" class="text-red-600 mt-2">{{ uploadError }}</div>
   </div>
 </template>

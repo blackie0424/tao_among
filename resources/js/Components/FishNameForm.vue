@@ -11,14 +11,6 @@
         required
       />
     </div>
-    <button
-      type="submit"
-      class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-      :disabled="submitting"
-    >
-      <span v-if="submitting">送出中...</span>
-      <span v-else>送出</span>
-    </button>
     <div v-if="submitError" class="text-red-600 mt-2">{{ submitError }}</div>
     <div v-if="submitSuccess" class="text-green-600 mt-2">魚類新增成功！</div>
   </form>
