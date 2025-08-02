@@ -22,7 +22,10 @@
       </div>
       <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">首頁</p>
     </a>
-    <a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#4d7f99]" :href="to">
+    <a
+      class="flex flex-1 flex-col items-center justify-end gap-1 text-[#4d7f99]"
+      href="/fish/create"
+    >
       <div class="text-[#4d7f99] flex h-8 items-center justify-center">
         <!-- Add/New Icon -->
         <svg
@@ -37,9 +40,7 @@
           />
         </svg>
       </div>
-      <p class="text-[#4d7f99] text-xs font-medium leading-normal tracking-[0.015em]">
-        {{ label }}
-      </p>
+      <p class="text-[#4d7f99] text-xs font-medium leading-normal tracking-[0.015em]">新增</p>
     </a>
     <span
       class="flex flex-1 flex-col items-center justify-end gap-1 text-[#b0b9be] cursor-not-allowed opacity-50"
@@ -81,12 +82,3 @@
     </span>
   </nav>
 </template>
-
-<script setup>
-const props = defineProps({
-  label: { type: String, default: '新增魚類' },
-  icon: { type: String, default: '+' },
-  title: { type: String, default: '新增' },
-  to: { type: String, default: '/' },
-})
-</script>
