@@ -4,7 +4,7 @@
   >
     <a
       class="flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-[#0e171b]"
-      href="/"
+      href="/fishs"
     >
       <div class="text-[#0e171b] flex h-8 items-center justify-center">
         <!-- Home Icon -->
