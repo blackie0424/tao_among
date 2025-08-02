@@ -25,7 +25,7 @@ const sizeSubmitting = ref(false)
 const sizeSubmitError = ref('')
 const sizeSubmitSuccess = ref(false)
 
-async function submitFishSize() {
+async function submitSize() {
   if (!props.fishId || !selectedParts.value.length) {
     sizeSubmitError.value = '請選擇尺寸'
     return
@@ -54,4 +54,6 @@ async function submitFishSize() {
     sizeSubmitting.value = false
   }
 }
+
+defineExpose({ submitSize })
 </script>

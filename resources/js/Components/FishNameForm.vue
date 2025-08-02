@@ -34,7 +34,7 @@ const submitting = ref(false)
 const submitError = ref('')
 const submitSuccess = ref(false)
 
-async function submitFish() {
+async function submitForm() {
   if (!fishName.value || !props.uploadedFileName) return
   submitting.value = true
   submitError.value = ''
@@ -59,4 +59,6 @@ async function submitFish() {
     submitting.value = false
   }
 }
+
+defineExpose({ submitForm })
 </script>

@@ -98,4 +98,6 @@ async function uploadImage() {
     uploading.value = false
   }
 }
+
+defineExpose({ uploadImage })
 </script>
