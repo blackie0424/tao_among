@@ -1,27 +1,6 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <!-- 固定於畫面頂部的操作列 -->
-    <div
-      class="fixed top-0 left-0 w-full flex justify-between items-center px-2 py-2 bg-white z-20 shadow"
-    >
-      <button
-        type="button"
-        class="bg-gray-400 text-white px-4 py-2 rounded font-bold hover:bg-gray-500 transition"
-        @click="goBack"
-      >
-        取消
-      </button>
-      <span class="text-base font-semibold text-[#0e171b]">新增魚類知識</span>
-      <button
-        type="submit"
-        class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition"
-        :disabled="submitting"
-        @click="submitNote"
-      >
-        送出
-      </button>
-    </div>
-
+    <TopNavBar :goBack="goBack" :submitNote="submitNote" :submitting="submitting" />
     <div class="pt-16">
       <!-- 魚圖片與名稱 -->
       <div class="flex flex-col items-center mb-8">
@@ -101,6 +80,7 @@ import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FishImage from '@/Components/FishImage.vue'
 import FishName from '@/Components/FishName.vue'
+import TopNavBar from '@/Components/Global/TopNavBar.vue'
 
 const props = defineProps({
   fish: Object, // { id, name, image }
