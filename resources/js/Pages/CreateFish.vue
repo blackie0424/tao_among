@@ -8,7 +8,6 @@
       @submitted="onFishSubmitted"
     />
     <FishSizeSelector v-if="step === 3" :fishId="fishId" @finished="onSizeFinished" />
-    <BottomNavBar label="新增魚類" icon="＋" to="/fish/create" />
   </div>
 </template>
 
@@ -20,7 +19,6 @@ import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishImageUploader from '@/Components/FishImageUploader.vue'
 import FishNameForm from '@/Components/FishNameForm.vue'
 import FishSizeSelector from '@/Components/FishSizeSelector.vue'
-import BottomNavBar from '../Components/Global/BottomNavBar.vue'
 
 const step = ref(1)
 const uploadedFileName = ref('')
