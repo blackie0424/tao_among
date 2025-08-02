@@ -11,7 +11,7 @@
             class="w-full h-full object-cover rounded-full"
           />
         </div>
-        <FishName :name="fish.name" class="text-2xl font-bold" />
+        <FishName :fish-name="fish.name" class="text-2xl font-bold" />
       </div>
 
       <form @submit.prevent="submitNote" class="space-y-6">
