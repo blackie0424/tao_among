@@ -26,15 +26,39 @@
       <div class="text-[#4d7f99] flex h-8 items-center justify-center">
         <!-- Add/New Icon -->
         <svg
+          data-icon-name="add-file-5"
+          data-style="line"
+          icon_origin_id="18134"
+          viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
-          width="24px"
-          height="24px"
-          fill="currentColor"
-          viewBox="0 0 256 256"
+          id="add-file-5"
+          class="icon line"
+          width="24"
+          height="24"
         >
           <path
-            d="M128,24A104,104,0,1,0,232,128,104.12,104.12,0,0,0,128,24Zm40,112H136v32a8,8,0,0,1-16,0V136H88a8,8,0,0,1,0-16h32V88a8,8,0,0,1,16,0v32h32a8,8,0,0,1,0,16Z"
-          />
+            style="
+              fill: none;
+              stroke: rgb(0, 0, 0);
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-width: 2;
+            "
+            d="M18,13V5L16,3H5A1,1,0,0,0,4,4V20a1,1,0,0,0,1,1h7"
+            id="primary"
+          ></path>
+          <path
+            style="
+              fill: none;
+              stroke: rgb(0, 0, 0);
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-width: 2;
+            "
+            d="M16,19h4m-2-2v4M16,3V5h2ZM8,13h6m0-4H8"
+            data-name="primary"
+            id="primary-2"
+          ></path>
         </svg>
       </div>
       <p class="text-[#4d7f99] text-xs font-medium leading-normal tracking-[0.015em]">
