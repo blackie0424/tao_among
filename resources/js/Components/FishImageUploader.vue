@@ -24,6 +24,9 @@ const selectedFile = ref(null)
 const uploading = ref(false)
 const uploadError = ref('')
 
+// 讓父元件可以直接存取 selectedFile 與 uploadError
+defineExpose({ uploadImage, selectedFile, uploadError })
+
 function onFileChange(e) {
   const file = e.target.files[0]
   uploadError.value = ''
@@ -90,6 +93,4 @@ async function uploadImage() {
     uploading.value = false
   }
 }
-
-defineExpose({ uploadImage })
 </script>

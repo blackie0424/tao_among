@@ -49,16 +49,24 @@ function goBack() {
 
 // 統一由 TopNavBar 送出
 function handleNext() {
-  submitting.value = true
   if (step.value === 1 && uploaderRef.value) {
+    // 檢查是否有選擇檔案
+    if (!uploaderRef.value.selectedFile) {
+      uploaderRef.value.uploadError = '請選擇要上傳的圖片'
+      submitting.value = false
+      return
+    }
+    submitting.value = true
     uploaderRef.value.uploadImage().finally(() => {
       submitting.value = false
     })
   } else if (step.value === 2 && nameFormRef.value) {
+    submitting.value = true
     nameFormRef.value.submitForm().finally(() => {
       submitting.value = false
     })
   } else if (step.value === 3 && sizeSelectorRef.value) {
+    submitting.value = true
     sizeSelectorRef.value.submitSize().finally(() => {
       submitting.value = false
     })
