@@ -19,7 +19,7 @@ class FishAudioFactory extends Factory
     {
         return [
             'fish_id'=> Fish::factory(), // 使用 FishFactory 生成隨機的 fish_id
-            'url' => "https://etycehppghhlxqpdvlga.supabase.co/storage/v1/object/public/tao_among_storage/audio/5cf5db69-0539-4f34-a60b-834be3f3fddf.webm",
+            'name' => "https://etycehppghhlxqpdvlga.supabase.co/storage/v1/object/public/tao_among_storage/audio/5cf5db69-0539-4f34-a60b-834be3f3fddf.webm",
             'locate' => $this->faker->randomElement(['iraraley', 'yayo','imorod','iratay','iranmeilek','ivalino']),
             'created_at' => now(),
             'updated_at' => now(),

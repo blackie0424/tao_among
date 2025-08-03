@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('fish_audio', function (Blueprint $table) {
             $table->id(); // id 欄位
             $table->unsignedBigInteger('fish_id'); // fish_id 欄位
-            $table->string('url');
+            $table->string('name');
             $table->string('locate');
             $table->timestamps();
             $table->softDeletes();

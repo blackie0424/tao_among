@@ -20,7 +20,7 @@ class FishSeeder extends Seeder
             ->count(10)
             ->has(FishNote::factory()->count(10), 'notes')
             ->has(FishSize::factory(), 'size')
-            ->has(FishAudio::factory(), 'audio')
+            ->has(FishAudio::factory(), 'audios')
             ->create();
     }
 }

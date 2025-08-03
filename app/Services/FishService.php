@@ -59,8 +59,8 @@ class FishService
                 : [$result->audios];
 
             foreach ($audios as $audio) {
-                if ($audio && isset($audio->url) && $audio->url) {
-                    $audio->url = $this->storageService->getUrl('audios', $audio->url);
+                if ($audio && isset($audio->name) && $audio->name) {
+                    $audio->name = $this->storageService->getUrl('audios', $audio->name);
                 }
             }
             // 若 audios 是單一物件，重新賦值為陣列
