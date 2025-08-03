@@ -10,7 +10,7 @@
     >
       取消
     </button>
-    <span class="text-base font-semibold text-[#0e171b]">新增魚類知識</span>
+    <span class="text-base font-semibold text-[#0e171b]">{{ title }}</span>
     <button
       type="submit"
       class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition flex items-center"
@@ -58,6 +58,10 @@ defineProps({
   submitLabel: {
     type: String,
     default: '送出',
+  },
+  title: {
+    type: String,
+    default: '新增魚類知識',
   },
 })
 </script>

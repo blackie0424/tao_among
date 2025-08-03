@@ -1,6 +1,11 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <TopNavBar :goBack="goBack" :submitNote="submitNote" :submitting="submitting" />
+    <TopNavBar
+      :goBack="goBack"
+      :submitNote="submitNote"
+      :submitting="submitting"
+      title="新增魚類知識"
+    />
     <div class="pt-16">
       <!-- 魚圖片與名稱 -->
       <div class="flex flex-col items-center mb-8">
