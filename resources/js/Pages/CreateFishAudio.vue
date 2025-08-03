@@ -214,6 +214,12 @@ function resetRecording() {
   timerCount.value = 5
 }
 
+// 取得 fish id（從網址 /fish/:id/createAudio 取出）
+function getFishIdFromUrl() {
+  const match = window.location.pathname.match(/\/fish\/(\d+)\/createAudio/)
+  return match ? match[1] : null
+}
+
 // 上傳音訊並導回魚類資訊頁
 async function handleNext() {
   if (!audioBlob.value) {
@@ -222,13 +228,16 @@ async function handleNext() {
   }
   submitting.value = true
   try {
-    // 根據 mimeType 設定副檔名
     let ext = 'webm'
     if (audioBlob.value.type === 'audio/mp4') ext = 'mp4'
     if (audioBlob.value.type === 'audio/aac') ext = 'aac'
 
+    // 取得 fish id
+    const fishId = getFishIdFromUrl()
+    if (!fishId) throw new Error('無法取得魚類編號')
+
     // 第一步：取得上傳資訊
-    const uploadRes = await fetch('/prefix/api/fish/1/supabase/signed-upload-audio-url', {
+    const uploadRes = await fetch(`/prefix/api/fish/${fishId}/supabase/signed-upload-audio-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -236,18 +245,17 @@ async function handleNext() {
       }),
     })
     const uploadData = await uploadRes.json()
-    console.log(uploadData)
     if (!uploadRes.ok || !uploadData.url) throw new Error('取得上傳資訊失敗')
 
     // 第二步：PUT 音訊物件到 Supabase
     const putRes = await fetch(uploadData.url, {
       method: 'PUT',
-      body: audioBlob.value, // 不加 Content-Type，提升相容性
+      body: audioBlob.value,
     })
     if (!putRes.ok) throw new Error('音訊上傳失敗')
 
     // 上傳成功後導回特定魚類資訊頁
-    goBack()
+    router.visit(`/fish/${fishId}`)
   } catch (e) {
     recordingError.value = e.message || '音訊上傳失敗'
   } finally {
