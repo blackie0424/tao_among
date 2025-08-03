@@ -62,7 +62,7 @@ class FishService
             foreach ($audios as $audio) {
                 if ($audio && isset($audio->url) && $audio->url) {
                     if (strpos($audio->url, $storageBaseUrl) !== 0) {
-                        $audio->url = $storageBaseUrl .'/object/public/tao_among_storage/'. $audio->url;
+                        $audio->url = $storageBaseUrl .'/object/public/tao_among_storage/audio/'. $audio->url;
                     }
                 }
             }

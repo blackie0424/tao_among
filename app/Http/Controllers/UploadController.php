@@ -340,7 +340,7 @@ class UploadController extends Controller
         try {
             $fishAudio = FishAudio::create([
                 'fish_id' => $request->route('id'),
-                'url' => $filePath,
+                'url' => $uniqueName,
                 'locate' =>"iraraley",
             ]);
         } catch (\Exception $e) {
