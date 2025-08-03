@@ -10,6 +10,7 @@ use App\Http\Requests\UploadAudioRequest;
 use App\Http\Requests\SupabaseSignedUploadUrlRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\FishAudio;
 
 class UploadController extends Controller
 {
@@ -335,6 +336,16 @@ class UploadController extends Controller
 
         $service = new \App\Services\SupabaseStorageService();
         $url = $service->createSignedUploadUrl($filePath);
+
+        try {
+            $fishAudio = FishAudio::create([
+                'fish_id' => $request->route('id'),
+                'url' => $url,
+                'locate' =>"iraraley",
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to save audio metadata'], 500);
+        }
 
         if ($url) {
             $storageBaseUrl = env('SUPABASE_STORAGE_URL');

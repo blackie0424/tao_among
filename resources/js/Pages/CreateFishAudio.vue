@@ -228,7 +228,7 @@ async function handleNext() {
     if (audioBlob.value.type === 'audio/aac') ext = 'aac'
 
     // 第一步：取得上傳資訊
-    const uploadRes = await fetch('/prefix/api/supabase/signed-upload-audio-url', {
+    const uploadRes = await fetch('/prefix/api/fish/1/supabase/signed-upload-audio-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
