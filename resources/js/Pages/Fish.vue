@@ -22,7 +22,12 @@
       </div>
     </div>
 
-    <BottomNavBar :to="`/fish/${fish.id}/create`" label="新增知識" icon="＋" />
+    <BottomNavBar
+      :to="`/fish/${fish.id}/create`"
+      :audio="`/fish/${fish.id}/createAudio`"
+      label="新增知識"
+      icon="＋"
+    />
   </div>
 </template>
 

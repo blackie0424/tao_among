@@ -46,4 +46,9 @@ class FishController extends Controller
     {
         return Inertia::render('CreateFish');
     }
+    public function createAudio()
+    {
+        return Inertia::render('CreateFishAudio');
+    }
+
 }

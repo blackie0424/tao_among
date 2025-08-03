@@ -1,0 +1,207 @@
+<template>
+  <div class="container mx-auto p-4 relative">
+    <TopNavBar
+      :goBack="goBack"
+      :submitNote="handleNext"
+      :submitting="submitting"
+      title="建立魚類錄音"
+      :showSubmit="!!audioBlob"
+      :submitLabel="submitting ? '送出中...' : '下一步'"
+      :showLoading="submitting"
+    />
+    <div class="pt-16 flex flex-col items-center">
+      <div class="mb-6">
+        <button
+          v-if="!isRecording"
+          class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700 transition"
+          @click="startRecording"
+          :disabled="submitting"
+        >
+          開始錄音
+        </button>
+        <button
+          v-else
+          class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700 transition"
+          @click="stopRecording"
+        >
+          停止錄音
+        </button>
+      </div>
+      <div v-if="isRecording" class="mb-4 flex flex-col items-center w-full">
+        <div class="text-red-500 font-bold mb-2">錄音中... 最長 5 秒</div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-gray-700">取樣狀態：</span>
+          <span class="text-green-600 font-bold">執行中</span>
+        </div>
+        <div class="w-full flex justify-center mb-2">
+          <span class="text-lg font-mono text-blue-700">{{ timerCount }}</span>
+        </div>
+        <!-- 聲音波形 -->
+        <canvas ref="waveCanvas" width="300" height="60" class="bg-gray-100 rounded"></canvas>
+      </div>
+      <div v-if="audioBlob" class="mb-4 flex flex-col items-center">
+        <audio :src="audioUrl" controls class="mb-2"></audio>
+        <button
+          class="bg-yellow-500 text-white px-4 py-2 rounded font-bold hover:bg-yellow-600 transition"
+          @click="resetRecording"
+          :disabled="submitting || isRecording"
+        >
+          重錄
+        </button>
+      </div>
+      <div v-if="recordingError" class="text-red-600 mt-2">{{ recordingError }}</div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import { router } from '@inertiajs/vue3'
+
+const isRecording = ref(false)
+const audioBlob = ref(null)
+const audioUrl = ref('')
+const submitting = ref(false)
+const recordingError = ref('')
+const timerCount = ref(5)
+const waveCanvas = ref(null)
+let mediaRecorder = null
+let chunks = []
+let timer = null
+let interval = null
+let audioContext = null
+let analyser = null
+let source = null
+let animationId = null
+let stream = null
+
+function goBack() {
+  window.history.length > 1 ? window.history.back() : router.visit('/fishs')
+}
+
+function drawWave() {
+  if (!analyser || !waveCanvas.value) return
+  const canvas = waveCanvas.value
+  const ctx = canvas.getContext('2d')
+  const bufferLength = analyser.fftSize
+  const dataArray = new Uint8Array(bufferLength)
+  analyser.getByteTimeDomainData(dataArray)
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.lineWidth = 2
+  ctx.strokeStyle = '#4d7f99'
+  ctx.beginPath()
+
+  const sliceWidth = (canvas.width * 1.0) / bufferLength
+  let x = 0
+  for (let i = 0; i < bufferLength; i++) {
+    const v = dataArray[i] / 128.0
+    const y = (v * canvas.height) / 2
+    if (i === 0) {
+      ctx.moveTo(x, y)
+    } else {
+      ctx.lineTo(x, y)
+    }
+    x += sliceWidth
+  }
+  ctx.lineTo(canvas.width, canvas.height / 2)
+  ctx.stroke()
+  animationId = requestAnimationFrame(drawWave)
+}
+
+function startRecording() {
+  recordingError.value = ''
+  audioBlob.value = null
+  audioUrl.value = ''
+  chunks = []
+  timerCount.value = 5
+  navigator.mediaDevices
+    .getUserMedia({ audio: true })
+    .then((_stream) => {
+      stream = _stream
+      mediaRecorder = new MediaRecorder(stream)
+      mediaRecorder.start()
+      isRecording.value = true
+      timer = setTimeout(() => {
+        stopRecording()
+      }, 5000)
+      interval = setInterval(() => {
+        if (timerCount.value > 0) {
+          timerCount.value--
+        }
+      }, 1000)
+      mediaRecorder.ondataavailable = (e) => {
+        chunks.push(e.data)
+      }
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' })
+        audioBlob.value = blob
+        audioUrl.value = URL.createObjectURL(blob)
+        isRecording.value = false
+        stream.getTracks().forEach((track) => track.stop())
+        clearTimeout(timer)
+        clearInterval(interval)
+        if (audioContext) {
+          audioContext.close()
+          audioContext = null
+        }
+        cancelAnimationFrame(animationId)
+      }
+      // 聲音波形分析
+      audioContext = new (window.AudioContext || window.webkitAudioContext)()
+      analyser = audioContext.createAnalyser()
+      analyser.fftSize = 256
+      source = audioContext.createMediaStreamSource(stream)
+      source.connect(analyser)
+      drawWave()
+    })
+    .catch(() => {
+      recordingError.value = '無法取得麥克風權限'
+      isRecording.value = false
+    })
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording.value) {
+    mediaRecorder.stop()
+    isRecording.value = false
+    clearTimeout(timer)
+    clearInterval(interval)
+    timerCount.value = 0
+    cancelAnimationFrame(animationId)
+    if (audioContext) {
+      audioContext.close()
+      audioContext = null
+    }
+  }
+}
+
+function resetRecording() {
+  audioBlob.value = null
+  audioUrl.value = ''
+  recordingError.value = ''
+  timerCount.value = 5
+}
+
+function handleNext() {
+  if (!audioBlob.value) {
+    recordingError.value = '請先錄音'
+    return
+  }
+  submitting.value = true
+  // 這裡可依你的 API 送出錄音檔案
+  setTimeout(() => {
+    submitting.value = false
+    router.visit('/fishs')
+  }, 1500)
+}
+
+onBeforeUnmount(() => {
+  cancelAnimationFrame(animationId)
+  if (audioContext) {
+    audioContext.close()
+    audioContext = null
+  }
+})
+</script>

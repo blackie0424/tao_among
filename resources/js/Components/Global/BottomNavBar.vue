@@ -83,7 +83,7 @@
         {{ label }}
       </p>
     </a>
-    <a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#4d7f99]">
+    <a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#4d7f99]" :href="audio">
       <div class="text-[#b0b9be] flex h-8 items-center justify-center">
         <svg
           data-icon-name="microphone-right"
@@ -125,5 +125,6 @@ const props = defineProps({
   label: { type: String, default: '新增知識' },
   icon: { type: String, default: '+' },
   to: { type: String, default: '/fishs' },
+  audio: { type: String, default: '/' },
 })
 </script>
