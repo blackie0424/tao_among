@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, onBeforeUnmount, nextTick } from 'vue'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'
 import { router } from '@inertiajs/vue3'
 
@@ -97,11 +97,14 @@ function drawWave() {
   ctx.strokeStyle = '#4d7f99'
   ctx.beginPath()
 
-  const sliceWidth = (canvas.width * 1.0) / bufferLength
+  // 振幅放大倍率，原本是 /2，這裡可調整為 /1.2 或直接 *1.5
+  const amplitude = 1.5 // 建議可調整 1.5~2.5
+  const sliceWidth = canvas.width / bufferLength
   let x = 0
   for (let i = 0; i < bufferLength; i++) {
     const v = dataArray[i] / 128.0
-    const y = (v * canvas.height) / 2
+    // 放大振幅
+    const y = (v - 1) * (canvas.height / amplitude) + canvas.height / 2
     if (i === 0) {
       ctx.moveTo(x, y)
     } else {
@@ -109,7 +112,6 @@ function drawWave() {
     }
     x += sliceWidth
   }
-  ctx.lineTo(canvas.width, canvas.height / 2)
   ctx.stroke()
   animationId = requestAnimationFrame(drawWave)
 }
@@ -123,7 +125,7 @@ function startRecording() {
 
   navigator.mediaDevices
     .getUserMedia({ audio: true })
-    .then((_stream) => {
+    .then(async (_stream) => {
       stream = _stream
       // 判斷支援格式
       let mimeType = ''
@@ -175,6 +177,7 @@ function startRecording() {
       analyser.fftSize = 256
       source = audioContext.createMediaStreamSource(stream)
       source.connect(analyser)
+      await nextTick() // 確保 canvas 已渲染
       drawWave()
     })
     .catch(() => {
