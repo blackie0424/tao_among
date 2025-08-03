@@ -7,7 +7,8 @@
         type="text"
         id="name"
         v-model="fishName"
-        class="w-full border rounded px-3 py-2"
+        :placeholder="placeholderText"
+        :class="['w-full border rounded px-3 py-2', fishName ? 'text-black' : 'text-gray-400']"
         required
       />
     </div>
@@ -17,7 +18,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 const props = defineProps({ uploadedFileName: String })
 const emit = defineEmits(['submitted'])
 
@@ -26,8 +27,12 @@ const submitting = ref(false)
 const submitError = ref('')
 const submitSuccess = ref(false)
 
+const placeholderText = computed(() => (fishName.value ? '' : '我不知道'))
+
 async function submitForm() {
-  if (!fishName.value || !props.uploadedFileName) return
+  // 如果使用者沒輸入名稱，預設用「我不知道」
+  const nameToSend = fishName.value || '我不知道'
+  if (!props.uploadedFileName) return
   submitting.value = true
   submitError.value = ''
   submitSuccess.value = false
@@ -36,7 +41,7 @@ async function submitForm() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: fishName.value,
+        name: nameToSend,
         image: props.uploadedFileName,
       }),
     })
