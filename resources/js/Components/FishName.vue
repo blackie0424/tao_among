@@ -7,7 +7,9 @@
     <!-- 魚名與 icon 水平排列 -->
     <div class="section-title text-2xl font-bold text-primary flex justify-between w-full">
       <span>{{ fishName }}</span>
-      <Volume />
+      <Volume
+        :audioUrl="'https://etycehppghhlxqpdvlga.supabase.co/storage/v1/object/public/tao_among_storage/audio/717bcc9f-8b42-4cf4-aef2-be248c8aa652.webm'"
+      />
     </div>
   </div>
 </template>
