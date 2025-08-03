@@ -43,7 +43,9 @@ class FishService
             'notes' => function ($query) use ($locate) {
                 $query->where('locate', $locate);
             },
-            'audios'
+            'audios' => function ($query) {
+                $query->orderByDesc('id')->limit(1); // 只取最新一筆 audio 物件
+            }
         ])->findOrFail($id);
 
         // 先處理圖片 url
