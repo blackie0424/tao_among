@@ -58,12 +58,9 @@ class FishService
                 ? $result->audios
                 : [$result->audios];
 
-            $storageBaseUrl = env('SUPABASE_STORAGE_URL');
             foreach ($audios as $audio) {
                 if ($audio && isset($audio->url) && $audio->url) {
-                    if (strpos($audio->url, $storageBaseUrl) !== 0) {
-                        $audio->url = $storageBaseUrl .'/object/public/tao_among_storage/audio/'. $audio->url;
-                    }
+                    $audio->url = $this->storageService->getUrl('audios', $audio->url);
                 }
             }
             // 若 audios 是單一物件，重新賦值為陣列
@@ -83,9 +80,9 @@ class FishService
 
         foreach ($fishes as $fish) {
             if ($fish->image == null || $fish->image == '') {
-                $fish->image =  $this->storageService->getUrl('default.png');
+                $fish->image =  $this->storageService->getUrl('images', 'default.png');
             } else {
-                $fish->image =  $this->storageService->getUrl($fish->image);
+                $fish->image =  $this->storageService->getUrl('images', $fish->image);
             }
         }
 

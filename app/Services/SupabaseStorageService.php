@@ -39,9 +39,13 @@ class SupabaseStorageService
         return "{$this->storageUrl}/object/public/{$this->bucket}/{$filePath}";
     }
 
-    public function getUrl(string $filename): string
+    public function getUrl(string $type, string $filename): string
     {
-        return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
+        if ($type === 'images') {
+            return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
+        } elseif ($type==='audios') {
+            return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
+        }
     }
 
     public function createSignedUploadUrl(string $filePath, int $expiresIn = 60): ?string
