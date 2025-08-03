@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'
 import { router } from '@inertiajs/vue3'
 
@@ -75,6 +75,10 @@ let analyser = null
 let source = null
 let animationId = null
 let stream = null
+
+function isSafari() {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+}
 
 function goBack() {
   window.history.length > 1 ? window.history.back() : router.visit('/fishs')
@@ -116,11 +120,31 @@ function startRecording() {
   audioUrl.value = ''
   chunks = []
   timerCount.value = 5
+
   navigator.mediaDevices
     .getUserMedia({ audio: true })
     .then((_stream) => {
       stream = _stream
-      mediaRecorder = new MediaRecorder(stream)
+      // 判斷支援格式
+      let mimeType = ''
+      if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm'
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4'
+      } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+        mimeType = 'audio/aac'
+      } else {
+        recordingError.value = '瀏覽器不支援錄音格式，請改用 Chrome 或 Edge。'
+        stream.getTracks().forEach((track) => track.stop())
+        return
+      }
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType })
+      } catch (e) {
+        recordingError.value = '瀏覽器不支援錄音，請改用 Chrome 或 Edge。'
+        stream.getTracks().forEach((track) => track.stop())
+        return
+      }
       mediaRecorder.start()
       isRecording.value = true
       timer = setTimeout(() => {
@@ -135,18 +159,15 @@ function startRecording() {
         chunks.push(e.data)
       }
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' })
+        const blob = new Blob(chunks, { type: mimeType })
         audioBlob.value = blob
         audioUrl.value = URL.createObjectURL(blob)
         isRecording.value = false
         stream.getTracks().forEach((track) => track.stop())
         clearTimeout(timer)
         clearInterval(interval)
-        if (audioContext) {
-          audioContext.close()
-          audioContext = null
-        }
-        cancelAnimationFrame(animationId)
+        safeCloseAudioContext()
+        if (animationId) cancelAnimationFrame(animationId)
       }
       // 聲音波形分析
       audioContext = new (window.AudioContext || window.webkitAudioContext)()
@@ -162,6 +183,15 @@ function startRecording() {
     })
 }
 
+function safeCloseAudioContext() {
+  if (audioContext) {
+    try {
+      audioContext.close()
+    } catch (e) {}
+    audioContext = null
+  }
+}
+
 function stopRecording() {
   if (mediaRecorder && isRecording.value) {
     mediaRecorder.stop()
@@ -169,11 +199,8 @@ function stopRecording() {
     clearTimeout(timer)
     clearInterval(interval)
     timerCount.value = 0
-    cancelAnimationFrame(animationId)
-    if (audioContext) {
-      audioContext.close()
-      audioContext = null
-    }
+    if (animationId) cancelAnimationFrame(animationId)
+    safeCloseAudioContext()
   }
 }
 
@@ -190,7 +217,6 @@ function handleNext() {
     return
   }
   submitting.value = true
-  // 這裡可依你的 API 送出錄音檔案
   setTimeout(() => {
     submitting.value = false
     router.visit('/fishs')
@@ -198,10 +224,7 @@ function handleNext() {
 }
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(animationId)
-  if (audioContext) {
-    audioContext.close()
-    audioContext = null
-  }
+  if (animationId) cancelAnimationFrame(animationId)
+  safeCloseAudioContext()
 })
 </script>
