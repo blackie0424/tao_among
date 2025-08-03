@@ -39,11 +39,36 @@ class FishService
 
     public function getFishByIdAndLocate($id, $locate)
     {
-        $fish = Fish::with(['notes' => function ($query) use ($locate) {
-            $query->where('locate', $locate);
-        }])->findOrFail($id);
+        $fish = Fish::with([
+            'notes' => function ($query) use ($locate) {
+                $query->where('locate', $locate);
+            },
+            'audios'
+        ])->findOrFail($id);
 
-        return $fish ? $this->assignImageUrls([$fish])[0] : null;
+        // 先處理圖片 url
+        $result = $fish ? $this->assignImageUrls([$fish])[0] : null;
+
+        // 處理 audio url，加上前綴
+        if ($result && isset($result->audios)) {
+            // audios 可能是單一物件或集合，統一處理為陣列
+            $audios = is_array($result->audios) || $result->audios instanceof \Illuminate\Support\Collection
+                ? $result->audios
+                : [$result->audios];
+
+            $storageBaseUrl = env('SUPABASE_STORAGE_URL');
+            foreach ($audios as $audio) {
+                if ($audio && isset($audio->url) && $audio->url) {
+                    if (strpos($audio->url, $storageBaseUrl) !== 0) {
+                        $audio->url = $storageBaseUrl .'/object/public/tao_among_storage/'. $audio->url;
+                    }
+                }
+            }
+            // 若 audios 是單一物件，重新賦值為陣列
+            $result->audios = $audios;
+        }
+
+        return $result;
     }
 
     private function assignImageUrls($fishes)

@@ -41,7 +41,7 @@ class Fish extends Model
     }
 
     // 一對多關聯：一隻魚有多個audio
-    public function audio()
+    public function audios()
     {
         return $this->hasOne(FishAudio::class, 'fish_id');
     }
