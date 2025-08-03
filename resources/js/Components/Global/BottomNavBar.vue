@@ -79,29 +79,44 @@
           ></path>
         </svg>
       </div>
-      <p class="text-[#4d7f99] text-xs font-medium leading-normal tracking-[0.015em]">
+      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">
         {{ label }}
       </p>
     </a>
-    <span
-      class="flex flex-1 flex-col items-center justify-end gap-1 text-[#b0b9be] cursor-not-allowed opacity-50"
-    >
+    <a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#4d7f99]">
       <div class="text-[#b0b9be] flex h-8 items-center justify-center">
-        <!-- Browse/Search Icon -->
         <svg
+          data-icon-name="microphone-right"
+          data-style="line"
+          icon_origin_id="21448"
+          viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
-          width="24px"
-          height="24px"
-          fill="currentColor"
-          viewBox="0 0 256 256"
+          data-name="Flat Line"
+          id="microphone-right"
+          class="icon line"
+          width="24"
+          height="24"
         >
           <path
-            d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"
+            style="fill: rgb(246, 146, 30); stroke-width: 2; stroke: rgb(0, 0, 0)"
+            d="M16.75,11l-7.53,6.7a1,1,0,0,1-1.37,0l-1.5-1.5a1,1,0,0,1,0-1.37L13,7.25Z"
+            id="secondary"
+          ></path>
+          <path
+            style="
+              fill: none;
+              stroke: rgb(0, 0, 0);
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-width: 2;
+            "
+            d="M3,21l4.1-4.1M13,7.25l-6.7,7.53a1,1,0,0,0,0,1.37l1.5,1.5a1,1,0,0,0,1.37,0L16.75,11Zm6.82,2.58A4,4,0,0,1,16.73,11L13,7.27a4,4,0,0,1,1.14-3.1,4,4,0,1,1,5.66,5.66ZM17.71,12,12.05,6.29"
+            id="primary"
           ></path>
         </svg>
       </div>
-      <p class="text-[#b0b9be] text-xs font-medium leading-normal tracking-[0.015em]">搜尋</p>
-    </span>
+      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">新增發音</p>
+    </a>
   </nav>
 </template>
 
