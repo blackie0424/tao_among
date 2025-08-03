@@ -317,8 +317,8 @@ class UploadController extends Controller
                 'string',
                 function ($attribute, $value, $fail) {
                     $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
-                    if (!in_array($ext, ['mp3', 'wav'])) {
-                        $fail('音訊檔案格式僅限 mp3, wav。');
+                    if (!in_array($ext, ['mp3', 'wav','webm'])) {
+                        $fail('音訊檔案格式僅限 mp3, wav, webm。');
                     }
                 }
             ],

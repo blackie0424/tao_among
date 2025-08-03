@@ -214,16 +214,45 @@ function resetRecording() {
   timerCount.value = 5
 }
 
-function handleNext() {
+// 上傳音訊並導回魚類資訊頁
+async function handleNext() {
   if (!audioBlob.value) {
     recordingError.value = '請先錄音'
     return
   }
   submitting.value = true
-  setTimeout(() => {
+  try {
+    // 根據 mimeType 設定副檔名
+    let ext = 'webm'
+    if (audioBlob.value.type === 'audio/mp4') ext = 'mp4'
+    if (audioBlob.value.type === 'audio/aac') ext = 'aac'
+
+    // 第一步：取得上傳資訊
+    const uploadRes = await fetch('/prefix/api/supabase/signed-upload-audio-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: `audio_${Date.now()}.${ext}`,
+      }),
+    })
+    const uploadData = await uploadRes.json()
+    console.log(uploadData)
+    if (!uploadRes.ok || !uploadData.url) throw new Error('取得上傳資訊失敗')
+
+    // 第二步：PUT 音訊物件到 Supabase
+    const putRes = await fetch(uploadData.url, {
+      method: 'PUT',
+      body: audioBlob.value, // 不加 Content-Type，提升相容性
+    })
+    if (!putRes.ok) throw new Error('音訊上傳失敗')
+
+    // 上傳成功後導回特定魚類資訊頁
+    goBack()
+  } catch (e) {
+    recordingError.value = e.message || '音訊上傳失敗'
+  } finally {
     submitting.value = false
-    router.visit('/fishs')
-  }, 1500)
+  }
 }
 
 onBeforeUnmount(() => {
