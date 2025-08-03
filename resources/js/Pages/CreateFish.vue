@@ -6,7 +6,8 @@
       :submitting="submitting"
       title="新增魚類"
       :showSubmit="true"
-      :submitLabel="step === 3 ? '送出' : '下一步'"
+      :submitLabel="step === 1 && submitting ? '上傳中...' : step === 3 ? '送出' : '下一步'"
+      :showLoading="step === 1 && submitting"
     />
     <div class="pt-16">
       <FishImageUploader v-if="step === 1" @uploaded="onImageUploaded" ref="uploaderRef" />
@@ -69,12 +70,15 @@ function handleNext() {
 function onImageUploaded(filename) {
   uploadedFileName.value = filename
   step.value = 2
+  submitting.value = false // 進入下一頁時解除動畫
 }
 function onFishSubmitted(id) {
   fishId.value = id
   step.value = 3
+  submitting.value = false
 }
 function onSizeFinished() {
   router.visit('/fishs')
+  submitting.value = false
 }
 </script>

@@ -13,11 +13,26 @@
     <span class="text-base font-semibold text-[#0e171b]">新增魚類知識</span>
     <button
       type="submit"
-      class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition"
-      :disabled="submitting"
+      class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition flex items-center"
+      :disabled="submitting || showLoading"
       @click="submitNote"
     >
-      送出
+      <span v-if="showLoading" class="mr-2">
+        <!-- 這裡是簡易 spinner 動畫，可依需求換成你喜歡的動畫 -->
+        <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+            fill="none"
+          />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+      </span>
+      {{ submitLabel || '送出' }}
     </button>
   </div>
 </template>
@@ -35,6 +50,14 @@ defineProps({
   submitting: {
     type: Boolean,
     default: false,
+  },
+  showLoading: {
+    type: Boolean,
+    default: false,
+  },
+  submitLabel: {
+    type: String,
+    default: '送出',
   },
 })
 </script>
