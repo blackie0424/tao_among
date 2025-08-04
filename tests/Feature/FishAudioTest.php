@@ -18,7 +18,7 @@ it('可以建立 fishAudio 資料並正確存取', function () {
     ]);
 
     // 驗證資料庫有這筆 fishAudio 資訊
-    $this->assertDatabaseHas('fish_audio', [
+    $this->assertDatabaseHas('fish_audios', [
         'id' => $audio->id,
         'fish_id' => $fish->id,
         'name' => 'https://example.com/audio/test.webm',

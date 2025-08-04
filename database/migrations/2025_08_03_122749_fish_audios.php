@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
-        Schema::create('fish_audio', function (Blueprint $table) {
+        Schema::create('fish_audios', function (Blueprint $table) {
             $table->id(); // id 欄位
             $table->unsignedBigInteger('fish_id'); // fish_id 欄位
             $table->string('name');
@@ -22,6 +22,6 @@ return new class extends Migration {
 
     public function down()
     {
-        Schema::dropIfExists('fish_audio');
+        Schema::dropIfExists('fish_audios');
     }
 };

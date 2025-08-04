@@ -11,6 +11,8 @@ class FishAudio extends Model
 {
 
     use HasFactory, SoftDeletes;
+    protected $table = 'fish_audios';
+
     protected $fillable = ['fish_id', 'name', 'locate'];
 
     // 多對一關聯：一筆筆記屬於一隻魚

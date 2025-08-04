@@ -2,6 +2,12 @@
 
 use Illuminate\Http\UploadedFile;
 
+use Illuminate\Foundation\Testing\RefreshDatabase; // 加入這行
+use App\Models\Fish;
+
+uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
+
+
 it('fish image can be uploaded, check response is 201 and message is image uploaded successfully', function () {
     Storage::fake('public');
 
@@ -243,11 +249,11 @@ it('audio 上傳失敗，副檔名為 mp3 但內容不是 audio', function () {
 });
 
 it('取得 supabase audio 檔案簽名上傳網址', function () {
-    $response = $this->postJson('/prefix/api/fish/1/supabase/signed-upload-audio-url', [
-        'filename' => 'test-audio.mp3',
-        'content_type' => 'audio/mpeg',
-    ]);
+    $fish = Fish::factory()->create();
 
+    $response = $this->postJson("/prefix/api/fish/{$fish->id}/supabase/signed-upload-audio-url", [
+        'filename' => 'test-audio.mp3'
+    ]);
     $response->assertStatus(200)
         ->assertJsonStructure([
             'url',
