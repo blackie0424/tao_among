@@ -34,7 +34,6 @@ function onFishSubmitted(fishId) {
 
 // 整合送出到 TopNavBar 的 @submit 事件
 function submitEdit() {
-  console.log('111')
   if (fishNameFormRef.value) {
     fishNameFormRef.value.submitEditForm()
   }
