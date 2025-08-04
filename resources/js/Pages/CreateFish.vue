@@ -20,6 +20,9 @@
       <FishSizeSelector
         v-if="step === 3"
         :fishId="fishId"
+        :mode="'create'"
+        :modelValue="sizeParts"
+        @update:modelValue="(val) => (sizeParts = val)"
         @finished="onSizeFinished"
         ref="sizeSelectorRef"
       />
@@ -42,6 +45,7 @@ const submitting = ref(false)
 const uploaderRef = ref(null)
 const nameFormRef = ref(null)
 const sizeSelectorRef = ref(null)
+const sizeParts = ref([]) // 建立時預設空陣列，讓使用者自行選擇
 
 function goBack() {
   window.history.length > 1 ? window.history.back() : router.visit('/fishs')
@@ -50,7 +54,6 @@ function goBack() {
 // 統一由 TopNavBar 送出
 function handleNext() {
   if (step.value === 1 && uploaderRef.value) {
-    // 檢查是否有選擇檔案
     if (!uploaderRef.value.selectedFile) {
       uploaderRef.value.uploadError = '請選擇要上傳的圖片'
       submitting.value = false
@@ -78,7 +81,7 @@ function handleNext() {
 function onImageUploaded(filename) {
   uploadedFileName.value = filename
   step.value = 2
-  submitting.value = false // 進入下一頁時解除動畫
+  submitting.value = false
 }
 function onFishSubmitted(id) {
   fishId.value = id

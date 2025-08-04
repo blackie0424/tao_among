@@ -2,7 +2,13 @@
   <div class="container mx-auto p-4 relative">
     <TopNavBar :goBack="goBack" title="編輯魚類尺寸" :showSubmit="true" :submitNote="submitEdit" />
     <div class="pt-16">
-      <FishSizeSelector :fishSize="props.fishSize.parts" v-model="selectedParts" />
+      <FishSizeSelector
+        :fishId="props.fishSize.fish_id"
+        :fishSize="props.fishSize.parts"
+        :mode="'edit'"
+        :modelValue="selectedParts"
+        @update:modelValue="(val) => (selectedParts = val)"
+      />
     </div>
     <div v-if="submitError" class="text-red-600 mt-2 text-center">{{ submitError }}</div>
     <div v-if="submitSuccess" class="text-green-600 mt-2 text-center">尺寸更新成功！</div>
@@ -19,7 +25,7 @@ const props = defineProps({
   fishSize: Object, // 內含 fish_id, parts
 })
 
-// 只在初始化時設定 selectedParts，之後都以 v-model 為主，不再 watch 外部資料
+// 編輯時預設為舊資料，使用者可再選擇
 const selectedParts = ref(props.fishSize.parts ? [...props.fishSize.parts] : [])
 
 const submitError = ref('')
@@ -32,7 +38,6 @@ function goBack() {
 async function submitEdit() {
   submitError.value = ''
   submitSuccess.value = false
-  console.log(selectedParts.value)
   try {
     const res = await fetch(`/prefix/api/fish/${props.fishSize.fish_id}/editSize`, {
       method: 'PUT',
@@ -44,7 +49,6 @@ async function submitEdit() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.message || '尺寸更新失敗')
     submitSuccess.value = true
-    // 可依需求導頁
     router.visit(`/fish/${props.fishSize.fish_id}`)
   } catch (e) {
     submitError.value = e.message || '尺寸更新失敗'
