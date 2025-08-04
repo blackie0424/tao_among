@@ -20,7 +20,9 @@
       </button>
       <div v-if="menuOpen" class="absolute right-0 mt-2 w-24 bg-white border rounded shadow z-50">
         <ul>
-          <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base">編輯</li>
+          <li @click="editData" class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base">
+            編輯
+          </li>
           <li
             @click="deleteData"
             class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer text-base"
@@ -41,12 +43,19 @@ const menuOpen = ref(false)
 const props = defineProps({
   apiUrl: { type: String, required: true },
   redirectUrl: { type: String, default: '' },
+  fishId: { type: String, required: true },
 })
 
 const emit = defineEmits(['deleted'])
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
+}
+
+function editData() {
+  console.log(`/fish/${props.fishId}/edit`)
+  menuOpen.value = false
+  router.visit(`/fish/${props.fishId}/edit`)
 }
 
 async function deleteData() {

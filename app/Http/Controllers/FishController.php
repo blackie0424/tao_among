@@ -51,4 +51,14 @@ class FishController extends Controller
         return Inertia::render('CreateFishAudio');
     }
 
+    public function edit($id)
+    {
+        // 取得指定魚類資訊
+        $fish = Fish::findOrFail($id);
+        // 回傳編輯畫面，帶入魚類資訊
+        return Inertia::render('EditFishName', [
+            'fish' => $fish
+        ]);
+    }
+
 }

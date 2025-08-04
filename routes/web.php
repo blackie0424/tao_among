@@ -16,3 +16,4 @@ Route::get('/fish/{id}/createAudio', [FishController::class,'createAudio']);
 
 
 Route::get('/fish/{id}/create', [FishNoteController::class,'create']);
+Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit');
