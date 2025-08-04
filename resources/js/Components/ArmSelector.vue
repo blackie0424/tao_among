@@ -6,7 +6,9 @@
       >
         <div class="flex items-center justify-between w-full gap-2 mb-1">
           <div class="text text-xl text-secondary">魚的尺寸</div>
+          <!-- 只有非編輯頁面才顯示 OverflowMenu -->
           <OverflowMenu
+            v-if="showOverflowMenu"
             :apiUrl="`/prefix/api/fish/${fishId}`"
             :redirectUrl="`/`"
             :fishId="fishId"
@@ -60,6 +62,10 @@ const props = defineProps({
   fishId: {
     type: String,
     required: false,
+  },
+  showOverflowMenu: {
+    type: Boolean,
+    default: false, // 外部可控制是否顯示 OverflowMenu
   },
 })
 const emit = defineEmits(['update:modelValue'])
