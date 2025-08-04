@@ -8,33 +8,31 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import ArmSelector from '@/Components/ArmSelector.vue'
 
-// 新增 fishSize prop，編輯模式下傳入已選尺寸
 const props = defineProps({
   fishId: Number,
   fishSize: {
     type: Array,
     default: () => [],
   },
+  modelValue: {
+    type: Array,
+    default: () => [],
+  },
 })
-const emit = defineEmits(['finished'])
-const selectedParts = ref([]) // ArmSelector 綁定的尺寸資料
+const emit = defineEmits(['finished', 'update:modelValue'])
+
+// 用 computed 雙向綁定 v-model，確保父元件與子元件同步
+const selectedParts = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val),
+})
+
 const sizeSubmitting = ref(false)
 const sizeSubmitError = ref('')
 const sizeSubmitSuccess = ref(false)
-
-// 編輯模式：有 fishSize 傳入時，還原選擇的尺寸
-watch(
-  () => props.fishSize,
-  (newVal) => {
-    if (Array.isArray(newVal) && newVal.length > 0) {
-      selectedParts.value = [...newVal]
-    }
-  },
-  { immediate: true }
-)
 
 async function submitSize() {
   if (!props.fishId || !selectedParts.value.length) {
