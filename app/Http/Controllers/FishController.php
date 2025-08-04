@@ -64,9 +64,9 @@ class FishController extends Controller
 
     public function editSize($id)
     {
-        // 取得指定魚類資訊
-        $fishSize = FishSize::findOrFail($id);
-        // 回傳編輯畫面，帶入魚類資訊
+        // 用 fish_id 查詢 fish_size 物件
+        $fishSize = FishSize::where('fish_id', $id)->firstOrFail();
+        // 回傳編輯畫面，帶入魚類尺寸資訊
         return Inertia::render('EditFishSize', [
             'fishSize' => $fishSize
         ]);
