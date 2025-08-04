@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Carbon\Carbon;
 use Inertia\Inertia;
+use App\Models\FishSize;
 
 class FishController extends Controller
 {
@@ -58,6 +59,16 @@ class FishController extends Controller
         // 回傳編輯畫面，帶入魚類資訊
         return Inertia::render('EditFishName', [
             'fish' => $fish
+        ]);
+    }
+
+    public function editSize($id)
+    {
+        // 取得指定魚類資訊
+        $fishSize = FishSize::findOrFail($id);
+        // 回傳編輯畫面，帶入魚類資訊
+        return Inertia::render('EditFishSize', [
+            'fishSize' => $fishSize
         ]);
     }
 

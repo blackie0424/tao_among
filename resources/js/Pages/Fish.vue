@@ -9,6 +9,7 @@
       <!-- 中欄：ArmSelector -->
       <div class="w-full md:w-1/4">
         <ArmSelector v-model="selectedParts" :readonly="true" />
+        
       </div>
       <!-- 右欄：知識 -->
       <div class="w-full md:w-1/4">
