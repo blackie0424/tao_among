@@ -43,7 +43,7 @@ class SupabaseStorageService
     {
         if ($type === 'images') {
             return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
-        } elseif ($type==='audios') {
+        } elseif ($type === 'audios') {
             return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
         }
     }
