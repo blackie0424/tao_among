@@ -7,8 +7,8 @@
     <!-- 魚名與 icon 水平排列 -->
     <div class="section-title text-2xl font-bold text-primary flex justify-between w-full">
       <span>{{ fishName }}</span>
-      <template v-if="props.audios[0] && props.audios[0].name">
-        <Volume :audioUrl="props.audios[0].name" />
+      <template v-if="props.audios[0] && props.audios[0].url">
+        <Volume :audioUrl="props.audios[0].url" />
       </template>
     </div>
   </div>

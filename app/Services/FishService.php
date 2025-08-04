@@ -50,7 +50,6 @@ class FishService
         // 先處理 url
         
         $result = $fish ? $this->assignImageUrls([$fish])[0] : null;
-
         return $result;
     }
 
@@ -70,7 +69,7 @@ class FishService
             }
             foreach ($fish->audios as $audio) {
                 if ($audio && isset($audio->name) && $audio->name) {
-                    $audio->name = $this->storageService->getUrl('audios', $audio->name);
+                    $audio->url = $this->storageService->getUrl('audios', $audio->name);
                 }
             }
         }
