@@ -47,25 +47,9 @@ class FishService
                 $query->orderByDesc('id')->limit(1); // 只取最新一筆 audio 物件
             }
         ])->findOrFail($id);
-
-        // 先處理圖片 url
+        // 先處理 url
+        
         $result = $fish ? $this->assignImageUrls([$fish])[0] : null;
-
-        // 處理 audio url，加上前綴
-        if ($result && isset($result->audios)) {
-            // audios 可能是單一物件或集合，統一處理為陣列
-            $audios = is_array($result->audios) || $result->audios instanceof \Illuminate\Support\Collection
-                ? $result->audios
-                : [$result->audios];
-
-            foreach ($audios as $audio) {
-                if ($audio && isset($audio->name) && $audio->name) {
-                    $audio->name = $this->storageService->getUrl('audios', $audio->name);
-                }
-            }
-            // 若 audios 是單一物件，重新賦值為陣列
-            $result->audios = $audios;
-        }
 
         return $result;
     }
@@ -83,6 +67,11 @@ class FishService
                 $fish->image =  $this->storageService->getUrl('images', 'default.png');
             } else {
                 $fish->image =  $this->storageService->getUrl('images', $fish->image);
+            }
+            foreach ($fish->audios as $audio) {
+                if ($audio && isset($audio->name) && $audio->name) {
+                    $audio->name = $this->storageService->getUrl('audios', $audio->name);
+                }
             }
         }
 
