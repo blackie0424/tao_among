@@ -263,4 +263,55 @@ class ApiFishController extends Controller
             'message' => 'Fish deleted successfully',
         ]);
     }
+
+    /**
+     * @OA\Put(
+     *     path="/prefix/api/fish/{id}/editSize",
+     *     summary="更新魚類尺寸",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="parts", type="array", @OA\Items(type="string"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="更新成功"),
+     *     @OA\Response(response=404, description="找不到資料")
+     * )
+     */
+    public function updateSize(Request $request, $id): JsonResponse
+    {
+        $parts = $request->input('parts');
+        if (!is_array($parts) || empty($parts)) {
+            return response()->json([
+                'message' => 'parts 欄位必須為陣列且不可為空',
+                'data' => null,
+            ], 422);
+        }
+
+        $fishSize = \App\Models\FishSize::where('fish_id', $id)->first();
+        if (!$fishSize) {
+            return response()->json([
+                'message' => 'fish size not found',
+                'data' => null,
+            ], 404);
+        }
+
+        $fishSize->update(['parts' => $parts]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => '更新成功',
+            'data' => [
+                'fish_id' => $id,
+                'parts' => $parts,
+            ],
+        ]);
+    }
 }

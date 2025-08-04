@@ -223,3 +223,33 @@ it('deletes fish and soft deletes related fish_size', function () {
 
 
 });
+
+it('can update fish size by put request', function () {
+    $fish = Fish::factory()->create();
+    $fishSize = FishSize::factory()->create([
+        'fish_id' => $fish->id,
+        'parts' => ['手指1', '手指2'],
+    ]);
+
+    $updatePayload = [
+        'parts' => ['半掌1', '半掌2', '手掌'],
+    ];
+
+    $response = $this->putJson("/prefix/api/fish/{$fish->id}/editSize", $updatePayload);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'status' => 'success',
+            'message' => '更新成功',
+            'data' => [
+                'fish_id' => $fish->id,
+                'parts' => $updatePayload['parts'],
+            ],
+        ]);
+
+    // 驗證資料庫已更新
+    $this->assertDatabaseHas('fish_size', [
+        'fish_id' => $fish->id,
+        'parts' => json_encode($updatePayload['parts']),
+    ]);
+});
