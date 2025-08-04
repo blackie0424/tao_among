@@ -20,10 +20,15 @@
       </button>
       <div v-if="menuOpen" class="absolute right-0 mt-2 w-24 bg-white border rounded shadow z-50">
         <ul>
-          <li @click="editData" class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base">
+          <li
+            v-if="showEdit"
+            @click="editData"
+            class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base"
+          >
             編輯
           </li>
           <li
+            v-if="showDelete"
             @click="deleteData"
             class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer text-base"
           >
@@ -44,6 +49,9 @@ const props = defineProps({
   apiUrl: { type: String, required: true },
   redirectUrl: { type: String, default: '' },
   fishId: { type: String, required: true },
+  showEdit: { type: Boolean, default: true },
+  showDelete: { type: Boolean, default: true },
+  editUrl: { type: String, default: '' }, // 新增：外部可設定編輯連結
 })
 
 const emit = defineEmits(['deleted'])
@@ -52,10 +60,11 @@ function toggleMenu() {
   menuOpen.value = !menuOpen.value
 }
 
+// 編輯連結由外部設定，預設為 /fish/{fishId}/edit
 function editData() {
-  console.log(`/fish/${props.fishId}/edit`)
   menuOpen.value = false
-  router.visit(`/fish/${props.fishId}/edit`)
+  const url = props.editUrl || `/fish/${props.fishId}/edit`
+  router.visit(url)
 }
 
 async function deleteData() {

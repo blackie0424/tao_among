@@ -4,8 +4,15 @@
       <div
         class="section section-name w-full max-w-3xl text-center p-4 rounded-lg shadow-custom mb-4 flex flex-col items-center"
       >
-        <div class="flex items-center justify-center w-full gap-2 mb-1">
+        <div class="flex items-center justify-between w-full gap-2 mb-1">
           <div class="text text-xl text-secondary">魚的尺寸</div>
+          <OverflowMenu
+            :apiUrl="`/prefix/api/fish/${fishId}`"
+            :redirectUrl="`/`"
+            :fishId="fishId"
+            :showDelete="false"
+            :editUrl="`/fish/${fishId}/editSize`"
+          />
         </div>
         <!-- 魚名與 icon 水平排列 -->
         <div
@@ -42,6 +49,7 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue'
+import OverflowMenu from '@/Components/OverflowMenu.vue'
 
 const props = defineProps({
   modelValue: {
@@ -49,6 +57,10 @@ const props = defineProps({
     default: () => [],
   },
   readonly: Boolean,
+  fishId: {
+    type: String,
+    required: false,
+  },
 })
 const emit = defineEmits(['update:modelValue'])
 
