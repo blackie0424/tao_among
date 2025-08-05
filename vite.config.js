@@ -10,4 +10,7 @@ export default defineConfig({
     }),
     vue(),
   ],
+  test: {
+    environment: 'jsdom', // 這行很重要，讓測試有瀏覽器文件環境
+  },
 })
