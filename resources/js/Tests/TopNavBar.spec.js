@@ -87,4 +87,14 @@ describe('TopNavBar', () => {
     // 檢查 Loading 畫面不應該存在
     expect(wrapper.find('.animate-spin').exists()).toBe(false)
   })
+
+  it('當 showLoading 為 true 時，Loading畫面應該顯示', () => {
+    const wrapper = mount(TopNavBar, {
+      props: {
+        showLoading: true,
+      },
+    })
+    // 檢查 Loading 畫面應該存在
+    expect(wrapper.find('.animate-spin').exists()).toBe(true)
+  })
 })
