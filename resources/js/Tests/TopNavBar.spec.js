@@ -3,22 +3,23 @@ import { mount } from '@vue/test-utils'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'
 
 describe('TopNavBar', () => {
-  it('載入 TopNavBar 時，應該顯示取消、送出按鈕與標題', () => {
+  it('載入 TopNavBar 時，應該顯示關閉按鈕、送出按鈕與標題', () => {
     const wrapper = mount(TopNavBar, {
       props: {
         title: '測試標題',
-        goBack: vi.fn(),
-        submitNote: vi.fn(),
         showSubmit: true,
       },
     })
     // 檢查標題
     expect(wrapper.text()).toContain('測試標題')
-    // 檢查取消按鈕
-    const buttons = wrapper.findAll('button')
-    expect(buttons[0].text()).toContain('取消')
+    // 檢查關閉按鈕
+    const closeBtn = wrapper.find('button[type="button"]')
+    expect(closeBtn.exists()).toBe(true)
+    expect(closeBtn.find('svg').exists()).toBe(true)
     // 檢查送出按鈕
-    expect(buttons[1].text()).toContain('送出')
+    const submitBtn = wrapper.find('button[type="submit"]')
+    expect(submitBtn.exists()).toBe(true)
+    expect(submitBtn.text()).toContain('送出')
   })
 
   it('載入 TopNavBar 時，可以自訂送出按鈕顯示的文字', () => {
