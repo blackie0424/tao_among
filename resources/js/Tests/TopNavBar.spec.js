@@ -97,4 +97,17 @@ describe('TopNavBar', () => {
     // 檢查 Loading 畫面應該存在
     expect(wrapper.find('.animate-spin').exists()).toBe(true)
   })
+
+  it('當 submitting 為 false 時，送出按鈕應過被看到，也可以點擊', () => {
+    const wrapper = mount(TopNavBar, {
+      props: {
+        submitting: false,
+      },
+    })
+    // 檢查送出按鈕應該存在
+    const submitBtn = wrapper.find('button:last-of-type')
+    expect(submitBtn.exists()).toBe(true)
+    // 檢查送出按鈕應該是啟用狀態
+    expect(submitBtn.element.disabled).toBe(false)
+  })
 })

@@ -52,6 +52,8 @@ defineProps({
     type: Function,
     required: true,
   },
+
+  // 是否正在執行提交功能，預設為 false
   submitting: {
     type: Boolean,
     default: false,
