@@ -20,4 +20,19 @@ describe('TopNavBar', () => {
     // 檢查送出按鈕
     expect(buttons[1].text()).toContain('送出')
   })
+
+  it('載入 TopNavBar 時，可以自訂送出按鈕顯示的文字', () => {
+    const wrapper = mount(TopNavBar, {
+      props: {
+        title: '測試標題',
+        goBack: vi.fn(),
+        submitNote: vi.fn(),
+        showSubmit: true,
+        submitLabel: '自訂送出',
+      },
+    })
+    // 檢查送出按鈕
+    const buttons = wrapper.findAll('button')
+    expect(buttons[1].text()).toContain('自訂送出')
+  })
 })
