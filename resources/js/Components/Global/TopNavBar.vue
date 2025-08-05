@@ -56,6 +56,8 @@ defineProps({
     type: Boolean,
     default: false,
   },
+
+  // 是否顯示 Loading 畫面，預設為 false
   showLoading: {
     type: Boolean,
     default: false,

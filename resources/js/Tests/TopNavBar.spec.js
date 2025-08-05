@@ -77,4 +77,14 @@ describe('TopNavBar', () => {
     // 檢查 submitNote 是否被呼叫
     expect(submitNote).toHaveBeenCalled()
   })
+
+  it('當 showLoading 為 false 時，Loading畫面不應該顯示', () => {
+    const wrapper = mount(TopNavBar, {
+      props: {
+        showLoading: false,
+      },
+    })
+    // 檢查 Loading 畫面不應該存在
+    expect(wrapper.find('.animate-spin').exists()).toBe(false)
+  })
 })
