@@ -110,4 +110,17 @@ describe('TopNavBar', () => {
     // 檢查送出按鈕應該是啟用狀態
     expect(submitBtn.element.disabled).toBe(false)
   })
+
+  it('當 submitting 為 true 時，送出按鈕應該被禁用', () => {
+    const wrapper = mount(TopNavBar, {
+      props: {
+        submitting: true,
+      },
+    })
+    // 檢查送出按鈕應該存在
+    const submitBtn = wrapper.find('button:last-of-type')
+    expect(submitBtn.exists()).toBe(true)
+    // 檢查送出按鈕應該是禁用狀態
+    expect(submitBtn.element.disabled).toBe(true)
+  })
 })
