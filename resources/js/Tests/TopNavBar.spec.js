@@ -62,4 +62,19 @@ describe('TopNavBar', () => {
     // 檢查 goBack 是否被呼叫
     expect(goBack).toHaveBeenCalled()
   })
+
+  it('點擊送出按鈕時，應該呼叫 submitNote 方法', async () => {
+    const submitNote = vi.fn()
+    const wrapper = mount(TopNavBar, {
+      props: {
+        goBack: vi.fn(),
+        submitNote,
+        showSubmit: true,
+      },
+    })
+    // 模擬點擊送出按鈕
+    await wrapper.find('button:last-of-type').trigger('click')
+    // 檢查 submitNote 是否被呼叫
+    expect(submitNote).toHaveBeenCalled()
+  })
 })

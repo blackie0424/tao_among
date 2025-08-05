@@ -46,6 +46,8 @@ defineProps({
     type: Function,
     required: true,
   },
+
+  // 提交按鈕的執行功能，當使用者點擊時會觸發這個函式
   submitNote: {
     type: Function,
     required: true,
