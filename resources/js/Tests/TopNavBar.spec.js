@@ -47,4 +47,19 @@ describe('TopNavBar', () => {
     // 檢查標題
     expect(wrapper.text()).toContain('請新增標題')
   })
+
+  it('點擊取消按鈕時，應該呼叫 goBack 方法', async () => {
+    const goBack = vi.fn()
+    const wrapper = mount(TopNavBar, {
+      props: {
+        goBack,
+        submitNote: vi.fn(),
+        showSubmit: true,
+      },
+    })
+    // 模擬點擊取消按鈕
+    await wrapper.find('button:first-of-type').trigger('click')
+    // 檢查 goBack 是否被呼叫
+    expect(goBack).toHaveBeenCalled()
+  })
 })
