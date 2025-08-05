@@ -63,7 +63,7 @@ defineProps({
   },
   title: {
     type: String,
-    default: '新增魚類知識',
+    default: '請新增標題',
   },
 })
 </script>

@@ -35,4 +35,16 @@ describe('TopNavBar', () => {
     const buttons = wrapper.findAll('button')
     expect(buttons[1].text()).toContain('自訂送出')
   })
+
+  it('載入 TopNavBar 時，沒有給標題時，應該要顯示請新增標題文字', async () => {
+    const wrapper = mount(TopNavBar, {
+      props: {
+        goBack: vi.fn(),
+        submitNote: vi.fn(),
+        showSubmit: true,
+      },
+    })
+    // 檢查標題
+    expect(wrapper.text()).toContain('請新增標題')
+  })
 })
