@@ -41,6 +41,7 @@
 
 <script setup>
 defineProps({
+  // 取消按鈕的執行功能，當使用者點擊時會觸發這個函式
   goBack: {
     type: Function,
     required: true,
@@ -57,10 +58,14 @@ defineProps({
     type: Boolean,
     default: false,
   },
+
+  // 提交按鈕的文字，預設為 '送出'
   submitLabel: {
     type: String,
     default: '送出',
   },
+
+  // 標題文字，預設為 '請新增標題'
   title: {
     type: String,
     default: '請新增標題',
