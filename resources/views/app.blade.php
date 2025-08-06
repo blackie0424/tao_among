@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-    @vite(['resources/css/app.css', 'resources/css/fish.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @if(request()->is('fish*') || request()->is('fish/*') || request()->is('fishs'))
+      @vite(['resources/css/fish.css'])
+    @endif
     @inertiaHead
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1976d2">
