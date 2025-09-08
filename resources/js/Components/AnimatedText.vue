@@ -1,5 +1,5 @@
 <template>
-  <h1 :style="{ fontSize: `${fontSize}px` }" class="font-bold flex justify-center">
+  <h1 :style="{ fontSize: `${fontSize}px` }" class="flex justify-center">
     <span
       v-for="(char, idx) in textArr"
       :key="idx"
@@ -49,8 +49,21 @@ const textArr = computed(() => props.text.split(''))
   opacity: 1;
   color: transparent;
   background: transparent;
-  -webkit-text-stroke: 2px #fff; /* 白色簍空 */
+  -webkit-text-stroke: 2px #fff;
   animation: outline-fill 1s forwards;
   animation-fill-mode: forwards;
+  margin-right: 0.3em;
+}
+
+/* 手持式裝置字體與間距調整，並移除粗體 */
+@media (max-width: 400px) {
+  h1 {
+    font-size: 24px !important;
+    font-weight: normal !important;
+  }
+  .animate-outline-fill {
+    margin-right: 0.15em;
+    font-weight: normal !important;
+  }
 }
 </style>
