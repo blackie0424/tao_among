@@ -42,7 +42,7 @@ class SupabaseStorageService
     public function getUrl(string $type, string $filename): string
     {
         if ($type === 'images') {
-            return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
+            return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}?width=300&format=webp&quality=40";
         } elseif ($type === 'audios') {
             return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
         }
