@@ -11,7 +11,7 @@
       v-show="!loading && !error"
       :src="src"
       :alt="alt"
-      loading="lazy"
+      :loading="imgLoading"
       :class="['object-contain rounded-lg', imgClass]"
       :style="imgStyle"
       @load="onLoad"
@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import LoadingBar from '@/Components/LoadingBar.vue'
 
 const props = defineProps({
@@ -31,6 +31,7 @@ const props = defineProps({
   wrapperStyle: { type: [String, Object], default: '' },
   imgClass: { type: String, default: '' },
   imgStyle: { type: [String, Object], default: '' },
+  imgIndex: { type: Number, default: 0 }, // 新增：圖片在列表中的索引
 })
 
 const loading = ref(true)
@@ -52,4 +53,7 @@ watch(
     error.value = false
   }
 )
+
+// 根據 imgIndex 決定 loading 屬性
+const imgLoading = computed(() => (props.imgIndex < 8 ? 'eager' : 'lazy'))
 </script>
