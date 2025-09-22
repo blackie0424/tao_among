@@ -41,11 +41,33 @@ class SupabaseStorageService
 
     public function getUrl(string $type, string $filename): string
     {
-        if ($type === 'images') {
-            return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
-        } elseif ($type === 'audios') {
+        if ($type === 'audios') {
             return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
         }
+
+        if ($type !== 'images') {
+            throw new InvalidArgumentException('Invalid type: ' . $type);
+        }
+
+        // 提取基名（去掉擴展名）
+        $baseName = pathinfo($filename, PATHINFO_FILENAME);
+
+        // WebP 路徑
+        $webpPath = "webp/{$baseName}.webp";
+
+        // 使用 HEAD 請求檢查 WebP 檔案是否存在
+        $response = Http::withHeaders([
+            'apikey' => $this->apiKey,
+            'Authorization' => "Bearer {$this->apiKey}",
+        ])->head("{$this->storageUrl}/object/{$this->bucket}/{$webpPath}");
+
+        if ($response->status() === 200) {
+            // WebP 存在，返回 WebP 連結
+            return "{$this->storageUrl}/object/public/{$this->bucket}/{$webpPath}";
+        }
+
+        // WebP 不存在，返回原檔連結
+        return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
     }
 
     public function createSignedUploadUrl(string $filePath, int $expiresIn = 60): ?string
