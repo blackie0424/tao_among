@@ -25,6 +25,8 @@ class Fish extends Model
         static::deleting(function ($fish) {
             $fish->size()->delete();
             $fish->notes()->delete();
+            $fish->tribalClassifications()->delete();
+            $fish->captureRecords()->delete();
         });
     }
 
@@ -44,5 +46,17 @@ class Fish extends Model
     public function audios()
     {
         return $this->hasMany(FishAudio::class, 'fish_id');
+    }
+
+    // 一對多關聯：一隻魚有多個部落分類
+    public function tribalClassifications(): HasMany
+    {
+        return $this->hasMany(TribalClassification::class, 'fish_id');
+    }
+
+    // 一對多關聯：一隻魚有多個捕獲紀錄
+    public function captureRecords(): HasMany
+    {
+        return $this->hasMany(CaptureRecord::class, 'fish_id');
     }
 }

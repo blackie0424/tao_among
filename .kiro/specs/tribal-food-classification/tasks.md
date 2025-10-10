@@ -1,6 +1,6 @@
 # 實作計畫
 
-- [ ] 1. 建立資料庫結構和模型
+- [-] 1. 建立資料庫結構和模型
 
   - 建立 tribal_classifications 資料表遷移檔案
   - 建立 capture_records 資料表遷移檔案
