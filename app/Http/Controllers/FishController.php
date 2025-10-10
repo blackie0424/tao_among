@@ -134,4 +134,42 @@ class FishController extends Controller
         return redirect()->back()->with('success', '部落分類刪除成功');
     }
 
+    public function createTribalClassification($fishId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        
+        // 定義部落和分類選項
+        $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
+        $foodCategories = ['oyod', 'rahet', '不分類', '不食用', '?', ''];
+        $processingMethods = ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?', ''];
+        
+        return Inertia::render('CreateTribalClassification', [
+            'fish' => $fish,
+            'tribes' => $tribes,
+            'foodCategories' => $foodCategories,
+            'processingMethods' => $processingMethods
+        ]);
+    }
+
+    public function editTribalClassification($fishId, $classificationId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        $classification = TribalClassification::where('fish_id', $fishId)
+            ->where('id', $classificationId)
+            ->firstOrFail();
+        
+        // 定義部落和分類選項
+        $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
+        $foodCategories = ['oyod', 'rahet', '不分類', '不食用', '?', ''];
+        $processingMethods = ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?', ''];
+        
+        return Inertia::render('EditTribalClassification', [
+            'fish' => $fish,
+            'classification' => $classification,
+            'tribes' => $tribes,
+            'foodCategories' => $foodCategories,
+            'processingMethods' => $processingMethods
+        ]);
+    }
+
 }

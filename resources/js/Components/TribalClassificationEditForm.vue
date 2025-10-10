@@ -11,10 +11,11 @@
         />
       </div>
       <div>
-        <p class="text-sm font-medium text-gray-900">正在為 {{ fishName }} 新增部落分類</p>
-        <p class="text-xs text-gray-500">請選擇部落並填寫相關資訊</p>
+        <p class="text-sm font-medium text-gray-900">正在編輯 {{ fishName }} 的部落分類</p>
+        <p class="text-xs text-gray-500">修改部落相關資訊</p>
       </div>
     </div>
+
     <!-- 部落選擇 -->
     <div>
       <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">
@@ -94,7 +95,7 @@
         :disabled="processing"
         class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
       >
-        {{ processing ? '儲存中...' : '儲存部落資料' }}
+        {{ processing ? '更新中...' : '更新地方知識' }}
       </button>
     </div>
   </form>
@@ -106,6 +107,7 @@ import { router } from '@inertiajs/vue3'
 import LazyImage from './LazyImage.vue'
 
 const props = defineProps({
+  classification: Object,
   tribes: Array,
   foodCategories: Array,
   processingMethods: Array,
@@ -117,10 +119,10 @@ const props = defineProps({
 const emit = defineEmits(['submitted'])
 
 const form = reactive({
-  tribe: '',
-  food_category: '',
-  processing_method: '',
-  notes: '',
+  tribe: props.classification.tribe || '',
+  food_category: props.classification.food_category || '',
+  processing_method: props.classification.processing_method || '',
+  notes: props.classification.notes || '',
 })
 
 const errors = ref({})
@@ -130,13 +132,8 @@ function submitForm() {
   processing.value = true
   errors.value = {}
 
-  router.post(`/fish/${props.fishId}/tribal-classifications`, form, {
+  router.put(`/fish/${props.fishId}/tribal-classifications/${props.classification.id}`, form, {
     onSuccess: () => {
-      // 重置表單
-      form.tribe = ''
-      form.food_category = ''
-      form.processing_method = ''
-      form.notes = ''
       emit('submitted')
     },
     onError: (errorResponse) => {
