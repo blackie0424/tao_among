@@ -7,7 +7,9 @@ use App\Http\Requests\CreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
 use App\Models\Fish;
 use App\Models\FishNote;
+use App\Models\TribalClassification;
 use App\Services\FishService;
+use App\Http\Requests\TribalClassificationRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Carbon\Carbon;
@@ -88,6 +90,48 @@ class FishController extends Controller
             'foodCategories' => $foodCategories,
             'processingMethods' => $processingMethods
         ]);
+    }
+
+    public function storeTribalClassification(TribalClassificationRequest $request, $fishId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        
+        TribalClassification::create([
+            'fish_id' => $fish->id,
+            'tribe' => $request->tribe,
+            'food_category' => $request->food_category ?? '',
+            'processing_method' => $request->processing_method ?? '',
+            'notes' => $request->notes
+        ]);
+
+        return redirect()->back()->with('success', '部落分類新增成功');
+    }
+
+    public function updateTribalClassification(TribalClassificationRequest $request, $fishId, $classificationId)
+    {
+        $classification = TribalClassification::where('fish_id', $fishId)
+            ->where('id', $classificationId)
+            ->firstOrFail();
+            
+        $classification->update([
+            'tribe' => $request->tribe,
+            'food_category' => $request->food_category ?? '',
+            'processing_method' => $request->processing_method ?? '',
+            'notes' => $request->notes
+        ]);
+
+        return redirect()->back()->with('success', '部落分類更新成功');
+    }
+
+    public function destroyTribalClassification($fishId, $classificationId)
+    {
+        $classification = TribalClassification::where('fish_id', $fishId)
+            ->where('id', $classificationId)
+            ->firstOrFail();
+            
+        $classification->delete();
+
+        return redirect()->back()->with('success', '部落分類刪除成功');
     }
 
 }
