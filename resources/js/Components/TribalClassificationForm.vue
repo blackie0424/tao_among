@@ -1,5 +1,20 @@
 <template>
   <form @submit.prevent="submitForm" class="space-y-4">
+    <!-- 魚類提醒 -->
+    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+      <div class="w-12 h-12 flex-shrink-0">
+        <LazyImage
+          :src="fishImage"
+          :alt="fishName"
+          wrapperClass="w-full h-full bg-gray-200 rounded-lg"
+          imgClass="w-full h-full object-contain"
+        />
+      </div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">正在為 {{ fishName }} 新增部落分類</p>
+        <p class="text-xs text-gray-500">請選擇部落並填寫相關資訊</p>
+      </div>
+    </div>
     <!-- 部落選擇 -->
     <div>
       <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">
@@ -88,12 +103,15 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
+import LazyImage from './LazyImage.vue'
 
 const props = defineProps({
   tribes: Array,
   foodCategories: Array,
   processingMethods: Array,
   fishId: Number,
+  fishName: String,
+  fishImage: String,
 })
 
 const emit = defineEmits(['submitted'])
