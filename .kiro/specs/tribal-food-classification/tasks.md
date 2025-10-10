@@ -1,6 +1,6 @@
 # 實作計畫
 
-- [-] 1. 建立資料庫結構和模型
+- [x] 1. 建立資料庫結構和模型
 
   - 建立 tribal_classifications 資料表遷移檔案
   - 建立 capture_records 資料表遷移檔案
@@ -9,9 +9,9 @@
   - 擴展 Fish 模型新增關聯方法
   - _需求: 1.1, 2.1, 3.1, 4.1_
 
-- [ ] 2. 實作部落分類 API 端點
+- [x] 2. 實作部落分類 API 端點
 
-  - [ ] 2.1 建立 TribalClassificationController
+  - [x] 2.1 建立 TribalClassificationController
 
     - 實作 index 方法（取得魚類部落分類）
     - 實作 store 方法（新增部落分類）
@@ -19,13 +19,13 @@
     - 實作 destroy 方法（刪除部落分類）
     - _需求: 3.1, 4.1, 6.1_
 
-  - [ ] 2.2 建立表單驗證請求類別
+  - [x] 2.2 建立表單驗證請求類別
 
     - 建立 TribalClassificationRequest 驗證類別
     - 定義驗證規則和錯誤訊息
     - _需求: 3.3, 4.4_
 
-  - [ ] 2.3 設定 API 路由
+  - [x] 2.3 設定 API 路由
     - 新增部落分類相關路由
     - 設定路由群組和中介軟體
     - _需求: 3.1, 4.1_

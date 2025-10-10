@@ -4,6 +4,7 @@ use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishSizeController;
+use App\Http\Controllers\TribalClassificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -40,6 +41,13 @@ Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'
 
 Route::get('/fishSize/{fish_id}', [FishSizeController::class, 'show']);
 Route::post('/fishSize', [FishSizeController::class, 'store']);
+
+// Tribal Classification API routes
+Route::get('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'index'])->whereNumber('fish_id');
+Route::post('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'store'])->whereNumber('fish_id');
+Route::get('/tribal-classifications/{id}', [TribalClassificationController::class, 'show'])->whereNumber('id');
+Route::put('/tribal-classifications/{id}', [TribalClassificationController::class, 'update'])->whereNumber('id');
+Route::delete('/tribal-classifications/{id}', [TribalClassificationController::class, 'destroy'])->whereNumber('id');
 
 
 
