@@ -30,6 +30,7 @@
     <BottomNavBar
       :to="`/fish/${fish.id}/create`"
       :audio="`/fish/${fish.id}/createAudio`"
+      :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
       label="新增知識"
       icon="＋"
     />
