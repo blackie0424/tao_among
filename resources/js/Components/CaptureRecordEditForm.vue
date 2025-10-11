@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="submitForm" class="space-y-4">
+  <form @submit.prevent class="space-y-4">
     <!-- 魚類提醒 -->
     <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
       <div class="w-12 h-12 flex-shrink-0">
@@ -77,10 +77,40 @@
               type="button"
               @click="removeImage"
               class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+              :disabled="uploading"
             >
               ×
             </button>
             <p class="mt-2 text-sm text-gray-600">{{ selectedFileName }}</p>
+            <!-- 上傳狀態 -->
+            <div v-if="uploading" class="mt-2 text-sm text-blue-600">
+              <div class="flex items-center">
+                <svg
+                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                正在上傳圖片...
+              </div>
+            </div>
+            <div v-else-if="uploadedImageFilename" class="mt-2 text-sm text-green-600">
+              ✓ 圖片上傳成功
+            </div>
           </div>
         </div>
       </div>
@@ -186,7 +216,7 @@ const props = defineProps({
   fishImage: String,
 })
 
-const emit = defineEmits(['submitted'])
+const emit = defineEmits(['submitted', 'statusChange'])
 
 const form = reactive({
   tribe: '',
@@ -201,6 +231,9 @@ const errors = ref({})
 const processing = ref(false)
 const imagePreview = ref(null)
 const selectedFileName = ref('')
+const uploading = ref(false)
+const uploadedImageFilename = ref(null)
+const canSubmit = ref(true)
 
 // 今天的日期（用於限制日期選擇）
 const today = computed(() => {
@@ -209,6 +242,10 @@ const today = computed(() => {
 
 // 初始化表單資料
 onMounted(() => {
+  console.log('Mounted - Props record:', props.record) // 調試
+  console.log('Mounted - Record ID:', props.record?.id) // 調試
+  console.log('Mounted - Fish ID:', props.fishId) // 調試
+
   if (props.record) {
     form.tribe = props.record.tribe || ''
     form.location = props.record.location || ''
@@ -221,11 +258,15 @@ onMounted(() => {
   }
 })
 
-function handleImageChange(event) {
+async function handleImageChange(event) {
   const file = event.target.files[0]
   if (file) {
     form.image = file
     selectedFileName.value = file.name
+    canSubmit.value = false // 禁用送出按鈕
+    uploading.value = true
+    errors.value = {}
+    emit('statusChange', { canSubmit: false, uploading: true })
 
     // 建立預覽
     const reader = new FileReader()
@@ -233,6 +274,42 @@ function handleImageChange(event) {
       imagePreview.value = e.target.result
     }
     reader.readAsDataURL(file)
+
+    // 自動上傳圖片
+    try {
+      // 1. 取得簽名上傳 URL
+      const signedUrlResponse = await fetch('/prefix/api/supabase/signed-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name }),
+      })
+
+      const signedUrlData = await signedUrlResponse.json()
+      if (!signedUrlResponse.ok) {
+        throw new Error(signedUrlData.message || '取得上傳網址失敗')
+      }
+
+      // 2. 直接上傳檔案到 Supabase
+      const uploadResponse = await fetch(signedUrlData.url, {
+        method: 'PUT',
+        body: file,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error('圖片上傳失敗')
+      }
+
+      // 3. 上傳成功，儲存檔案名稱
+      uploadedImageFilename.value = signedUrlData.filename
+      canSubmit.value = true // 重新啟用送出按鈕
+      emit('statusChange', { canSubmit: true, uploading: false })
+    } catch (uploadError) {
+      errors.value = { image: uploadError.message }
+      canSubmit.value = true // 發生錯誤時也要啟用送出按鈕
+      emit('statusChange', { canSubmit: true, uploading: false })
+    } finally {
+      uploading.value = false
+    }
   }
 }
 
@@ -240,6 +317,8 @@ function removeImage() {
   form.image = null
   imagePreview.value = null
   selectedFileName.value = ''
+  uploadedImageFilename.value = null
+  canSubmit.value = true
   // 清除 input 的值
   const input = document.getElementById('image')
   if (input) input.value = ''
@@ -249,21 +328,28 @@ function submitForm() {
   processing.value = true
   errors.value = {}
 
-  // 使用 FormData 來處理檔案上傳
-  const formData = new FormData()
-  formData.append('_method', 'PUT')
-  formData.append('tribe', form.tribe)
-  formData.append('location', form.location)
-  formData.append('capture_method', form.capture_method)
-  formData.append('capture_date', form.capture_date)
-  formData.append('notes', form.notes)
-  if (form.image) {
-    formData.append('image', form.image)
+  // 準備表單資料
+  const formData = {
+    tribe: form.tribe,
+    location: form.location,
+    capture_method: form.capture_method,
+    capture_date: form.capture_date,
+    notes: form.notes,
   }
 
-  router.post(`/fish/${props.fishId}/capture-records/${props.record.id}`, formData, {
+  // 如果有上傳新圖片，加入檔案名稱
+  if (uploadedImageFilename.value) {
+    formData.image_filename = uploadedImageFilename.value
+  }
+
+  const updateUrl = `/fish/${props.fishId}/capture-records/${props.record.id}`
+
+  // 使用 POST 配合 _method 來模擬 PUT
+  formData._method = 'PUT'
+
+  router.post(updateUrl, formData, {
     onSuccess: () => {
-      emit('submitted')
+      // 後端會處理重定向
     },
     onError: (errorResponse) => {
       errors.value = errorResponse
@@ -274,8 +360,10 @@ function submitForm() {
   })
 }
 
-// 暴露 submitForm 方法給父元件
+// 暴露 submitForm 方法和狀態給父元件
 defineExpose({
   submitForm,
+  canSubmit,
+  uploading,
 })
 </script>

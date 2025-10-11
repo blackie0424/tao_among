@@ -18,7 +18,9 @@ Route::get('/fish/{id}/createAudio', [FishController::class,'createAudio']);
 
 Route::get('/fish/{id}/create', [FishNoteController::class,'create']);
 Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit');
+Route::put('/fish/{id}/name', [FishController::class, 'updateName'])->name('fish.updateName');
 Route::get('/fish/{id}/editSize', [FishController::class, 'editSize'])->name('fish.editSize');
+Route::put('/fish/{id}/size', [FishController::class, 'updateSize'])->name('fish.updateSize');
 Route::get('/fish/{id}/tribal-classifications', [FishController::class, 'tribalClassifications'])->name('fish.tribal-classifications');
 Route::get('/fish/{id}/tribal-classifications/create', [FishController::class, 'createTribalClassification'])->name('fish.tribal-classifications.create');
 Route::post('/fish/{id}/tribal-classifications', [FishController::class, 'storeTribalClassification'])->name('fish.tribal-classifications.store');

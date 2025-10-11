@@ -3,9 +3,9 @@
     <TopNavBar
       :goBack="goBack"
       title="編輯捕獲紀錄"
-      :showSubmit="true"
+      :showSubmit="canSubmit && !uploading"
       :submitNote="submitForm"
-      :submitLabel="'更新'"
+      :submitLabel="uploading ? '上傳中...' : '更新'"
     />
     <div class="pt-16">
       <CaptureRecordEditForm
@@ -15,6 +15,7 @@
         :fishName="fish.name"
         :fishImage="fish.image"
         @submitted="onRecordUpdated"
+        @statusChange="onStatusChange"
         ref="formRef"
       />
     </div>
@@ -34,6 +35,13 @@ const props = defineProps({
 })
 
 const formRef = ref(null)
+const canSubmit = ref(true)
+const uploading = ref(false)
+
+function onStatusChange(status) {
+  canSubmit.value = status.canSubmit
+  uploading.value = status.uploading
+}
 
 function goBack() {
   router.visit(`/fish/${props.fish.id}/capture-records`)

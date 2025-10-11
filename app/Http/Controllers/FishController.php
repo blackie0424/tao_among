@@ -316,7 +316,8 @@ class FishController extends Controller
 
         $record->update($updateData);
 
-        return redirect()->route('fish.capture-records', $fishId)->with('success', '捕獲紀錄更新成功');
+        // 重新載入捕獲紀錄頁面
+        return redirect()->route('fish.capture-records', $fishId);
     }
 
     public function destroyCaptureRecord($fishId, $recordId)
@@ -329,6 +330,39 @@ class FishController extends Controller
         $record->delete();
 
         return redirect()->back()->with('success', '捕獲紀錄刪除成功');
+    }
+
+    public function updateName(Request $request, $id)
+    {
+        $fish = Fish::findOrFail($id);
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $fish->update([
+            'name' => $request->name,
+        ]);
+
+        return redirect("/fish/{$id}")->with('success', '魚類名稱更新成功');
+    }
+
+    public function updateSize(Request $request, $id)
+    {
+        $fish = Fish::findOrFail($id);
+        
+        $request->validate([
+            'parts' => 'array',
+        ]);
+
+        // 找到或創建 FishSize 記錄
+        $fishSize = FishSize::firstOrCreate(['fish_id' => $id]);
+        
+        $fishSize->update([
+            'parts' => $request->parts ?? [],
+        ]);
+
+        return redirect("/fish/{$id}")->with('success', '魚類尺寸更新成功');
     }
 
 }
