@@ -43,7 +43,7 @@
     - 設定對應的 Web 路由
     - _需求: 12.1, 13.1, 14.1_
 
-  - [ ] 3.2 建立捕獲紀錄表單驗證
+  - [x] 3.2 建立捕獲紀錄表單驗證
 
     - 建立 CaptureRecordRequest 驗證類別
     - 處理圖片上傳驗證
@@ -54,16 +54,16 @@
     - 處理捕獲紀錄圖片上傳和刪除
     - _需求: 13.2, 14.2_
 
-- [ ] 4. 建立捕獲紀錄前端頁面和元件
+- [x] 4. 建立捕獲紀錄前端頁面和元件
 
-  - [ ] 4.1 建立捕獲紀錄檢視頁面
+  - [x] 4.1 建立捕獲紀錄檢視頁面
 
     - 建立 CaptureRecords.vue 頁面
     - 建立 CaptureRecordCard.vue 元件
     - 整合 BottomNavBar 和 FAB 按鈕
     - _需求: 12.1, 12.2, 12.3_
 
-  - [ ] 4.2 建立捕獲紀錄表單頁面
+  - [x] 4.2 建立捕獲紀錄表單頁面
     - 建立 CreateCaptureRecord.vue 頁面
     - 建立 EditCaptureRecord.vue 頁面
     - 建立 CaptureRecordForm.vue 元件

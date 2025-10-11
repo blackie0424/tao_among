@@ -11,6 +11,7 @@ use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 use App\Services\FishService;
 use App\Http\Requests\TribalClassificationRequest;
+use App\Http\Requests\CaptureRecordRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Carbon\Carbon;
@@ -216,18 +217,11 @@ class FishController extends Controller
         ]);
     }
 
-    public function storeCaptureRecord(Request $request, $fishId)
+    public function storeCaptureRecord(CaptureRecordRequest $request, $fishId)
     {
         $fish = Fish::findOrFail($fishId);
 
-        $validated = $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240', // 10MB
-            'tribe' => 'required|in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley',
-            'location' => 'required|string|max:255',
-            'capture_method' => 'required|string|max:255',
-            'capture_date' => 'required|date',
-            'notes' => 'nullable|string|max:65535'
-        ]);
+        $validated = $request->validated();
 
         // 處理圖片上傳
         if ($request->hasFile('image')) {
@@ -272,20 +266,13 @@ class FishController extends Controller
         ]);
     }
 
-    public function updateCaptureRecord(Request $request, $fishId, $recordId)
+    public function updateCaptureRecord(CaptureRecordRequest $request, $fishId, $recordId)
     {
         $record = CaptureRecord::where('fish_id', $fishId)
             ->where('id', $recordId)
             ->firstOrFail();
 
-        $validated = $request->validate([
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240', // 10MB
-            'tribe' => 'required|in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley',
-            'location' => 'required|string|max:255',
-            'capture_method' => 'required|string|max:255',
-            'capture_date' => 'required|date',
-            'notes' => 'nullable|string|max:65535'
-        ]);
+        $validated = $request->validated();
 
         $updateData = [
             'tribe' => $validated['tribe'],
