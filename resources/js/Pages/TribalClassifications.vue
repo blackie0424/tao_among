@@ -1,7 +1,6 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <TopNavBar :goBack="goBack" title="地方知識" />
-    <div class="pt-16 pb-20">
+    <div class="pb-20">
       <!-- 魚類資訊 -->
       <div class="bg-white rounded-lg shadow-md p-4 mb-6">
         <div class="flex flex-col md:flex-row items-center gap-4">
@@ -81,14 +80,24 @@
       :to="`/fish/${fish.id}/tribal-classifications/create`"
       position="right-bottom"
     />
+
+    <!-- 底部導航列 -->
+    <BottomNavBar
+      :to="`/fish/${fish.id}/create`"
+      :audio="`/fish/${fish.id}/createAudio`"
+      :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
+      label="新增知識"
+      icon="＋"
+      :currentPage="'tribalKnowledge'"
+    />
   </div>
 </template>
 
 <script setup>
-import TopNavBar from '../Components/Global/TopNavBar.vue'
 import TribalClassificationCard from '../Components/TribalClassificationCard.vue'
 import LazyImage from '../Components/LazyImage.vue'
 import FabButton from '../Components/FabButton.vue'
+import BottomNavBar from '../Components/Global/BottomNavBar.vue'
 import { router } from '@inertiajs/vue3'
 import { computed } from 'vue'
 
@@ -105,10 +114,6 @@ const uniqueTribes = computed(() => {
   const tribes = props.fish.tribal_classifications.map((c) => c.tribe)
   return [...new Set(tribes)]
 })
-
-function goBack() {
-  router.visit(`/fish/${props.fish.id}`)
-}
 
 function onClassificationUpdated() {
   // 重新載入頁面以顯示更新的分類

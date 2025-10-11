@@ -44,12 +44,25 @@
     <!-- 地方知識連結 -->
     <a
       v-if="tribalKnowledge"
-      class="flex flex-1 flex-col items-center justify-end gap-1 text-[#4d7f99]"
+      :class="[
+        'flex flex-1 flex-col items-center justify-end gap-1',
+        currentPage === 'tribalKnowledge' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+      ]"
       :href="tribalKnowledge"
     >
-      <div class="text-[#4d7f99] flex h-8 items-center justify-center">
+      <div
+        :class="[
+          'flex h-8 items-center justify-center',
+          currentPage === 'tribalKnowledge' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+        ]"
+      >
         <!-- Tribal Knowledge Icon -->
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+          <path
+            v-if="currentPage === 'tribalKnowledge'"
+            style="fill: rgb(30, 85, 246); stroke-width: 2"
+            d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z"
+          ></path>
           <path
             style="
               fill: none;
@@ -162,5 +175,6 @@ const props = defineProps({
   to: { type: String, default: '/fishs' },
   audio: { type: String, default: '/' },
   tribalKnowledge: { type: String, default: null },
+  currentPage: { type: String, default: null }, // 'tribalKnowledge' 等
 })
 </script>

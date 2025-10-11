@@ -53,7 +53,7 @@ class FishService
         return $result;
     }
 
-    private function assignImageUrls($fishes)
+    public function assignImageUrls($fishes)
     {
         if (empty($fishes)) {
             return [];

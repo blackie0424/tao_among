@@ -29,6 +29,7 @@
     <span class="text-base font-semibold text-[#0e171b]">{{ title }}</span>
 
     <button
+      v-if="showSubmit"
       type="submit"
       class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition flex items-center"
       :disabled="submitting || showLoading"
@@ -51,6 +52,8 @@
       </span>
       {{ submitLabel || '送出' }}
     </button>
+    <div v-else class="w-16"></div>
+    <!-- 佔位符保持佈局平衡 -->
   </div>
 </template>
 
@@ -65,7 +68,13 @@ defineProps({
   // 提交按鈕的執行功能，當使用者點擊時會觸發這個函式
   submitNote: {
     type: Function,
-    required: true,
+    default: () => {},
+  },
+
+  // 是否顯示提交按鈕，預設為 true
+  showSubmit: {
+    type: Boolean,
+    default: true,
   },
 
   // 是否正在執行提交功能，預設為 false

@@ -87,17 +87,6 @@
       ></textarea>
       <div v-if="errors.notes" class="text-red-500 text-sm mt-1">{{ errors.notes }}</div>
     </div>
-
-    <!-- 提交按鈕 -->
-    <div class="flex justify-end">
-      <button
-        type="submit"
-        :disabled="processing"
-        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-      >
-        {{ processing ? '更新中...' : '更新地方知識' }}
-      </button>
-    </div>
   </form>
 </template>
 

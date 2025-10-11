@@ -1,6 +1,12 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <TopNavBar :goBack="goBack" title="編輯地方知識" :showSubmit="true" :submitNote="submitForm" />
+    <TopNavBar
+      :goBack="goBack"
+      title="編輯地方知識"
+      :showSubmit="true"
+      :submitNote="submitForm"
+      :submitLabel="'更新'"
+    />
     <div class="pt-16">
       <TribalClassificationEditForm
         :classification="classification"

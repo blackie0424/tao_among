@@ -79,13 +79,16 @@ class FishController extends Controller
         // 取得指定魚類資訊和部落分類
         $fish = Fish::with('tribalClassifications')->findOrFail($id);
         
+        // 使用 FishService 處理圖片 URL
+        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        
         // 定義部落和分類選項
         $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
         $foodCategories = ['oyod', 'rahet', '不分類', '不食用', '?', ''];
         $processingMethods = ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?', ''];
         
         return Inertia::render('TribalClassifications', [
-            'fish' => $fish,
+            'fish' => $fishWithImage,
             'tribes' => $tribes,
             'foodCategories' => $foodCategories,
             'processingMethods' => $processingMethods
@@ -138,13 +141,16 @@ class FishController extends Controller
     {
         $fish = Fish::findOrFail($fishId);
         
+        // 使用 FishService 處理圖片 URL
+        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        
         // 定義部落和分類選項
         $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
         $foodCategories = ['oyod', 'rahet', '不分類', '不食用', '?', ''];
         $processingMethods = ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?', ''];
         
         return Inertia::render('CreateTribalClassification', [
-            'fish' => $fish,
+            'fish' => $fishWithImage,
             'tribes' => $tribes,
             'foodCategories' => $foodCategories,
             'processingMethods' => $processingMethods
@@ -158,13 +164,16 @@ class FishController extends Controller
             ->where('id', $classificationId)
             ->firstOrFail();
         
+        // 使用 FishService 處理圖片 URL
+        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        
         // 定義部落和分類選項
         $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
         $foodCategories = ['oyod', 'rahet', '不分類', '不食用', '?', ''];
         $processingMethods = ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?', ''];
         
         return Inertia::render('EditTribalClassification', [
-            'fish' => $fish,
+            'fish' => $fishWithImage,
             'classification' => $classification,
             'tribes' => $tribes,
             'foodCategories' => $foodCategories,
