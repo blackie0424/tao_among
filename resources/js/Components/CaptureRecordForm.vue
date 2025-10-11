@@ -187,30 +187,71 @@ function handleImageChange(event) {
   }
 }
 
-function submitForm() {
+async function submitForm() {
   processing.value = true
   errors.value = {}
 
-  // 建立 FormData 用於檔案上傳
-  const formData = new FormData()
-  formData.append('image', form.image)
-  formData.append('tribe', form.tribe)
-  formData.append('location', form.location)
-  formData.append('capture_method', form.capture_method)
-  formData.append('capture_date', form.capture_date)
-  formData.append('notes', form.notes)
+  try {
+    let imageFilename = null
 
-  router.post(`/fish/${props.fishId}/capture-records`, formData, {
-    onSuccess: () => {
-      emit('submitted')
-    },
-    onError: (errorResponse) => {
-      errors.value = errorResponse
-    },
-    onFinish: () => {
-      processing.value = false
-    },
-  })
+    // 如果有選擇圖片，先上傳到 Supabase
+    if (form.image) {
+      try {
+        // 1. 取得簽名上傳 URL
+        const signedUrlResponse = await fetch('/prefix/api/supabase/signed-upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: form.image.name }),
+        })
+
+        const signedUrlData = await signedUrlResponse.json()
+        if (!signedUrlResponse.ok) {
+          throw new Error(signedUrlData.message || '取得上傳網址失敗')
+        }
+
+        // 2. 直接上傳檔案到 Supabase
+        const uploadResponse = await fetch(signedUrlData.url, {
+          method: 'PUT',
+          body: form.image,
+        })
+
+        if (!uploadResponse.ok) {
+          throw new Error('圖片上傳失敗')
+        }
+
+        imageFilename = signedUrlData.filename
+      } catch (uploadError) {
+        errors.value = { image: uploadError.message }
+        processing.value = false
+        return
+      }
+    }
+
+    // 3. 提交表單資料（包含上傳後的檔案名稱）
+    const formData = {
+      tribe: form.tribe,
+      location: form.location,
+      capture_method: form.capture_method,
+      capture_date: form.capture_date,
+      notes: form.notes,
+      image_filename: imageFilename,
+    }
+
+    router.post(`/fish/${props.fishId}/capture-records`, formData, {
+      onSuccess: () => {
+        emit('submitted')
+      },
+      onError: (errorResponse) => {
+        errors.value = errorResponse
+      },
+      onFinish: () => {
+        processing.value = false
+      },
+    })
+  } catch (error) {
+    errors.value = { general: error.message }
+    processing.value = false
+  }
 }
 
 // 暴露 submitForm 方法給父元件

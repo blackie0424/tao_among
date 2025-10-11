@@ -22,7 +22,7 @@
 
         <!-- 三點選單 -->
         <OverflowMenu
-          :apiUrl="`/prefix/api/capture-records/${record.id}`"
+          :apiUrl="`/fish/${fishId}/capture-records/${record.id}`"
           :fishId="record.fish_id.toString()"
           :editUrl="`/fish/${fishId}/capture-records/${record.id}/edit`"
           @deleted="$emit('deleted')"
@@ -71,9 +71,8 @@ const emit = defineEmits(['updated', 'deleted'])
 
 // 處理捕獲紀錄圖片 URL
 const recordImageUrl = computed(() => {
-  // 這裡需要根據實際的 Supabase 設定來處理圖片 URL
-  // 暫時返回 record.image_path，稍後整合 Supabase
-  return record.image_path || '/images/default-capture.png'
+  // 使用後端已經處理好的 image_url 屬性
+  return props.record.image_url || '/images/default-capture.png'
 })
 
 function formatDate(dateString) {

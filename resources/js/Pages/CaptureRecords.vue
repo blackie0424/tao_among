@@ -92,8 +92,10 @@
       :to="`/fish/${fish.id}/create`"
       :audio="`/fish/${fish.id}/createAudio`"
       :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
+      :captureRecords="`/fish/${fish.id}/capture-records`"
       label="新增知識"
       icon="＋"
+      :currentPage="'captureRecords'"
     />
   </div>
 </template>

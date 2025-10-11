@@ -245,19 +245,14 @@ class FishController extends Controller
 
         $validated = $request->validated();
 
-        // 處理圖片上傳
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '_' . $image->getClientOriginalName();
-            
-            // 這裡需要整合 Supabase 上傳
-            // 暫時先儲存檔案名稱，稍後實作 Supabase 整合
-            $imagePath = $imageName;
+        // 檢查是否有圖片檔案名稱（前端已經上傳完成）
+        if (empty($validated['image_filename'])) {
+            return redirect()->back()->withErrors(['image' => '請上傳捕獲照片'])->withInput();
         }
 
         CaptureRecord::create([
             'fish_id' => $fish->id,
-            'image_path' => $imagePath,
+            'image_path' => $validated['image_filename'],
             'tribe' => $validated['tribe'],
             'location' => $validated['location'],
             'capture_method' => $validated['capture_method'],
@@ -304,13 +299,19 @@ class FishController extends Controller
             'notes' => $validated['notes']
         ];
 
-        // 處理圖片上傳（如果有新圖片）
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '_' . $image->getClientOriginalName();
+        // 處理圖片更新（如果有新圖片檔名）
+        if (!empty($validated['image_filename'])) {
+            // 刪除舊圖片
+            if ($record->image_path) {
+                try {
+                    $this->supabaseStorage->delete($record->image_path);
+                } catch (\Exception $e) {
+                    // 記錄錯誤但不阻止更新操作
+                    \Log::error('Failed to delete old capture record image: ' . $e->getMessage());
+                }
+            }
             
-            // 這裡需要整合 Supabase 上傳和刪除舊圖片
-            $updateData['image_path'] = $imageName;
+            $updateData['image_path'] = $validated['image_filename'];
         }
 
         $record->update($updateData);
@@ -324,8 +325,7 @@ class FishController extends Controller
             ->where('id', $recordId)
             ->firstOrFail();
             
-        // 這裡需要刪除 Supabase 上的圖片
-        
+        // 執行軟刪除
         $record->delete();
 
         return redirect()->back()->with('success', '捕獲紀錄刪除成功');

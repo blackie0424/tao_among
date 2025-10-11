@@ -27,9 +27,24 @@ class CaptureRecord extends Model
         'updated_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'image_url'
+    ];
+
     // 多對一關聯：一筆捕獲紀錄屬於一隻魚
     public function fish(): BelongsTo
     {
         return $this->belongsTo(Fish::class, 'fish_id');
+    }
+
+    // 取得圖片 URL
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image_path) {
+            return null;
+        }
+        
+        $supabaseStorage = app(\App\Services\SupabaseStorageService::class);
+        return $supabaseStorage->getUrl('images', $this->image_path);
     }
 }

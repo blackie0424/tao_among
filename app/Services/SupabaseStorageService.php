@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\Http;
 class SupabaseStorageService
 {
     protected string $storageUrl;
-
     protected string $apiKey;
-
     protected string $bucket;
 
     public function __construct()
@@ -99,4 +97,8 @@ class SupabaseStorageService
 
         return $response->successful();
     }
+
+
+
+
 }

@@ -29,11 +29,11 @@ class CaptureRecordRequest extends FormRequest
             'notes' => 'nullable|string|max:65535'
         ];
 
-        // 新增時圖片必填，編輯時可選
+        // 新增時圖片檔名必填，編輯時可選
         if ($this->isMethod('POST')) {
-            $rules['image'] = 'required|image|mimes:jpeg,png,jpg,webp|max:10240'; // 10MB
+            $rules['image_filename'] = 'required|string'; // 前端上傳後的檔案名稱
         } else {
-            $rules['image'] = 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240'; // 10MB
+            $rules['image_filename'] = 'nullable|string'; // 編輯時可選
         }
 
         return $rules;
@@ -47,10 +47,8 @@ class CaptureRecordRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'image.required' => '請上傳捕獲照片',
-            'image.image' => '上傳的檔案必須是圖片格式',
-            'image.mimes' => '圖片格式必須是 JPEG、PNG、JPG 或 WEBP',
-            'image.max' => '圖片大小不能超過 10MB',
+            'image_filename.required' => '請上傳捕獲照片',
+            'image_filename.string' => '圖片檔案名稱格式錯誤',
             'tribe.required' => '請選擇捕獲部落',
             'tribe.in' => '請選擇有效的部落',
             'location.required' => '請輸入捕獲地點',
@@ -73,7 +71,7 @@ class CaptureRecordRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'image' => '捕獲照片',
+            'image_filename' => '捕獲照片',
             'tribe' => '捕獲部落',
             'location' => '捕獲地點',
             'capture_method' => '捕獲方式',

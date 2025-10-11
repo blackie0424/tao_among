@@ -88,6 +88,55 @@
       <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">地方知識</p>
     </a>
 
+    <!-- 捕獲紀錄連結 -->
+    <a
+      v-if="captureRecords"
+      :class="[
+        'flex flex-1 flex-col items-center justify-end gap-1',
+        currentPage === 'captureRecords' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+      ]"
+      :href="captureRecords"
+    >
+      <div
+        :class="[
+          'flex h-8 items-center justify-center',
+          currentPage === 'captureRecords' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+        ]"
+      >
+        <!-- Camera Icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+          <path
+            v-if="currentPage === 'captureRecords'"
+            style="fill: rgb(30, 85, 246); stroke-width: 2"
+            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+          ></path>
+          <path
+            style="
+              fill: none;
+              stroke: rgb(0, 0, 0);
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-width: 2;
+            "
+            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+          ></path>
+          <circle
+            style="
+              fill: none;
+              stroke: rgb(0, 0, 0);
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-width: 2;
+            "
+            cx="12"
+            cy="13"
+            r="3"
+          ></circle>
+        </svg>
+      </div>
+      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">捕獲紀錄</p>
+    </a>
+
     <a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#4d7f99]" :href="to">
       <div class="text-[#4d7f99] flex h-8 items-center justify-center">
         <!-- Add/New Icon -->
@@ -175,6 +224,7 @@ const props = defineProps({
   to: { type: String, default: '/fishs' },
   audio: { type: String, default: '/' },
   tribalKnowledge: { type: String, default: null },
-  currentPage: { type: String, default: null }, // 'tribalKnowledge' 等
+  captureRecords: { type: String, default: null },
+  currentPage: { type: String, default: null }, // 'tribalKnowledge', 'captureRecords' 等
 })
 </script>

@@ -213,7 +213,10 @@ onMounted(() => {
     form.tribe = props.record.tribe || ''
     form.location = props.record.location || ''
     form.capture_method = props.record.capture_method || ''
-    form.capture_date = props.record.capture_date || ''
+    // 將日期時間格式轉換為 YYYY-MM-DD 格式
+    form.capture_date = props.record.capture_date
+      ? new Date(props.record.capture_date).toISOString().split('T')[0]
+      : ''
     form.notes = props.record.notes || ''
   }
 })

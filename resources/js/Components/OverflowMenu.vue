@@ -67,19 +67,23 @@ function editData() {
   router.visit(url)
 }
 
-async function deleteData() {
+function deleteData() {
   menuOpen.value = false
-  if (!confirm('確定要刪除此魚類嗎？')) return
-  const res = await fetch(props.apiUrl, { method: 'DELETE' })
-  if (res.ok) {
-    if (props.redirectUrl) {
-      router.visit('/fishs')
-    } else {
-      emit('deleted')
-    }
-  } else {
-    alert('刪除失敗')
-  }
+  if (!confirm('確定要刪除此項目嗎？')) return
+
+  router.delete(props.apiUrl, {
+    onSuccess: () => {
+      if (props.redirectUrl) {
+        router.visit('/fishs')
+      } else {
+        emit('deleted')
+      }
+    },
+    onError: (errors) => {
+      console.error('Delete errors:', errors)
+      alert('刪除失敗：' + (errors.message || '未知錯誤'))
+    },
+  })
 }
 
 // 點擊外部自動關閉選單
