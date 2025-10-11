@@ -41,6 +41,60 @@
       <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">圖鑑</p>
     </a>
 
+    <!-- 魚類基本資料連結 -->
+    <a
+      v-if="fishBasicInfo"
+      :class="[
+        'flex flex-1 flex-col items-center justify-end gap-1',
+        currentPage === 'fishBasicInfo' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+      ]"
+      :href="fishBasicInfo"
+    >
+      <div
+        :class="[
+          'flex h-8 items-center justify-center',
+          currentPage === 'fishBasicInfo' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+        ]"
+      >
+        <!-- Fish Info Icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+          <circle
+            :style="{
+              fill: currentPage === 'fishBasicInfo' ? 'rgb(30, 85, 246)' : 'none',
+              stroke: 'rgb(0, 0, 0)',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-width': '2',
+            }"
+            cx="12"
+            cy="12"
+            r="10"
+          ></circle>
+          <path
+            :style="{
+              fill: 'none',
+              stroke: currentPage === 'fishBasicInfo' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-width': '2',
+            }"
+            d="M12 16v-4"
+          ></path>
+          <circle
+            :style="{
+              fill: currentPage === 'fishBasicInfo' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+              stroke: currentPage === 'fishBasicInfo' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+              'stroke-width': '2',
+            }"
+            cx="12"
+            cy="8"
+            r="1"
+          ></circle>
+        </svg>
+      </div>
+      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">基本資料</p>
+    </a>
+
     <!-- 地方知識連結 -->
     <a
       v-if="tribalKnowledge"
@@ -223,8 +277,9 @@ const props = defineProps({
   icon: { type: String, default: '+' },
   to: { type: String, default: '/fishs' },
   audio: { type: String, default: '/' },
+  fishBasicInfo: { type: String, default: null },
   tribalKnowledge: { type: String, default: null },
   captureRecords: { type: String, default: null },
-  currentPage: { type: String, default: null }, // 'tribalKnowledge', 'captureRecords' 等
+  currentPage: { type: String, default: null }, // 'fishBasicInfo', 'tribalKnowledge', 'captureRecords' 等
 })
 </script>

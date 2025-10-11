@@ -30,10 +30,12 @@
     <BottomNavBar
       :to="`/fish/${fish.id}/create`"
       :audio="`/fish/${fish.id}/createAudio`"
+      :fishBasicInfo="`/fish/${fish.id}`"
       :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
       :captureRecords="`/fish/${fish.id}/capture-records`"
       label="新增知識"
       icon="＋"
+      :currentPage="'fishBasicInfo'"
     />
   </div>
 </template>
