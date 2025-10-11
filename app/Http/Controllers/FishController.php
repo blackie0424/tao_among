@@ -10,6 +10,8 @@ use App\Models\FishNote;
 use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 use App\Services\FishService;
+use App\Services\SupabaseStorageService;
+use App\Services\FishSearchService;
 use App\Http\Requests\TribalClassificationRequest;
 use App\Http\Requests\CaptureRecordRequest;
 use Illuminate\Http\JsonResponse;
@@ -21,10 +23,14 @@ use App\Models\FishSize;
 class FishController extends Controller
 {
     protected $fishService;
+    protected $supabaseStorage;
+    protected $fishSearchService;
 
-    public function __construct(FishService $fishService)
+    public function __construct(FishService $fishService, SupabaseStorageService $supabaseStorage, FishSearchService $fishSearchService)
     {
         $this->fishService = $fishService;
+        $this->supabaseStorage = $supabaseStorage;
+        $this->fishSearchService = $fishSearchService;
     }
 
     public function index()
@@ -44,6 +50,22 @@ class FishController extends Controller
         $fishes = $this->fishService->getAllFishes();
         return Inertia::render('Fishs', [
             'fishes' => $fishes
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        $filters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
+        
+        $fishs = $this->fishSearchService->search($filters);
+        $searchOptions = $this->fishSearchService->getSearchOptions();
+        $searchStats = $this->fishSearchService->getSearchStats($filters);
+
+        return Inertia::render('Fish/Search', [
+            'fishs' => $fishs,
+            'filters' => $filters,
+            'searchOptions' => $searchOptions,
+            'searchStats' => $searchStats,
         ]);
     }
 

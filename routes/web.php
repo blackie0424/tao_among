@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [FishController::class, 'index']);
 Route::get('/fishs', [FishController::class, 'getFishs']);
+Route::get('/search', [FishController::class, 'search'])->name('fish.search');
 
 Route::get('/fish/create', [FishController::class, 'create'])->name('fish.create');
 Route::post('/fish', [FishController::class, 'store'])->name('fish.store');
