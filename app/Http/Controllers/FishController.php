@@ -211,14 +211,18 @@ class FishController extends Controller
         // 取得指定魚類資訊和捕獲紀錄
         $fish = Fish::with('captureRecords')->findOrFail($fishId);
         
-        // 使用 FishService 處理圖片 URL
+        // 使用 FishService 處理魚類圖片 URL
         $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        
+        // 確保 captureRecords 以正確的鍵名傳遞
+        $fishData = $fishWithImage->toArray();
+        $fishData['captureRecords'] = $fishWithImage->captureRecords->toArray();
         
         // 定義部落選項
         $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
         
         return Inertia::render('CaptureRecords', [
-            'fish' => $fishWithImage,
+            'fish' => $fishData,
             'tribes' => $tribes
         ]);
     }
@@ -322,14 +326,18 @@ class FishController extends Controller
 
     public function destroyCaptureRecord($fishId, $recordId)
     {
+        \Log::info("Delete request received for fish: {$fishId}, record: {$recordId}");
+        
         $record = CaptureRecord::where('fish_id', $fishId)
             ->where('id', $recordId)
             ->firstOrFail();
             
         // 執行軟刪除
         $record->delete();
+        
+        \Log::info("Record deleted successfully, redirecting to capture records");
 
-        return redirect()->back()->with('success', '捕獲紀錄刪除成功');
+        return redirect()->route('fish.capture-records', $fishId)->with('success', '捕獲紀錄刪除成功');
     }
 
     public function updateName(Request $request, $id)

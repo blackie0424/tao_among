@@ -71,19 +71,26 @@ function deleteData() {
   menuOpen.value = false
   if (!confirm('確定要刪除此項目嗎？')) return
 
-  router.delete(props.apiUrl, {
-    onSuccess: () => {
-      if (props.redirectUrl) {
-        router.visit('/fishs')
-      } else {
-        emit('deleted')
-      }
+  // 使用 POST 配合 _method 來模擬 DELETE 請求
+  router.post(
+    props.apiUrl,
+    {
+      _method: 'DELETE',
     },
-    onError: (errors) => {
-      console.error('Delete errors:', errors)
-      alert('刪除失敗：' + (errors.message || '未知錯誤'))
-    },
-  })
+    {
+      onSuccess: () => {
+        if (props.redirectUrl) {
+          router.visit('/fishs')
+        } else {
+          emit('deleted')
+        }
+      },
+      onError: (errors) => {
+        console.error('Delete errors:', errors)
+        alert('刪除失敗：' + (errors.message || '未知錯誤'))
+      },
+    }
+  )
 }
 
 // 點擊外部自動關閉選單

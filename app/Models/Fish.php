@@ -59,4 +59,10 @@ class Fish extends Model
     {
         return $this->hasMany(CaptureRecord::class, 'fish_id');
     }
+
+    // 確保關聯在序列化時保持 camelCase 命名
+    protected function serializeDate(\DateTimeInterface $date)
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
 }

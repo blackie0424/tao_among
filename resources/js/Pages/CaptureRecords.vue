@@ -24,7 +24,7 @@
               <div class="flex items-center">
                 <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
                 <span class="text-gray-700">
-                  已記錄 {{ fish.capture_records?.length || 0 }} 筆捕獲紀錄
+                  已記錄 {{ fish.captureRecords?.length || 0 }} 筆捕獲紀錄
                 </span>
               </div>
               <div class="flex items-center">
@@ -41,7 +41,7 @@
         <h3 class="text-lg font-semibold mb-4">捕獲紀錄</h3>
 
         <!-- 空狀態 -->
-        <div v-if="fish.capture_records?.length === 0" class="text-center py-8">
+        <div v-if="fish.captureRecords?.length === 0" class="text-center py-8">
           <div class="text-gray-400 mb-4">
             <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -65,7 +65,7 @@
         <!-- 捕獲紀錄卡片列表 -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <CaptureRecordCard
-            v-for="record in fish.capture_records"
+            v-for="record in fish.captureRecords"
             :key="record.id"
             :record="record"
             :fishId="fish.id"
@@ -115,8 +115,8 @@ const props = defineProps({
 
 // 計算已涵蓋的部落數量
 const uniqueTribes = computed(() => {
-  if (!props.fish.capture_records) return []
-  const tribes = props.fish.capture_records.map((r) => r.tribe)
+  if (!props.fish.captureRecords) return []
+  const tribes = props.fish.captureRecords.map((r) => r.tribe)
   return [...new Set(tribes)]
 })
 

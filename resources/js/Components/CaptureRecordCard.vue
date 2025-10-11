@@ -23,7 +23,7 @@
         <!-- 三點選單 -->
         <OverflowMenu
           :apiUrl="`/fish/${fishId}/capture-records/${record.id}`"
-          :fishId="record.fish_id.toString()"
+          :fishId="fishId.toString()"
           :editUrl="`/fish/${fishId}/capture-records/${record.id}/edit`"
           @deleted="$emit('deleted')"
         />
