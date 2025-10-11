@@ -82,7 +82,7 @@
       hoverClass="hover:bg-blue-700"
       textClass="text-white"
       label="新增捕獲紀錄"
-      icon="📷"
+      icon="+"
       :to="`/fish/${fish.id}/capture-records/create`"
       position="right-bottom"
     />
