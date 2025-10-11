@@ -1,5 +1,5 @@
 <template>
-  <div :class="['fixed  z-50 group', positionClass]">
+  <div :class="['fixed z-[60] group', positionClass]">
     <button
       :class="[
         'flex items-center justify-center h-16 transition-all duration-300 shadow-lg font-bold',
@@ -56,11 +56,11 @@ const positionClass = computed(() => {
     case 'right-top':
       return 'right-6 top-6'
     case 'left-bottom':
-      return 'left-6 bottom-6'
+      return 'left-6 bottom-20' // 調整為 bottom-20 避免被 BottomNavBar 遮蓋
     case 'right-bottom':
-      return 'right-6 bottom-6'
+      return 'right-6 bottom-20' // 調整為 bottom-20 避免被 BottomNavBar 遮蓋
     default:
-      return 'right-6 bottom-6'
+      return 'right-6 bottom-20'
   }
 })
 </script>
