@@ -24,3 +24,11 @@ Route::post('/fish/{id}/tribal-classifications', [FishController::class, 'storeT
 Route::get('/fish/{id}/tribal-classifications/{classification_id}/edit', [FishController::class, 'editTribalClassification'])->name('fish.tribal-classifications.edit');
 Route::put('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'updateTribalClassification'])->name('fish.tribal-classifications.update');
 Route::delete('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'destroyTribalClassification'])->name('fish.tribal-classifications.destroy');
+
+// 捕獲紀錄路由
+Route::get('/fish/{id}/capture-records', [FishController::class, 'captureRecords'])->name('fish.capture-records');
+Route::get('/fish/{id}/capture-records/create', [FishController::class, 'createCaptureRecord'])->name('fish.capture-records.create');
+Route::post('/fish/{id}/capture-records', [FishController::class, 'storeCaptureRecord'])->name('fish.capture-records.store');
+Route::get('/fish/{id}/capture-records/{record_id}/edit', [FishController::class, 'editCaptureRecord'])->name('fish.capture-records.edit');
+Route::put('/fish/{id}/capture-records/{record_id}', [FishController::class, 'updateCaptureRecord'])->name('fish.capture-records.update');
+Route::delete('/fish/{id}/capture-records/{record_id}', [FishController::class, 'destroyCaptureRecord'])->name('fish.capture-records.destroy');

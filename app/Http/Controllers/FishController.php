@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateFishRequest;
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Models\TribalClassification;
+use App\Models\CaptureRecord;
 use App\Services\FishService;
 use App\Http\Requests\TribalClassificationRequest;
 use Illuminate\Http\JsonResponse;
@@ -179,6 +180,146 @@ class FishController extends Controller
             'foodCategories' => $foodCategories,
             'processingMethods' => $processingMethods
         ]);
+    }
+
+    // 捕獲紀錄相關方法
+    public function captureRecords($fishId)
+    {
+        // 取得指定魚類資訊和捕獲紀錄
+        $fish = Fish::with('captureRecords')->findOrFail($fishId);
+        
+        // 使用 FishService 處理圖片 URL
+        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        
+        // 定義部落選項
+        $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
+        
+        return Inertia::render('CaptureRecords', [
+            'fish' => $fishWithImage,
+            'tribes' => $tribes
+        ]);
+    }
+
+    public function createCaptureRecord($fishId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        
+        // 使用 FishService 處理圖片 URL
+        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        
+        // 定義部落選項
+        $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
+        
+        return Inertia::render('CreateCaptureRecord', [
+            'fish' => $fishWithImage,
+            'tribes' => $tribes
+        ]);
+    }
+
+    public function storeCaptureRecord(Request $request, $fishId)
+    {
+        $fish = Fish::findOrFail($fishId);
+
+        $validated = $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240', // 10MB
+            'tribe' => 'required|in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley',
+            'location' => 'required|string|max:255',
+            'capture_method' => 'required|string|max:255',
+            'capture_date' => 'required|date',
+            'notes' => 'nullable|string|max:65535'
+        ]);
+
+        // 處理圖片上傳
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            
+            // 這裡需要整合 Supabase 上傳
+            // 暫時先儲存檔案名稱，稍後實作 Supabase 整合
+            $imagePath = $imageName;
+        }
+
+        CaptureRecord::create([
+            'fish_id' => $fish->id,
+            'image_path' => $imagePath,
+            'tribe' => $validated['tribe'],
+            'location' => $validated['location'],
+            'capture_method' => $validated['capture_method'],
+            'capture_date' => $validated['capture_date'],
+            'notes' => $validated['notes']
+        ]);
+
+        return redirect()->route('fish.capture-records', $fishId)->with('success', '捕獲紀錄新增成功');
+    }
+
+    public function editCaptureRecord($fishId, $recordId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        $record = CaptureRecord::where('fish_id', $fishId)
+            ->where('id', $recordId)
+            ->firstOrFail();
+        
+        // 使用 FishService 處理圖片 URL
+        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        
+        // 定義部落選項
+        $tribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
+        
+        return Inertia::render('EditCaptureRecord', [
+            'fish' => $fishWithImage,
+            'record' => $record,
+            'tribes' => $tribes
+        ]);
+    }
+
+    public function updateCaptureRecord(Request $request, $fishId, $recordId)
+    {
+        $record = CaptureRecord::where('fish_id', $fishId)
+            ->where('id', $recordId)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240', // 10MB
+            'tribe' => 'required|in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley',
+            'location' => 'required|string|max:255',
+            'capture_method' => 'required|string|max:255',
+            'capture_date' => 'required|date',
+            'notes' => 'nullable|string|max:65535'
+        ]);
+
+        $updateData = [
+            'tribe' => $validated['tribe'],
+            'location' => $validated['location'],
+            'capture_method' => $validated['capture_method'],
+            'capture_date' => $validated['capture_date'],
+            'notes' => $validated['notes']
+        ];
+
+        // 處理圖片上傳（如果有新圖片）
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            
+            // 這裡需要整合 Supabase 上傳和刪除舊圖片
+            $updateData['image_path'] = $imageName;
+        }
+
+        $record->update($updateData);
+
+        return redirect()->route('fish.capture-records', $fishId)->with('success', '捕獲紀錄更新成功');
+    }
+
+    public function destroyCaptureRecord($fishId, $recordId)
+    {
+        $record = CaptureRecord::where('fish_id', $fishId)
+            ->where('id', $recordId)
+            ->firstOrFail();
+            
+        // 這裡需要刪除 Supabase 上的圖片
+        
+        $record->delete();
+
+        return redirect()->back()->with('success', '捕獲紀錄刪除成功');
     }
 
 }
