@@ -12,7 +12,7 @@ class FishSearchService
      */
     public function search(array $filters)
     {
-        $query = Fish::with(['fishSize', 'tribalClassifications', 'captureRecords']);
+        $query = Fish::with(['size', 'tribalClassifications', 'captureRecords']);
 
         $this->applyNameFilter($query, $filters);
         $this->applyTribalFilters($query, $filters);
@@ -38,7 +38,7 @@ class FishSearchService
     {
         $tribalFilters = array_filter([
             'tribe' => $filters['tribe'] ?? null,
-            'dietary_classification' => $filters['dietary_classification'] ?? null,
+            'food_category' => $filters['dietary_classification'] ?? null, // 映射到正確的資料庫欄位
             'processing_method' => $filters['processing_method'] ?? null,
         ]);
 
@@ -84,7 +84,7 @@ class FishSearchService
     {
         return [
             'tribes' => ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'],
-            'dietaryClassifications' => ['可食用', '不可食用', '特殊用途', '藥用'],
+            'dietaryClassifications' => ['oyod', 'rahet', '不分類', '不食用', '?', ''],
             'processingMethods' => $this->getUniqueProcessingMethods(),
             'captureMethods' => $this->getUniqueCaptureMethods(),
             'captureLocations' => $this->getUniqueCaptureLocations(),
@@ -132,7 +132,7 @@ class FishSearchService
      */
     public function buildSearchQuery(array $filters)
     {
-        $query = Fish::with(['fishSize', 'tribalClassifications', 'captureRecords']);
+        $query = Fish::with(['size', 'tribalClassifications', 'captureRecords']);
 
         $this->applyNameFilter($query, $filters);
         $this->applyTribalFilters($query, $filters);
