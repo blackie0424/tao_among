@@ -7,18 +7,28 @@ use Illuminate\Database\Eloquent\Builder;
 
 class FishSearchService
 {
+    protected $fishService;
+
+    public function __construct(FishService $fishService)
+    {
+        $this->fishService = $fishService;
+    }
     /**
      * 執行魚類搜尋
      */
     public function search(array $filters)
     {
-        $query = Fish::with(['size', 'tribalClassifications', 'captureRecords']);
+        $query = Fish::with(['size', 'tribalClassifications', 'captureRecords'])
+                     ->orderBy('id', 'desc'); // 最新的資料最先顯示
 
         $this->applyNameFilter($query, $filters);
         $this->applyTribalFilters($query, $filters);
         $this->applyCaptureFilters($query, $filters);
 
-        return $query->get();
+        $results = $query->get();
+        
+        // 處理圖片 URL
+        return $this->fishService->assignImageUrls($results);
     }
 
     /**

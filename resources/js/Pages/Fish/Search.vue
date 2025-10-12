@@ -25,14 +25,14 @@
       />
     </div>
 
-    <!-- 返回首頁按鈕 -->
+    <!-- 返回圖鑑列表按鈕 -->
     <FabButton
       bgClass="bg-blue-600"
       hoverClass="hover:bg-blue-700"
       textClass="text-white"
-      label="返回首頁"
+      label="返回圖鑑"
       icon="←"
-      to="/"
+      to="/fishs"
       position="left-bottom"
     />
   </div>
