@@ -3,6 +3,7 @@
 use App\Models\Fish;
 use App\Models\FishNote;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 
 uses(RefreshDatabase::class);
@@ -407,4 +408,22 @@ it('deletes fish and soft deletes related fish_notes', function () {
     $this->assertNull(FishNote::find($fishNote->id));
     $this->assertNotNull(FishNote::withTrashed()->find($fishNote->id));
     $this->assertNotNull(FishNote::withTrashed()->find($fishNote->id)->deleted_at);
+});
+
+it('returns 404 when loading edit page for non-existent fish note', function () {
+    // Mock HTTP requests to Supabase
+    Http::fake([
+        '*' => Http::response(null, 404),
+    ]);
+    
+    putenv('SUPABASE_STORAGE_URL=https://test.supabase.co/storage/v1');
+    putenv('SUPABASE_SERVICE_ROLE_KEY=test-key');
+    putenv('SUPABASE_BUCKET=test-bucket');
+
+    $fish = Fish::factory()->create();
+    $invalidNoteId = 9999;
+
+    $response = $this->get("/fish/{$fish->id}/note/{$invalidNoteId}/edit");
+
+    $response->assertStatus(404);
 });
