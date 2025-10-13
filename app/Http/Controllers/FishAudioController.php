@@ -58,14 +58,27 @@ class FishAudioController extends Controller
 
         $updateData = ['name' => $validated['name']];
 
+        // Handle audio file update if new file is provided
         if (!empty($validated['audio_filename'])) {
-            // Handle audio file update
+            $oldAudioPath = $audio->locate;
             $updateData['locate'] = $validated['audio_filename'];
+            
+            // Clean up old audio file if it exists and is different from the new one
+            if ($oldAudioPath && $oldAudioPath !== $validated['audio_filename']) {
+                try {
+                    $supabaseStorage = new \App\Services\SupabaseStorageService();
+                    $supabaseStorage->delete('audio/' . $oldAudioPath);
+                } catch (\Exception $e) {
+                    // Log error but don't fail the update
+                    \Log::error('Failed to delete old audio file: ' . $e->getMessage());
+                }
+            }
         }
 
         $audio->update($updateData);
 
-        return redirect()->route('fish.audio-list', $fishId);
+        return redirect()->route('fish.audio-list', $fishId)
+            ->with('success', '發音資料已成功更新');
     }
 
     /**
@@ -74,8 +87,25 @@ class FishAudioController extends Controller
     public function destroyAudio($fishId, $audioId)
     {
         $audio = FishAudio::where('fish_id', $fishId)->findOrFail($audioId);
+        
+        // Store audio file path before deletion
+        $audioFilePath = $audio->locate;
+        
+        // Perform soft delete on the database record
         $audio->delete();
+        
+        // Clean up the audio file from storage
+        if ($audioFilePath) {
+            try {
+                $supabaseStorage = new \App\Services\SupabaseStorageService();
+                $supabaseStorage->delete('audio/' . $audioFilePath);
+            } catch (\Exception $e) {
+                // Log error but don't fail the deletion
+                \Log::error('Failed to delete audio file during record deletion: ' . $e->getMessage());
+            }
+        }
 
-        return redirect()->route('fish.audio-list', $fishId);
+        return redirect()->route('fish.audio-list', $fishId)
+            ->with('success', '發音資料已成功刪除');
     }
 }
