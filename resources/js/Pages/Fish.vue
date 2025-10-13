@@ -27,13 +27,10 @@
       </div>
     </div>
 
-    <!-- 部落分類和捕獲紀錄區塊 -->
+    <!-- 部落分類區塊 -->
     <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- 部落分類摘要 -->
       <TribalClassificationSummary :classifications="tribalClassifications" :fishId="fish.id" />
-
-      <!-- 捕獲紀錄摘要 -->
-      <CaptureRecordSummary :records="captureRecords" :fishId="fish.id" />
     </div>
 
     <BottomNavBar
