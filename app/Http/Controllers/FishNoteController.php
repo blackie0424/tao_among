@@ -10,9 +10,95 @@ use App\Models\FishNote;
 use App\Models\Fish;
 use Inertia\Inertia;
 use App\Services\SupabaseStorageService;
+use App\Services\FishService;
 
 class FishNoteController extends Controller
 {
+    protected $fishService;
+
+    public function __construct(FishService $fishService)
+    {
+        $this->fishService = $fishService;
+    }
+
+    /**
+     * Display the knowledge list page for a specific fish
+     */
+    public function knowledgeList($fishId)
+    {
+        $fish = Fish::with('notes')->findOrFail($fishId);
+        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+
+        return Inertia::render('FishKnowledgeList', [
+            'fish' => $fishWithImage,
+            'groupedNotes' => $this->groupNotesByType($fish->notes)
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified knowledge note
+     */
+    public function editKnowledge($fishId, $noteId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        $note = FishNote::where('fish_id', $fishId)->findOrFail($noteId);
+
+        return Inertia::render('EditFishNote', [
+            'fish' => $this->fishService->assignImageUrls([$fish])[0],
+            'note' => $note,
+            'noteTypes' => $this->getNoteTypes()
+        ]);
+    }
+
+    /**
+     * Update the specified knowledge note in storage
+     */
+    public function updateKnowledge(UpdateFishNoteRequest $request, $fishId, $noteId)
+    {
+        $note = FishNote::where('fish_id', $fishId)->findOrFail($noteId);
+        $note->update($request->validated());
+
+        return redirect()->route('fish.knowledge-list', $fishId);
+    }
+
+    /**
+     * Remove the specified knowledge note from storage
+     */
+    public function destroyKnowledge($fishId, $noteId)
+    {
+        $note = FishNote::where('fish_id', $fishId)->findOrFail($noteId);
+        $note->delete();
+
+        return redirect()->route('fish.knowledge-list', $fishId);
+    }
+
+    /**
+     * Group notes by their type
+     */
+    private function groupNotesByType($notes)
+    {
+        return $notes->groupBy('note_type')->map(function ($groupedNotes, $type) {
+            return [
+                'name' => $type ?: '一般知識',
+                'notes' => $groupedNotes->sortBy('created_at')->values()
+            ];
+        })->sortBy('name')->values();
+    }
+
+    /**
+     * Get available note types
+     */
+    private function getNoteTypes()
+    {
+        return [
+            '一般知識',
+            '生態習性',
+            '營養價值',
+            '烹飪方法',
+            '文化意義',
+            '其他'
+        ];
+    }
 
     public function create($id)
     {

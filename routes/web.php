@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\FishController;
 use App\Http\Controllers\FishNoteController;
+use App\Http\Controllers\FishAudioController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [FishController::class, 'index']);
@@ -35,3 +36,15 @@ Route::post('/fish/{id}/capture-records', [FishController::class, 'storeCaptureR
 Route::get('/fish/{id}/capture-records/{record_id}/edit', [FishController::class, 'editCaptureRecord'])->name('fish.capture-records.edit');
 Route::put('/fish/{id}/capture-records/{record_id}', [FishController::class, 'updateCaptureRecord'])->name('fish.capture-records.update');
 Route::delete('/fish/{id}/capture-records/{record_id}', [FishController::class, 'destroyCaptureRecord'])->name('fish.capture-records.destroy');
+
+// 進階知識管理路由
+Route::get('/fish/{fish}/knowledge-list', [FishNoteController::class, 'knowledgeList'])->name('fish.knowledge-list');
+Route::get('/fish/{fish}/knowledge/{note}/edit', [FishNoteController::class, 'editKnowledge'])->name('fish.knowledge.edit');
+Route::put('/fish/{fish}/knowledge/{note}', [FishNoteController::class, 'updateKnowledge'])->name('fish.knowledge.update');
+Route::delete('/fish/{fish}/knowledge/{note}', [FishNoteController::class, 'destroyKnowledge'])->name('fish.knowledge.destroy');
+
+// 發音列表管理路由
+Route::get('/fish/{fish}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
+Route::get('/fish/{fish}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
+Route::put('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
+Route::delete('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
