@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-900">部落飲食分類</h3>
+      <h3 class="text-lg font-semibold text-gray-900">地方知識</h3>
       <a
         :href="`/fish/${fishId}/tribal-classifications/create`"
         class="flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
@@ -27,13 +27,6 @@
         />
       </svg>
       <p class="text-sm">尚未新增任何部落分類資料</p>
-      <a
-        :href="`/fish/${fishId}/tribal-classifications/create`"
-        class="inline-flex items-center justify-center mt-4 px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
-      >
-        <span class="text-lg mr-2">+</span>
-        <span class="whitespace-nowrap">新增部落分類</span>
-      </a>
     </div>
 
     <!-- 比較檢視（預設顯示） -->
