@@ -2,21 +2,13 @@
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-900">部落飲食分類</h3>
-      <div class="flex space-x-2">
-        <button
-          v-if="classifications.length > 1"
-          @click="toggleComparisonView"
-          class="text-sm text-blue-600 hover:text-blue-800 font-medium"
-        >
-          {{ showComparison ? '隱藏比較' : '比較檢視' }}
-        </button>
-        <a
-          :href="`/fish/${fishId}/tribal-classifications`"
-          class="text-sm text-blue-600 hover:text-blue-800 font-medium"
-        >
-          查看全部
-        </a>
-      </div>
+      <a
+        :href="`/fish/${fishId}/tribal-classifications/create`"
+        class="flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
+      >
+        <span class="text-lg mr-1">+</span>
+        <span class="whitespace-nowrap">新增地方知識</span>
+      </a>
     </div>
 
     <!-- 無資料狀態 -->
@@ -37,44 +29,14 @@
       <p class="text-sm">尚未新增任何部落分類資料</p>
       <a
         :href="`/fish/${fishId}/tribal-classifications/create`"
-        class="inline-flex items-center mt-2 text-sm text-blue-600 hover:text-blue-800"
+        class="inline-flex items-center justify-center mt-4 px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
       >
-        新增部落分類
+        <span class="text-lg mr-2">+</span>
+        <span class="whitespace-nowrap">新增部落分類</span>
       </a>
     </div>
 
-    <!-- 一般檢視 -->
-    <div v-else-if="!showComparison" class="space-y-3">
-      <div
-        v-for="classification in classifications.slice(0, 3)"
-        :key="classification.id"
-        class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-      >
-        <div class="flex items-center space-x-3">
-          <span
-            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-          >
-            {{ classification.tribe }}
-          </span>
-          <div class="text-sm text-gray-600">
-            <span class="font-medium">{{ classification.food_category || '未分類' }}</span>
-            <span class="mx-1">•</span>
-            <span>{{ classification.processing_method || '未記錄' }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="classifications.length > 3" class="text-center">
-        <a
-          :href="`/fish/${fishId}/tribal-classifications`"
-          class="text-sm text-blue-600 hover:text-blue-800"
-        >
-          查看其他 {{ classifications.length - 3 }} 筆記錄
-        </a>
-      </div>
-    </div>
-
-    <!-- 比較檢視 -->
+    <!-- 比較檢視（預設顯示） -->
     <div v-else class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
@@ -119,8 +81,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-
 const props = defineProps({
   classifications: {
     type: Array,
@@ -131,10 +91,4 @@ const props = defineProps({
     required: true,
   },
 })
-
-const showComparison = ref(false)
-
-function toggleComparisonView() {
-  showComparison.value = !showComparison.value
-}
 </script>
