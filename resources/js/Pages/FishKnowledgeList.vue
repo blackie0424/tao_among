@@ -92,15 +92,11 @@
 
     <!-- 底部導航列 -->
     <BottomNavBar
-      :to="`/fish/${fish.id}/create`"
-      :audio="`/fish/${fish.id}/createAudio`"
       :fishBasicInfo="`/fish/${fish.id}`"
       :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
       :captureRecords="`/fish/${fish.id}/capture-records`"
       :knowledgeList="`/fish/${fish.id}/knowledge-list`"
       :audioList="`/fish/${fish.id}/audio-list`"
-      label="新增知識"
-      icon="＋"
       :currentPage="'knowledgeList'"
     />
   </div>
