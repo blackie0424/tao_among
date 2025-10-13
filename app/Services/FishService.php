@@ -68,8 +68,8 @@ class FishService
                 $fish->image =  $this->storageService->getUrl('images', $fish->image);
             }
             foreach ($fish->audios as $audio) {
-                if ($audio && isset($audio->locate) && $audio->locate) {
-                    $audio->url = $this->storageService->getUrl('audios', $audio->locate);
+                if ($audio && isset($audio->name) && $audio->name) {
+                    $audio->url = $this->storageService->getUrl('audios', $audio->name);
                 }
             }
         }

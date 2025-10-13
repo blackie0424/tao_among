@@ -318,7 +318,7 @@ describe('Fish Audio Management', function () {
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
-                'locate' => 'test-audio.mp3'
+                'name' => 'test-audio.mp3'
             ]);
 
             $response = $this->get("/fish/{$fish->id}/audio-list");
