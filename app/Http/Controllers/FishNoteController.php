@@ -32,6 +32,29 @@ class FishNoteController extends Controller
         
     }
 
+    public function edit($fishId, $noteId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        $fishNote = FishNote::where('fish_id', $fishId)->where('id', $noteId)->firstOrFail();
+
+        $supabase = app(SupabaseStorageService::class);
+        $imageUrl = $supabase->getUrl('images', $fish->image);
+
+        return inertia('EditFishNote', [
+            'fish' => [
+                'id' => $fish->id,
+                'name' => $fish->name,
+                'image' => $imageUrl,
+            ],
+            'fishNote' => [
+                'id' => $fishNote->id,
+                'note' => $fishNote->note,
+                'note_type' => $fishNote->note_type,
+                'locate' => $fishNote->locate,
+            ],
+        ]);
+    }
+
 
     /**
      * @OA\Post(

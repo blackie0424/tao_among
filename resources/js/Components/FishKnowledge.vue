@@ -57,6 +57,8 @@
             </div>
             <OverflowMenu
               :apiUrl="`/prefix/api/fish/${fishId}/note/${note.id}`"
+              :fishId="fishId.toString()"
+              :editUrl="`/fish/${fishId}/note/${note.id}/edit`"
               @deleted="notes = notes.filter((n) => n.id !== note.id)"
             />
           </div>
