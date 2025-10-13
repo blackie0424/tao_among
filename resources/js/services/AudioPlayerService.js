@@ -53,6 +53,11 @@ class AudioPlayerService {
    */
   async play(audioId, audioElement, audioUrl) {
     try {
+      // 驗證音頻 URL
+      if (!audioUrl) {
+        throw new Error('音頻 URL 不存在')
+      }
+
       // 如果當前有其他音頻在播放，先停止
       if (this.currentAudioElement && this.currentPlayingId.value !== audioId) {
         this.stop()
@@ -76,10 +81,20 @@ class AudioPlayerService {
       // 設置音頻源
       if (audioElement.src !== audioUrl) {
         audioElement.src = audioUrl
+        // 重新載入音頻元素
+        audioElement.load()
       }
 
       // 添加事件監聽器
       this.addAudioEventListeners(audioElement)
+
+      // 檢查瀏覽器是否支援該音頻格式
+      if (audioElement.canPlayType) {
+        const mimeType = this.getMimeTypeFromUrl(audioUrl)
+        if (mimeType && audioElement.canPlayType(mimeType) === '') {
+          throw new Error(`瀏覽器不支援此音頻格式: ${mimeType}`)
+        }
+      }
 
       // 開始播放
       await audioElement.play()
@@ -91,8 +106,19 @@ class AudioPlayerService {
       this.emit('play', { audioId, audioUrl })
     } catch (error) {
       console.error('播放音頻失敗:', error)
-      this.playbackState.error = error.message
-      this.emit('error', { audioId, error })
+
+      // 提供更友善的錯誤訊息
+      let errorMessage = error.message
+      if (error.name === 'NotSupportedError') {
+        errorMessage = '瀏覽器不支援此音頻格式或來源'
+      } else if (error.name === 'NotAllowedError') {
+        errorMessage = '瀏覽器阻止了音頻播放，請先與頁面互動'
+      } else if (error.name === 'AbortError') {
+        errorMessage = '音頻載入被中斷'
+      }
+
+      this.playbackState.error = errorMessage
+      this.emit('error', { audioId, error: errorMessage })
 
       // 重置狀態
       this.reset()
@@ -331,6 +357,24 @@ class AudioPlayerService {
       audioId: this.currentPlayingId.value,
       duration: this.playbackState.duration,
     })
+  }
+
+  /**
+   * 從 URL 獲取 MIME 類型
+   * @param {string} url - 音頻 URL
+   * @returns {string|null}
+   */
+  getMimeTypeFromUrl(url) {
+    const extension = url.split('.').pop()?.toLowerCase()
+    const mimeTypes = {
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      webm: 'audio/webm',
+      m4a: 'audio/mp4',
+      aac: 'audio/aac',
+    }
+    return mimeTypes[extension] || null
   }
 
   /**

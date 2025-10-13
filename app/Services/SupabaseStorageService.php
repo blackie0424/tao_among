@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Exception;
+use InvalidArgumentException;
 use Illuminate\Support\Facades\Http;
 
 class SupabaseStorageService
@@ -39,7 +40,7 @@ class SupabaseStorageService
 
     public function getUrl(string $type, string $filename): string
     {
-        if ($type === 'audios') {
+        if ($type === 'audios' || $type === 'audio') {
             return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
         }
 

@@ -118,7 +118,7 @@
     <div class="text-xs text-gray-400">記錄時間: {{ formatDateTime(audio.created_at) }}</div>
 
     <!-- 隱藏的音頻元素 -->
-    <audio ref="audioElement" :src="audioUrl" preload="none"></audio>
+    <audio ref="audioElement" :src="audioUrl" preload="none" crossorigin="anonymous"></audio>
   </div>
 </template>
 
@@ -147,9 +147,19 @@ const currentAudioIsPaused = computed(() => audioPlayerService.isPaused(props.au
 
 // 計算音頻 URL
 const audioUrl = computed(() => {
-  if (!props.audio.locate) return null
-  // 假設音頻檔案存放在 storage/app/public/audio 目錄
-  return `/storage/audio/${props.audio.locate}`
+  // 優先使用後端提供的 URL
+  if (props.audio.url) {
+    return props.audio.url
+  }
+
+  // 如果沒有 URL 但有 locate，則手動構建
+  if (props.audio.locate) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_STORAGE_URL
+    const bucket = import.meta.env.VITE_SUPABASE_BUCKET
+    return `${supabaseUrl}/object/public/${bucket}/audio/${props.audio.locate}`
+  }
+
+  return null
 })
 
 // 組件掛載時設置事件監聽器

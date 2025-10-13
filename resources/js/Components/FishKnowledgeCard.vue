@@ -1,9 +1,13 @@
 <template>
-  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+  <div class="bg-gray-50 rounded-lg p-4 border">
     <div class="flex justify-between items-start mb-2">
-      <span class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+      <span
+        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+      >
         {{ note.note_type || '一般知識' }}
       </span>
+
+      <!-- 三點選單 -->
       <OverflowMenu
         :apiUrl="`/fish/${fishId}/knowledge/${note.id}`"
         :fishId="fishId.toString()"
@@ -12,16 +16,18 @@
       />
     </div>
 
+    <!-- 知識內容 -->
     <div class="mb-3">
-      <p class="text-gray-800 leading-relaxed">{{ note.note }}</p>
+      <p class="text-gray-800 text-sm leading-relaxed">{{ note.note }}</p>
     </div>
 
     <!-- 位置資訊 -->
-    <div v-if="note.locate" class="mb-2">
+    <div v-if="note.locate" class="mb-3">
       <span class="text-xs font-medium text-gray-500">位置</span>
-      <p class="text-sm text-gray-700">{{ note.locate }}</p>
+      <p class="text-sm text-gray-700 mt-1">{{ note.locate }}</p>
     </div>
 
+    <!-- 時間資訊 -->
     <div class="text-xs text-gray-400">記錄時間: {{ formatDateTime(note.created_at) }}</div>
   </div>
 </template>
@@ -30,8 +36,14 @@
 import OverflowMenu from './OverflowMenu.vue'
 
 const props = defineProps({
-  note: Object,
-  fishId: Number,
+  note: {
+    type: Object,
+    required: true,
+  },
+  fishId: {
+    type: [Number, String],
+    required: true,
+  },
 })
 
 const emit = defineEmits(['updated', 'deleted'])

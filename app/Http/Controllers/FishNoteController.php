@@ -29,9 +29,13 @@ class FishNoteController extends Controller
         $fish = Fish::with('notes')->findOrFail($fishId);
         $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
 
+        $groupedNotes = $this->groupNotesByType($fish->notes);
+        $stats = $this->getNoteTypeStats($fish->notes);
+
         return Inertia::render('FishKnowledgeList', [
             'fish' => $fishWithImage,
-            'groupedNotes' => $this->groupNotesByType($fish->notes)
+            'groupedNotes' => $groupedNotes,
+            'stats' => $stats
         ]);
     }
 
@@ -73,20 +77,41 @@ class FishNoteController extends Controller
     }
 
     /**
-     * Group notes by their type
+     * Group notes by their type with proper sorting and default handling
      */
     private function groupNotesByType($notes)
     {
-        return $notes->groupBy('note_type')->map(function ($groupedNotes, $type) {
+        // Define the preferred order for note types
+        $typeOrder = [
+            '一般知識' => 1,
+            '生態習性' => 2,
+            '營養價值' => 3,
+            '烹飪方法' => 4,
+            '文化意義' => 5,
+            '其他' => 6,
+            '未分類' => 7
+        ];
+
+        // Group notes by type, handling null/empty types
+        $grouped = $notes->groupBy(function ($note) {
+            return $note->note_type ?: '未分類';
+        });
+
+        // Transform and sort the groups
+        return $grouped->map(function ($groupedNotes, $type) {
             return [
-                'name' => $type ?: '一般知識',
-                'notes' => $groupedNotes->sortBy('created_at')->values()
+                'name' => $type,
+                'count' => $groupedNotes->count(),
+                'notes' => $groupedNotes->sortByDesc('created_at')->values()
             ];
-        })->sortBy('name')->values();
+        })->sortBy(function ($group) use ($typeOrder) {
+            // Sort by predefined order, unknown types go to the end
+            return $typeOrder[$group['name']] ?? 999;
+        })->values();
     }
 
     /**
-     * Get available note types
+     * Get available note types in preferred order
      */
     private function getNoteTypes()
     {
@@ -98,6 +123,27 @@ class FishNoteController extends Controller
             '文化意義',
             '其他'
         ];
+    }
+
+    /**
+     * Get note type statistics for a fish
+     */
+    private function getNoteTypeStats($notes)
+    {
+        $stats = [
+            'total' => $notes->count(),
+            'by_type' => []
+        ];
+
+        $grouped = $notes->groupBy(function ($note) {
+            return $note->note_type ?: '未分類';
+        });
+
+        foreach ($grouped as $type => $typeNotes) {
+            $stats['by_type'][$type] = $typeNotes->count();
+        }
+
+        return $stats;
     }
 
     public function create($id)

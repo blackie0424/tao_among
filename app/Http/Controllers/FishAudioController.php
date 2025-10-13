@@ -23,10 +23,10 @@ class FishAudioController extends Controller
     public function audioList($fishId)
     {
         $fish = Fish::with('audios')->findOrFail($fishId);
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        $fishWithUrls = $this->fishService->assignImageUrls([$fish])[0];
 
         return Inertia::render('FishAudioList', [
-            'fish' => $fishWithImage
+            'fish' => $fishWithUrls
         ]);
     }
 
