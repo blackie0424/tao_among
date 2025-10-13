@@ -28,7 +28,7 @@
               <div class="flex items-center">
                 <span class="inline-block w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
                 <span class="text-gray-700">
-                  {{ currentPlayingId ? '正在播放' : '待播放' }}
+                  {{ playbackStatus }}
                 </span>
               </div>
             </div>
@@ -63,8 +63,6 @@
             :key="audio.id"
             :audio="audio"
             :fishId="fish.id"
-            :isPlaying="currentPlayingId === audio.id"
-            @play="onAudioPlay"
             @updated="onAudioUpdated"
             @deleted="onAudioDeleted"
           />
@@ -100,30 +98,35 @@ import FishAudioCard from '../Components/FishAudioCard.vue'
 import LazyImage from '../Components/LazyImage.vue'
 import FabButton from '../Components/FabButton.vue'
 import BottomNavBar from '../Components/Global/BottomNavBar.vue'
+import audioPlayerService from '../services/AudioPlayerService.js'
 import { router } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({
   fish: Object,
 })
-
-// 音頻播放狀態管理
-const currentPlayingId = ref(null)
 
 // 計算發音數量
 const audioCount = computed(() => {
   return props.fish.audios ? props.fish.audios.length : 0
 })
 
-function onAudioPlay(audioId) {
-  // 如果點擊的是當前播放的音頻，則停止播放
-  if (currentPlayingId.value === audioId) {
-    currentPlayingId.value = null
-  } else {
-    // 否則播放新的音頻
-    currentPlayingId.value = audioId
+// 計算播放狀態文字
+const playbackStatus = computed(() => {
+  const playbackState = audioPlayerService.getPlaybackState()
+
+  if (playbackState.currentPlayingId) {
+    if (playbackState.isPlaying) {
+      return '正在播放'
+    } else if (playbackState.isPaused) {
+      return '已暫停'
+    } else if (playbackState.error) {
+      return '播放錯誤'
+    }
   }
-}
+
+  return '待播放'
+})
 
 function onAudioUpdated() {
   // 重新載入頁面以顯示更新的發音

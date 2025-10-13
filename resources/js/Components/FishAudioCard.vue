@@ -14,37 +14,99 @@
     <div class="flex items-center gap-3 mb-3">
       <button
         @click="togglePlay"
+        :disabled="playbackState.error && currentAudioId === audio.id"
         :class="[
           'flex items-center justify-center w-12 h-12 rounded-full transition-colors',
-          isPlaying
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-blue-500 hover:bg-blue-600 text-white',
+          playbackState.error && currentAudioId === audio.id
+            ? 'bg-gray-400 cursor-not-allowed text-white'
+            : currentAudioIsPlaying
+              ? 'bg-red-500 hover:bg-red-600 text-white'
+              : currentAudioIsPaused
+                ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white',
         ]"
-        :title="isPlaying ? '停止播放' : '播放音頻'"
+        :title="getButtonTitle()"
       >
         <!-- 播放圖示 -->
-        <svg v-if="!isPlaying" class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+        <svg
+          v-if="!currentAudioIsPlaying && !currentAudioIsPaused"
+          class="w-5 h-5 ml-0.5"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path d="M8 5v14l11-7z" />
         </svg>
-        <!-- 停止圖示 -->
-        <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <!-- 暫停圖示 -->
+        <svg
+          v-else-if="currentAudioIsPlaying"
+          class="w-5 h-5"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path d="M6 6h4v12H6zm8-6v12h4V6h-4z" />
+        </svg>
+        <!-- 恢復播放圖示 -->
+        <svg
+          v-else-if="currentAudioIsPaused"
+          class="w-5 h-5 ml-0.5"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path d="M8 5v14l11-7z" />
+        </svg>
+        <!-- 錯誤圖示 -->
+        <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+          />
         </svg>
       </button>
 
       <div class="flex-1">
         <div class="text-sm font-medium text-gray-800">{{ audio.name }}</div>
         <div class="text-xs text-gray-500">
-          {{ isPlaying ? '正在播放...' : '點擊播放' }}
+          {{ getStatusText() }}
+        </div>
+        <!-- 播放進度 -->
+        <div v-if="currentAudioId === audio.id && playbackState.duration > 0" class="mt-1">
+          <div class="flex items-center gap-2 text-xs text-gray-400">
+            <span>{{ formatTime(playbackState.currentTime) }}</span>
+            <div class="flex-1 bg-gray-200 rounded-full h-1">
+              <div
+                class="bg-blue-500 h-1 rounded-full transition-all duration-300"
+                :style="{ width: `${(playbackState.currentTime / playbackState.duration) * 100}%` }"
+              ></div>
+            </div>
+            <span>{{ formatTime(playbackState.duration) }}</span>
+          </div>
         </div>
       </div>
 
       <!-- 播放狀態指示器 -->
-      <div v-if="isPlaying" class="flex items-center space-x-1">
+      <div v-if="currentAudioIsPlaying" class="flex items-center space-x-1">
         <div class="w-1 h-4 bg-blue-500 rounded animate-pulse"></div>
         <div class="w-1 h-6 bg-blue-500 rounded animate-pulse" style="animation-delay: 0.1s"></div>
         <div class="w-1 h-4 bg-blue-500 rounded animate-pulse" style="animation-delay: 0.2s"></div>
       </div>
+
+      <!-- 暫停狀態指示器 -->
+      <div v-else-if="currentAudioIsPaused" class="flex items-center">
+        <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+      </div>
+
+      <!-- 錯誤狀態指示器 -->
+      <div v-else-if="playbackState.error && currentAudioId === audio.id" class="flex items-center">
+        <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- 錯誤訊息 -->
+    <div
+      v-if="playbackState.error && currentAudioId === audio.id"
+      class="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600"
+    >
+      播放失敗: {{ playbackState.error }}
+      <button @click="retryPlay" class="ml-2 underline hover:no-underline">重試</button>
     </div>
 
     <!-- 音頻檔案資訊 -->
@@ -56,29 +118,32 @@
     <div class="text-xs text-gray-400">記錄時間: {{ formatDateTime(audio.created_at) }}</div>
 
     <!-- 隱藏的音頻元素 -->
-    <audio
-      ref="audioElement"
-      :src="audioUrl"
-      @ended="onAudioEnded"
-      @error="onAudioError"
-      preload="none"
-    ></audio>
+    <audio ref="audioElement" :src="audioUrl" preload="none"></audio>
   </div>
 </template>
 
 <script setup>
 import OverflowMenu from './OverflowMenu.vue'
-import { computed, ref, watch } from 'vue'
+import audioPlayerService from '../services/AudioPlayerService.js'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   audio: Object,
   fishId: Number,
-  isPlaying: Boolean,
 })
 
-const emit = defineEmits(['play', 'updated', 'deleted'])
+const emit = defineEmits(['updated', 'deleted'])
 
 const audioElement = ref(null)
+
+// 從 AudioPlayerService 獲取播放狀態
+const currentAudioId = computed(() => audioPlayerService.currentPlayingId.value)
+const playbackState = computed(() => audioPlayerService.playbackState)
+
+// 計算當前音頻的播放狀態
+const currentAudioIsPlaying = computed(() => audioPlayerService.isPlaying(props.audio.id))
+
+const currentAudioIsPaused = computed(() => audioPlayerService.isPaused(props.audio.id))
 
 // 計算音頻 URL
 const audioUrl = computed(() => {
@@ -87,50 +152,125 @@ const audioUrl = computed(() => {
   return `/storage/audio/${props.audio.locate}`
 })
 
-// 監聽播放狀態變化
-watch(
-  () => props.isPlaying,
-  (newValue) => {
-    if (newValue) {
-      playAudio()
-    } else {
-      stopAudio()
-    }
+// 組件掛載時設置事件監聽器
+onMounted(() => {
+  // 監聽播放服務事件
+  audioPlayerService.on('error', handleAudioServiceError)
+  audioPlayerService.on('ended', handleAudioServiceEnded)
+})
+
+// 組件卸載時清理事件監聽器
+onUnmounted(() => {
+  audioPlayerService.off('error', handleAudioServiceError)
+  audioPlayerService.off('ended', handleAudioServiceEnded)
+})
+
+/**
+ * 切換播放狀態
+ */
+async function togglePlay() {
+  if (!audioUrl.value) {
+    console.warn('音頻 URL 不存在')
+    return
   }
-)
 
-function togglePlay() {
-  emit('play', props.audio.id)
-}
+  if (!audioElement.value) {
+    console.warn('音頻元素不存在')
+    return
+  }
 
-function playAudio() {
-  if (audioElement.value && audioUrl.value) {
-    audioElement.value.play().catch((error) => {
-      console.error('播放音頻失敗:', error)
-      // 發送錯誤事件，讓父組件處理
-      emit('play', null)
-    })
+  try {
+    await audioPlayerService.play(props.audio.id, audioElement.value, audioUrl.value)
+  } catch (error) {
+    console.error('播放音頻失敗:', error)
   }
 }
 
-function stopAudio() {
-  if (audioElement.value) {
-    audioElement.value.pause()
-    audioElement.value.currentTime = 0
+/**
+ * 重試播放
+ */
+async function retryPlay() {
+  if (!audioUrl.value || !audioElement.value) return
+
+  try {
+    // 重置錯誤狀態
+    audioPlayerService.playbackState.error = null
+    await audioPlayerService.play(props.audio.id, audioElement.value, audioUrl.value)
+  } catch (error) {
+    console.error('重試播放失敗:', error)
   }
 }
 
-function onAudioEnded() {
-  // 音頻播放結束，通知父組件停止播放狀態
-  emit('play', null)
+/**
+ * 處理音頻服務錯誤事件
+ */
+function handleAudioServiceError(data) {
+  if (data.audioId === props.audio.id) {
+    console.error(`音頻 ${props.audio.id} 播放錯誤:`, data.error)
+  }
 }
 
-function onAudioError(error) {
-  console.error('音頻播放錯誤:', error)
-  // 通知父組件停止播放狀態
-  emit('play', null)
+/**
+ * 處理音頻服務播放結束事件
+ */
+function handleAudioServiceEnded(data) {
+  if (data.audioId === props.audio.id) {
+    console.log(`音頻 ${props.audio.id} 播放結束`)
+  }
 }
 
+/**
+ * 獲取按鈕標題
+ */
+function getButtonTitle() {
+  if (playbackState.value.error && currentAudioId.value === props.audio.id) {
+    return '播放失敗，點擊重試'
+  }
+
+  if (currentAudioIsPlaying.value) {
+    return '暫停播放'
+  }
+
+  if (currentAudioIsPaused.value) {
+    return '恢復播放'
+  }
+
+  return '播放音頻'
+}
+
+/**
+ * 獲取狀態文字
+ */
+function getStatusText() {
+  if (playbackState.value.error && currentAudioId.value === props.audio.id) {
+    return '播放失敗'
+  }
+
+  if (currentAudioIsPlaying.value) {
+    return '正在播放...'
+  }
+
+  if (currentAudioIsPaused.value) {
+    return '已暫停'
+  }
+
+  return '點擊播放'
+}
+
+/**
+ * 格式化時間
+ */
+function formatTime(seconds) {
+  if (!seconds || isNaN(seconds)) return '0:00'
+
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+/**
+ * 格式化日期時間
+ */
 function formatDateTime(dateString) {
   return new Date(dateString).toLocaleString('zh-TW')
 }
