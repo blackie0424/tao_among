@@ -4,7 +4,7 @@
       <h3 class="text-lg font-semibold text-gray-900">捕獲紀錄</h3>
       <a
         :href="`/fish/${fishId}/capture-records`"
-        class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+        class="text-xl text-blue-600 hover:text-blue-800 font-medium"
       >
         查看全部
       </a>
@@ -26,10 +26,10 @@
         />
         <circle cx="12" cy="13" r="3" />
       </svg>
-      <p class="text-sm">尚未新增任何捕獲紀錄</p>
+      <p class="text-xl">尚未新增任何捕獲紀錄</p>
       <a
         :href="`/fish/${fishId}/capture-records/create`"
-        class="inline-flex items-center mt-2 text-sm text-blue-600 hover:text-blue-800"
+        class="inline-flex items-center mt-2 text-xl text-blue-600 hover:text-blue-800"
       >
         新增捕獲紀錄
       </a>
@@ -62,15 +62,15 @@
             </span>
             <span class="text-xs text-gray-500">{{ formatDate(record.capture_date) }}</span>
           </div>
-          <p class="text-sm text-gray-900 truncate">{{ record.location }}</p>
-          <p class="text-xs text-gray-600 truncate">{{ record.capture_method }}</p>
+          <p class="text-xl text-gray-900 truncate">{{ record.location }}</p>
+          <p class="text-lg text-gray-600 truncate">{{ record.capture_method }}</p>
         </div>
       </div>
 
       <div v-if="records.length > 4" class="col-span-full text-center">
         <a
           :href="`/fish/${fishId}/capture-records`"
-          class="text-sm text-blue-600 hover:text-blue-800"
+          class="text-xl text-blue-600 hover:text-blue-800"
         >
           查看其他 {{ records.length - 4 }} 筆記錄
         </a>

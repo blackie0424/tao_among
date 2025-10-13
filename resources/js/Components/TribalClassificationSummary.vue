@@ -4,7 +4,7 @@
       <h3 class="text-lg font-semibold text-gray-900">地方知識</h3>
       <a
         :href="`/fish/${fishId}/tribal-classifications/create`"
-        class="flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
+        class="flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xl font-medium rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
       >
         <span class="text-lg mr-1">+</span>
         <span class="whitespace-nowrap">新增地方知識</span>
@@ -26,7 +26,7 @@
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
         />
       </svg>
-      <p class="text-sm">尚未新增任何部落分類資料</p>
+      <p class="text-xl">尚未新增任何部落分類資料</p>
     </div>
 
     <!-- 比較檢視（預設顯示） -->
@@ -60,10 +60,10 @@
                 {{ classification.tribe }}
               </span>
             </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+            <td class="px-3 py-2 whitespace-nowrap text-xl text-gray-900">
               {{ classification.food_category || '未分類' }}
             </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+            <td class="px-3 py-2 whitespace-nowrap text-xl text-gray-900">
               {{ classification.processing_method || '未記錄' }}
             </td>
           </tr>
