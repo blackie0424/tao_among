@@ -3,20 +3,12 @@
   <div class="container mx-auto py-8">
     <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
       <!-- 左欄：魚資訊 -->
-      <div class="w-full md:w-2/4">
+      <div class="w-full md:w-1/2">
         <FishDetailLeft :fish="fish" />
       </div>
-      <!-- 中欄：ArmSelector -->
-      <div class="w-full md:w-1/4">
-        <ArmSelector
-          v-model="selectedParts"
-          :readonly="true"
-          :fishId="fish.id"
-          :showOverflowMenu="true"
-        />
-      </div>
+
       <!-- 右欄：知識 -->
-      <div class="w-full md:w-1/4">
+      <div class="w-full md:w-1/2">
         <FishDetailRight
           :locates="locates"
           :fish-id="fish.id"
