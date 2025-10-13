@@ -179,7 +179,7 @@ it('audio 上傳失敗，未提供檔案', function () {
     $response = $this->postJson('/prefix/api/upload-audio', []);
     $response->assertStatus(422)
         ->assertJson([
-            'message' => '請選擇要上傳的音訊檔案。',
+            'message' => '資料驗證失敗',
             'errors' => [
                 'audio' => ['請選擇要上傳的音訊檔案。'],
             ],
@@ -193,7 +193,7 @@ it('audio 上傳失敗，檔案格式錯誤', function () {
     ]);
     $response->assertStatus(422)
         ->assertJson([
-            'message' => '音訊格式僅限 mp3, wav',
+            'message' => '資料驗證失敗',
             'errors' => [
                 'audio' => ['音訊格式僅限 mp3, wav'],
             ],
@@ -207,7 +207,7 @@ it('audio 上傳失敗，檔案過大', function () {
     ]);
     $response->assertStatus(422)
         ->assertJson([
-            'message' => '音訊大小不可超過 10MB。',
+            'message' => '資料驗證失敗',
             'errors' => [
                 'audio' => ['音訊大小不可超過 10MB。'],
             ],
@@ -222,7 +222,7 @@ it('audio 上傳失敗，傳送多個檔案', function () {
     ]);
     $response->assertStatus(422)
         ->assertJson([
-            'message' => '只能上傳單一音訊檔案。 (and 1 more error)',
+            'message' => '資料驗證失敗',
         ]);
 });
 
@@ -233,7 +233,7 @@ it('audio 上傳失敗，檔案為 0 位元組', function () {
     ]);
     $response->assertStatus(422)
         ->assertJson([
-            'message' => '音訊檔案不可為空。',
+            'message' => '資料驗證失敗',
         ]);
 });
 
@@ -244,7 +244,7 @@ it('audio 上傳失敗，副檔名為 mp3 但內容不是 audio', function () {
     ]);
     $response->assertStatus(422)
         ->assertJson([
-            'message' => '音訊格式僅限 mp3, wav',
+            'message' => '資料驗證失敗',
         ]);
 });
 

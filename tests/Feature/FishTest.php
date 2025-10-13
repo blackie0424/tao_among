@@ -139,7 +139,7 @@ it('can not  create a fish ,  fish name is empty', function () {
     // 確保回應正確
     $response->assertStatus(422)
         ->assertJson([
-            'message' => 'The name field is required.',
+            'message' => '資料驗證失敗',
             'errors' => [
                 'name' => ['The name field is required.'],
             ],
@@ -164,7 +164,7 @@ it('can not  create a fish ,  fish image is empty', function () {
     // 確保回應正確
     $response->assertStatus(422)
         ->assertJson([
-            'message' => 'The image field is required.',
+            'message' => '資料驗證失敗',
             'errors' => [
                 'image' => ['The image field is required.'],
             ],

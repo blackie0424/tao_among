@@ -11,8 +11,9 @@ use App\Models\Fish;
 use Inertia\Inertia;
 use App\Services\SupabaseStorageService;
 use App\Services\FishService;
+use Exception;
 
-class FishNoteController extends Controller
+class FishNoteController extends BaseController
 {
     protected $fishService;
 
@@ -26,17 +27,27 @@ class FishNoteController extends Controller
      */
     public function knowledgeList($fishId)
     {
-        $fish = Fish::with('notes')->findOrFail($fishId);
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        try {
+            $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
+            $fish->load('notes');
+            
+            $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+            $groupedNotes = $this->groupNotesByType($fish->notes);
+            $stats = $this->getNoteTypeStats($fish->notes);
 
-        $groupedNotes = $this->groupNotesByType($fish->notes);
-        $stats = $this->getNoteTypeStats($fish->notes);
+            $this->logOperation('Knowledge list viewed', [
+                'fish_id' => $fishId,
+                'notes_count' => $fish->notes->count()
+            ]);
 
-        return Inertia::render('FishKnowledgeList', [
-            'fish' => $fishWithImage,
-            'groupedNotes' => $groupedNotes,
-            'stats' => $stats
-        ]);
+            return Inertia::render('FishKnowledgeList', [
+                'fish' => $fishWithImage,
+                'groupedNotes' => $groupedNotes,
+                'stats' => $stats
+            ]);
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '無法載入進階知識列表');
+        }
     }
 
     /**
@@ -44,14 +55,26 @@ class FishNoteController extends Controller
      */
     public function editKnowledge($fishId, $noteId)
     {
-        $fish = Fish::findOrFail($fishId);
-        $note = FishNote::where('fish_id', $fishId)->findOrFail($noteId);
+        try {
+            $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
+            $note = $this->findRelatedResourceOrFail(FishNote::class, [
+                'fish_id' => $fishId,
+                'id' => $noteId
+            ], '進階知識');
 
-        return Inertia::render('EditFishNote', [
-            'fish' => $this->fishService->assignImageUrls([$fish])[0],
-            'note' => $note,
-            'noteTypes' => $this->getNoteTypes()
-        ]);
+            $this->logOperation('Knowledge edit form accessed', [
+                'fish_id' => $fishId,
+                'note_id' => $noteId
+            ]);
+
+            return Inertia::render('EditFishNote', [
+                'fish' => $this->fishService->assignImageUrls([$fish])[0],
+                'note' => $note,
+                'noteTypes' => $this->getNoteTypes()
+            ]);
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '無法載入編輯頁面');
+        }
     }
 
     /**
@@ -59,10 +82,33 @@ class FishNoteController extends Controller
      */
     public function updateKnowledge(UpdateFishNoteRequest $request, $fishId, $noteId)
     {
-        $note = FishNote::where('fish_id', $fishId)->findOrFail($noteId);
-        $note->update($request->validated());
+        try {
+            return $this->executeWithTransaction(function () use ($request, $fishId, $noteId) {
+                // Verify fish exists
+                $this->findResourceOrFail(Fish::class, $fishId, '魚類');
+                
+                // Find and update the note
+                $note = $this->findRelatedResourceOrFail(FishNote::class, [
+                    'fish_id' => $fishId,
+                    'id' => $noteId
+                ], '進階知識');
 
-        return redirect()->route('fish.knowledge-list', $fishId);
+                $oldData = $note->toArray();
+                $note->update($request->validated());
+
+                $this->logOperation('Knowledge updated successfully', [
+                    'fish_id' => $fishId,
+                    'note_id' => $noteId,
+                    'old_data' => $oldData,
+                    'new_data' => $note->fresh()->toArray()
+                ]);
+
+                return redirect()->route('fish.knowledge-list', $fishId)
+                    ->with('success', '進階知識已成功更新');
+            }, 'knowledge update');
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '更新進階知識失敗');
+        }
     }
 
     /**
@@ -70,10 +116,32 @@ class FishNoteController extends Controller
      */
     public function destroyKnowledge($fishId, $noteId)
     {
-        $note = FishNote::where('fish_id', $fishId)->findOrFail($noteId);
-        $note->delete();
+        try {
+            return $this->executeWithTransaction(function () use ($fishId, $noteId) {
+                // Verify fish exists
+                $this->findResourceOrFail(Fish::class, $fishId, '魚類');
+                
+                // Find and delete the note
+                $note = $this->findRelatedResourceOrFail(FishNote::class, [
+                    'fish_id' => $fishId,
+                    'id' => $noteId
+                ], '進階知識');
 
-        return redirect()->route('fish.knowledge-list', $fishId);
+                $noteData = $note->toArray();
+                $note->delete();
+
+                $this->logOperation('Knowledge deleted successfully', [
+                    'fish_id' => $fishId,
+                    'note_id' => $noteId,
+                    'deleted_data' => $noteData
+                ]);
+
+                return redirect()->route('fish.knowledge-list', $fishId)
+                    ->with('success', '進階知識已成功刪除');
+            }, 'knowledge deletion');
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '刪除進階知識失敗');
+        }
     }
 
     /**

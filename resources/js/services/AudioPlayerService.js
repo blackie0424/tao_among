@@ -58,6 +58,11 @@ class AudioPlayerService {
         throw new Error('音頻 URL 不存在')
       }
 
+      // 驗證音頻元素
+      if (!audioElement) {
+        throw new Error('音頻元素不存在')
+      }
+
       // 如果當前有其他音頻在播放，先停止
       if (this.currentAudioElement && this.currentPlayingId.value !== audioId) {
         this.stop()
@@ -78,6 +83,11 @@ class AudioPlayerService {
       this.currentAudioElement = audioElement
       this.playbackState.error = null
 
+      // 檢查網路連線狀態
+      if (!navigator.onLine) {
+        throw new Error('NetworkError: 無網路連線')
+      }
+
       // 設置音頻源
       if (audioElement.src !== audioUrl) {
         audioElement.src = audioUrl
@@ -96,8 +106,14 @@ class AudioPlayerService {
         }
       }
 
-      // 開始播放
-      await audioElement.play()
+      // 設置超時處理
+      const playPromise = audioElement.play()
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('播放超時，請檢查網路連線')), 10000)
+      })
+
+      // 開始播放（帶超時）
+      await Promise.race([playPromise, timeoutPromise])
 
       this.playbackState.isPlaying = true
       this.playbackState.isPaused = false
@@ -108,14 +124,7 @@ class AudioPlayerService {
       console.error('播放音頻失敗:', error)
 
       // 提供更友善的錯誤訊息
-      let errorMessage = error.message
-      if (error.name === 'NotSupportedError') {
-        errorMessage = '瀏覽器不支援此音頻格式或來源'
-      } else if (error.name === 'NotAllowedError') {
-        errorMessage = '瀏覽器阻止了音頻播放，請先與頁面互動'
-      } else if (error.name === 'AbortError') {
-        errorMessage = '音頻載入被中斷'
-      }
+      let errorMessage = this.getErrorMessage(error)
 
       this.playbackState.error = errorMessage
       this.emit('error', { audioId, error: errorMessage })
@@ -123,6 +132,33 @@ class AudioPlayerService {
       // 重置狀態
       this.reset()
     }
+  }
+
+  /**
+   * 獲取友善的錯誤訊息
+   * @param {Error} error - 錯誤對象
+   * @returns {string} 友善的錯誤訊息
+   */
+  getErrorMessage(error) {
+    if (error.name === 'NotSupportedError') {
+      return '瀏覽器不支援此音頻格式或來源'
+    } else if (error.name === 'NotAllowedError') {
+      return '瀏覽器阻止了音頻播放，請先與頁面互動'
+    } else if (error.name === 'AbortError') {
+      return '音頻載入被中斷'
+    } else if (error.message.includes('NetworkError') || error.message.includes('網路')) {
+      return 'NetworkError: 網路連線問題，請檢查網路狀態'
+    } else if (error.message.includes('超時')) {
+      return '播放超時，請檢查網路連線或稍後再試'
+    } else if (error.message.includes('DecodeError') || error.message.includes('decode')) {
+      return 'DecodeError: 音頻檔案損壞或格式錯誤'
+    } else if (error.message.includes('音頻 URL 不存在')) {
+      return '音頻檔案路徑錯誤'
+    } else if (error.message.includes('音頻元素不存在')) {
+      return '音頻播放器初始化失敗'
+    }
+
+    return error.message || '未知錯誤'
   }
 
   /**

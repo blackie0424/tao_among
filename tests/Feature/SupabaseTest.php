@@ -51,7 +51,7 @@ it('can delete file successfully', function () {
         $deleteUrl => Http::response([], 200),
     ]);
 
-    $result = $service->delete($filename);
+    $result = $service->delete($filePath);
 
     expect($result)->toBeTrue();
 });
@@ -68,7 +68,7 @@ it('returns false if delete file fails', function () {
         $deleteUrl => Http::response([], 404),
     ]);
 
-    $result = $service->delete($filename);
+    $result = $service->delete($filePath);
 
     expect($result)->toBeFalse();
 });

@@ -71,32 +71,150 @@ class SupabaseStorageService
 
     public function createSignedUploadUrl(string $filePath, int $expiresIn = 60): ?string
     {
-        $response = Http::withHeaders([
-            'apikey' => $this->apiKey,
-            'Authorization' => "Bearer {$this->apiKey}",
-            'Content-Type' => 'application/json',
-        ])->post("{$this->storageUrl}/object/upload/sign/{$this->bucket}/{$filePath}", [
-            'expiresIn' => $expiresIn,
-        ]);
+        try {
+            if (empty($filePath)) {
+                throw new InvalidArgumentException('File path cannot be empty');
+            }
 
-        if ($response->successful()) {
-            return $response->json('url');
+            if ($expiresIn <= 0 || $expiresIn > 3600) {
+                throw new InvalidArgumentException('Expires in must be between 1 and 3600 seconds');
+            }
+
+            $response = Http::timeout(30)
+                ->retry(2, 1000)
+                ->withHeaders([
+                    'apikey' => $this->apiKey,
+                    'Authorization' => "Bearer {$this->apiKey}",
+                    'Content-Type' => 'application/json',
+                ])->post("{$this->storageUrl}/object/upload/sign/{$this->bucket}/{$filePath}", [
+                    'expiresIn' => $expiresIn,
+                ]);
+
+            if ($response->successful()) {
+                $url = $response->json('url');
+                \Log::info('Signed upload URL created successfully', [
+                    'file_path' => $filePath,
+                    'expires_in' => $expiresIn
+                ]);
+                return $url;
+            }
+
+            \Log::error('Failed to create signed upload URL', [
+                'file_path' => $filePath,
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return null;
+        } catch (Exception $e) {
+            \Log::error('Exception during signed URL creation', [
+                'file_path' => $filePath,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return null;
         }
-
-        return null;
     }
     
-    public function delete(string $filename): bool
+    public function delete(string $filePath): bool
     {
-        $filePath = "images/{$filename}";
+        try {
+            // Add timeout and retry logic
+            $response = Http::timeout(30)
+                ->retry(3, 1000)
+                ->withHeaders([
+                    'apikey' => $this->apiKey,
+                    'Authorization' => "Bearer {$this->apiKey}",
+                    'Content-Type' => 'application/json',
+                ])->delete("{$this->storageUrl}/object/{$this->bucket}/{$filePath}");
 
-        $response = Http::withHeaders([
-            'apikey' => $this->apiKey,
-            'Authorization' => "Bearer {$this->apiKey}",
-            'Content-Type' => 'application/json',
-        ])->delete("{$this->storageUrl}/object/{$this->bucket}/{$filePath}");
+            if ($response->successful()) {
+                \Log::info('File deleted successfully from Supabase', [
+                    'file_path' => $filePath,
+                    'bucket' => $this->bucket
+                ]);
+                return true;
+            }
 
-        return $response->successful();
+            // Log the error but don't throw exception
+            \Log::warning('Failed to delete file from Supabase', [
+                'file_path' => $filePath,
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return false;
+        } catch (Exception $e) {
+            \Log::error('Exception during file deletion from Supabase', [
+                'file_path' => $filePath,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Delete file with enhanced error handling and validation
+     */
+    public function deleteWithValidation(string $filePath): array
+    {
+        if (empty($filePath)) {
+            return [
+                'success' => false,
+                'error' => 'File path cannot be empty'
+            ];
+        }
+
+        try {
+            // Check if file exists before attempting deletion
+            $exists = $this->fileExists($filePath);
+            if (!$exists) {
+                \Log::info('File does not exist, skipping deletion', [
+                    'file_path' => $filePath
+                ]);
+                return [
+                    'success' => true,
+                    'message' => 'File does not exist'
+                ];
+            }
+
+            $success = $this->delete($filePath);
+            
+            return [
+                'success' => $success,
+                'message' => $success ? 'File deleted successfully' : 'Failed to delete file'
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Check if file exists in Supabase storage
+     */
+    public function fileExists(string $filePath): bool
+    {
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'apikey' => $this->apiKey,
+                    'Authorization' => "Bearer {$this->apiKey}",
+                ])->head("{$this->storageUrl}/object/{$this->bucket}/{$filePath}");
+
+            return $response->status() === 200;
+        } catch (Exception $e) {
+            \Log::warning('Error checking file existence', [
+                'file_path' => $filePath,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 
 

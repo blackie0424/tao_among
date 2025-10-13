@@ -36,6 +36,39 @@
         </div>
       </div>
 
+      <!-- 網路狀態提示 -->
+      <div v-if="!isOnline" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-yellow-800">網路連線中斷</p>
+            <p class="text-xs text-yellow-600">音頻播放功能可能無法正常使用，請檢查網路連線</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="wasOffline" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-green-800">網路連線已恢復</p>
+            <p class="text-xs text-green-600">音頻播放功能已恢復正常</p>
+          </div>
+        </div>
+      </div>
+
       <!-- 發音列表 -->
       <div class="bg-white rounded-lg shadow-md p-4">
         <h3 class="text-lg font-semibold mb-4">發音列表</h3>
@@ -100,11 +133,15 @@ import FabButton from '../Components/FabButton.vue'
 import BottomNavBar from '../Components/Global/BottomNavBar.vue'
 import audioPlayerService from '../services/AudioPlayerService.js'
 import { router } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
+import { useNetworkStatus } from '../composables/useNetworkStatus.js'
 
 const props = defineProps({
   fish: Object,
 })
+
+// 網路狀態監控
+const { isOnline, wasOffline } = useNetworkStatus()
 
 // 計算發音數量
 const audioCount = computed(() => {
@@ -126,6 +163,20 @@ const playbackStatus = computed(() => {
   }
 
   return '待播放'
+})
+
+// 監聽網路重連事件
+onMounted(() => {
+  const handleReconnect = () => {
+    // 網路重連後重新載入資料
+    router.reload({ only: ['fish'] })
+  }
+
+  window.addEventListener('network-reconnected', handleReconnect)
+
+  onUnmounted(() => {
+    window.removeEventListener('network-reconnected', handleReconnect)
+  })
 })
 
 function onAudioUpdated() {

@@ -24,12 +24,40 @@
       <input
         id="name"
         v-model="form.name"
+        @blur="touchField('name')"
         type="text"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        :class="[
+          'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors',
+          errors.name
+            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500',
+        ]"
         placeholder="例如：太魯閣族發音、阿美族發音"
         required
       />
-      <div v-if="errors.name" class="text-red-500 text-sm mt-1">{{ errors.name }}</div>
+      <div v-if="errors.name" class="flex items-center gap-1 text-red-500 text-sm mt-1">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        {{ errors.name }}
+      </div>
+      <div
+        v-else-if="touched.name && form.name.length >= 2"
+        class="flex items-center gap-1 text-green-500 text-sm mt-1"
+      >
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        名稱格式正確
+      </div>
     </div>
 
     <!-- 當前音頻和上傳新音頻 -->
@@ -178,7 +206,96 @@
           </div>
         </div>
       </div>
-      <div v-if="errors.audio" class="text-red-500 text-sm mt-1">{{ errors.audio }}</div>
+      <div v-if="errors.audio" class="flex items-center gap-1 text-red-500 text-sm mt-1">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        {{ errors.audio }}
+      </div>
+
+      <!-- 上傳錯誤提示 -->
+      <div v-if="uploadError" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div class="flex items-start gap-2">
+          <svg
+            class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-red-800">音頻上傳失敗</p>
+            <p class="text-xs text-red-600 mt-1">{{ uploadError }}</p>
+            <div class="flex gap-2 mt-2">
+              <button
+                @click="retryUpload"
+                type="button"
+                class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors"
+                :disabled="uploading"
+              >
+                重新上傳
+              </button>
+              <button
+                @click="uploadError = null"
+                type="button"
+                class="text-xs text-red-600 hover:text-red-800 px-2 py-1 transition-colors"
+              >
+                忽略
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 網路錯誤提示 -->
+    <div v-if="networkError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
+      <div class="flex items-start gap-2">
+        <svg
+          class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-red-800">提交失敗</p>
+          <p class="text-xs text-red-600 mt-1">{{ networkError }}</p>
+          <div class="flex gap-2 mt-2">
+            <button
+              @click="retrySubmit"
+              type="button"
+              class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors"
+              :disabled="processing || retryAttempts >= maxRetryAttempts"
+            >
+              {{
+                retryAttempts >= maxRetryAttempts
+                  ? '已達重試上限'
+                  : `重試 (${retryAttempts}/${maxRetryAttempts})`
+              }}
+            </button>
+            <button
+              @click="networkError = null"
+              type="button"
+              class="text-xs text-red-600 hover:text-red-800 px-2 py-1 transition-colors"
+            >
+              忽略
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </form>
 </template>
@@ -187,6 +304,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import LazyImage from './LazyImage.vue'
+import { useFormValidation, validationRules } from '../composables/useFormValidation.js'
 
 const props = defineProps({
   audio: Object,
@@ -197,18 +315,48 @@ const props = defineProps({
 
 const emit = defineEmits(['submitted', 'statusChange'])
 
-const form = reactive({
-  name: '',
-  audio: null,
-})
+// 表單驗證設置
+const formValidationRules = {
+  name: [
+    validationRules.required('發音名稱為必填欄位'),
+    validationRules.minLength(2, '發音名稱至少需要 2 個字元'),
+    validationRules.maxLength(255, '發音名稱不能超過 255 個字元'),
+  ],
+  audio: [
+    validationRules.fileSize(50 * 1024 * 1024, '音頻檔案不能超過 50MB'),
+    validationRules.audioFile('請選擇有效的音頻檔案'),
+  ],
+}
 
-const errors = ref({})
+const {
+  form,
+  errors,
+  touched,
+  isValid,
+  hasErrors,
+  validateAll,
+  touchField,
+  setServerErrors,
+  clearErrors,
+  clearFieldError,
+} = useFormValidation(
+  {
+    name: '',
+    audio: null,
+  },
+  formValidationRules
+)
+
 const processing = ref(false)
 const audioPreview = ref(null)
 const selectedFileName = ref('')
 const uploading = ref(false)
 const uploadedAudioFilename = ref(null)
 const canSubmit = ref(true)
+const networkError = ref(null)
+const uploadError = ref(null)
+const retryAttempts = ref(0)
+const maxRetryAttempts = 3
 
 // 音頻播放狀態
 const isCurrentPlaying = ref(false)
@@ -226,11 +374,26 @@ onMounted(() => {
 async function handleAudioChange(event) {
   const file = event.target.files[0]
   if (file) {
+    // 先進行檔案驗證
+    clearFieldError('audio')
+    uploadError.value = null
+
+    const audioValidationError = validationRules.audioFile()(file)
+    if (audioValidationError) {
+      errors.value.audio = audioValidationError
+      return
+    }
+
+    const sizeValidationError = validationRules.fileSize(50 * 1024 * 1024)(file)
+    if (sizeValidationError) {
+      errors.value.audio = sizeValidationError
+      return
+    }
+
     form.audio = file
     selectedFileName.value = file.name
     canSubmit.value = false
     uploading.value = true
-    errors.value = {}
     emit('statusChange', { canSubmit: false, uploading: true })
 
     // 建立預覽
@@ -241,40 +404,75 @@ async function handleAudioChange(event) {
     reader.readAsDataURL(file)
 
     // 自動上傳音頻
-    try {
-      // 1. 取得簽名上傳 URL
-      const signedUrlResponse = await fetch('/prefix/api/supabase/signed-upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name }),
-      })
+    await uploadAudioFile(file)
+  }
+}
 
-      const signedUrlData = await signedUrlResponse.json()
-      if (!signedUrlResponse.ok) {
-        throw new Error(signedUrlData.message || '取得上傳網址失敗')
-      }
-
-      // 2. 直接上傳檔案到 Supabase
-      const uploadResponse = await fetch(signedUrlData.url, {
-        method: 'PUT',
-        body: file,
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error('音頻上傳失敗')
-      }
-
-      // 3. 上傳成功，儲存檔案名稱
-      uploadedAudioFilename.value = signedUrlData.filename
-      canSubmit.value = true
-      emit('statusChange', { canSubmit: true, uploading: false })
-    } catch (uploadError) {
-      errors.value = { audio: uploadError.message }
-      canSubmit.value = true
-      emit('statusChange', { canSubmit: true, uploading: false })
-    } finally {
-      uploading.value = false
+async function uploadAudioFile(file) {
+  try {
+    // 檢查網路連線
+    if (!navigator.onLine) {
+      throw new Error('無網路連線，請檢查網路狀態')
     }
+
+    // 1. 取得簽名上傳 URL
+    const signedUrlResponse = await fetch('/prefix/api/supabase/signed-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name }),
+    })
+
+    const signedUrlData = await signedUrlResponse.json()
+    if (!signedUrlResponse.ok) {
+      throw new Error(signedUrlData.message || '取得上傳網址失敗')
+    }
+
+    // 2. 直接上傳檔案到 Supabase（帶超時）
+    const uploadController = new AbortController()
+    const uploadTimeout = setTimeout(() => uploadController.abort(), 30000) // 30秒超時
+
+    const uploadResponse = await fetch(signedUrlData.url, {
+      method: 'PUT',
+      body: file,
+      signal: uploadController.signal,
+    })
+
+    clearTimeout(uploadTimeout)
+
+    if (!uploadResponse.ok) {
+      throw new Error(`音頻上傳失敗: HTTP ${uploadResponse.status}`)
+    }
+
+    // 3. 上傳成功，儲存檔案名稱
+    uploadedAudioFilename.value = signedUrlData.filename
+    canSubmit.value = true
+    emit('statusChange', { canSubmit: true, uploading: false })
+  } catch (error) {
+    console.error('音頻上傳錯誤:', error)
+
+    let errorMessage = error.message
+    if (error.name === 'AbortError') {
+      errorMessage = '上傳超時，請檢查網路連線或稍後再試'
+    } else if (error.message.includes('NetworkError') || !navigator.onLine) {
+      errorMessage = '網路連線問題，請檢查網路狀態'
+    }
+
+    uploadError.value = errorMessage
+    canSubmit.value = true
+    emit('statusChange', { canSubmit: true, uploading: false })
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function retryUpload() {
+  if (form.audio) {
+    uploadError.value = null
+    uploading.value = true
+    canSubmit.value = false
+    emit('statusChange', { canSubmit: false, uploading: true })
+
+    await uploadAudioFile(form.audio)
   }
 }
 
@@ -329,8 +527,17 @@ function onPreviewAudioEnded() {
 }
 
 function submitForm() {
+  // 先進行前端驗證（排除音頻檔案，因為它是可選的）
+  const nameValidation = validationRules.required('發音名稱為必填欄位')(form.name)
+  if (nameValidation) {
+    errors.value.name = nameValidation
+    touchField('name')
+    return
+  }
+
   processing.value = true
-  errors.value = {}
+  networkError.value = null
+  clearErrors()
 
   // 準備表單資料
   const formData = {
@@ -347,15 +554,43 @@ function submitForm() {
 
   router.post(updateUrl, formData, {
     onSuccess: () => {
+      retryAttempts.value = 0
       emit('submitted')
     },
     onError: (errorResponse) => {
-      errors.value = errorResponse
+      handleSubmitError(errorResponse)
     },
     onFinish: () => {
       processing.value = false
     },
   })
+}
+
+function retrySubmit() {
+  if (retryAttempts.value >= maxRetryAttempts) return
+
+  retryAttempts.value++
+
+  // 等待一段時間後重試
+  setTimeout(() => {
+    submitForm()
+  }, 1000 * retryAttempts.value)
+}
+
+function handleSubmitError(errorResponse) {
+  // 檢查是否為網路錯誤
+  if (!navigator.onLine) {
+    networkError.value = '無網路連線，請檢查網路狀態後重試'
+  } else if (errorResponse.message && errorResponse.message.includes('timeout')) {
+    networkError.value = '請求超時，請稍後再試'
+  } else if (errorResponse.message && errorResponse.message.includes('500')) {
+    networkError.value = '伺服器錯誤，請稍後再試'
+  } else if (typeof errorResponse === 'object' && Object.keys(errorResponse).length > 0) {
+    // 伺服器端驗證錯誤
+    setServerErrors(errorResponse)
+  } else {
+    networkError.value = '提交失敗，請稍後再試'
+  }
 }
 
 // 暴露 submitForm 方法和狀態給父元件
