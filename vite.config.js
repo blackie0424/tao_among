@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import laravel from 'laravel-vite-plugin'
 import vue from '@vitejs/plugin-vue'
+import path from 'path'
 
 export default defineConfig({
   plugins: [
@@ -10,6 +11,11 @@ export default defineConfig({
     }),
     vue(),
   ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'resources/js'),
+    },
+  },
   test: {
     environment: 'jsdom', // 這行很重要，讓測試有瀏覽器文件環境
     coverage: {

@@ -17,8 +17,8 @@ class FishFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->name,
-            'image' => $this->faker->unique()->regexify('[a-z0-9]{10}\.(png|jpg|jpeg)'),
+            'name' => 'Test Fish ' . rand(1000, 9999),
+            'image' => 'test-image-' . rand(1000, 9999) . '.jpg',
             'created_at' => now(),
             'updated_at' => now(),
         ];
