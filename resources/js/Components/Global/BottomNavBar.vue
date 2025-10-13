@@ -202,7 +202,7 @@
           height="24"
         >
           <path
-            style="fill: rgb(246, 146, 30); stroke-width: 2; stroke: rgb(0, 0, 0)"
+            style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2; stroke: rgb(0, 0, 0)"
             d="M16.75,11l-7.53,6.7a1,1,0,0,1-1.37,0l-1.5-1.5a1,1,0,0,1,0-1.37L13,7.25Z"
             id="secondary"
           ></path>
