@@ -391,4 +391,38 @@ class FishController extends Controller
         return redirect("/fish/{$id}")->with('success', '魚類尺寸更新成功');
     }
 
+    public function destroy($id)
+    {
+        try {
+            $fish = Fish::findOrFail($id);
+            
+            // 執行軟刪除（會自動觸發級聯刪除）
+            $fish->delete();
+            
+            // 檢查是否為 AJAX 請求
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '魚類刪除成功'
+                ]);
+            }
+            
+            return redirect('/fishs')->with('success', '魚類刪除成功');
+        } catch (\Exception $e) {
+            \Log::error('魚類刪除錯誤: ' . $e->getMessage(), [
+                'fish_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '刪除魚類時發生錯誤: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect('/fishs')->with('error', '刪除魚類時發生錯誤: ' . $e->getMessage());
+        }
+    }
+
 }

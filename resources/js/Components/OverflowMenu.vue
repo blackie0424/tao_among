@@ -71,6 +71,8 @@ function deleteData() {
   menuOpen.value = false
   if (!confirm('確定要刪除此項目嗎？')) return
 
+  console.log('開始刪除操作，API URL:', props.apiUrl)
+
   // 使用 POST 配合 _method 來模擬 DELETE 請求
   router.post(
     props.apiUrl,
@@ -78,7 +80,11 @@ function deleteData() {
       _method: 'DELETE',
     },
     {
-      onSuccess: () => {
+      onStart: () => {
+        console.log('刪除請求開始')
+      },
+      onSuccess: (page) => {
+        console.log('刪除成功，響應:', page)
         if (props.redirectUrl) {
           router.visit('/fishs')
         } else {
@@ -86,8 +92,28 @@ function deleteData() {
         }
       },
       onError: (errors) => {
-        console.error('Delete errors:', errors)
-        alert('刪除失敗：' + (errors.message || '未知錯誤'))
+        console.error('刪除錯誤詳情:', {
+          errors,
+          apiUrl: props.apiUrl,
+          timestamp: new Date().toISOString(),
+        })
+
+        // 改進錯誤消息處理
+        let errorMessage = '刪除失敗'
+        if (errors.message) {
+          errorMessage += '：' + errors.message
+        } else if (typeof errors === 'string') {
+          errorMessage += '：' + errors
+        } else if (errors.error) {
+          errorMessage += '：' + errors.error
+        } else {
+          errorMessage += '：未知錯誤，請檢查網路連線或聯繫管理員'
+        }
+
+        alert(errorMessage)
+      },
+      onFinish: () => {
+        console.log('刪除請求完成')
       },
     }
   )

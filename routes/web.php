@@ -20,6 +20,7 @@ Route::get('/fish/{id}/createAudio', [FishController::class,'createAudio']);
 Route::get('/fish/{id}/create', [FishNoteController::class,'create']);
 Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit');
 Route::put('/fish/{id}/name', [FishController::class, 'updateName'])->name('fish.updateName');
+Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.destroy');
 Route::get('/fish/{id}/editSize', [FishController::class, 'editSize'])->name('fish.editSize');
 Route::put('/fish/{id}/size', [FishController::class, 'updateSize'])->name('fish.updateSize');
 Route::get('/fish/{id}/tribal-classifications', [FishController::class, 'tribalClassifications'])->name('fish.tribal-classifications');

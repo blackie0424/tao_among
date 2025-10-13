@@ -23,9 +23,19 @@ class Fish extends Model
     protected static function booted()
     {
         static::deleting(function ($fish) {
+            // 刪除相關的尺寸資料
             $fish->size()->delete();
+            
+            // 刪除相關的知識條目
             $fish->notes()->delete();
+            
+            // 刪除相關的音頻文件
+            $fish->audios()->delete();
+            
+            // 刪除相關的部落分類
             $fish->tribalClassifications()->delete();
+            
+            // 刪除相關的捕獲紀錄
             $fish->captureRecords()->delete();
         });
     }

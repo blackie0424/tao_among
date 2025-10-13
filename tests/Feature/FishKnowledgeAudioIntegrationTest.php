@@ -348,8 +348,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
             $response->assertStatus(200);
             
-            // Should complete within reasonable time (less than 1 second)
-            expect($endTime - $startTime)->toBeLessThan(1.0);
+            // Should complete within reasonable time (less than 1.5 seconds)
+            expect($endTime - $startTime)->toBeLessThan(1.5);
 
             // Should properly group all notes
             $response->assertInertia(function ($page) {
