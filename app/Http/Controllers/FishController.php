@@ -42,7 +42,25 @@ class FishController extends Controller
     {
         $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
         $fish = $this->fishService->getFishByIdAndLocate($id, $locate);
-        return Inertia::render('Fish', ['fish' => $fish]);
+        
+        // 取得部落分類資料（最多顯示前5筆）
+        $tribalClassifications = TribalClassification::where('fish_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // 取得捕獲紀錄資料（最多顯示前4筆）
+        // CaptureRecord 模型已經自動處理 image_url 屬性
+        $captureRecords = CaptureRecord::where('fish_id', $id)
+            ->orderBy('capture_date', 'desc')
+            ->limit(4)
+            ->get();
+        
+        return Inertia::render('Fish', [
+            'fish' => $fish,
+            'tribalClassifications' => $tribalClassifications,
+            'captureRecords' => $captureRecords
+        ]);
     }
 
     public function getFishs(Request $request)

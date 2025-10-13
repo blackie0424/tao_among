@@ -27,6 +27,15 @@
       </div>
     </div>
 
+    <!-- 部落分類和捕獲紀錄區塊 -->
+    <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- 部落分類摘要 -->
+      <TribalClassificationSummary :classifications="tribalClassifications" :fishId="fish.id" />
+
+      <!-- 捕獲紀錄摘要 -->
+      <CaptureRecordSummary :records="captureRecords" :fishId="fish.id" />
+    </div>
+
     <BottomNavBar
       :to="`/fish/${fish.id}/create`"
       :audio="`/fish/${fish.id}/createAudio`"
@@ -47,10 +56,20 @@ import FishDetailLeft from '@/Components/FishDetailLeft.vue'
 import FishDetailRight from '@/Components/FishDetailRight.vue'
 import FabButton from '@/Components/FabButton.vue'
 import BottomNavBar from '../Components/Global/BottomNavBar.vue'
+import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
+import CaptureRecordSummary from '@/Components/CaptureRecordSummary.vue'
 
 const props = defineProps({
   fish: Object,
   initialLocate: String,
+  tribalClassifications: {
+    type: Array,
+    default: () => [],
+  },
+  captureRecords: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const locates = [
