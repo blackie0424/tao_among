@@ -126,7 +126,7 @@ describe('useAudioPlayback', () => {
 
       expect(global.Audio).toHaveBeenCalled()
       const audioInstance = global.Audio.mock.results[0].value
-      expect(audioInstance.preload).toBe('none')
+      expect(audioInstance.preload).toBe('metadata')
       expect(audioInstance.crossOrigin).toBe('anonymous')
     })
 

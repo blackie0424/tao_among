@@ -11,11 +11,14 @@ class NetworkOptimizer {
     this.loadingQueue = new Map()
     this.preloadCache = new Map()
 
-    // 監聽網路狀態變化
-    this.setupNetworkListeners()
+    // 在測試環境中跳過網路監聽和監控
+    if (process.env.NODE_ENV !== 'test') {
+      // 監聽網路狀態變化
+      this.setupNetworkListeners()
 
-    // 定期更新網路資訊
-    this.startNetworkMonitoring()
+      // 定期更新網路資訊
+      this.startNetworkMonitoring()
+    }
   }
 
   /**

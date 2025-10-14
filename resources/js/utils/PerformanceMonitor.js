@@ -13,7 +13,8 @@ class PerformanceMonitor {
       errorRate: 0.1, // 10% 錯誤率閾值
     }
 
-    this.isEnabled = true
+    // 在測試環境中禁用性能監控
+    this.isEnabled = process.env.NODE_ENV !== 'test'
     this.maxMetricsCount = 100 // 最多保存100條記錄
   }
 

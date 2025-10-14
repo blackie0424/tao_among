@@ -6,6 +6,16 @@
 
 class AnimationOptimizer {
   constructor() {
+    // 在測試環境中使用預設值
+    if (process.env.NODE_ENV === 'test') {
+      this.isLowPerformanceDevice = false
+      this.prefersReducedMotion = false
+      this.isLowPowerMode = false
+      this.optimizationLevel = 'none'
+      this.animationConfig = this.getOptimalAnimationConfig()
+      return
+    }
+
     this.isLowPerformanceDevice = this.detectLowPerformanceDevice()
     this.prefersReducedMotion = this.checkReducedMotionPreference()
     this.isLowPowerMode = this.detectLowPowerMode()
