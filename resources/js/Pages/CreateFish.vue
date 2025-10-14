@@ -1,4 +1,6 @@
 <template>
+  <Head title="新增魚類" />
+
   <div class="container mx-auto p-4 relative">
     <TopNavBar
       :goBack="goBack"
@@ -31,6 +33,8 @@
 </template>
 
 <script setup>
+import { Head } from '@inertiajs/vue3'
+
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'

@@ -1,4 +1,6 @@
 <template>
+  <Head :title="`${fish.name}的捕獲紀錄`" />
+
   <div class="container mx-auto p-4 relative">
     <div class="pb-20">
       <!-- 魚類資訊 -->
@@ -100,6 +102,8 @@
 </template>
 
 <script setup>
+import { Head } from '@inertiajs/vue3'
+
 import CaptureRecordCard from '../Components/CaptureRecordCard.vue'
 import LazyImage from '../Components/LazyImage.vue'
 import FabButton from '../Components/FabButton.vue'

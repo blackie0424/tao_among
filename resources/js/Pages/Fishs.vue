@@ -1,4 +1,6 @@
 <template>
+  <Head title="魚類圖鑑清單" />
+
   <div class="container mx-auto p-4 pb-20">
     <!-- 色調切換按鈕（改用 DarkModeSwitcher） -->
     <DarkModeSwitcher :show-button="false" />
@@ -16,6 +18,8 @@
 </template>
 
 <script setup>
+import { Head } from '@inertiajs/vue3'
+
 import FishCard from '@/Components/FishCard.vue'
 import DarkModeSwitcher from '@/Components/DarkModeSwitcher.vue'
 import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue'

@@ -1,4 +1,6 @@
 <template>
+  <Head :title="`${fish.name}的發音列表`" />
+
   <div class="container mx-auto p-4 relative">
     <div class="pb-20">
       <!-- 魚類資訊 -->
@@ -127,6 +129,8 @@
 </template>
 
 <script setup>
+import { Head } from '@inertiajs/vue3'
+
 import FishAudioCard from '../Components/FishAudioCard.vue'
 import LazyImage from '../Components/LazyImage.vue'
 import FabButton from '../Components/FabButton.vue'

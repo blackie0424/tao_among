@@ -1,4 +1,6 @@
 <template>
+  <Head title="魚類搜尋" />
+
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="container mx-auto px-4 py-8">
       <!-- 頁面標題 -->
@@ -39,6 +41,8 @@
 </template>
 
 <script setup>
+import { Head } from '@inertiajs/vue3'
+
 import { ref, onMounted, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FilterPanel from '@/Components/FilterPanel.vue'
