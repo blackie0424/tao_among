@@ -31,16 +31,16 @@
     - 加入適當的過渡動畫效果
     - _Requirements: 1.2, 1.3, 6.2_
 
-- [ ] 3. 擴展 AudioPlayerService 功能
+- [x] 3. 擴展 AudioPlayerService 功能
 
-  - [ ] 3.1 加入短音頻播放方法
+  - [x] 3.1 加入短音頻播放方法
 
     - 在 AudioPlayerService 中新增 playShortAudio 方法
     - 實作簡化的播放邏輯適用於短音頻檔案
     - 確保與現有播放功能的相容性
     - _Requirements: 4.1, 4.3_
 
-  - [ ] 3.2 改善音頻播放的互斥控制
+  - [x] 3.2 改善音頻播放的互斥控制
 
     - 確保新音頻播放時自動停止其他正在播放的音頻
     - 實作播放狀態的全域同步機制

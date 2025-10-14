@@ -34,6 +34,7 @@ class AudioPlayerService {
       error: [],
       timeupdate: [],
       loadedmetadata: [],
+      stateSync: [], // 全域狀態同步事件
     }
 
     // 綁定事件處理方法
@@ -43,6 +44,67 @@ class AudioPlayerService {
     this.handleError = this.handleError.bind(this)
     this.handleTimeUpdate = this.handleTimeUpdate.bind(this)
     this.handleLoadedMetadata = this.handleLoadedMetadata.bind(this)
+  }
+
+  /**
+   * 簡化的播放方法，適用於短音頻檔案
+   * @param {string|number} audioId - 音頻 ID
+   * @param {HTMLAudioElement} audioElement - 音頻元素
+   * @param {string} audioUrl - 音頻 URL
+   * @returns {Promise<void>}
+   */
+  async playShortAudio(audioId, audioElement, audioUrl) {
+    try {
+      // 驗證參數
+      if (!audioUrl) {
+        throw new Error('音頻 URL 不存在')
+      }
+      if (!audioElement) {
+        throw new Error('音頻元素不存在')
+      }
+
+      // 確保音頻播放的互斥性
+      this.ensureMutualExclusion(audioId)
+
+      // 設置新的播放狀態
+      this.currentPlayingId.value = audioId
+      this.currentAudioElement = audioElement
+      this.playbackState.error = null
+
+      // 檢查網路連線狀態
+      if (!navigator.onLine) {
+        throw new Error('NetworkError: 無網路連線')
+      }
+
+      // 設置音頻源（簡化版本，適用於短音頻）
+      if (audioElement.src !== audioUrl) {
+        audioElement.src = audioUrl
+      }
+
+      // 添加基本事件監聽器
+      this.addShortAudioEventListeners(audioElement)
+
+      // 開始播放
+      await audioElement.play()
+
+      this.playbackState.isPlaying = true
+      this.playbackState.isPaused = false
+
+      // 觸發播放事件
+      this.emit('play', { audioId, audioUrl })
+    } catch (error) {
+      console.error('短音頻播放失敗:', error)
+
+      // 提供友善的錯誤訊息
+      let errorMessage = this.getErrorMessage(error)
+
+      this.playbackState.error = errorMessage
+      this.emit('error', { audioId, error: errorMessage })
+
+      // 重置狀態
+      this.reset()
+      throw error
+    }
   }
 
   /**
@@ -63,10 +125,8 @@ class AudioPlayerService {
         throw new Error('音頻元素不存在')
       }
 
-      // 如果當前有其他音頻在播放，先停止
-      if (this.currentAudioElement && this.currentPlayingId.value !== audioId) {
-        this.stop()
-      }
+      // 確保音頻播放的互斥性
+      this.ensureMutualExclusion(audioId)
 
       // 如果是同一個音頻，切換播放/暫停狀態
       if (this.currentPlayingId.value === audioId) {
@@ -201,8 +261,9 @@ class AudioPlayerService {
       this.currentAudioElement.pause()
       this.currentAudioElement.currentTime = 0
 
-      // 移除事件監聽器
+      // 移除事件監聽器（嘗試移除所有可能的監聽器）
       this.removeAudioEventListeners(this.currentAudioElement)
+      this.removeShortAudioEventListeners(this.currentAudioElement)
 
       const audioId = this.currentPlayingId.value
       this.reset()
@@ -236,6 +297,47 @@ class AudioPlayerService {
   }
 
   /**
+   * 強制停止所有音頻播放並重置狀態
+   */
+  forceStopAll() {
+    if (this.currentAudioElement) {
+      try {
+        this.currentAudioElement.pause()
+        this.currentAudioElement.currentTime = 0
+
+        // 移除所有事件監聽器
+        this.removeAudioEventListeners(this.currentAudioElement)
+        this.removeShortAudioEventListeners(this.currentAudioElement)
+      } catch (error) {
+        console.warn('強制停止音頻時發生錯誤:', error)
+      }
+    }
+
+    const audioId = this.currentPlayingId.value
+    this.reset()
+
+    if (audioId) {
+      this.emit('stop', { audioId })
+    }
+  }
+
+  /**
+   * 確保音頻播放的互斥性
+   * @param {string|number} newAudioId - 新的音頻 ID
+   */
+  ensureMutualExclusion(newAudioId) {
+    // 如果當前有其他音頻在播放，強制停止
+    if (this.currentPlayingId.value && this.currentPlayingId.value !== newAudioId) {
+      this.forceStopAll()
+    }
+
+    // 如果是同一個音頻且正在播放，先停止
+    if (this.currentPlayingId.value === newAudioId && this.playbackState.isPlaying) {
+      this.stop()
+    }
+  }
+
+  /**
    * 檢查指定音頻是否正在播放
    * @param {number} audioId - 音頻 ID
    * @returns {boolean}
@@ -262,6 +364,29 @@ class AudioPlayerService {
       currentPlayingId: this.currentPlayingId.value,
       ...this.playbackState,
     }
+  }
+
+  /**
+   * 獲取全域播放狀態（用於狀態同步）
+   * @returns {object}
+   */
+  getGlobalState() {
+    return {
+      hasActivePlayback: this.currentPlayingId.value !== null,
+      currentPlayingId: this.currentPlayingId.value,
+      isPlaying: this.playbackState.isPlaying,
+      isPaused: this.playbackState.isPaused,
+      hasError: this.playbackState.error !== null,
+      error: this.playbackState.error,
+    }
+  }
+
+  /**
+   * 檢查是否有任何音頻正在播放
+   * @returns {boolean}
+   */
+  hasActivePlayback() {
+    return this.currentPlayingId.value !== null && this.playbackState.isPlaying
   }
 
   /**
@@ -304,6 +429,44 @@ class AudioPlayerService {
         }
       })
     }
+
+    // 觸發全域狀態同步事件
+    this.emitStateSync(event, data)
+  }
+
+  /**
+   * 觸發狀態同步事件
+   * @param {string} event - 原始事件名稱
+   * @param {object} data - 事件數據
+   */
+  emitStateSync(event, data) {
+    const globalState = this.getGlobalState()
+
+    // 觸發狀態同步事件，供其他組件監聽
+    if (this.eventListeners['stateSync']) {
+      this.eventListeners['stateSync'].forEach((callback) => {
+        try {
+          callback({
+            originalEvent: event,
+            originalData: data,
+            globalState,
+            timestamp: Date.now(),
+          })
+        } catch (error) {
+          console.error('狀態同步事件監聽器執行錯誤:', error)
+        }
+      })
+    }
+  }
+
+  /**
+   * 添加短音頻元素事件監聽器（簡化版本）
+   * @param {HTMLAudioElement} audioElement - 音頻元素
+   */
+  addShortAudioEventListeners(audioElement) {
+    audioElement.addEventListener('play', this.handlePlay)
+    audioElement.addEventListener('ended', this.handleEnded)
+    audioElement.addEventListener('error', this.handleError)
   }
 
   /**
@@ -317,6 +480,16 @@ class AudioPlayerService {
     audioElement.addEventListener('error', this.handleError)
     audioElement.addEventListener('timeupdate', this.handleTimeUpdate)
     audioElement.addEventListener('loadedmetadata', this.handleLoadedMetadata)
+  }
+
+  /**
+   * 移除短音頻元素事件監聽器
+   * @param {HTMLAudioElement} audioElement - 音頻元素
+   */
+  removeShortAudioEventListeners(audioElement) {
+    audioElement.removeEventListener('play', this.handlePlay)
+    audioElement.removeEventListener('ended', this.handleEnded)
+    audioElement.removeEventListener('error', this.handleError)
   }
 
   /**
@@ -352,7 +525,17 @@ class AudioPlayerService {
    */
   handleEnded() {
     const audioId = this.currentPlayingId.value
+
+    // 移除事件監聽器
+    if (this.currentAudioElement) {
+      this.removeAudioEventListeners(this.currentAudioElement)
+      this.removeShortAudioEventListeners(this.currentAudioElement)
+    }
+
+    // 重置狀態
     this.reset()
+
+    // 觸發結束事件
     this.emit('ended', { audioId })
   }
 
