@@ -1,5 +1,6 @@
 <!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/Fish.vue -->
 <template>
+  <Head :title="`${fish.name}的基本資料`" />
   <div class="container mx-auto py-8">
     <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
       <!-- 左欄：魚資訊 -->
@@ -25,6 +26,8 @@
 </template>
 
 <script setup>
+import { Head } from '@inertiajs/vue3'
+
 import { ref, onMounted } from 'vue'
 import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
