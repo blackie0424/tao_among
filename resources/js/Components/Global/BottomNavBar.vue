@@ -178,7 +178,7 @@
           ></path>
         </svg>
       </div>
-      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">進階知識</p>
+      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">知識管理</p>
     </a>
 
     <!-- 發音列表連結 -->

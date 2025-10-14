@@ -2,13 +2,6 @@
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-900">地方知識</h3>
-      <a
-        :href="`/fish/${fishId}/tribal-classifications/create`"
-        class="flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xl font-medium rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
-      >
-        <span class="text-lg mr-1">+</span>
-        <span class="whitespace-nowrap">新增地方知識</span>
-      </a>
     </div>
 
     <!-- 無資料狀態 -->

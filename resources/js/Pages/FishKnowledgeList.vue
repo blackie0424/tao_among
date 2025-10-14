@@ -136,12 +136,23 @@
       </div>
     </div>
 
+    <!-- 新增地方知識 FAB 按鈕 -->
+    <FabButton
+      bgClass="bg-blue-600"
+      hoverClass="hover:bg-blue-700"
+      textClass="text-white"
+      label="新增地方知識"
+      icon="+"
+      :to="`/fish/${fish.id}/tribal-classifications/create`"
+      position="left-bottom"
+    />
+
     <!-- 新增進階知識 FAB 按鈕 -->
     <FabButton
       bgClass="bg-blue-600"
       hoverClass="hover:bg-blue-700"
       textClass="text-white"
-      label="新增知識"
+      label="新增進階知識"
       icon="+"
       :to="`/fish/${fish.id}/create`"
       position="right-bottom"
