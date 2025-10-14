@@ -96,7 +96,7 @@ class AudioPlayerService {
       console.error('短音頻播放失敗:', error)
 
       // 提供友善的錯誤訊息
-      let errorMessage = this.getErrorMessage(error)
+      let errorMessage = await this.getErrorMessage(error)
 
       this.playbackState.error = errorMessage
       this.emit('error', { audioId, error: errorMessage })
@@ -184,7 +184,7 @@ class AudioPlayerService {
       console.error('播放音頻失敗:', error)
 
       // 提供更友善的錯誤訊息
-      let errorMessage = this.getErrorMessage(error)
+      let errorMessage = await this.getErrorMessage(error)
 
       this.playbackState.error = errorMessage
       this.emit('error', { audioId, error: errorMessage })
@@ -195,27 +195,176 @@ class AudioPlayerService {
   }
 
   /**
+   * 檢查網路連線狀態
+   * @returns {Promise<boolean>}
+   */
+  async checkNetworkStatus() {
+    if (!navigator.onLine) {
+      return false
+    }
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+      const response = await fetch('/api/health-check', {
+        method: 'HEAD',
+        signal: controller.signal,
+        cache: 'no-cache',
+      })
+
+      clearTimeout(timeoutId)
+      return response.ok
+    } catch (error) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 2000)
+
+        await fetch('/', {
+          method: 'HEAD',
+          signal: controller.signal,
+          cache: 'no-cache',
+        })
+
+        clearTimeout(timeoutId)
+        return true
+      } catch (fallbackError) {
+        return false
+      }
+    }
+  }
+
+  /**
+   * 檢查音頻格式相容性
+   * @param {string} audioUrl - 音頻 URL
+   * @returns {object} 相容性檢查結果
+   */
+  checkAudioCompatibility(audioUrl) {
+    const audio = new Audio()
+    const extension = audioUrl.split('.').pop()?.toLowerCase()
+
+    const formatInfo = {
+      extension,
+      isSupported: false,
+      canPlay: 'no',
+      mimeType: null,
+      recommendation: null,
+    }
+
+    const mimeTypes = {
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      webm: 'audio/webm',
+      m4a: 'audio/mp4',
+      aac: 'audio/aac',
+      flac: 'audio/flac',
+    }
+
+    formatInfo.mimeType = mimeTypes[extension]
+
+    if (formatInfo.mimeType && audio.canPlayType) {
+      formatInfo.canPlay = audio.canPlayType(formatInfo.mimeType)
+      formatInfo.isSupported = formatInfo.canPlay !== ''
+    }
+
+    if (!formatInfo.isSupported) {
+      if (extension === 'ogg') {
+        formatInfo.recommendation = '建議使用 MP3 格式以獲得更好的相容性'
+      } else if (extension === 'flac') {
+        formatInfo.recommendation = '建議使用 MP3 或 AAC 格式'
+      } else if (!extension) {
+        formatInfo.recommendation = '音頻檔案缺少副檔名，無法判斷格式'
+      } else {
+        formatInfo.recommendation = '建議使用 MP3 格式以獲得最佳相容性'
+      }
+    }
+
+    return formatInfo
+  }
+
+  /**
    * 獲取友善的錯誤訊息
    * @param {Error} error - 錯誤對象
-   * @returns {string} 友善的錯誤訊息
+   * @returns {Promise<string>} 友善的錯誤訊息
    */
-  getErrorMessage(error) {
-    if (error.name === 'NotSupportedError') {
+  async getErrorMessage(error) {
+    const message = error.message || error.toString()
+    const errorCode = error.code || error.name
+
+    // 網路相關錯誤
+    if (
+      message.includes('NetworkError') ||
+      message.includes('網路') ||
+      errorCode === 'NetworkError'
+    ) {
+      const isOnline = await this.checkNetworkStatus()
+      if (!isOnline) {
+        return '網路連線中斷，請檢查網路設定後重試'
+      } else {
+        return '網路不穩定，請稍後重試'
+      }
+    }
+
+    // 離線狀態
+    if (!navigator.onLine) {
+      return '目前處於離線狀態，請檢查網路連線'
+    }
+
+    // 格式不支援錯誤
+    if (error.name === 'NotSupportedError' || message.includes('不支援')) {
       return '瀏覽器不支援此音頻格式或來源'
-    } else if (error.name === 'NotAllowedError') {
-      return '瀏覽器阻止了音頻播放，請先與頁面互動'
-    } else if (error.name === 'AbortError') {
-      return '音頻載入被中斷'
-    } else if (error.message.includes('NetworkError') || error.message.includes('網路')) {
-      return 'NetworkError: 網路連線問題，請檢查網路狀態'
-    } else if (error.message.includes('超時')) {
-      return '播放超時，請檢查網路連線或稍後再試'
-    } else if (error.message.includes('DecodeError') || error.message.includes('decode')) {
-      return 'DecodeError: 音頻檔案損壞或格式錯誤'
-    } else if (error.message.includes('音頻 URL 不存在')) {
+    }
+
+    // 播放被阻止錯誤
+    if (error.name === 'NotAllowedError') {
+      return '瀏覽器阻止了音頻播放，請先點擊頁面任意位置後重試'
+    }
+
+    // 載入中斷錯誤
+    if (error.name === 'AbortError') {
+      return '音頻載入被中斷，請重試'
+    }
+
+    // 解碼錯誤
+    if (message.includes('DecodeError') || message.includes('decode')) {
+      return '音頻檔案損壞或格式錯誤'
+    }
+
+    // 超時錯誤
+    if (message.includes('超時') || message.includes('timeout')) {
+      const isOnline = await this.checkNetworkStatus()
+      if (!isOnline) {
+        return '網路連線超時，請檢查網路狀態後重試'
+      }
+      return '載入超時，可能是網路較慢，請重試'
+    }
+
+    // URL 相關錯誤
+    if (message.includes('音頻 URL 不存在')) {
       return '音頻檔案路徑錯誤'
-    } else if (error.message.includes('音頻元素不存在')) {
+    }
+
+    if (message.includes('音頻元素不存在')) {
       return '音頻播放器初始化失敗'
+    }
+
+    // HTTP 狀態碼錯誤
+    if (message.includes('404') || message.includes('Not Found')) {
+      return '音頻檔案不存在，請確認檔案路徑'
+    }
+
+    if (message.includes('403') || message.includes('Forbidden')) {
+      return '沒有權限存取此音頻檔案'
+    }
+
+    if (message.includes('500') || message.includes('Internal Server Error')) {
+      return '伺服器錯誤，請稍後重試'
+    }
+
+    // CORS 錯誤
+    if (message.includes('CORS') || message.includes('跨域')) {
+      return '跨域存取被阻止，請聯繫管理員'
     }
 
     return error.message || '未知錯誤'

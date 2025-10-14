@@ -14,6 +14,11 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+// Health check endpoint for network status verification
+Route::get('/health-check', function () {
+    return response()->json(['status' => 'ok'], 200);
+});
+
 // 將 fish 相關 API 路由指向 ApiFishController
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
 Route::post('/fish', [ApiFishController::class, 'store']);

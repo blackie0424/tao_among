@@ -39,6 +39,19 @@
       />
     </svg>
 
+    <!-- 重試中圖示 -->
+    <svg
+      v-else-if="playbackState === 'retrying'"
+      class="w-5 h-5 text-white animate-spin"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"
+      />
+    </svg>
+
     <!-- 錯誤圖示 -->
     <svg
       v-else-if="playbackState === 'error'"
@@ -69,8 +82,21 @@ const props = defineProps({
 })
 
 // 使用音頻播放組合式函數
-const { playbackState, buttonClasses, buttonTitle, isPlaying, hasError, isClickable, handleClick } =
-  useAudioPlayback(props.audioUrl, props.audioId)
+const {
+  playbackState,
+  buttonClasses,
+  buttonTitle,
+  isPlaying,
+  hasError,
+  isClickable,
+  isRetrying,
+  canRetry,
+  retryProgress,
+  error,
+  retryCount,
+  maxRetries,
+  handleClick,
+} = useAudioPlayback(props.audioUrl, props.audioId)
 </script>
 <style scoped>
 /* 基礎按鈕樣式 */
@@ -102,6 +128,17 @@ const { playbackState, buttonClasses, buttonTitle, isPlaying, hasError, isClicka
   transform: none;
 }
 
+/* 重試中狀態樣式 */
+.volume-button--retrying {
+  @apply bg-yellow-500 cursor-not-allowed;
+  animation: pulse-retry 1.5s infinite;
+}
+
+.volume-button--retrying:hover {
+  @apply bg-yellow-500;
+  transform: none;
+}
+
 /* 錯誤狀態樣式 */
 .volume-button--error {
   @apply bg-red-500 hover:bg-red-600 cursor-pointer;
@@ -114,6 +151,17 @@ const { playbackState, buttonClasses, buttonTitle, isPlaying, hasError, isClicka
 
 .volume-button--error:active {
   transform: scale(0.95);
+}
+
+/* 重試狀態脈衝動畫 */
+@keyframes pulse-retry {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.1);
+  }
 }
 
 /* 錯誤狀態脈衝動畫 */
@@ -166,6 +214,10 @@ const { playbackState, buttonClasses, buttonTitle, isPlaying, hasError, isClicka
     @apply border-2 border-blue-700;
   }
 
+  .volume-button--retrying {
+    @apply border-2 border-yellow-700;
+  }
+
   .volume-button--error {
     @apply border-2 border-red-700;
   }
@@ -178,7 +230,12 @@ const { playbackState, buttonClasses, buttonTitle, isPlaying, hasError, isClicka
     transition: none;
   }
 
-  .volume-button--error {
+  .volume-button--error,
+  .volume-button--retrying {
+    animation: none;
+  }
+
+  .volume-button--retrying svg {
     animation: none;
   }
 

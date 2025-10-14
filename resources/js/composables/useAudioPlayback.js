@@ -15,6 +15,7 @@ export const PlaybackState = {
   IDLE: 'idle', // 初始狀態，可點擊
   PLAYING: 'playing', // 播放中，不可點擊
   ERROR: 'error', // 錯誤狀態，可點擊重試
+  RETRYING: 'retrying', // 重試中，不可點擊
 }
 
 /**
@@ -48,6 +49,8 @@ export function useAudioPlayback(audioUrl, audioId = null) {
         return 'bg-blue-500 cursor-not-allowed'
       case PlaybackState.ERROR:
         return 'bg-red-500 hover:bg-red-600 cursor-pointer'
+      case PlaybackState.RETRYING:
+        return 'bg-yellow-500 cursor-not-allowed animate-pulse'
       default:
         return 'bg-gray-200 hover:bg-gray-300 cursor-pointer'
     }
@@ -62,6 +65,8 @@ export function useAudioPlayback(audioUrl, audioId = null) {
         return '正在播放...'
       case PlaybackState.ERROR:
         return `播放失敗，點擊重試 (${retryCount.value}/${maxRetries})`
+      case PlaybackState.RETRYING:
+        return `正在重試... (${retryCount.value}/${maxRetries})`
       default:
         return '點擊播放音頻'
     }
@@ -80,7 +85,31 @@ export function useAudioPlayback(audioUrl, audioId = null) {
   /**
    * 計算是否可以點擊
    */
-  const isClickable = computed(() => playbackState.value !== PlaybackState.PLAYING)
+  const isClickable = computed(
+    () =>
+      playbackState.value !== PlaybackState.PLAYING &&
+      playbackState.value !== PlaybackState.RETRYING
+  )
+
+  /**
+   * 計算是否正在重試
+   */
+  const isRetrying = computed(() => playbackState.value === PlaybackState.RETRYING)
+
+  /**
+   * 計算是否可以重試
+   */
+  const canRetry = computed(
+    () => playbackState.value === PlaybackState.ERROR && retryCount.value < maxRetries
+  )
+
+  /**
+   * 計算重試進度百分比
+   */
+  const retryProgress = computed(() => {
+    if (maxRetries === 0) return 0
+    return Math.round((retryCount.value / maxRetries) * 100)
+  })
 
   /**
    * 驗證音頻 URL
@@ -152,7 +181,7 @@ export function useAudioPlayback(audioUrl, audioId = null) {
       await audioPlayerService.play(id, audio, audioUrl)
     } catch (err) {
       console.error('音頻播放失敗:', err)
-      handleAudioError(err)
+      await handleAudioError(err)
     }
   }
 
@@ -167,9 +196,9 @@ export function useAudioPlayback(audioUrl, audioId = null) {
     }
 
     // 播放錯誤事件
-    const handleError = (event) => {
+    const handleError = async (event) => {
       const audioError = event.target.error
-      handleAudioError(audioError || new Error('音頻播放錯誤'))
+      await handleAudioError(audioError || new Error('音頻播放錯誤'))
     }
 
     // 添加事件監聽器
@@ -201,9 +230,9 @@ export function useAudioPlayback(audioUrl, audioId = null) {
    * 處理音頻播放錯誤
    * @param {Error} err - 錯誤對象
    */
-  function handleAudioError(err) {
+  async function handleAudioError(err) {
     playbackState.value = PlaybackState.ERROR
-    error.value = getErrorMessage(err)
+    error.value = await getErrorMessage(err)
     retryCount.value++
 
     console.error('音頻播放錯誤:', {
@@ -211,6 +240,7 @@ export function useAudioPlayback(audioUrl, audioId = null) {
       audioUrl,
       error: err.message,
       retryCount: retryCount.value,
+      friendlyMessage: error.value,
     })
 
     // 清理音頻元素事件監聽器
@@ -220,53 +250,207 @@ export function useAudioPlayback(audioUrl, audioId = null) {
   }
 
   /**
+   * 檢查網路連線狀態
+   * @returns {Promise<boolean>}
+   */
+  async function checkNetworkStatus() {
+    // 基本的線上狀態檢查
+    if (!navigator.onLine) {
+      return false
+    }
+
+    // 嘗試發送一個小的網路請求來驗證連線
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3秒超時
+
+      const response = await fetch('/api/health-check', {
+        method: 'HEAD',
+        signal: controller.signal,
+        cache: 'no-cache',
+      })
+
+      clearTimeout(timeoutId)
+      return response.ok
+    } catch (error) {
+      // 如果健康檢查失敗，嘗試更簡單的檢查
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 2000)
+
+        await fetch('/', {
+          method: 'HEAD',
+          signal: controller.signal,
+          cache: 'no-cache',
+        })
+
+        clearTimeout(timeoutId)
+        return true
+      } catch (fallbackError) {
+        return false
+      }
+    }
+  }
+
+  /**
+   * 檢查音頻格式相容性
+   * @param {string} audioUrl - 音頻 URL
+   * @returns {object} 相容性檢查結果
+   */
+  function checkAudioCompatibility(audioUrl) {
+    const audio = new Audio()
+    const parts = audioUrl.split('.')
+    const extension = parts.length > 1 ? parts.pop()?.toLowerCase() : null
+
+    const formatInfo = {
+      extension,
+      isSupported: false,
+      canPlay: 'no',
+      mimeType: null,
+      recommendation: null,
+    }
+
+    // MIME 類型映射
+    const mimeTypes = {
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      webm: 'audio/webm',
+      m4a: 'audio/mp4',
+      aac: 'audio/aac',
+      flac: 'audio/flac',
+    }
+
+    formatInfo.mimeType = mimeTypes[extension]
+
+    if (formatInfo.mimeType && audio.canPlayType) {
+      formatInfo.canPlay = audio.canPlayType(formatInfo.mimeType)
+      formatInfo.isSupported = formatInfo.canPlay !== ''
+    }
+
+    // 提供建議
+    if (!formatInfo.isSupported) {
+      if (extension === 'ogg') {
+        formatInfo.recommendation = '建議使用 MP3 格式以獲得更好的相容性'
+      } else if (extension === 'flac') {
+        formatInfo.recommendation = '建議使用 MP3 或 AAC 格式'
+      } else if (!extension) {
+        formatInfo.recommendation = '音頻檔案缺少副檔名，無法判斷格式'
+      } else {
+        formatInfo.recommendation = '建議使用 MP3 格式以獲得最佳相容性'
+      }
+    }
+
+    return formatInfo
+  }
+
+  /**
    * 獲取友善的錯誤訊息
    * @param {Error} err - 錯誤對象
-   * @returns {string}
+   * @returns {Promise<string>}
    */
-  function getErrorMessage(err) {
+  async function getErrorMessage(err) {
     if (!err) return '未知錯誤'
 
     const message = err.message || err.toString()
+    const errorCode = err.code || err.name
 
-    // 網路相關錯誤
-    if (message.includes('NetworkError') || message.includes('網路') || !navigator.onLine) {
-      return '網路連線問題，請檢查網路狀態'
+    // 網路相關錯誤 - 進行詳細檢查
+    if (
+      message.includes('NetworkError') ||
+      message.includes('網路') ||
+      errorCode === 'NetworkError'
+    ) {
+      const isOnline = await checkNetworkStatus()
+      if (!isOnline) {
+        return '網路連線中斷，請檢查網路設定後重試'
+      } else {
+        return '網路不穩定，請稍後重試'
+      }
     }
 
-    // 格式不支援錯誤
-    if (message.includes('NotSupportedError') || message.includes('不支援')) {
+    // 離線狀態
+    if (!navigator.onLine) {
+      return '目前處於離線狀態，請檢查網路連線'
+    }
+
+    // 格式不支援錯誤 - 進行相容性檢查
+    if (
+      message.includes('NotSupportedError') ||
+      message.includes('不支援') ||
+      errorCode === 'NotSupportedError'
+    ) {
+      const compatibility = checkAudioCompatibility(audioUrl)
+      if (!compatibility.isSupported && compatibility.recommendation) {
+        return `瀏覽器不支援 ${compatibility.extension?.toUpperCase()} 格式。${compatibility.recommendation}`
+      }
       return '瀏覽器不支援此音頻格式'
     }
 
     // 播放被阻止錯誤
-    if (message.includes('NotAllowedError') || message.includes('阻止')) {
-      return '瀏覽器阻止了音頻播放，請先與頁面互動'
+    if (
+      message.includes('NotAllowedError') ||
+      message.includes('阻止') ||
+      errorCode === 'NotAllowedError'
+    ) {
+      return '瀏覽器阻止了音頻播放，請先點擊頁面任意位置後重試'
     }
 
     // 載入中斷錯誤
-    if (message.includes('AbortError') || message.includes('中斷')) {
-      return '音頻載入被中斷'
+    if (message.includes('AbortError') || message.includes('中斷') || errorCode === 'AbortError') {
+      return '音頻載入被中斷，請重試'
     }
 
     // 解碼錯誤
-    if (message.includes('DecodeError') || message.includes('decode')) {
+    if (
+      message.includes('DecodeError') ||
+      message.includes('decode') ||
+      errorCode === 'DecodeError'
+    ) {
+      const compatibility = checkAudioCompatibility(audioUrl)
+      if (compatibility.recommendation) {
+        return `音頻檔案損壞或格式錯誤。${compatibility.recommendation}`
+      }
       return '音頻檔案損壞或格式錯誤'
     }
 
     // 超時錯誤
     if (message.includes('超時') || message.includes('timeout')) {
-      return '播放超時，請檢查網路連線'
+      const isOnline = await checkNetworkStatus()
+      if (!isOnline) {
+        return '網路連線超時，請檢查網路狀態後重試'
+      }
+      return '載入超時，可能是網路較慢，請重試'
     }
 
     // URL 無效錯誤 (更具體的錯誤，需要先檢查)
     if (message.includes('URL 無效')) {
-      return '音頻 URL 無效'
+      return '音頻檔案路徑無效'
     }
 
     // URL 相關錯誤
     if (message.includes('音頻 URL') || message.includes('路徑')) {
-      return '音頻檔案路徑錯誤'
+      return '找不到音頻檔案，請確認檔案是否存在'
+    }
+
+    // 404 錯誤
+    if (message.includes('404') || message.includes('Not Found')) {
+      return '音頻檔案不存在，請確認檔案路徑'
+    }
+
+    // 403 錯誤
+    if (message.includes('403') || message.includes('Forbidden')) {
+      return '沒有權限存取此音頻檔案'
+    }
+
+    // 500 錯誤
+    if (message.includes('500') || message.includes('Internal Server Error')) {
+      return '伺服器錯誤，請稍後重試'
+    }
+
+    // CORS 錯誤
+    if (message.includes('CORS') || message.includes('跨域')) {
+      return '跨域存取被阻止，請聯繫管理員'
     }
 
     // 預設錯誤訊息
@@ -274,27 +458,60 @@ export function useAudioPlayback(audioUrl, audioId = null) {
   }
 
   /**
-   * 重試播放
+   * 重試播放（帶指數退避策略）
    * @returns {Promise<void>}
    */
   async function retryPlay() {
     // 檢查重試次數限制
     if (retryCount.value >= maxRetries) {
       console.warn('已達最大重試次數:', maxRetries)
-      error.value = `已達最大重試次數 (${maxRetries})`
+      error.value = `已達最大重試次數 (${maxRetries})，請檢查網路連線或音頻檔案`
       return
     }
 
-    console.log('重試播放音頻:', { audioId: id, retryCount: retryCount.value })
+    console.log('重試播放音頻:', {
+      audioId: id,
+      retryCount: retryCount.value,
+      maxRetries,
+    })
+
+    // 設置重試狀態（用於視覺指示）
+    playbackState.value = 'retrying'
+
+    // 指數退避策略：1秒、2秒、4秒，最大8秒
+    const baseDelay = 1000
+    const delay = Math.min(baseDelay * Math.pow(2, retryCount.value - 1), 8000)
+
+    console.log(`重試延遲: ${delay}ms`)
+
+    // 在重試前進行預檢查
+    const networkOk = await checkNetworkStatus()
+    if (!networkOk) {
+      error.value = '網路連線問題，請檢查網路後重試'
+      playbackState.value = PlaybackState.ERROR
+      return
+    }
+
+    // 檢查音頻格式相容性
+    const compatibility = checkAudioCompatibility(audioUrl)
+    if (!compatibility.isSupported) {
+      error.value = `瀏覽器不支援此音頻格式 (${compatibility.extension})`
+      playbackState.value = PlaybackState.ERROR
+      return
+    }
+
+    // 延遲重試
+    await new Promise((resolve) => setTimeout(resolve, delay))
 
     // 重置狀態並重新播放
     playbackState.value = PlaybackState.IDLE
 
-    // 延遲重試，避免過於頻繁
-    const delay = Math.min(1000 * Math.pow(2, retryCount.value - 1), 5000) // 指數退避，最大5秒
-    await new Promise((resolve) => setTimeout(resolve, delay))
-
-    await playAudio()
+    try {
+      await playAudio()
+    } catch (retryError) {
+      console.error('重試播放失敗:', retryError)
+      await handleAudioError(retryError)
+    }
   }
 
   /**
@@ -315,8 +532,11 @@ export function useAudioPlayback(audioUrl, audioId = null) {
    * @returns {Promise<void>}
    */
   async function handleClick() {
-    // 如果正在播放，不響應點擊
-    if (playbackState.value === PlaybackState.PLAYING) {
+    // 如果正在播放或重試中，不響應點擊
+    if (
+      playbackState.value === PlaybackState.PLAYING ||
+      playbackState.value === PlaybackState.RETRYING
+    ) {
       return
     }
 
@@ -393,6 +613,9 @@ export function useAudioPlayback(audioUrl, audioId = null) {
     isPlaying,
     hasError,
     isClickable,
+    isRetrying,
+    canRetry,
+    retryProgress,
 
     // 方法
     handleClick,
@@ -402,6 +625,10 @@ export function useAudioPlayback(audioUrl, audioId = null) {
 
     // 配置
     maxRetries,
+
+    // 工具方法
+    checkNetworkStatus,
+    checkAudioCompatibility,
   }
 }
 
