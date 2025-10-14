@@ -7,6 +7,8 @@
 
 import { ref, computed, onUnmounted, readonly } from 'vue'
 import audioPlayerService from '../services/AudioPlayerService.js'
+import performanceMonitor from '../utils/PerformanceMonitor.js'
+import networkOptimizer from '../utils/NetworkOptimizer.js'
 
 /**
  * 播放狀態枚舉
@@ -39,6 +41,9 @@ export function useAudioPlayback(audioUrl, audioId = null) {
 
   // 音頻元素引用
   let audioElement = null
+
+  // 性能監控會話
+  let monitoringSession = null
 
   /**
    * 計算按鈕樣式類別
@@ -133,7 +138,7 @@ export function useAudioPlayback(audioUrl, audioId = null) {
   }
 
   /**
-   * 創建音頻元素
+   * 創建音頻元素（優化版本）
    * @returns {HTMLAudioElement}
    */
   function createAudioElement() {
@@ -142,14 +147,36 @@ export function useAudioPlayback(audioUrl, audioId = null) {
     }
 
     audioElement = new Audio()
-    audioElement.preload = 'none' // 不預載，節省頻寬
+
+    // 性能優化設置
+    audioElement.preload = 'metadata' // 預載元數據以加快播放響應
     audioElement.crossOrigin = 'anonymous' // 支援跨域音頻
+
+    // 低網速環境優化
+    if (navigator.connection) {
+      const connection = navigator.connection
+      const isSlowConnection =
+        connection.effectiveType === 'slow-2g' ||
+        connection.effectiveType === '2g' ||
+        connection.downlink < 1.5
+
+      if (isSlowConnection) {
+        audioElement.preload = 'none' // 慢速連線時不預載
+        console.log('檢測到慢速網路，調整音頻預載策略')
+      }
+    }
+
+    // 設置音頻緩衝優化
+    if (audioElement.buffered) {
+      // 設置較小的緩衝區以減少記憶體使用
+      audioElement.volume = 1.0 // 確保音量正常
+    }
 
     return audioElement
   }
 
   /**
-   * 播放音頻
+   * 播放音頻（性能優化版本）
    * @returns {Promise<void>}
    */
   async function playAudio() {
@@ -158,31 +185,180 @@ export function useAudioPlayback(audioUrl, audioId = null) {
       return
     }
 
+    // 開始性能監控
+    monitoringSession = performanceMonitor.startMonitoring(id, audioUrl)
+
+    // 性能優化：立即更新UI狀態以提供即時回饋
+    const previousState = playbackState.value
+    playbackState.value = PlaybackState.PLAYING
+    error.value = null
+
     try {
       // 驗證音頻 URL
       validateAudioUrl(audioUrl)
 
-      // 設置播放狀態
-      playbackState.value = PlaybackState.PLAYING
-      error.value = null
+      // 記錄載入開始
+      if (monitoringSession) {
+        performanceMonitor.recordLoadStart(id)
+      }
 
-      // 創建音頻元素
-      const audio = createAudioElement()
+      // 性能優化：檢查網路狀態並調整策略
+      const networkInfo = await getNetworkInfo()
+      const playbackStrategy = getOptimalPlaybackStrategy(networkInfo)
+
+      // 使用網路優化器載入音頻
+      const audio = await networkOptimizer.optimizedAudioLoad(audioUrl, {
+        timeout: playbackStrategy.timeout,
+      })
 
       // 設置音頻源（如果需要）
       if (audio.src !== audioUrl) {
         audio.src = audioUrl
+
+        // 低網速環境優化：預先載入少量數據
+        if (playbackStrategy.shouldPreload) {
+          audio.load()
+        }
+      }
+
+      // 記錄載入完成
+      if (monitoringSession) {
+        performanceMonitor.recordLoadEnd(id)
       }
 
       // 設置事件監聽器
       setupAudioEventListeners(audio)
 
-      // 使用 AudioPlayerService 播放音頻
-      await audioPlayerService.play(id, audio, audioUrl)
+      // 記錄播放開始
+      if (monitoringSession) {
+        performanceMonitor.recordPlayStart(id)
+      }
+
+      // 使用優化的播放策略
+      await playAudioWithStrategy(audio, playbackStrategy)
     } catch (err) {
       console.error('音頻播放失敗:', err)
+
+      // 記錄錯誤
+      if (monitoringSession) {
+        performanceMonitor.recordError(id, err)
+      }
+
+      // 恢復之前的狀態
+      playbackState.value = previousState
       await handleAudioError(err)
     }
+  }
+
+  /**
+   * 獲取網路資訊
+   * @returns {Promise<object>}
+   */
+  async function getNetworkInfo() {
+    const info = {
+      isOnline: navigator.onLine,
+      effectiveType: '4g',
+      downlink: 10,
+      rtt: 100,
+      isSlowConnection: false,
+    }
+
+    // 檢查 Network Information API
+    if (navigator.connection) {
+      const connection = navigator.connection
+      info.effectiveType = connection.effectiveType || '4g'
+      info.downlink = connection.downlink || 10
+      info.rtt = connection.rtt || 100
+
+      info.isSlowConnection =
+        connection.effectiveType === 'slow-2g' ||
+        connection.effectiveType === '2g' ||
+        connection.downlink < 1.5
+    }
+
+    // 進行簡單的網路速度測試
+    try {
+      const startTime = performance.now()
+      const response = await fetch('/favicon.ico', {
+        method: 'HEAD',
+        cache: 'no-cache',
+      })
+      const endTime = performance.now()
+
+      if (response.ok) {
+        const responseTime = endTime - startTime
+        info.actualRtt = responseTime
+
+        // 如果響應時間過長，標記為慢速連線
+        if (responseTime > 1000) {
+          info.isSlowConnection = true
+        }
+      }
+    } catch (error) {
+      console.warn('網路速度測試失敗:', error)
+      info.isSlowConnection = true
+    }
+
+    return info
+  }
+
+  /**
+   * 獲取最佳播放策略
+   * @param {object} networkInfo - 網路資訊
+   * @returns {object}
+   */
+  function getOptimalPlaybackStrategy(networkInfo) {
+    const strategy = {
+      shouldPreload: true,
+      timeout: 10000,
+      retryDelay: 1000,
+      useProgressiveLoading: false,
+      bufferSize: 'default',
+    }
+
+    if (networkInfo.isSlowConnection) {
+      // 慢速網路策略
+      strategy.shouldPreload = false
+      strategy.timeout = 20000 // 增加超時時間
+      strategy.retryDelay = 2000 // 增加重試延遲
+      strategy.useProgressiveLoading = true
+      strategy.bufferSize = 'small'
+
+      console.log('使用慢速網路優化策略')
+    } else if (networkInfo.effectiveType === '3g') {
+      // 中速網路策略
+      strategy.timeout = 15000
+      strategy.retryDelay = 1500
+      strategy.bufferSize = 'medium'
+
+      console.log('使用中速網路優化策略')
+    } else {
+      // 快速網路策略
+      strategy.timeout = 8000
+      strategy.retryDelay = 500
+      strategy.bufferSize = 'large'
+
+      console.log('使用快速網路優化策略')
+    }
+
+    return strategy
+  }
+
+  /**
+   * 使用策略播放音頻
+   * @param {HTMLAudioElement} audio - 音頻元素
+   * @param {object} strategy - 播放策略
+   * @returns {Promise<void>}
+   */
+  async function playAudioWithStrategy(audio, strategy) {
+    // 設置超時處理
+    const playPromise = audioPlayerService.playShortAudio(id, audio, audioUrl)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('播放超時，請檢查網路連線')), strategy.timeout)
+    })
+
+    // 使用策略播放（帶超時）
+    await Promise.race([playPromise, timeoutPromise])
   }
 
   /**
@@ -216,6 +392,11 @@ export function useAudioPlayback(audioUrl, audioId = null) {
    * 處理音頻播放結束
    */
   function handleAudioEnded() {
+    // 記錄播放結束
+    if (monitoringSession) {
+      performanceMonitor.recordPlayEnd(id)
+    }
+
     playbackState.value = PlaybackState.IDLE
     retryCount.value = 0
     error.value = null

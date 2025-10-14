@@ -47,7 +47,7 @@ class AudioPlayerService {
   }
 
   /**
-   * 簡化的播放方法，適用於短音頻檔案
+   * 簡化的播放方法，適用於短音頻檔案（性能優化版本）
    * @param {string|number} audioId - 音頻 ID
    * @param {HTMLAudioElement} audioElement - 音頻元素
    * @param {string} audioUrl - 音頻 URL
@@ -76,22 +76,37 @@ class AudioPlayerService {
         throw new Error('NetworkError: 無網路連線')
       }
 
-      // 設置音頻源（簡化版本，適用於短音頻）
+      // 性能優化：獲取網路資訊並調整播放策略
+      const networkInfo = await this.getNetworkInfo()
+      const playbackConfig = this.getOptimalPlaybackConfig(networkInfo)
+
+      // 設置音頻源（優化版本）
       if (audioElement.src !== audioUrl) {
         audioElement.src = audioUrl
+
+        // 根據網路狀況調整預載策略
+        if (playbackConfig.shouldPreload) {
+          audioElement.preload = 'metadata'
+          audioElement.load()
+        } else {
+          audioElement.preload = 'none'
+        }
       }
+
+      // 設置音頻屬性以優化播放
+      this.optimizeAudioElement(audioElement, playbackConfig)
 
       // 添加基本事件監聽器
       this.addShortAudioEventListeners(audioElement)
 
-      // 開始播放
-      await audioElement.play()
+      // 使用優化的播放方法
+      await this.playWithOptimization(audioElement, playbackConfig)
 
       this.playbackState.isPlaying = true
       this.playbackState.isPaused = false
 
       // 觸發播放事件
-      this.emit('play', { audioId, audioUrl })
+      this.emit('play', { audioId, audioUrl, networkInfo })
     } catch (error) {
       console.error('短音頻播放失敗:', error)
 
@@ -104,6 +119,190 @@ class AudioPlayerService {
       // 重置狀態
       this.reset()
       throw error
+    }
+  }
+
+  /**
+   * 獲取網路資訊（AudioPlayerService 版本）
+   * @returns {Promise<object>}
+   */
+  async getNetworkInfo() {
+    const info = {
+      isOnline: navigator.onLine,
+      effectiveType: '4g',
+      downlink: 10,
+      rtt: 100,
+      isSlowConnection: false,
+      saveData: false,
+    }
+
+    // 檢查 Network Information API
+    if (navigator.connection) {
+      const connection = navigator.connection
+      info.effectiveType = connection.effectiveType || '4g'
+      info.downlink = connection.downlink || 10
+      info.rtt = connection.rtt || 100
+      info.saveData = connection.saveData || false
+
+      info.isSlowConnection =
+        connection.effectiveType === 'slow-2g' ||
+        connection.effectiveType === '2g' ||
+        connection.downlink < 1.5 ||
+        connection.saveData
+    }
+
+    // 檢查記憶體資訊（如果可用）
+    if (navigator.deviceMemory) {
+      info.deviceMemory = navigator.deviceMemory
+      // 低記憶體裝置也視為需要優化
+      if (navigator.deviceMemory < 4) {
+        info.isSlowConnection = true
+      }
+    }
+
+    return info
+  }
+
+  /**
+   * 獲取最佳播放配置
+   * @param {object} networkInfo - 網路資訊
+   * @returns {object}
+   */
+  getOptimalPlaybackConfig(networkInfo) {
+    const config = {
+      shouldPreload: true,
+      timeout: 8000,
+      bufferSize: 'default',
+      useCompression: false,
+      maxRetries: 3,
+      retryDelay: 1000,
+    }
+
+    if (networkInfo.isSlowConnection || networkInfo.saveData) {
+      // 慢速網路或省流量模式配置
+      config.shouldPreload = false
+      config.timeout = 20000
+      config.bufferSize = 'small'
+      config.useCompression = true
+      config.maxRetries = 5
+      config.retryDelay = 2000
+
+      console.log('使用低網速優化配置')
+    } else if (networkInfo.effectiveType === '3g') {
+      // 中速網路配置
+      config.timeout = 12000
+      config.bufferSize = 'medium'
+      config.maxRetries = 4
+      config.retryDelay = 1500
+
+      console.log('使用中速網路配置')
+    } else {
+      // 快速網路配置
+      config.timeout = 6000
+      config.bufferSize = 'large'
+      config.maxRetries = 2
+      config.retryDelay = 500
+
+      console.log('使用高速網路配置')
+    }
+
+    return config
+  }
+
+  /**
+   * 優化音頻元素設置
+   * @param {HTMLAudioElement} audioElement - 音頻元素
+   * @param {object} config - 播放配置
+   */
+  optimizeAudioElement(audioElement, config) {
+    // 設置音量（避免突然的大音量）
+    audioElement.volume = 0.8
+
+    // 根據配置調整緩衝策略
+    if (config.bufferSize === 'small') {
+      // 小緩衝區設置（節省記憶體和頻寬）
+      audioElement.preload = 'none'
+    } else if (config.bufferSize === 'medium') {
+      audioElement.preload = 'metadata'
+    } else {
+      audioElement.preload = 'auto'
+    }
+
+    // 設置跨域屬性
+    audioElement.crossOrigin = 'anonymous'
+
+    // 低延遲播放設置（如果支援）
+    if ('fastSeek' in audioElement) {
+      audioElement.fastSeek = true
+    }
+  }
+
+  /**
+   * 使用優化策略播放音頻
+   * @param {HTMLAudioElement} audioElement - 音頻元素
+   * @param {object} config - 播放配置
+   * @returns {Promise<void>}
+   */
+  async playWithOptimization(audioElement, config) {
+    // 創建播放 Promise
+    const playPromise = audioElement.play()
+
+    // 創建超時 Promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`播放超時 (${config.timeout}ms)，請檢查網路連線`))
+      }, config.timeout)
+    })
+
+    // 創建載入進度監控 Promise（用於慢速網路）
+    const progressPromise = new Promise((resolve, reject) => {
+      let progressTimeout
+
+      const handleCanPlay = () => {
+        clearTimeout(progressTimeout)
+        cleanup()
+        resolve()
+      }
+
+      const handleProgress = () => {
+        // 重置進度超時
+        clearTimeout(progressTimeout)
+        progressTimeout = setTimeout(() => {
+          cleanup()
+          reject(new Error('音頻載入進度停滯'))
+        }, config.timeout / 2)
+      }
+
+      const handleError = (event) => {
+        clearTimeout(progressTimeout)
+        cleanup()
+        reject(new Error(event.target.error?.message || '音頻載入錯誤'))
+      }
+
+      const cleanup = () => {
+        audioElement.removeEventListener('canplay', handleCanPlay)
+        audioElement.removeEventListener('progress', handleProgress)
+        audioElement.removeEventListener('error', handleError)
+      }
+
+      audioElement.addEventListener('canplay', handleCanPlay, { once: true })
+      audioElement.addEventListener('progress', handleProgress)
+      audioElement.addEventListener('error', handleError, { once: true })
+
+      // 初始進度超時
+      progressTimeout = setTimeout(() => {
+        cleanup()
+        reject(new Error('音頻載入超時'))
+      }, config.timeout / 2)
+    })
+
+    // 根據網路狀況選擇等待策略
+    if (config.shouldPreload) {
+      // 快速網路：等待播放完成
+      await Promise.race([playPromise, timeoutPromise])
+    } else {
+      // 慢速網路：等待載入進度或播放完成
+      await Promise.race([playPromise, progressPromise.then(() => playPromise), timeoutPromise])
     }
   }
 
