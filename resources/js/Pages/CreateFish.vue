@@ -34,8 +34,7 @@
 
 <script setup>
 import { Head } from '@inertiajs/vue3'
-
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'
 import FishImageUploader from '@/Components/FishImageUploader.vue'
@@ -96,4 +95,13 @@ function onSizeFinished() {
   router.visit('/fishs')
   submitting.value = false
 }
+
+onMounted(() => {
+  if (!window.heic2any) {
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js'
+    script.async = true
+    document.head.appendChild(script)
+  }
+})
 </script>
