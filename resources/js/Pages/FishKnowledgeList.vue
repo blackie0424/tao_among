@@ -138,17 +138,6 @@
       </div>
     </div>
 
-    <!-- 新增地方知識 FAB 按鈕 -->
-    <FabButton
-      bgClass="bg-blue-600"
-      hoverClass="hover:bg-blue-700"
-      textClass="text-white"
-      label="新增地方知識"
-      icon="+"
-      :to="`/fish/${fish.id}/tribal-classifications/create`"
-      position="left-bottom"
-    />
-
     <!-- 新增進階知識 FAB 按鈕 -->
     <FabButton
       bgClass="bg-blue-600"
@@ -163,11 +152,10 @@
     <!-- 底部導航列 -->
     <BottomNavBar
       :fishBasicInfo="`/fish/${fish.id}`"
-      :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
       :captureRecords="`/fish/${fish.id}/capture-records`"
-      :knowledgeList="`/fish/${fish.id}/knowledge-list`"
+      :knowledge="`/fish/${fish.id}/knowledge`"
       :audioList="`/fish/${fish.id}/audio-list`"
-      :currentPage="'knowledgeList'"
+      :currentPage="'knowledge'"
     />
   </div>
 </template>
