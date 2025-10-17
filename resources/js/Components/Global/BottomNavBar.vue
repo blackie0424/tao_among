@@ -144,7 +144,7 @@
       <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">捕獲紀錄</p>
     </a>
 
-    <!-- 進階知識連結 -->
+    <!-- 知識管理連結 -->
     <a
       v-if="knowledgeList"
       :class="[

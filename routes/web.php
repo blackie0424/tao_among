@@ -3,6 +3,7 @@
 use App\Http\Controllers\FishController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishAudioController;
+use App\Http\Controllers\KnowledgeHubController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [FishController::class, 'index']);
@@ -23,12 +24,6 @@ Route::put('/fish/{id}/name', [FishController::class, 'updateName'])->name('fish
 Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.destroy');
 Route::get('/fish/{id}/editSize', [FishController::class, 'editSize'])->name('fish.editSize');
 Route::put('/fish/{id}/size', [FishController::class, 'updateSize'])->name('fish.updateSize');
-Route::get('/fish/{id}/tribal-classifications', [FishController::class, 'tribalClassifications'])->name('fish.tribal-classifications');
-Route::get('/fish/{id}/tribal-classifications/create', [FishController::class, 'createTribalClassification'])->name('fish.tribal-classifications.create');
-Route::post('/fish/{id}/tribal-classifications', [FishController::class, 'storeTribalClassification'])->name('fish.tribal-classifications.store');
-Route::get('/fish/{id}/tribal-classifications/{classification_id}/edit', [FishController::class, 'editTribalClassification'])->name('fish.tribal-classifications.edit');
-Route::put('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'updateTribalClassification'])->name('fish.tribal-classifications.update');
-Route::delete('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'destroyTribalClassification'])->name('fish.tribal-classifications.destroy');
 
 // 捕獲紀錄路由
 Route::get('/fish/{id}/capture-records', [FishController::class, 'captureRecords'])->name('fish.capture-records');
@@ -37,6 +32,18 @@ Route::post('/fish/{id}/capture-records', [FishController::class, 'storeCaptureR
 Route::get('/fish/{id}/capture-records/{record_id}/edit', [FishController::class, 'editCaptureRecord'])->name('fish.capture-records.edit');
 Route::put('/fish/{id}/capture-records/{record_id}', [FishController::class, 'updateCaptureRecord'])->name('fish.capture-records.update');
 Route::delete('/fish/{id}/capture-records/{record_id}', [FishController::class, 'destroyCaptureRecord'])->name('fish.capture-records.destroy');
+
+// 知識管理路由
+Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index'])->name('fish.knowledge');
+
+// 地方知識路由
+Route::get('/fish/{id}/tribal-classifications', [FishController::class, 'tribalClassifications'])->name('fish.tribal-classifications');
+Route::get('/fish/{id}/tribal-classifications/create', [FishController::class, 'createTribalClassification'])->name('fish.tribal-classifications.create');
+Route::post('/fish/{id}/tribal-classifications', [FishController::class, 'storeTribalClassification'])->name('fish.tribal-classifications.store');
+Route::get('/fish/{id}/tribal-classifications/{classification_id}/edit', [FishController::class, 'editTribalClassification'])->name('fish.tribal-classifications.edit');
+Route::put('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'updateTribalClassification'])->name('fish.tribal-classifications.update');
+Route::delete('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'destroyTribalClassification'])->name('fish.tribal-classifications.destroy');
+
 
 // 進階知識管理路由
 Route::get('/fish/{fish}/knowledge-list', [FishNoteController::class, 'knowledgeList'])->name('fish.knowledge-list');
