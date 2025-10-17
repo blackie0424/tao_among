@@ -18,7 +18,7 @@
       :fishBasicInfo="`/fish/${fish.id}`"
       :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
       :captureRecords="`/fish/${fish.id}/capture-records`"
-      :knowledgeList="`/fish/${fish.id}/knowledge-list`"
+      :knowledge="`/fish/${fish.id}/knowledge`"
       :audioList="`/fish/${fish.id}/audio-list`"
       :currentPage="'fishBasicInfo'"
     />

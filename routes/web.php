@@ -34,7 +34,7 @@ Route::put('/fish/{id}/capture-records/{record_id}', [FishController::class, 'up
 Route::delete('/fish/{id}/capture-records/{record_id}', [FishController::class, 'destroyCaptureRecord'])->name('fish.capture-records.destroy');
 
 // 知識管理路由
-Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index'])->name('fish.knowledge');
+Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index']);
 
 // 地方知識路由
 Route::get('/fish/{id}/tribal-classifications', [FishController::class, 'tribalClassifications'])->name('fish.tribal-classifications');
