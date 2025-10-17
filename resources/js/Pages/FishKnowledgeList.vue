@@ -87,16 +87,17 @@
           </div>
           <h3 class="text-xl font-medium text-gray-900 mb-3">尚未記錄進階知識</h3>
           <p class="text-gray-500 mb-6 max-w-md mx-auto">
-            開始記錄這條魚的進階知識，包括生態習性、營養價值、烹飪方法等各種分類資訊
+            開始記錄這條魚的進階知識，可以參考下方的分類標籤進行紀錄
           </p>
           <div class="text-sm text-gray-400">
             <p>可記錄的分類包括：</p>
             <div class="flex flex-wrap justify-center gap-2 mt-2">
-              <span class="px-2 py-1 bg-gray-100 rounded text-xs">一般知識</span>
-              <span class="px-2 py-1 bg-gray-100 rounded text-xs">生態習性</span>
-              <span class="px-2 py-1 bg-gray-100 rounded text-xs">營養價值</span>
-              <span class="px-2 py-1 bg-gray-100 rounded text-xs">烹飪方法</span>
-              <span class="px-2 py-1 bg-gray-100 rounded text-xs">文化意義</span>
+              <span class="px-2 py-1 bg-gray-100 rounded text-xs">外觀特徵</span>
+              <span class="px-2 py-1 bg-gray-100 rounded text-xs">分布地區</span>
+              <span class="px-2 py-1 bg-gray-100 rounded text-xs">傳統價值</span>
+              <span class="px-2 py-1 bg-gray-100 rounded text-xs">經驗分享</span>
+              <span class="px-2 py-1 bg-gray-100 rounded text-xs">相關故事</span>
+              <span class="px-2 py-1 bg-gray-100 rounded text-xs">游棲生態</span>
             </div>
           </div>
         </div>
