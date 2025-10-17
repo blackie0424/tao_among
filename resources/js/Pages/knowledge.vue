@@ -9,7 +9,7 @@
       :captureRecords="`/fish/${fish.id}/capture-records`"
       :knowledge="`/fish/${fish.id}/knowledge`"
       :audioList="`/fish/${fish.id}/audio-list`"
-      :currentPage="'fishBasicInfo'"
+      :currentPage="'knowledge'"
     />
   </div>
 </template>
