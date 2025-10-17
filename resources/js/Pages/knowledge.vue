@@ -24,11 +24,13 @@
             <div class="flex flex-wrap gap-4 text-sm">
               <div class="flex items-center">
                 <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                <span class="text-gray-700"> 已記錄 999 筆地方知識 </span>
+                <span class="text-gray-700">
+                  已記錄 {{ tribalClassificationsCount }} 筆地方知識
+                </span>
               </div>
               <div class="flex items-center">
                 <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-                <span class="text-gray-700"> 已記錄 999 筆進階知識 </span>
+                <span class="text-gray-700"> 已記錄 {{ notes }} 筆進階知識 </span>
               </div>
             </div>
           </div>
@@ -96,5 +98,7 @@ import LazyImage from '../Components/LazyImage.vue'
 
 const props = defineProps({
   fish: Object,
+  notes: Number,
+  tribalClassificationsCount: Number,
 })
 </script>

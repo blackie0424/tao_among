@@ -19,7 +19,9 @@ class KnowledgeHubController extends Controller
         $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
         $fish = $this->fishService->getFishByIdAndLocate($id, $locate);
         return Inertia::render('knowledge', [
-            'fish' => $fish
+            'fish' => $fish,
+            'tribalClassificationsCount' =>$fish->tribalClassifications()->count(),
+            'notes' => $fish->notes()->count()
         ]);
     }
 }
