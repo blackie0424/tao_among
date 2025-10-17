@@ -1,13 +1,20 @@
 <!-- filepath: resources/js/Components/FishDetailLeft.vue -->
 <template>
   <div class="w-full flex flex-col items-center">
-    <div class="fish-section-card">
-      <FishName
-        :fish-name="fish.name"
-        :fish-id="fish.id"
-        :audios="fish.audios"
-        class="w-full max-w-2xl text-2xl mb-4"
-      />
+    <div class="pb-20">
+      <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div class="flex flex-col md:flex-row items-center gap-4">
+          <!-- 魚類圖片 -->
+          <div class="w-full md:w-1/3">
+            <FishName
+              :fish-name="fish.name"
+              :fish-id="fish.id"
+              :audios="fish.audios"
+              class="w-full max-w-2xl text-2xl mb-4"
+            />
+          </div>
+        </div>
+      </div>
       <LazyImage
         :src="fish.image"
         :alt="fish.name"
