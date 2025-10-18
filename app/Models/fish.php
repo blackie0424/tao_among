@@ -86,6 +86,11 @@ class Fish extends Model
         if (!$this->image) {
             return env('ASSET_URL') . '/images/default.png';
         }
+        // 判斷 has_webp 欄位
+        if ($this->has_webp) {
+            $baseName = pathinfo($this->image, PATHINFO_FILENAME);
+            return "{$storageUrl}/object/public/{$bucket}/webp/{$baseName}.webp";
+        }
         return "{$storageUrl}/object/public/{$bucket}/images/{$this->image}";
     }
 }
