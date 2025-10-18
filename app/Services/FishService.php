@@ -19,7 +19,7 @@ class FishService
     {
         $fishes = Fish::orderBy('id', 'desc')->get();
 
-        return $this->assignImageUrls($fishes);
+        return $fishes;
     }
 
     public function getFishesBySince($since)

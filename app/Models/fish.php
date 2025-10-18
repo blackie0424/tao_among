@@ -20,6 +20,9 @@ class Fish extends Model
 
     protected $fillable = ['name', 'image'];
 
+    protected $appends = ['image_url'];
+
+
     protected static function booted()
     {
         static::deleting(function ($fish) {
@@ -74,5 +77,15 @@ class Fish extends Model
     protected function serializeDate(\DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');
+    }
+
+    public function getImageUrlAttribute()
+    {
+        $storageUrl = env('SUPABASE_STORAGE_URL');
+        $bucket = env('SUPABASE_BUCKET');
+        if (!$this->image) {
+            return env('ASSET_URL') . '/images/default.png';
+        }
+        return "{$storageUrl}/object/public/{$bucket}/images/{$this->image}";
     }
 }

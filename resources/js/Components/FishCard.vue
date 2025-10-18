@@ -1,7 +1,7 @@
 <template>
   <div class="card flex flex-col items-center">
     <LazyImage
-      :src="fish.image"
+      :src="fish.image_url"
       :alt="fish.name"
       wrapperClass="image w-full h-48 overflow-hidden flex items-center justify-center bg-gray-100 rounded-lg"
       imgClass="w-full h-full object-contain rounded-lg"
