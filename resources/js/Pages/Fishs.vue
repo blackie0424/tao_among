@@ -115,7 +115,7 @@ const performSearch = () => {
   )
 
   // 使用 Inertia 進行搜尋
-  router.get('/search', cleanParams, {
+  router.get('/fishs', cleanParams, {
     preserveState: true,
     preserveScroll: true,
     onSuccess: (page) => {
@@ -137,18 +137,6 @@ const clearAllFilters = () => {
     processing_method: '',
     location: '',
   }
-
-  // 重新導向到搜尋頁面，不帶任何參數
-  router.get(
-    '/search',
-    {},
-    {
-      preserveState: false,
-      onSuccess: (page) => {
-        searchResults.value = page.props.fishs || []
-      },
-    }
-  )
 }
 
 // 監聽 props 變化
