@@ -3,16 +3,42 @@
 
   <div class="container mx-auto p-4 pb-20">
     <!-- 色調切換按鈕（改用 DarkModeSwitcher） -->
-    <DarkModeSwitcher :show-button="false" />
     <main>
-      <!-- 篩選面板 -->
-      <FilterPanel
-        :filters="currentFilters"
-        :tribes="searchOptions.tribes"
-        :food-categories="searchOptions.dietaryClassifications"
-        :processing-methods="searchOptions.processingMethods"
-        @filters-change="handleFiltersChange"
-      />
+      <!-- 篩選面板（支援深色模式） -->
+      <transition name="fade">
+        <div
+          v-if="showFilterPanel"
+          class="fixed inset-0 z-40 flex items-start justify-center bg-black/30"
+        >
+          <div
+            class="bg-white dark:bg-gray-900 rounded-lg shadow-lg mt-16 p-4 w-full max-w-xl relative"
+          >
+            <button
+              class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              @click="showFilterPanel = false"
+              aria-label="關閉篩選"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <FilterPanel
+              :filters="currentFilters"
+              :tribes="searchOptions.tribes"
+              :food-categories="searchOptions.dietaryClassifications"
+              :processing-methods="searchOptions.processingMethods"
+              @filters-change="handleFiltersChange"
+            />
+          </div>
+        </div>
+      </transition>
 
       <!-- 搜尋結果 -->
       <SearchResults
@@ -24,8 +50,6 @@
     </main>
 
     <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
-
-    <!-- 魚類圖鑑頁面的底部導航 -->
     <HomeBottomNavBar />
   </div>
 </template>
@@ -78,9 +102,15 @@ const currentFilters = ref({
 
 const searchResults = ref(props.fishs || [])
 const isLoading = ref(false)
+const showFilterPanel = ref(false)
 
 // 搜尋防抖動計時器
 let searchTimer = null
+
+// 切換篩選面板顯示狀態
+const toggleFilterPanel = () => {
+  showFilterPanel.value = !showFilterPanel.value
+}
 
 // 處理篩選條件變更
 const handleFiltersChange = (newFilters) => {
@@ -174,3 +204,13 @@ onMounted(() => {
   }
 })
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active in <2.1.8 */ {
+  opacity: 0;
+}
+</style>
