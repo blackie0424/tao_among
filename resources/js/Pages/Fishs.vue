@@ -1,8 +1,25 @@
 <template>
   <Head title="魚類圖鑑清單" />
 
-  <div class="container mx-auto p-4 pb-20">
-    <!-- 色調切換按鈕（改用 DarkModeSwitcher） -->
+  <div class="container mx-auto p-4 pb-20 relative">
+    <!-- 搜尋 icon（固定右上角，支援深色模式） -->
+    <button
+      class="fixed top-4 right-4 z-50 bg-white/80 dark:bg-gray-800/80 rounded-full shadow p-2 hover:bg-blue-100 dark:hover:bg-blue-900 transition"
+      @click="toggleFilterPanel"
+      aria-label="展開搜尋篩選"
+    >
+      <svg
+        class="w-6 h-6 text-gray-700 dark:text-gray-200"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+    </button>
+
     <main>
       <!-- 篩選面板（支援深色模式） -->
       <transition name="fade">
