@@ -1,5 +1,5 @@
 <template>
-  <Head title="魚類圖鑑清單" />
+  <Head title="雅美（達悟）族魚類圖鑑" />
 
   <div class="container mx-auto p-4 pb-20 relative">
     <!-- 使用抽出的搜尋按鈕元件 -->
