@@ -2,14 +2,14 @@
   <Head title="魚類圖鑑清單" />
 
   <div class="container mx-auto p-4 pb-20 relative">
-    <!-- 搜尋 icon（固定右上角，支援深色模式） -->
+    <!-- 搜尋 icon（固定右上角，支援深色/淺色模式） -->
     <button
-      class="fixed top-4 right-4 z-50 bg-white/80 dark:bg-gray-800/80 rounded-full shadow p-2 hover:bg-blue-100 dark:hover:bg-blue-900 transition"
+      class="fixed top-4 right-4 z-50 bg-white/90 dark:bg-gray-800/80 rounded-full shadow p-2 hover:bg-blue-100 dark:hover:bg-blue-900 transition border border-gray-300 dark:border-gray-700"
       @click="toggleFilterPanel"
       aria-label="展開搜尋篩選"
     >
       <svg
-        class="w-6 h-6 text-gray-700 dark:text-gray-200"
+        class="w-6 h-6 text-blue-700 dark:text-gray-200"
         fill="none"
         stroke="currentColor"
         stroke-width="2"
@@ -21,17 +21,17 @@
     </button>
 
     <main>
-      <!-- 篩選面板（支援深色模式） -->
+      <!-- 篩選面板（支援深色/淺色模式，提升對比） -->
       <transition name="fade">
         <div
           v-if="showFilterPanel"
           class="fixed inset-0 z-40 flex items-start justify-center bg-black/30"
         >
           <div
-            class="bg-white dark:bg-gray-900 rounded-lg shadow-lg mt-16 p-4 w-full max-w-xl relative"
+            class="bg-white dark:bg-gray-900 rounded-lg shadow-lg mt-16 p-4 w-full max-w-xl relative border border-gray-200 dark:border-gray-700"
           >
             <button
-              class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              class="absolute top-2 right-2 text-gray-500 hover:text-blue-700 dark:hover:text-gray-200"
               @click="showFilterPanel = false"
               aria-label="關閉篩選"
             >
@@ -46,13 +46,15 @@
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-            <FilterPanel
-              :filters="currentFilters"
-              :tribes="searchOptions.tribes"
-              :food-categories="searchOptions.dietaryClassifications"
-              :processing-methods="searchOptions.processingMethods"
-              @filters-change="handleFiltersChange"
-            />
+            <div class="text-gray-800 dark:text-gray-100">
+              <FilterPanel
+                :filters="currentFilters"
+                :tribes="searchOptions.tribes"
+                :food-categories="searchOptions.dietaryClassifications"
+                :processing-methods="searchOptions.processingMethods"
+                @filters-change="handleFiltersChange"
+              />
+            </div>
           </div>
         </div>
       </transition>

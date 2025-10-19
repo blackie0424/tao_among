@@ -5,13 +5,16 @@
       class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
     >
       <div class="flex items-center justify-between">
-        <div class="text-sm text-blue-800 dark:text-blue-200">
-          找到 <span class="font-semibold">{{ results.length }}</span> 筆結果
-          <span v-if="activeFiltersCount > 0" class="ml-2">
+        <div class="text-sm text-blue-900 dark:text-red-800 font-medium">
+          找到 <span class="font-bold">{{ results.length }}</span> 筆結果
+          <span
+            v-if="activeFiltersCount > 0"
+            class="ml-2 text-blue-700 dark:text-blue-300 font-normal"
+          >
             (已套用 {{ activeFiltersCount }} 個篩選條件)
           </span>
         </div>
-        <div v-if="loading" class="text-sm text-blue-600 dark:text-blue-400">搜尋中...</div>
+        <div v-if="loading" class="text-sm text-blue-700 dark:text-blue-300">搜尋中...</div>
       </div>
     </div>
 
