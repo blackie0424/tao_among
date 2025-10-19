@@ -6,7 +6,7 @@
     <DarkModeSwitcher :show-button="false" />
     <main>
       <section class="main grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <FishCard v-for="fish in fishes" :key="fish.id" :fish="fish" />
+        <FishCard v-for="fish in fishs" :key="fish.id" :fish="fish" />
       </section>
     </main>
 
@@ -25,7 +25,7 @@ import DarkModeSwitcher from '@/Components/DarkModeSwitcher.vue'
 import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue'
 
 defineProps({
-  fishes: {
+  fishs: {
     type: Array,
     required: true,
   },

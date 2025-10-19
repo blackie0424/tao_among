@@ -65,9 +65,9 @@ class FishController extends Controller
 
     public function getFishs(Request $request)
     {
-        $fishes = $this->fishService->getAllFishes();
+        $fishs = $this->fishService->getAllFishes();
         return Inertia::render('Fishs', [
-            'fishes' => $fishes
+            'fishs' => $fishs
         ]);
     }
 
