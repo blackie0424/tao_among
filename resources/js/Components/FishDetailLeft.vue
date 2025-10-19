@@ -5,7 +5,7 @@
       <div class="bg-white rounded-lg shadow-md p-4 mb-6">
         <div class="flex flex-col md:flex-row items-center gap-4">
           <!-- 魚類圖片 -->
-          <div class="w-full md:w-1/3">
+          <div class="w-full">
             <FishName
               :fish-name="fish.name"
               :fish-id="fish.id"
