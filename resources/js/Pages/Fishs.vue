@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 
 import FishCard from '@/Components/FishCard.vue'
 import DarkModeSwitcher from '@/Components/DarkModeSwitcher.vue'

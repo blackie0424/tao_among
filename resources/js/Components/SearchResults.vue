@@ -70,7 +70,7 @@
           <!-- 部落分類資訊 -->
           <div
             v-if="fish.tribal_classifications && fish.tribal_classifications.length > 0"
-            class="space-y-2 mb-3"
+            class="hidden"
           >
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">部落分類資訊：</h4>
             <div class="space-y-1">
@@ -136,10 +136,7 @@
           </div>
 
           <!-- 捕獲紀錄資訊 -->
-          <div
-            v-if="fish.capture_records && fish.capture_records.length > 0"
-            class="space-y-2 mb-3"
-          >
+          <div v-if="fish.capture_records && fish.capture_records.length > 0" class="hidden">
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">捕獲紀錄：</h4>
             <div class="space-y-1">
               <div
@@ -171,7 +168,7 @@
           </div>
 
           <!-- 查看詳情按鈕 -->
-          <div class="flex justify-end">
+          <div class="hidden">
             <a
               :href="`/fish/${fish.id}`"
               class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
