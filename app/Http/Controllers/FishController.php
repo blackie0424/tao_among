@@ -65,9 +65,15 @@ class FishController extends Controller
 
     public function getFishs(Request $request)
     {
-        $fishs = $this->fishService->getAllFishes();
+        $filters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
+        $fishs = $this->fishSearchService->search($filters);
+        $searchOptions = $this->fishSearchService->getSearchOptions();
+        $searchStats = $this->fishSearchService->getSearchStats($filters);
         return Inertia::render('Fishs', [
-            'fishs' => $fishs
+            'fishs' => $fishs,
+            'filters' => $filters,
+            'searchOptions' => $searchOptions,
+            'searchStats' => $searchStats,
         ]);
     }
 

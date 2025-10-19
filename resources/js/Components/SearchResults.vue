@@ -49,7 +49,7 @@
         <!-- 魚類圖片 -->
         <div class="aspect-w-16 aspect-h-9">
           <LazyImage
-            :src="fish.image"
+            :src="fish.image_url"
             :alt="fish.name"
             wrapperClass="w-full h-48 overflow-hidden rounded-t-lg bg-gray-100 dark:bg-gray-700"
             imgClass="w-full h-full object-cover"

@@ -28,7 +28,7 @@ class FishSearchService
         $results = $query->get();
         
         // 處理圖片 URL
-        return $this->fishService->assignImageUrls($results);
+        return $results;
     }
 
     /**
