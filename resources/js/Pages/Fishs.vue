@@ -30,16 +30,18 @@
           <div
             class="bg-white dark:bg-gray-900 rounded-lg shadow-lg mt-16 p-4 w-full max-w-xl relative border border-gray-200 dark:border-gray-700"
           >
+            <!-- 放大且明顯的紅色關閉 icon -->
             <button
-              class="absolute top-2 right-2 text-gray-500 hover:text-blue-700 dark:hover:text-gray-200"
+              class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white rounded-full p-3 shadow-lg transition text-2xl flex items-center justify-center"
+              style="width: 48px; height: 48px"
               @click="showFilterPanel = false"
               aria-label="關閉篩選"
             >
               <svg
-                class="w-5 h-5"
+                class="w-7 h-7"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="3"
                 viewBox="0 0 24 24"
               >
                 <line x1="18" y1="6" x2="6" y2="18" />
