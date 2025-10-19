@@ -6,7 +6,7 @@
     >
       <div class="flex items-center justify-between">
         <div class="text-sm text-blue-900 dark:text-red-800 font-medium">
-          找到 <span class="font-bold">{{ results.length }}</span> 筆結果
+          找到 <span class="font-bold">{{ results.length }}</span> 筆魚類資料
           <span
             v-if="activeFiltersCount > 0"
             class="ml-2 text-blue-700 dark:text-blue-300 font-normal"
