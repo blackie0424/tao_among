@@ -169,24 +169,6 @@
               </div>
             </div>
           </div>
-
-          <!-- 查看詳情按鈕 -->
-          <div class="hidden">
-            <a
-              :href="`/fish/${fish.id}`"
-              class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-            >
-              查看詳情
-              <svg class="ml-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </a>
-          </div>
         </div>
       </div>
     </div>
