@@ -9,12 +9,12 @@
           找到 <span class="font-bold">{{ results.length }}</span> 筆魚類資料
           <span
             v-if="activeFiltersCount > 0"
-            class="ml-2 text-blue-700 dark:text-blue-300 font-normal"
+            class="ml-2 text-blue-700 dark:text-red-300 font-normal"
           >
             (已套用 {{ activeFiltersCount }} 個篩選條件)
           </span>
         </div>
-        <div v-if="loading" class="text-sm text-blue-700 dark:text-blue-300">搜尋中...</div>
+        <div v-if="loading" class="text-sm text-blue-700 dark:text-red-300">搜尋中...</div>
       </div>
     </div>
 
