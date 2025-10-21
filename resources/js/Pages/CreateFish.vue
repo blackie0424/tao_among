@@ -8,7 +8,7 @@
       :submitting="submitting"
       title="新增魚類"
       :showSubmit="true"
-      :submitLabel="step === 1 && submitting ? '上傳中...' : step === 3 ? '送出' : '下一步'"
+      :submitLabel="step === 1 && submitting ? '上傳中...' : step === 2 ? '送出' : '下一步'"
       :showLoading="step === 1 && submitting"
     />
     <div class="pt-16">
@@ -18,15 +18,6 @@
         :uploadedFileName="uploadedFileName"
         @submitted="onFishSubmitted"
         ref="nameFormRef"
-      />
-      <FishSizeSelector
-        v-if="step === 3"
-        :fishId="fishId"
-        :mode="'create'"
-        :modelValue="sizeParts"
-        @update:modelValue="(val) => (sizeParts = val)"
-        @finished="onSizeFinished"
-        ref="sizeSelectorRef"
       />
     </div>
   </div>
@@ -39,17 +30,14 @@ import { router } from '@inertiajs/vue3'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'
 import FishImageUploader from '@/Components/FishImageUploader.vue'
 import FishNameForm from '@/Components/FishNameForm.vue'
-import FishSizeSelector from '@/Components/FishSizeSelector.vue'
 
 const step = ref(1)
 const uploadedFileName = ref('')
-const fishId = ref(null)
 const submitting = ref(false)
 const uploaderRef = ref(null)
 const nameFormRef = ref(null)
-const sizeSelectorRef = ref(null)
-const sizeParts = ref([]) // 建立時預設空陣列，讓使用者自行選擇
 
+// 返回
 function goBack() {
   window.history.length > 1 ? window.history.back() : router.visit('/fishs')
 }
@@ -71,11 +59,6 @@ function handleNext() {
     nameFormRef.value.submitForm().finally(() => {
       submitting.value = false
     })
-  } else if (step.value === 3 && sizeSelectorRef.value) {
-    submitting.value = true
-    sizeSelectorRef.value.submitSize().finally(() => {
-      submitting.value = false
-    })
   } else {
     submitting.value = false
   }
@@ -86,12 +69,9 @@ function onImageUploaded(filename) {
   step.value = 2
   submitting.value = false
 }
-function onFishSubmitted(id) {
-  fishId.value = id
-  step.value = 3
-  submitting.value = false
-}
-function onSizeFinished() {
+
+function onFishSubmitted(/* id */) {
+  // 名稱送出後直接導回列表（已移除尺寸步驟）
   router.visit('/fishs')
   submitting.value = false
 }
