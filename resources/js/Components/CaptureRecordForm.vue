@@ -12,12 +12,14 @@
       </div>
       <div>
         <p class="text-sm font-medium text-gray-900">正在為 {{ fishName }} 新增捕獲紀錄</p>
-        <p class="text-xs text-gray-500">請上傳照片並填寫捕獲資訊</p>
+        <p class="text-xs text-gray-500">
+          分三個步驟完成：上傳照片 → 填寫部落/地點/時間 → 選擇捕獲方法
+        </p>
       </div>
     </div>
 
-    <!-- 捕獲照片上傳 -->
-    <div>
+    <!-- Step 1: 圖片上傳 -->
+    <div v-if="step === 1">
       <label for="image" class="block text-sm font-medium text-gray-700 mb-1">
         捕獲照片 <span class="text-red-500">*</span>
       </label>
@@ -51,7 +53,7 @@
                 accept="image/*"
                 class="sr-only"
                 @change="handleImageChange"
-                required
+                :disabled="uploading"
               />
             </label>
           </div>
@@ -59,89 +61,93 @@
         </div>
       </div>
       <div v-if="errors.image" class="text-red-500 text-sm mt-1">{{ errors.image }}</div>
+
+      <!-- 導航按鈕已改由 TopNavBar 控制 -->
     </div>
 
-    <!-- 部落選擇 -->
-    <div>
-      <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">
-        捕獲部落 <span class="text-red-500">*</span>
-      </label>
-      <select
-        id="tribe"
-        v-model="form.tribe"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required
-      >
-        <option value="">請選擇部落</option>
-        <option v-for="tribe in tribes" :key="tribe" :value="tribe">
-          {{ tribe }}
-        </option>
-      </select>
-      <div v-if="errors.tribe" class="text-red-500 text-sm mt-1">{{ errors.tribe }}</div>
-    </div>
-
-    <!-- 捕獲地點 -->
-    <div>
-      <label for="location" class="block text-sm font-medium text-gray-700 mb-1">
-        捕獲地點 <span class="text-red-500">*</span>
-      </label>
-      <input
-        id="location"
-        v-model="form.location"
-        type="text"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="請輸入捕獲地點"
-        required
-      />
-      <div v-if="errors.location" class="text-red-500 text-sm mt-1">{{ errors.location }}</div>
-    </div>
-
-    <!-- 捕獲方式 -->
-    <div>
-      <label for="capture_method" class="block text-sm font-medium text-gray-700 mb-1">
-        捕獲方式 <span class="text-red-500">*</span>
-      </label>
-      <input
-        id="capture_method"
-        v-model="form.capture_method"
-        type="text"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="請輸入捕獲方式"
-        required
-      />
-      <div v-if="errors.capture_method" class="text-red-500 text-sm mt-1">
-        {{ errors.capture_method }}
+    <!-- Step 2: 部落、地點、時間 -->
+    <div v-if="step === 2">
+      <div>
+        <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">
+          捕獲部落 <span class="text-red-500">*</span>
+        </label>
+        <select
+          id="tribe"
+          v-model="form.tribe"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">請選擇部落</option>
+          <option v-for="tribe in tribes" :key="tribe" :value="tribe">{{ tribe }}</option>
+        </select>
+        <div v-if="errors.tribe" class="text-red-500 text-sm mt-1">{{ errors.tribe }}</div>
       </div>
-    </div>
 
-    <!-- 捕獲日期 -->
-    <div>
-      <label for="capture_date" class="block text-sm font-medium text-gray-700 mb-1">
-        捕獲日期 <span class="text-red-500">*</span>
-      </label>
-      <input
-        id="capture_date"
-        v-model="form.capture_date"
-        type="date"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required
-      />
-      <div v-if="errors.capture_date" class="text-red-500 text-sm mt-1">
-        {{ errors.capture_date }}
+      <div>
+        <label for="location" class="block text-sm font-medium text-gray-700 mb-1">
+          捕獲地點 <span class="text-red-500">*</span>
+        </label>
+        <input
+          id="location"
+          v-model="form.location"
+          type="text"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="請輸入捕獲地點"
+        />
+        <div v-if="errors.location" class="text-red-500 text-sm mt-1">{{ errors.location }}</div>
       </div>
+
+      <div>
+        <label for="capture_date" class="block text-sm font-medium text-gray-700 mb-1">
+          捕獲日期 <span class="text-red-500">*</span>
+        </label>
+        <input
+          id="capture_date"
+          v-model="form.capture_date"
+          type="date"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <div v-if="errors.capture_date" class="text-red-500 text-sm mt-1">
+          {{ errors.capture_date }}
+        </div>
+      </div>
+
+      <!-- 導航按鈕已改由 TopNavBar 控制 -->
     </div>
 
-    <!-- 備註 -->
-    <div>
-      <label for="notes" class="block text-sm font-medium text-gray-700 mb-1"> 備註 </label>
-      <textarea
-        id="notes"
-        v-model="form.notes"
-        rows="3"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="請輸入相關備註資訊"
-      ></textarea>
-      <div v-if="errors.notes" class="text-red-500 text-sm mt-1">{{ errors.notes }}</div>
+    <!-- Step 3: 捕獲方式 + 備註 + 送出 -->
+    <div v-if="step === 3">
+      <div>
+        <label for="capture_method" class="block text-sm font-medium text-gray-700 mb-1"
+          >捕獲方式 <span class="text-red-500">*</span></label
+        >
+        <select
+          id="capture_method"
+          v-model="form.capture_method"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">請選擇捕獲方式</option>
+          <option value="mapazat">mapazat</option>
+          <option value="mamasil">mamasil</option>
+          <option value="mamacik">mamacik</option>
+        </select>
+        <div v-if="errors.capture_method" class="text-red-500 text-sm mt-1">
+          {{ errors.capture_method }}
+        </div>
+      </div>
+
+      <div>
+        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1"> 備註 </label>
+        <textarea
+          id="notes"
+          v-model="form.notes"
+          rows="3"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="請輸入相關備註資訊"
+        ></textarea>
+        <div v-if="errors.notes" class="text-red-500 text-sm mt-1">{{ errors.notes }}</div>
+      </div>
+
+      <!-- 導航按鈕已改由 TopNavBar 控制 -->
     </div>
   </form>
 </template>
@@ -160,6 +166,7 @@ const props = defineProps({
 
 const emit = defineEmits(['submitted'])
 
+const step = ref(1)
 const form = reactive({
   image: null,
   tribe: '',
@@ -167,17 +174,18 @@ const form = reactive({
   capture_method: '',
   capture_date: '',
   notes: '',
+  image_filename: null,
 })
 
 const errors = ref({})
 const processing = ref(false)
+const uploading = ref(false)
 const imagePreview = ref(null)
 
 function handleImageChange(event) {
   const file = event.target.files[0]
   if (file) {
     form.image = file
-
     // 建立預覽
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -187,54 +195,83 @@ function handleImageChange(event) {
   }
 }
 
-async function submitForm() {
-  processing.value = true
-  errors.value = {}
-
+async function uploadImage() {
+  if (!form.image) {
+    errors.value.image = '請先選擇圖片'
+    return false
+  }
+  uploading.value = true
+  errors.value.image = null
   try {
-    let imageFilename = null
-
-    // 如果有選擇圖片，先上傳到 Supabase
-    if (form.image) {
-      try {
-        // 1. 取得簽名上傳 URL
-        const signedUrlResponse = await fetch('/prefix/api/supabase/signed-upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: form.image.name }),
-        })
-
-        const signedUrlData = await signedUrlResponse.json()
-        if (!signedUrlResponse.ok) {
-          throw new Error(signedUrlData.message || '取得上傳網址失敗')
-        }
-
-        // 2. 直接上傳檔案到 Supabase
-        const uploadResponse = await fetch(signedUrlData.url, {
-          method: 'PUT',
-          body: form.image,
-        })
-
-        if (!uploadResponse.ok) {
-          throw new Error('圖片上傳失敗')
-        }
-
-        imageFilename = signedUrlData.filename
-      } catch (uploadError) {
-        errors.value = { image: uploadError.message }
-        processing.value = false
-        return
-      }
+    const signedUrlResponse = await fetch('/prefix/api/supabase/signed-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: form.image.name }),
+    })
+    const signedUrlData = await signedUrlResponse.json()
+    if (!signedUrlResponse.ok) {
+      throw new Error(signedUrlData.message || '取得上傳網址失敗')
     }
 
-    // 3. 提交表單資料（包含上傳後的檔案名稱）
+    const uploadResponse = await fetch(signedUrlData.url, {
+      method: 'PUT',
+      body: form.image,
+    })
+    if (!uploadResponse.ok) {
+      throw new Error('圖片上傳失敗')
+    }
+
+    form.image_filename = signedUrlData.filename
+    uploading.value = false
+    return true
+  } catch (e) {
+    errors.value.image = e.message || '上傳失敗'
+    uploading.value = false
+    return false
+  }
+}
+
+function nextStep() {
+  errors.value = {}
+  if (step.value === 1) {
+    // 上傳圖片才進下一步
+    uploadImage().then((ok) => {
+      if (ok) step.value = 2
+    })
+  } else if (step.value === 2) {
+    // 驗證 tribe/location/date
+    const e = {}
+    if (!form.tribe) e.tribe = '請選擇部落'
+    if (!form.location) e.location = '請輸入地點'
+    if (!form.capture_date) e.capture_date = '請選擇日期'
+    if (Object.keys(e).length) {
+      errors.value = e
+      return
+    }
+    step.value = 3
+  }
+}
+
+function prevStep() {
+  if (step.value > 1) step.value--
+}
+
+async function finalSubmit() {
+  // 驗證捕獲方式
+  errors.value = {}
+  if (!form.capture_method) {
+    errors.value.capture_method = '請選擇捕獲方式'
+    return
+  }
+  processing.value = true
+  try {
     const formData = {
       tribe: form.tribe,
       location: form.location,
       capture_method: form.capture_method,
       capture_date: form.capture_date,
       notes: form.notes,
-      image_filename: imageFilename,
+      image_filename: form.image_filename,
     }
 
     router.post(`/fish/${props.fishId}/capture-records`, formData, {
@@ -242,20 +279,30 @@ async function submitForm() {
         emit('submitted')
       },
       onError: (errorResponse) => {
-        errors.value = errorResponse
+        errors.value = errorResponse || { general: '新增失敗' }
       },
       onFinish: () => {
         processing.value = false
       },
     })
-  } catch (error) {
-    errors.value = { general: error.message }
+  } catch (e) {
+    errors.value = { general: e.message }
     processing.value = false
   }
 }
 
-// 暴露 submitForm 方法給父元件
-defineExpose({
-  submitForm,
-})
+// 讓父元件可以透過 ref 呼叫 submitForm（TopNavBar 會呼叫）
+async function submitForm() {
+  if (step.value === 1) {
+    // 若在 step1，嘗試上傳並移到下一步
+    const ok = await uploadImage()
+    if (ok) step.value = 2
+  } else if (step.value === 2) {
+    nextStep()
+  } else if (step.value === 3) {
+    finalSubmit()
+  }
+}
+
+defineExpose({ step, nextStep, prevStep, finalSubmit, submitForm })
 </script>
