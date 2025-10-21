@@ -65,24 +65,24 @@
           </option>
         </select>
       </div>
+    </div>
 
-      <!-- 地點搜尋 -->
-      <div class="space-y-2">
-        <label
-          for="location-search"
-          class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          捕獲地點
-        </label>
-        <input
-          id="location-search"
-          v-model="localFilters.location"
-          @input="debounceEmitFiltersChange"
-          type="text"
-          placeholder="輸入地點關鍵字..."
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-        />
-      </div>
+    <!-- 地點搜尋：獨立一行（全寬） -->
+    <div class="mt-4">
+      <label
+        for="location-search"
+        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+      >
+        捕獲地點
+      </label>
+      <input
+        id="location-search"
+        v-model="localFilters.location"
+        @input="debounceEmitFiltersChange"
+        type="text"
+        placeholder="輸入地點關鍵字..."
+        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+      />
     </div>
 
     <!-- 魚類名稱搜尋 -->
