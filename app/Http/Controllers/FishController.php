@@ -431,4 +431,23 @@ class FishController extends Controller
         }
     }
 
+    public function store(CreateFishRequest $request)
+    {
+        try {
+            $fish = Fish::create($request->validated());
+            return Inertia::render(
+                'CreateFish',
+                [
+                    'fish' => $fish
+                ]
+            );
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'data' => ['errors' => $e->errors()],
+            ], 422);
+            
+        }
+    }
+
 }

@@ -22,6 +22,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { router } from '@inertiajs/vue3'
 
 // 建立模式用 uploadedFileName，編輯模式用 fishId、fishNameInit
 const props = defineProps({
@@ -55,25 +56,30 @@ async function submitForm() {
   submitting.value = true
   submitError.value = ''
   submitSuccess.value = false
-  try {
-    const res = await fetch('/prefix/api/fish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: nameToSend,
-        image: props.uploadedFileName,
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.message || '新增失敗')
-    submitSuccess.value = true
-    fishName.value = ''
-    emit('submitted', data.data.id)
-  } catch (e) {
-    submitError.value = e.message || '新增失敗'
-  } finally {
-    submitting.value = false
-  }
+
+  // 使用 Inertia router.post 發送到 /fish/create（由後端處理 flash 與導向）
+  router.post(
+    '/fish',
+    { name: nameToSend, image: props.uploadedFileName },
+    {
+      headers: { Accept: 'application/json' },
+      // 成功時（後端可回傳 props.data.id 或直接 redirect）
+      onSuccess: (fish) => {
+        submitSuccess.value = true
+        fishName.value = ''
+        // 若後端回傳 id 在 props，主動導向；否則後端若 redirect，Inertia 已處理導向
+        const fishId = fish.props.fish.id
+        // 通知上層（仍 emit），讓上層元件也能反應
+        emit('submitted', fishId ?? null)
+      },
+      onError: (errors) => {
+        submitError.value = errors?.message || '新增失敗'
+      },
+      onFinish: () => {
+        submitting.value = false
+      },
+    }
+  )
 }
 
 // 編輯模式：送出更新魚類名稱

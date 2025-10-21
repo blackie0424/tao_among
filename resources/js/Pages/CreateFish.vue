@@ -70,9 +70,13 @@ function onImageUploaded(filename) {
   submitting.value = false
 }
 
-function onFishSubmitted(/* id */) {
+function onFishSubmitted(fishId) {
   // 名稱送出後直接導回列表（已移除尺寸步驟）
-  router.visit('/fishs')
+  if (fishId) {
+    router.visit(`/fish/${fishId}`)
+  } else {
+    router.visit('/fishs')
+  }
   submitting.value = false
 }
 
