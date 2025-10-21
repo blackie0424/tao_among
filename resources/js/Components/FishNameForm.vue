@@ -17,6 +17,7 @@
     </div>
     <div v-if="submitError" class="text-red-600 mt-2">{{ submitError }}</div>
     <div v-if="submitSuccess" class="text-green-600 mt-2">魚類新增成功！</div>
+    <div v-if="submitEditSuccess" class="text-green-600 mt-2">魚類更新成功！</div>
   </form>
 </template>
 
@@ -36,6 +37,7 @@ const fishName = ref('')
 const submitting = ref(false)
 const submitError = ref('')
 const submitSuccess = ref(false)
+const submitEditSuccess = ref(false)
 
 const placeholderText = computed(() => (fishName.value ? '' : '我不知道'))
 
@@ -91,23 +93,30 @@ async function submitEditForm() {
   submitting.value = true
   submitError.value = ''
   submitSuccess.value = false
-  try {
-    const res = await fetch(`/prefix/api/fish/${props.fishId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: nameToSend,
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.message || '更新失敗')
-    submitSuccess.value = true
-    emit('submitted', props.fishId)
-  } catch (e) {
-    submitError.value = e.message || '更新失敗'
-  } finally {
-    submitting.value = false
-  }
+  submitEditSuccess.value = false
+  // 使用 Inertia router.put 發送到 /fish/${props.fishId}/name（由後端處理 flash 與導向）
+  router.put(
+    `/fish/${props.fishId}/name`,
+    { name: nameToSend },
+    {
+      headers: { Accept: 'application/json' },
+      // 成功時（後端可回傳 props.data.id 或直接 redirect）
+      onSuccess: (fish) => {
+        submitEditSuccess.value = true
+        fishName.value = ''
+        // 若後端回傳 id 在 props，主動導向；否則後端若 redirect，Inertia 已處理導向
+        const fishId = fish.props.fish.id
+        // 通知上層（仍 emit），讓上層元件也能反應
+        emit('submitted', fishId ?? null)
+      },
+      onError: (errors) => {
+        submitError.value = errors?.message || '更新失敗'
+      },
+      onFinish: () => {
+        submitting.value = false
+      },
+    }
+  )
 }
 
 // 只 expose 兩個函式，避免混用

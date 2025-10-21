@@ -376,7 +376,12 @@ class FishController extends Controller
             'name' => $request->name,
         ]);
 
-        return redirect("/fish/{$id}")->with('success', '魚類名稱更新成功');
+        return Inertia::render(
+            'EditFishName',
+            [
+                'fish' => $fish
+            ]
+        );
     }
 
     public function updateSize(Request $request, $id)
