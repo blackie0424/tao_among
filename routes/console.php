@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 // Schedule::command('app:clean-supabase-unused-files')->everyMinute();
-Schedule::command('fish:check-webp')->daily();
+Schedule::command('fish:check-webp')->everyMinute();

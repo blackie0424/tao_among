@@ -59,7 +59,7 @@ Route::delete('/tribal-classifications/{id}', [TribalClassificationController::c
 // Route to trigger the cron job manually
 Route::get('/schedule-run', function () {
     Log::info('Cron job triggered at ' . now()->toDateTimeString());
-    $output = Artisan::call('schedule:run');
+    $output = Artisan::call('fish:check-webp');
     return response()->json([
         'message' => 'Cron job executed successfully',
         'output' => Artisan::output()
