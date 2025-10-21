@@ -40,7 +40,7 @@
         >
           <option value="">所有分類</option>
           <option v-for="category in foodCategories" :key="category" :value="category">
-            {{ category === '' ? '尚未紀錄' : category }}
+            {{ category === '' ? '尚未紀錄' : category === '?' ? '不確定' : category }}
           </option>
         </select>
       </div>
@@ -61,7 +61,7 @@
         >
           <option value="">所有處理方式</option>
           <option v-for="method in processingMethods" :key="method" :value="method">
-            {{ method === '' ? '尚未紀錄' : method }}
+            {{ method === '' ? '尚未紀錄' : method === '?' ? '不確定' : method }}
           </option>
         </select>
       </div>
