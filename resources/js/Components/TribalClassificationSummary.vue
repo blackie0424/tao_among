@@ -3,7 +3,7 @@
   <div class="rounded-xl bg-white shadow-md border border-gray-200 p-4 mb-6 md:mb-10">
     <!-- 標題區塊：淺底與下邊框，視覺分區 -->
     <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-      <h3 class="text-lg font-semibold text-gray-900">地方知識</h3>
+      <h3 class="text-xl font-semibold text-gray-900">地方知識</h3>
     </div>
 
     <!-- 無資料狀態 -->

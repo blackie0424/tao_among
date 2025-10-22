@@ -16,9 +16,11 @@
       <div class="w-full md:w-1/2 space-y-4">
         <TribalClassificationSummary :classifications="tribalClassifications" :fishId="fish.id" />
 
-        <!-- 新增：依 note_type 分組顯示 fish_notes -->
-        <div class="bg-white rounded-md shadow p-4 mb-20">
-          <h3 class="text-lg font-semibold mb-2">進階知識</h3>
+        <!-- 新增：依 note_type 分組顯示 fish_notes（樣式與地方知識一致） -->
+        <div class="rounded-xl bg-white shadow-md border border-gray-200 p-4 mb-20 md:mb-10">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+            <h3 class="text-xl font-semibold text-gray-900">進階知識</h3>
+          </div>
 
           <div v-if="Object.keys(groupedNotes).length">
             <div v-for="(items, type) in groupedNotes" :key="type" class="mb-4">
