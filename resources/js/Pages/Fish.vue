@@ -4,7 +4,7 @@
   <!-- 增加 padding-bottom 以避開底部固定工具列；行動裝置包含 safe-area -->
   <div
     class="container mx-auto py-8"
-    style="padding-bottom: calc(3.5rem + env(safe-area-inset-bottom))"
+    style="padding-bottom: calc(6rem + env(safe-area-inset-bottom))"
   >
     <div class="flex flex-col md:flex-row gap-4 md:gap-8 items-start justify-center">
       <!-- 左欄：魚資訊 -->
@@ -17,7 +17,7 @@
         <TribalClassificationSummary :classifications="tribalClassifications" :fishId="fish.id" />
 
         <!-- 新增：依 note_type 分組顯示 fish_notes -->
-        <div class="bg-white rounded-md shadow p-4">
+        <div class="bg-white rounded-md shadow p-4 mb-20">
           <h3 class="text-lg font-semibold mb-2">進階知識</h3>
 
           <div v-if="Object.keys(groupedNotes).length">
