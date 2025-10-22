@@ -13,35 +13,28 @@
     <!-- 紀錄資訊 -->
     <div class="p-4">
       <!-- 部落標籤和選單 -->
-      <div class="flex items-center justify-between mb-3">
-        <span
-          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-        >
-          {{ record.tribe }}
-        </span>
-
-        <!-- 三點選單 -->
-        <OverflowMenu
-          :apiUrl="`/fish/${fishId}/capture-records/${record.id}`"
-          :fishId="fishId.toString()"
-          :editUrl="`/fish/${fishId}/capture-records/${record.id}/edit`"
-          @deleted="$emit('deleted')"
-        />
-      </div>
-
-      <!-- 捕獲資訊 -->
-      <div class="space-y-3 mb-4">
-        <div>
-          <span class="text-sm font-medium text-gray-500">捕獲地點</span>
-          <p class="text-lg text-gray-900">{{ record.location }}</p>
+      <div class="flex items-center mb-2">
+        <div class="flex items-center space-x-2">
+          <span
+            class="inline-flex items-center px-3 py-1 rounded-full text-lg font-medium bg-blue-100 text-blue-800"
+          >
+            {{ displayLabel }}
+          </span>
+          <span
+            class="inline-flex items-center px-3 py-1 rounded-full text-lg font-medium bg-green-100 text-green-800"
+          >
+            {{ record.capture_method }}
+          </span>
         </div>
-        <div>
-          <span class="text-sm font-medium text-gray-500">捕獲方式</span>
-          <p class="text-lg text-gray-900">{{ record.capture_method }}</p>
-        </div>
-        <div>
-          <span class="text-sm font-medium text-gray-500">捕獲日期</span>
-          <p class="text-lg text-gray-900">{{ formatDate(record.capture_date) }}</p>
+
+        <!-- 三點選單：靠右 -->
+        <div class="ml-auto">
+          <OverflowMenu
+            :apiUrl="`/fish/${fishId}/capture-records/${record.id}`"
+            :fishId="fishId.toString()"
+            :editUrl="`/fish/${fishId}/capture-records/${record.id}/edit`"
+            @deleted="$emit('deleted')"
+          />
         </div>
       </div>
 
@@ -50,9 +43,6 @@
         <span class="text-sm font-medium text-gray-500">備註</span>
         <p class="text-lg text-gray-700 mt-1">{{ record.notes }}</p>
       </div>
-
-      <!-- 時間資訊 -->
-      <div class="text-sm text-gray-400">記錄時間: {{ formatDateTime(record.created_at) }}</div>
     </div>
   </div>
 </template>
@@ -73,6 +63,12 @@ const emit = defineEmits(['updated', 'deleted'])
 const recordImageUrl = computed(() => {
   // 使用後端已經處理好的 image_url 屬性
   return props.record.image_url || '/images/default-capture.png'
+})
+
+// 顯示標籤：若 location 為空則只顯示 tribe
+const displayLabel = computed(() => {
+  const loc = (props.record.location || '').toString().trim()
+  return loc ? `${props.record.tribe} => ${loc}` : props.record.tribe
 })
 
 function formatDate(dateString) {
