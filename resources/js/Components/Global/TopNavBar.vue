@@ -1,5 +1,4 @@
 <template>
-  <!-- 固定於畫面頂部的操作列 -->
   <div
     class="fixed top-0 left-0 w-full flex justify-between items-center px-2 py-2 bg-white z-20 shadow"
   >
@@ -9,7 +8,6 @@
       @click="goBack"
       aria-label="關閉"
     >
-      <!-- 關閉 icon (X) SVG -->
       <svg
         xmlns="http://www.w3.org/2000/svg"
         class="h-5 w-5"
@@ -26,79 +24,63 @@
       </svg>
     </button>
 
-    <span class="text-base font-semibold text-[#0e171b]">{{ title }}</span>
+    <div class="text-center flex-1">
+      <div class="text-base font-semibold text-[#0e171b]">{{ fishTitle || title }}</div>
+      <div v-if="steps && steps.length" class="text-xs text-gray-500">{{ currentStepText }}</div>
+    </div>
 
-    <button
-      v-if="showSubmit"
-      type="submit"
-      class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition flex items-center"
-      :disabled="submitting || showLoading"
-      @click="submitNote"
-    >
-      <span v-if="showLoading" class="mr-2">
-        <!-- 這裡是簡易 spinner 動畫，可依需求換成你喜歡的動畫 -->
-        <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-            fill="none"
-          />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-        </svg>
-      </span>
-      {{ submitLabel || '送出' }}
-    </button>
-    <div v-else class="w-16"></div>
-    <!-- 佔位符保持佈局平衡 -->
+    <div class="w-16">
+      <button
+        v-if="showSubmit"
+        type="button"
+        class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition flex items-center justify-center w-full"
+        :disabled="submitting || showLoading"
+        @click="submitNote"
+      >
+        <span v-if="showLoading" class="mr-2">
+          <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+              fill="none"
+            />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+        </span>
+        {{ submitLabel || '送出' }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
-  // 取消按鈕的執行功能，當使用者點擊時會觸發這個函式
-  goBack: {
-    type: Function,
-    required: true,
-  },
+import { computed } from 'vue'
 
-  // 提交按鈕的執行功能，當使用者點擊時會觸發這個函式
-  submitNote: {
-    type: Function,
-    default: () => {},
-  },
+const props = defineProps({
+  goBack: { type: Function, required: true },
+  submitNote: { type: Function, default: () => {} },
+  showSubmit: { type: Boolean, default: true },
+  submitting: { type: Boolean, default: false },
+  showLoading: { type: Boolean, default: false },
+  submitLabel: { type: String, default: '送出' },
+  title: { type: String, default: '請新增標題' },
+  steps: { type: Array, default: null },
+  currentStep: { type: Number, default: null },
+  fishName: { type: String, default: null },
+})
 
-  // 是否顯示提交按鈕，預設為 true
-  showSubmit: {
-    type: Boolean,
-    default: true,
-  },
+const fishTitle = computed(() =>
+  props.fishName ? `正在為 ${props.fishName} 新增捕獲紀錄` : props.title
+)
 
-  // 是否正在執行提交功能，預設為 false
-  submitting: {
-    type: Boolean,
-    default: false,
-  },
-
-  // 是否顯示 Loading 畫面，預設為 false
-  showLoading: {
-    type: Boolean,
-    default: false,
-  },
-
-  // 提交按鈕的文字，預設為 '送出'
-  submitLabel: {
-    type: String,
-    default: '送出',
-  },
-
-  // 標題文字，預設為 '請新增標題'
-  title: {
-    type: String,
-    default: '請新增標題',
-  },
+const currentStepText = computed(() => {
+  if (!props.steps || !props.steps.length) return ''
+  const idx = Math.max(0, Math.min((props.currentStep || 1) - 1, props.steps.length - 1))
+  return props.steps[idx] || ''
 })
 </script>
+steps: { type: Array, default: null },
