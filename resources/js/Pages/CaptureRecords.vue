@@ -1,7 +1,7 @@
 <template>
   <Head :title="`${fish.name}的捕獲紀錄`" />
 
-  <div class="container mx-auto p-4 relative">
+  <div class="container mx-auto p-4 relative text-3xl">
     <div class="pb-20">
       <!-- 魚類資訊 -->
       <div class="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -18,11 +18,11 @@
 
           <!-- 魚類資訊 -->
           <div class="w-full md:w-2/3">
-            <h2 class="text-2xl font-bold mb-2">{{ fish.name }}</h2>
+            <h2 class="text-4xl font-bold mb-2">{{ fish.name }}</h2>
             <p class="text-gray-600 mb-4">捕獲紀錄與照片</p>
 
             <!-- 統計資訊 -->
-            <div class="flex flex-wrap gap-4 text-sm">
+            <div class="flex flex-wrap gap-4 text-xl">
               <div class="flex items-center">
                 <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
                 <span class="text-gray-700">
@@ -40,7 +40,7 @@
 
       <!-- 捕獲紀錄列表 -->
       <div class="bg-white rounded-lg shadow-md p-4">
-        <h3 class="text-lg font-semibold mb-4">捕獲紀錄</h3>
+        <h3 class="text-3xl font-semibold mb-4">捕獲紀錄</h3>
 
         <!-- 空狀態 -->
         <div v-if="fish.captureRecords?.length === 0" class="text-center py-8">
@@ -60,12 +60,12 @@
               ></path>
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">尚未記錄捕獲紀錄</h3>
-          <p class="text-gray-500">點擊右下角的按鈕開始記錄這條魚的捕獲照片和相關資訊</p>
+          <h3 class="text-3xl font-medium text-gray-900 mb-2">尚未記錄捕獲紀錄</h3>
+          <p class="text-xl text-gray-500">點擊右下角的按鈕開始記錄這條魚的捕獲照片和相關資訊</p>
         </div>
 
         <!-- 捕獲紀錄卡片列表 -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-4xl">
           <CaptureRecordCard
             v-for="record in fish.captureRecords"
             :key="record.id"
