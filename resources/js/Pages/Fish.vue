@@ -1,8 +1,12 @@
 <!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/Fish.vue -->
 <template>
   <Head :title="`${fish.name}的基本資料`" />
-  <div class="container mx-auto py-8">
-    <div class="flex flex-col md:flex-row gap-8 items-start justify-center">
+  <!-- 增加 padding-bottom 以避開底部固定工具列；行動裝置包含 safe-area -->
+  <div
+    class="container mx-auto py-8"
+    style="padding-bottom: calc(3.5rem + env(safe-area-inset-bottom))"
+  >
+    <div class="flex flex-col md:flex-row gap-4 md:gap-8 items-start justify-center">
       <!-- 左欄：魚資訊 -->
       <div class="w-full md:w-1/2">
         <FishDetailLeft :fish="fish" />

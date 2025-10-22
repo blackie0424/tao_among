@@ -1,6 +1,9 @@
 <template>
   <nav
-    class="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e7eff3] bg-slate-50 px-4 pb-3 pt-2 flex gap-2"
+    class="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e7eff3] bg-slate-50 px-4 pt-2 flex gap-2"
+    style="padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem)"
+    role="navigation"
+    aria-label="底部工具列"
   >
     <a
       class="flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-[#0e171b]"

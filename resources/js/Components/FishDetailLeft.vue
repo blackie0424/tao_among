@@ -1,7 +1,8 @@
 <!-- filepath: resources/js/Components/FishDetailLeft.vue -->
 <template>
   <div class="w-full flex flex-col items-center">
-    <div class="pb-20">
+    <!-- 手機使用較小底距，桌面維持較大空間以保持排版 -->
+    <div class="pb-6 md:pb-20">
       <div class="bg-white rounded-lg shadow-md p-4 mb-6">
         <div class="flex flex-col md:flex-row items-center gap-4">
           <!-- 魚類圖片 -->
