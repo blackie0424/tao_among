@@ -25,11 +25,11 @@
     </button>
 
     <div class="text-center flex-1">
-      <div class="text-base font-semibold text-[#0e171b]">{{ fishTitle || title }}</div>
-      <div v-if="steps && steps.length" class="text-xs text-gray-500">{{ currentStepText }}</div>
+      <div class="text-lg font-semibold text-[#0e171b]">{{ fishTitle || title }}</div>
+      <div v-if="steps && steps.length" class="text-lg text-red-500">{{ currentStepText }}</div>
     </div>
 
-    <div class="w-16">
+    <div class="w-auto">
       <button
         v-if="showSubmit"
         type="button"
