@@ -1,23 +1,5 @@
 <template>
   <form @submit.prevent="submitForm" class="space-y-4">
-    <!-- 魚類提醒 -->
-    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-      <div class="w-12 h-12 flex-shrink-0">
-        <LazyImage
-          :src="fishImage"
-          :alt="fishName"
-          wrapperClass="w-full h-full bg-gray-200 rounded-lg"
-          imgClass="w-full h-full object-contain"
-        />
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-900">正在為 {{ fishName }} 新增捕獲紀錄</p>
-        <p class="text-xs text-gray-500">
-          分三個步驟完成：上傳照片 → 填寫部落/地點/時間 → 選擇捕獲方法
-        </p>
-      </div>
-    </div>
-
     <!-- Step 1: 圖片上傳 -->
     <div v-if="step === 1">
       <label for="image" class="block text-sm font-medium text-gray-700 mb-1">
