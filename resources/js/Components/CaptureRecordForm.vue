@@ -1,11 +1,11 @@
 <template>
-  <form @submit.prevent="submitForm" class="space-y-4 text-lg leading-relaxed">
+  <form @submit.prevent="submitForm" class="space-y-8 md:space-y-10 text-lg leading-relaxed">
     <!-- Step 1: 圖片上傳 -->
-    <div v-if="step === 1">
+    <div v-if="step === 1" class="space-y-4 md:space-y-6">
       <div
         class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
       >
-        <div class="space-y-1 text-center">
+        <div class="space-y-3 md:space-y-4 text-center">
           <div v-if="!imagePreview" class="mx-auto h-14 w-14 text-gray-400">
             <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 48 48">
               <path
@@ -45,9 +45,9 @@
     </div>
 
     <!-- Step 2: 部落、地點、時間 -->
-    <div v-if="step === 2">
+    <div v-if="step === 2" class="space-y-6">
       <div>
-        <label for="tribe" class="block text-lg font-medium text-gray-700 mb-1">
+        <label for="tribe" class="block text-lg font-medium text-gray-700 mb-2">
           捕獲部落 <span class="text-red-500">*</span>
         </label>
         <select
@@ -62,7 +62,7 @@
       </div>
 
       <div>
-        <label for="location" class="block text-lg font-medium text-gray-700 mb-1">
+        <label for="location" class="block text-lg font-medium text-gray-700 mb-2">
           捕獲地點 <span class="text-red-500">*</span>
         </label>
         <input
@@ -76,7 +76,7 @@
       </div>
 
       <div>
-        <label for="capture_date" class="block text-lg font-medium text-gray-700 mb-1">
+        <label for="capture_date" class="block text-lg font-medium text-gray-700 mb-2">
           捕獲日期 <span class="text-red-500">*</span>
         </label>
         <input
@@ -94,9 +94,9 @@
     </div>
 
     <!-- Step 3: 捕獲方式 + 備註 + 送出 -->
-    <div v-if="step === 3">
+    <div v-if="step === 3" class="space-y-6">
       <div>
-        <label for="capture_method" class="block text-lg font-medium text-gray-700 mb-1"
+        <label for="capture_method" class="block text-lg font-medium text-gray-700 mb-2"
           >捕獲方式 <span class="text-red-500">*</span></label
         >
         <select
@@ -115,7 +115,7 @@
       </div>
 
       <div>
-        <label for="notes" class="block text-lg font-medium text-gray-700 mb-1"> 備註 </label>
+        <label for="notes" class="block text-lg font-medium text-gray-700 mb-2"> 備註 </label>
         <textarea
           id="notes"
           v-model="form.notes"
