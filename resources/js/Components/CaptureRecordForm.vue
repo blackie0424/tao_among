@@ -161,9 +161,9 @@ const emit = defineEmits(['submitted'])
 const step = ref(1)
 const form = reactive({
   image: null,
-  tribe: '',
+  tribe: 'iraraley',
+  capture_method: 'mamasil',
   location: '',
-  capture_method: '',
   capture_date: '',
   notes: '',
   image_filename: null,
