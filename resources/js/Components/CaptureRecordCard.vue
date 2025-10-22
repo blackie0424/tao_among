@@ -13,7 +13,7 @@
     <!-- 紀錄資訊 -->
     <div class="p-4">
       <!-- 部落標籤和選單 -->
-      <div class="flex items-center mb-2">
+      <div class="flex items-center mb-1">
         <div class="flex items-center space-x-2">
           <span
             class="inline-flex items-center px-3 py-1 rounded-full text-lg font-medium bg-blue-100 text-blue-800"
@@ -39,9 +39,8 @@
       </div>
 
       <!-- 備註 -->
-      <div v-if="record.notes" class="mb-3">
-        <span class="text-sm font-medium text-gray-500">備註</span>
-        <p class="text-lg text-gray-700 mt-1">{{ record.notes }}</p>
+      <div v-if="record.notes" class="mb-1">
+        <span class="text-xl font-medium text-gray-800">備註：{{ record.notes }}</span>
       </div>
     </div>
   </div>
