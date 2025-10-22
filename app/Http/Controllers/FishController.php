@@ -55,11 +55,24 @@ class FishController extends Controller
             ->orderBy('capture_date', 'desc')
             ->limit(4)
             ->get();
-        
+
+        // 取得 fish_note 資訊，並依 note_type 分組
+        $fishNotes = FishNote::where('fish_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // 依 note_type 分組，並將每組的 collection 轉為 index keys 的陣列
+        $groupedFishNotes = $fishNotes
+            ->groupBy('note_type')
+            ->map(function ($items) {
+                return $items->values()->toArray();
+            })->toArray();
+            
         return Inertia::render('Fish', [
             'fish' => $fish,
             'tribalClassifications' => $tribalClassifications,
-            'captureRecords' => $captureRecords
+            'captureRecords' => $captureRecords,
+            'fishNotes' => $groupedFishNotes
         ]);
     }
 
