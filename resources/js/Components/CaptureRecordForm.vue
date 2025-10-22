@@ -1,16 +1,13 @@
 <template>
-  <form @submit.prevent="submitForm" class="space-y-4">
+  <form @submit.prevent="submitForm" class="space-y-4 text-lg leading-relaxed">
     <!-- Step 1: 圖片上傳 -->
     <div v-if="step === 1">
-      <label for="image" class="block text-sm font-medium text-gray-700 mb-1">
-        捕獲照片 <span class="text-red-500">*</span>
-      </label>
       <div
         class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
       >
         <div class="space-y-1 text-center">
-          <div v-if="!imagePreview" class="mx-auto h-12 w-12 text-gray-400">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 48 48">
+          <div v-if="!imagePreview" class="mx-auto h-14 w-14 text-gray-400">
+            <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 48 48">
               <path
                 d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
                 stroke-width="2"
@@ -19,10 +16,10 @@
               />
             </svg>
           </div>
-          <div v-else class="mx-auto h-32 w-32">
+          <div v-else class="mx-auto h-40 w-40">
             <img :src="imagePreview" alt="預覽" class="h-full w-full object-cover rounded-lg" />
           </div>
-          <div class="flex text-sm text-gray-600">
+          <div class="flex text-base text-gray-600">
             <label
               for="image"
               class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
@@ -39,10 +36,10 @@
               />
             </label>
           </div>
-          <p class="text-xs text-gray-500">PNG, JPG, WEBP 最大 10MB</p>
+          <p class="text-sm text-gray-500">PNG, JPG, WEBP 最大 10MB</p>
         </div>
       </div>
-      <div v-if="errors.image" class="text-red-500 text-sm mt-1">{{ errors.image }}</div>
+      <div v-if="errors.image" class="text-red-500 text-base mt-1">{{ errors.image }}</div>
 
       <!-- 導航按鈕已改由 TopNavBar 控制 -->
     </div>
@@ -50,45 +47,45 @@
     <!-- Step 2: 部落、地點、時間 -->
     <div v-if="step === 2">
       <div>
-        <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="tribe" class="block text-lg font-medium text-gray-700 mb-1">
           捕獲部落 <span class="text-red-500">*</span>
         </label>
         <select
           id="tribe"
           v-model="form.tribe"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">請選擇部落</option>
           <option v-for="tribe in tribes" :key="tribe" :value="tribe">{{ tribe }}</option>
         </select>
-        <div v-if="errors.tribe" class="text-red-500 text-sm mt-1">{{ errors.tribe }}</div>
+        <div v-if="errors.tribe" class="text-red-500 text-base mt-1">{{ errors.tribe }}</div>
       </div>
 
       <div>
-        <label for="location" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="location" class="block text-lg font-medium text-gray-700 mb-1">
           捕獲地點 <span class="text-red-500">*</span>
         </label>
         <input
           id="location"
           v-model="form.location"
           type="text"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="請輸入捕獲地點"
         />
-        <div v-if="errors.location" class="text-red-500 text-sm mt-1">{{ errors.location }}</div>
+        <div v-if="errors.location" class="text-red-500 text-base mt-1">{{ errors.location }}</div>
       </div>
 
       <div>
-        <label for="capture_date" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="capture_date" class="block text-lg font-medium text-gray-700 mb-1">
           捕獲日期 <span class="text-red-500">*</span>
         </label>
         <input
           id="capture_date"
           v-model="form.capture_date"
           type="date"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <div v-if="errors.capture_date" class="text-red-500 text-sm mt-1">
+        <div v-if="errors.capture_date" class="text-red-500 text-base mt-1">
           {{ errors.capture_date }}
         </div>
       </div>
@@ -99,34 +96,34 @@
     <!-- Step 3: 捕獲方式 + 備註 + 送出 -->
     <div v-if="step === 3">
       <div>
-        <label for="capture_method" class="block text-sm font-medium text-gray-700 mb-1"
+        <label for="capture_method" class="block text-lg font-medium text-gray-700 mb-1"
           >捕獲方式 <span class="text-red-500">*</span></label
         >
         <select
           id="capture_method"
           v-model="form.capture_method"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">請選擇捕獲方式</option>
           <option value="mapazat">mapazat</option>
           <option value="mamasil">mamasil</option>
           <option value="mamacik">mamacik</option>
         </select>
-        <div v-if="errors.capture_method" class="text-red-500 text-sm mt-1">
+        <div v-if="errors.capture_method" class="text-red-500 text-base mt-1">
           {{ errors.capture_method }}
         </div>
       </div>
 
       <div>
-        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1"> 備註 </label>
+        <label for="notes" class="block text-lg font-medium text-gray-700 mb-1"> 備註 </label>
         <textarea
           id="notes"
           v-model="form.notes"
           rows="3"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="請輸入相關備註資訊"
         ></textarea>
-        <div v-if="errors.notes" class="text-red-500 text-sm mt-1">{{ errors.notes }}</div>
+        <div v-if="errors.notes" class="text-red-500 text-base mt-1">{{ errors.notes }}</div>
       </div>
 
       <!-- 導航按鈕已改由 TopNavBar 控制 -->
