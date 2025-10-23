@@ -1,5 +1,17 @@
 <template>
   <div class="space-y-6">
+    <!-- 全域載入過場（點擊卡片後顯示） -->
+    <div
+      v-if="isNavigating"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+      aria-hidden="true"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center gap-3">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div class="text-sm">載入中...</div>
+      </div>
+    </div>
+
     <!-- 搜尋結果統計 -->
     <div
       class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
@@ -49,6 +61,7 @@
         <a
           :href="`/fish/${fish.id}`"
           class="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+          @click.prevent="handleCardClick($event, `/fish/${fish.id}`)"
         >
           <!-- 魚類圖片 -->
           <div class="aspect-w-16 aspect-h-9">
@@ -67,7 +80,7 @@
               <span
                 class="inline-block hover:underline hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 v-html="highlightText(fish.name, filters.name)"
-              />
+              ></span>
             </h3>
 
             <!-- 部落分類資訊 -->
@@ -164,7 +177,7 @@
                           : ''
                       "
                       v-html="highlightText(record.location, filters.location)"
-                    />
+                    ></span>
                   </div>
                 </div>
               </div>
@@ -182,7 +195,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import LazyImage from '@/Components/LazyImage.vue'
 
 const props = defineProps({
@@ -290,5 +303,43 @@ const formatDate = (dateString) => {
     month: '2-digit',
     day: '2-digit',
   })
+}
+
+// 導航狀態（點擊卡片後顯示過場）
+const isNavigating = ref(false)
+
+// 使用 Web Audio API 播放短促音效（不需外部音檔）
+function playClickSound(duration = 120, frequency = 880) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const o = ctx.createOscillator()
+    const g = ctx.createGain()
+    o.type = 'sine'
+    o.frequency.value = frequency
+    g.gain.setValueAtTime(0.0001, ctx.currentTime)
+    g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration / 1000)
+    o.connect(g)
+    g.connect(ctx.destination)
+    o.start()
+    o.stop(ctx.currentTime + duration / 1000 + 0.02)
+  } catch (e) {
+    console.warn('Audio not supported', e)
+  }
+}
+
+// 點擊卡片時：先顯示過場並播放音效，短延遲後導頁
+async function handleCardClick(event, href) {
+  // 若使用者要求開新分頁（meta/ctrl/middle）保留行為
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) {
+    window.open(href, '_blank')
+    return
+  }
+
+  isNavigating.value = true
+  playClickSound()
+  // 等待短暫時間讓使用者感受到反饋
+  await new Promise((r) => setTimeout(r, 300))
+  window.location.href = href
 }
 </script>
