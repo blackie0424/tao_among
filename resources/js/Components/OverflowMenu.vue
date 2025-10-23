@@ -18,14 +18,33 @@
           <circle cx="12" cy="19" r="1" fill="currentColor" />
         </svg>
       </button>
-      <div v-if="menuOpen" class="absolute right-0 mt-2 w-24 bg-white border rounded shadow z-50">
+      <div
+        v-if="menuOpen"
+        class="absolute right-0 mt-2 w-48 bg-white border rounded shadow-md z-50"
+      >
         <ul>
           <li
-            v-if="showEdit"
+            v-if="showEdit && enableEdit"
             @click="editData"
             class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base"
           >
             編輯
+          </li>
+          <li v-if="enableSetAsBase">
+            <button
+              class="w-full text-left px-4 py-2 hover:bg-gray-50 disabled:opacity-50"
+              :disabled="isBase || isPlaying || processing"
+              @click="handleSetAsBase"
+              :title="
+                isBase
+                  ? '已為基本發音'
+                  : isPlaying
+                    ? '目前檔案正在播放，無法指定'
+                    : '指定為基本發音'
+              "
+            >
+              指定為基本發音
+            </button>
           </li>
           <li
             v-if="showDelete"
@@ -43,8 +62,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { router } from '@inertiajs/vue3'
+import axios from 'axios'
 
 const menuOpen = ref(false)
+const processing = ref(false)
 const props = defineProps({
   apiUrl: { type: String, required: true },
   redirectUrl: { type: String, default: '' },
@@ -52,9 +73,34 @@ const props = defineProps({
   showEdit: { type: Boolean, default: true },
   showDelete: { type: Boolean, default: true },
   editUrl: { type: String, default: '' }, // 新增：外部可設定編輯連結
+  // 可選：傳入當前 audio 物件（用於 set-as-base）
+  audio: {
+    type: Object,
+    default: null,
+  },
+  // 標示該 audio 是否已是基本
+  isBase: {
+    type: Boolean,
+    default: false,
+  },
+  // 標示該 audio 是否正在播放
+  isPlaying: {
+    type: Boolean,
+    default: false,
+  },
+  // 是否顯示「指定為基本發音」選項（預設 false，不影響其他使用者）
+  enableSetAsBase: {
+    type: Boolean,
+    default: false,
+  },
+  // 新增：是否顯示編輯選項（預設 true）
+  enableEdit: {
+    type: Boolean,
+    default: true,
+  },
 })
 
-const emit = defineEmits(['deleted'])
+const emit = defineEmits(['deleted', 'set-as-base'])
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
@@ -67,7 +113,32 @@ function editData() {
   router.visit(url)
 }
 
-function deleteData() {
+/**
+ * 指定為基本發音：用 Inertia.patch 更新 fish->audio_filename，成功後 emit 事件
+ */
+async function handleSetAsBase() {
+  if (!props.audio || !props.fishId) return
+  if (props.isBase || props.isPlaying || processing.value) return
+
+  processing.value = true
+  try {
+    const filename = props.audio.name || props.audio.file_name || props.audio.filename || ''
+    // 如果需要 API 前綴或不同路徑，請調整路徑；此處使用標準 web route
+    await router.patch(`/fish/${props.fishId}`, { audio_filename: filename })
+
+    emit('set-as-base')
+    menuOpen.value = false
+  } catch (err) {
+    console.error('設定基本發音失敗：', err)
+  } finally {
+    processing.value = false
+  }
+}
+
+/**
+ * 刪除：保留基本刪除流程（使用 axios 或 fetch），成功後 emit deleted
+ */
+async function deleteData() {
   menuOpen.value = false
   if (!confirm('確定要刪除此項目嗎？')) return
 
@@ -132,3 +203,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 </script>
+
+<style scoped>
+/* ...簡單樣式，可依專案風格調整... */
+</style>
