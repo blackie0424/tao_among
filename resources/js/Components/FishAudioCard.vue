@@ -46,6 +46,7 @@
           :is-base="isBase"
           :is-playing="currentAudioIsPlaying"
           :enable-set-as-base="enableCustomOption"
+          :enable-edit="enableEdit"
           @deleted="$emit('deleted')"
           @set-as-base="$emit('updated')"
         />
@@ -206,6 +207,11 @@ const props = defineProps({
   enableCustomOption: {
     type: Boolean,
     default: false,
+  },
+  // 新增：是否顯示編輯功能（預設 true，不變更既有頁面）
+  enableEdit: {
+    type: Boolean,
+    default: true,
   },
 })
 

@@ -24,7 +24,7 @@
       >
         <ul>
           <li
-            v-if="showEdit"
+            v-if="showEdit && enableEdit"
             @click="editData"
             class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base"
           >
@@ -92,6 +92,11 @@ const props = defineProps({
   enableSetAsBase: {
     type: Boolean,
     default: false,
+  },
+  // 新增：是否顯示編輯選項（預設 true）
+  enableEdit: {
+    type: Boolean,
+    default: true,
   },
 })
 
