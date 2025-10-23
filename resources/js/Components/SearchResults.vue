@@ -44,132 +44,133 @@
 
     <!-- 搜尋結果列表 -->
     <div v-else-if="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="fish in results"
-        :key="fish.id"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
-      >
-        <!-- 魚類圖片 -->
-        <div class="aspect-w-16 aspect-h-9">
-          <LazyImage
-            :src="fish.image_url"
-            :alt="fish.name"
-            wrapperClass="w-full h-48 overflow-hidden rounded-t-lg bg-gray-100 dark:bg-gray-700"
-            imgClass="w-full h-full object-cover"
-          />
-        </div>
-
-        <!-- 魚類資訊 -->
-        <div class="p-4">
-          <!-- 魚類名稱 -->
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            <a
-              :href="`/fish/${fish.id}`"
-              class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              v-html="highlightText(fish.name, filters.name)"
+      <div v-for="fish in results" :key="fish.id">
+        <!-- 將整張卡片改為可點擊區塊，增大點擊面積 -->
+        <a
+          :href="`/fish/${fish.id}`"
+          class="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+        >
+          <!-- 魚類圖片 -->
+          <div class="aspect-w-16 aspect-h-9">
+            <LazyImage
+              :src="fish.image_url"
+              :alt="fish.name"
+              wrapperClass="w-full h-48 overflow-hidden rounded-t-lg bg-gray-100 dark:bg-gray-700"
+              imgClass="w-full h-full object-cover"
             />
-          </h3>
+          </div>
 
-          <!-- 部落分類資訊 -->
-          <div
-            v-if="fish.tribal_classifications && fish.tribal_classifications.length > 0"
-            class="hidden"
-          >
-            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">部落分類資訊：</h4>
-            <div class="space-y-1">
-              <div
-                v-for="classification in getFilteredClassifications(fish.tribal_classifications)"
-                :key="`${classification.tribe}-${classification.id}`"
-                class="text-xs bg-gray-50 dark:bg-gray-700 rounded-md p-2"
-              >
-                <div class="flex items-center justify-between">
-                  <span
-                    class="font-medium"
-                    :class="
-                      isHighlighted('tribe', classification.tribe)
-                        ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1 rounded'
-                        : 'text-gray-700 dark:text-gray-300'
-                    "
-                  >
-                    {{ classification.tribe }}
-                  </span>
-                </div>
-                <div class="mt-1 space-y-1">
-                  <div
-                    v-if="classification.food_category"
-                    class="flex items-center text-gray-600 dark:text-gray-400"
-                  >
-                    <span class="mr-2">飲食：</span>
+          <!-- 魚類資訊 -->
+          <div class="p-4">
+            <!-- 魚類名稱：改為可見且不單獨包成 link（整卡為連結） -->
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              <span
+                class="inline-block hover:underline hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                v-html="highlightText(fish.name, filters.name)"
+              />
+            </h3>
+
+            <!-- 部落分類資訊 -->
+            <div
+              v-if="fish.tribal_classifications && fish.tribal_classifications.length > 0"
+              class="hidden"
+            >
+              <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">部落分類資訊：</h4>
+              <div class="space-y-1">
+                <div
+                  v-for="classification in getFilteredClassifications(fish.tribal_classifications)"
+                  :key="`${classification.tribe}-${classification.id}`"
+                  class="text-xs bg-gray-50 dark:bg-gray-700 rounded-md p-2"
+                >
+                  <div class="flex items-center justify-between">
                     <span
+                      class="font-medium"
                       :class="
-                        isHighlighted('food_category', classification.food_category)
-                          ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1 rounded font-medium'
-                          : ''
+                        isHighlighted('tribe', classification.tribe)
+                          ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1 rounded'
+                          : 'text-gray-700 dark:text-gray-300'
                       "
                     >
-                      {{
-                        classification.food_category === ''
-                          ? '尚未紀錄'
-                          : classification.food_category
-                      }}
+                      {{ classification.tribe }}
                     </span>
                   </div>
-                  <div
-                    v-if="classification.processing_method"
-                    class="flex items-center text-gray-600 dark:text-gray-400"
-                  >
-                    <span class="mr-2">處理：</span>
+                  <div class="mt-1 space-y-1">
+                    <div
+                      v-if="classification.food_category"
+                      class="flex items-center text-gray-600 dark:text-gray-400"
+                    >
+                      <span class="mr-2">飲食：</span>
+                      <span
+                        :class="
+                          isHighlighted('food_category', classification.food_category)
+                            ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1 rounded font-medium'
+                            : ''
+                        "
+                      >
+                        {{
+                          classification.food_category === ''
+                            ? '尚未紀錄'
+                            : classification.food_category
+                        }}
+                      </span>
+                    </div>
+                    <div
+                      v-if="classification.processing_method"
+                      class="flex items-center text-gray-600 dark:text-gray-400"
+                    >
+                      <span class="mr-2">處理：</span>
+                      <span
+                        :class="
+                          isHighlighted('processing_method', classification.processing_method)
+                            ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1 rounded font-medium'
+                            : ''
+                        "
+                      >
+                        {{
+                          classification.processing_method === ''
+                            ? '尚未紀錄'
+                            : classification.processing_method
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 捕獲紀錄資訊 -->
+            <div v-if="fish.capture_records && fish.capture_records.length > 0" class="hidden">
+              <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">捕獲紀錄：</h4>
+              <div class="space-y-1">
+                <div
+                  v-for="record in getFilteredCaptureRecords(fish.capture_records)"
+                  :key="record.id"
+                  class="text-xs bg-gray-50 dark:bg-gray-700 rounded-md p-2"
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      {{ record.tribe }}
+                    </span>
+                    <span class="text-gray-500 dark:text-gray-400">
+                      {{ formatDate(record.capture_date) }}
+                    </span>
+                  </div>
+                  <div v-if="record.location" class="mt-1 text-gray-600 dark:text-gray-400">
+                    地點：
                     <span
                       :class="
-                        isHighlighted('processing_method', classification.processing_method)
+                        isLocationHighlighted(record.location)
                           ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1 rounded font-medium'
                           : ''
                       "
-                    >
-                      {{
-                        classification.processing_method === ''
-                          ? '尚未紀錄'
-                          : classification.processing_method
-                      }}
-                    </span>
+                      v-html="highlightText(record.location, filters.location)"
+                    />
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- 捕獲紀錄資訊 -->
-          <div v-if="fish.capture_records && fish.capture_records.length > 0" class="hidden">
-            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">捕獲紀錄：</h4>
-            <div class="space-y-1">
-              <div
-                v-for="record in getFilteredCaptureRecords(fish.capture_records)"
-                :key="record.id"
-                class="text-xs bg-gray-50 dark:bg-gray-700 rounded-md p-2"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="font-medium text-gray-700 dark:text-gray-300">
-                    {{ record.tribe }}
-                  </span>
-                  <span class="text-gray-500 dark:text-gray-400">
-                    {{ formatDate(record.capture_date) }}
-                  </span>
-                </div>
-                <div v-if="record.location" class="mt-1 text-gray-600 dark:text-gray-400">
-                  地點：
-                  <span
-                    :class="
-                      isLocationHighlighted(record.location)
-                        ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1 rounded font-medium'
-                        : ''
-                    "
-                    v-html="highlightText(record.location, filters.location)"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        </a>
       </div>
     </div>
 
