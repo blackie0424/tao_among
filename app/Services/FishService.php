@@ -32,9 +32,11 @@ class FishService
 
     public function getFishById($id)
     {
-        $fish = Fish::with('notes')->findOrFail($id);
+        $fish = Fish::findOrFail($id);
+        $fish->image = $this->storageService->getUrl('images', $fish->image);
+        $fish->audio_filename = $this->storageService->getUrl('audio', $fish->audio_filename);
 
-        return $fish ? $this->assignImageUrls([$fish])[0] : null;
+        return $fish;
     }
 
     public function getFishByIdAndLocate($id, $locate)

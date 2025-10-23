@@ -40,8 +40,7 @@ class FishController extends Controller
 
     public function getFish($id, Request $request)
     {
-        $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
-        $fish = $this->fishService->getFishByIdAndLocate($id, $locate);
+        $fish = $this->fishService->getFishById($id);
         
         // 取得部落分類資料（最多顯示前5筆）
         $tribalClassifications = TribalClassification::where('fish_id', $id)
