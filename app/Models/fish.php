@@ -18,7 +18,7 @@ class Fish extends Model
      */
     protected $table = 'fish';
 
-    protected $fillable = ['name', 'image'];
+    protected $fillable = ['name', 'image', 'audio_filename'];
 
     protected $appends = ['image_url'];
 
