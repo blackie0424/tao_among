@@ -36,12 +36,20 @@
         </span>
       </div>
 
-      <OverflowMenu
-        :apiUrl="`/fish/${fishId}/audio/${audio.id}`"
-        :fishId="fishId.toString()"
-        :editUrl="`/fish/${fishId}/audio/${audio.id}/edit`"
-        @deleted="$emit('deleted')"
-      />
+      <div class="flex items-center gap-2">
+        <!-- 將客製選項與狀態傳入 OverflowMenu，不改變預設行為 -->
+        <OverflowMenu
+          :apiUrl="`/fish/${fishId}/audio/${audio.id}`"
+          :fishId="fishId.toString()"
+          :editUrl="`/fish/${fishId}/audio/${audio.id}/edit`"
+          :audio="audio"
+          :is-base="isBase"
+          :is-playing="currentAudioIsPlaying"
+          :enable-set-as-base="enableCustomOption"
+          @deleted="$emit('deleted')"
+          @set-as-base="$emit('updated')"
+        />
+      </div>
     </div>
 
     <!-- 音頻播放控制 -->
@@ -190,8 +198,12 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 const props = defineProps({
   audio: Object,
   fishId: [Number, String],
-  // 新增：由父層傳入，若為 true 表示此項為目前基本資料的發音檔
+  // 新增：由父層決定是否開啟此元件的客製選項（預設關閉）
   isBase: {
+    type: Boolean,
+    default: false,
+  },
+  enableCustomOption: {
     type: Boolean,
     default: false,
   },

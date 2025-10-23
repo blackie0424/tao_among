@@ -99,6 +99,7 @@
             :audio="audio"
             :fishId="fish.id"
             :is-base="baseAudioBasename === getAudioBasename(audio)"
+            :enable-custom-option="true" 
             @updated="onAudioUpdated"
             @deleted="onAudioDeleted"
           />
