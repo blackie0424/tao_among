@@ -195,7 +195,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import LazyImage from '@/Components/LazyImage.vue'
 
 const props = defineProps({
@@ -307,6 +307,31 @@ const formatDate = (dateString) => {
 
 // 導航狀態（點擊卡片後顯示過場）
 const isNavigating = ref(false)
+
+// 當從原生返回（如手機右滑返回或 BFCache 恢復）時，清除過場狀態
+function clearNavigating() {
+  isNavigating.value = false
+}
+
+const visibilityHandler = () => {
+  if (document.visibilityState === 'visible') {
+    clearNavigating()
+  }
+}
+
+onMounted(() => {
+  // 初始確保為 false（避免從 bfcache 恢復時持續顯示）
+  isNavigating.value = false
+  window.addEventListener('pageshow', clearNavigating)
+  window.addEventListener('popstate', clearNavigating)
+  document.addEventListener('visibilitychange', visibilityHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pageshow', clearNavigating)
+  window.removeEventListener('popstate', clearNavigating)
+  document.removeEventListener('visibilitychange', visibilityHandler)
+})
 
 // 使用 Web Audio API 播放短促音效（不需外部音檔）
 function playClickSound(duration = 120, frequency = 880) {
