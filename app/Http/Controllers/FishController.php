@@ -476,6 +476,9 @@ class FishController extends Controller
             'audio_filename' => $audio->name,
         ]);
         $fish->image = $this->supabaseStorage->getUrl('images', $fish->image);
+        foreach ($fish->audios as $audio) {
+            $audio->url = $this->supabaseStorage->getUrl('audios', $audio->name);
+        }
       
         // 使用 Inertia 回傳頁面與成功訊息，前端可由 props 取得 success
         return Inertia::render('FishAudioList', [
