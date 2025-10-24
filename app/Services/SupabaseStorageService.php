@@ -92,27 +92,15 @@ class SupabaseStorageService
 
             if ($response->successful()) {
                 $url = $response->json('url');
-                \Log::info('Signed upload URL created successfully', [
-                    'file_path' => $filePath,
-                    'expires_in' => $expiresIn
-                ]);
+                
                 return $url;
             }
 
-            \Log::error('Failed to create signed upload URL', [
-                'file_path' => $filePath,
-                'status' => $response->status(),
-                'response' => $response->body()
-            ]);
+        
 
             return null;
         } catch (Exception $e) {
-            \Log::error('Exception during signed URL creation', [
-                'file_path' => $filePath,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
+            
             return null;
         }
     }
@@ -130,27 +118,13 @@ class SupabaseStorageService
                 ])->delete("{$this->storageUrl}/object/{$this->bucket}/{$filePath}");
 
             if ($response->successful()) {
-                \Log::info('File deleted successfully from Supabase', [
-                    'file_path' => $filePath,
-                    'bucket' => $this->bucket
-                ]);
+              
                 return true;
             }
 
-            // Log the error but don't throw exception
-            \Log::warning('Failed to delete file from Supabase', [
-                'file_path' => $filePath,
-                'status' => $response->status(),
-                'response' => $response->body()
-            ]);
-
             return false;
         } catch (Exception $e) {
-            \Log::error('Exception during file deletion from Supabase', [
-                'file_path' => $filePath,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+           
 
             return false;
         }
@@ -172,9 +146,6 @@ class SupabaseStorageService
             // Check if file exists before attempting deletion
             $exists = $this->fileExists($filePath);
             if (!$exists) {
-                \Log::info('File does not exist, skipping deletion', [
-                    'file_path' => $filePath
-                ]);
                 return [
                     'success' => true,
                     'message' => 'File does not exist'
@@ -209,15 +180,8 @@ class SupabaseStorageService
 
             return $response->status() === 200;
         } catch (Exception $e) {
-            \Log::warning('Error checking file existence', [
-                'file_path' => $filePath,
-                'error' => $e->getMessage()
-            ]);
+            
             return false;
         }
     }
-
-
-
-
 }
