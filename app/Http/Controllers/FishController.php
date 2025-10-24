@@ -465,4 +465,26 @@ class FishController extends Controller
         }
     }
 
+    public function updateAudioFilename(Request $request, $fishId, $audioId)
+    {
+        // 取出 fish 與指定 audio
+        $fish = Fish::with('audios')->findOrFail($fishId);
+        $audio = $fish->audios()->where('id', $audioId)->firstOrFail();
+
+        // 更新主檔案欄位
+        $fish->update([
+            'audio_filename' => $audio->name,
+        ]);
+        $fish->image = $this->supabaseStorage->getUrl('images', $fish->image);
+        foreach ($fish->audios as $audio) {
+            $audio->url = $this->supabaseStorage->getUrl('audios', $audio->name);
+        }
+      
+        // 使用 Inertia 回傳頁面與成功訊息，前端可由 props 取得 success
+        return Inertia::render('FishAudioList', [
+            'fish' => $fish,
+            'success' => '魚類發音更新成功'
+        ]);
+    }
+
 }

@@ -201,7 +201,7 @@ onMounted(() => {
 
 function onAudioUpdated() {
   // 重新載入頁面以顯示更新的發音
-  router.reload()
+  //router.reload()
 }
 
 function onAudioDeleted() {

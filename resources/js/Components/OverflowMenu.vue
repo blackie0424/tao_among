@@ -46,12 +46,15 @@
               指定為基本發音
             </button>
           </li>
-          <li
-            v-if="showDelete"
-            @click="deleteData"
-            class="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer text-base"
-          >
-            刪除
+          <li v-if="showDelete">
+            <button
+              class="w-full text-left px-4 py-2 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-red-600"
+              :disabled="isBase || isPlaying || processing"
+              @click="deleteData"
+              :title="disableDeleteWhenBase && isBase ? '此檔案已為基本發音，無法刪除' : '刪除'"
+            >
+              刪除
+            </button>
           </li>
         </ul>
       </div>
@@ -98,6 +101,11 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  // 新增：是否當已為基本發音時禁止刪除（預設 false，保持相容性）
+  disableDeleteWhenBase: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['deleted', 'set-as-base'])
@@ -124,7 +132,9 @@ async function handleSetAsBase() {
   try {
     const filename = props.audio.name || props.audio.file_name || props.audio.filename || ''
     // 如果需要 API 前綴或不同路徑，請調整路徑；此處使用標準 web route
-    await router.patch(`/fish/${props.fishId}`, { audio_filename: filename })
+    await router.put(`/fish/${props.fishId}/audio/${props.audio.id}`, {
+      audio_filename: filename,
+    })
 
     emit('set-as-base')
     menuOpen.value = false
@@ -140,6 +150,12 @@ async function handleSetAsBase() {
  */
 async function deleteData() {
   menuOpen.value = false
+  // 防護檢查：若設定不允許刪除基本發音則直接返回
+  if (props.disableDeleteWhenBase && props.isBase) {
+    alert('此檔案已為基本發音，無法刪除。')
+    return
+  }
+
   if (!confirm('確定要刪除此項目嗎？')) return
 
   console.log('開始刪除操作，API URL:', props.apiUrl)
