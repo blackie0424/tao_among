@@ -98,6 +98,9 @@
             :key="audio.id"
             :audio="audio"
             :fishId="fish.id"
+            :is-base="baseAudioBasename === getAudioBasename(audio)"
+            :enable-custom-option="true"
+            :enable-edit="false"
             @updated="onAudioUpdated"
             @deleted="onAudioDeleted"
           />
@@ -169,6 +172,19 @@ const playbackStatus = computed(() => {
   return '待播放'
 })
 
+// 取 fish 中代表「基本發音」的欄位，並只取最後的檔名
+const baseAudioBasename = computed(() => {
+  const raw = (props.fish && props.fish.audio_filename) || ''
+  return raw ? String(raw).split('/').pop() : ''
+})
+
+// 輔助：從 audio 物件取可能的檔名欄位 (優先使用 audio.name)
+const getAudioBasename = (audio) => {
+  if (!audio) return ''
+  const candidate = audio.name || audio.filename || audio.file_name || ''
+  return candidate ? String(candidate).split('/').pop() : ''
+}
+
 // 監聽網路重連事件
 onMounted(() => {
   const handleReconnect = () => {
@@ -185,7 +201,7 @@ onMounted(() => {
 
 function onAudioUpdated() {
   // 重新載入頁面以顯示更新的發音
-  router.reload()
+  //router.reload()
 }
 
 function onAudioDeleted() {

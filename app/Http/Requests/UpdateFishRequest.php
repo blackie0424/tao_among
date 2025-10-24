@@ -11,6 +11,7 @@ class UpdateFishRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'image' => ['sometimes', 'required', 'string', 'max:255'],
+            'audio_filename' => ['nullable', 'string', 'max:255'],
         ];
     }
 

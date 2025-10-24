@@ -1,13 +1,56 @@
 <template>
-  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
-    <div class="flex justify-between items-start mb-3">
-      <h4 class="font-medium text-gray-900">{{ audio.name }}</h4>
-      <OverflowMenu
-        :apiUrl="`/fish/${fishId}/audio/${audio.id}`"
-        :fishId="fishId.toString()"
-        :editUrl="`/fish/${fishId}/audio/${audio.id}/edit`"
-        @deleted="$emit('deleted')"
-      />
+  <div
+    class="bg-white rounded-lg p-4 shadow-sm flex flex-col gap-2 transition"
+    :class="isBase ? 'border-2 border-green-200 ring-1 ring-green-100' : ''"
+  >
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <h4 class="font-medium text-lg">{{ audio.file_name }}</h4>
+
+        <!-- 基本資料頁面的聲音檔案 標籤 -->
+        <span
+          v-if="isBase"
+          class="text-md bg-green-100 text-green-800 px-2 py-0.5 rounded-md flex items-center gap-1"
+          title="此檔案為目前魚種基本資料所使用的發音檔"
+          aria-hidden="false"
+          role="status"
+        >
+          <!-- 簡單圖示與文字 -->
+          <svg
+            class="w-3 h-3"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M10 2a8 8 0 100 16 8 8 0 000-16z" fill="#DCFCE7" />
+            <path
+              d="M7.5 10.5l1.5 1.5 3.5-4"
+              stroke="#16A34A"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          目前基本資料頁面的聲音檔案
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- 將客製選項與狀態傳入 OverflowMenu，不改變預設行為 -->
+        <OverflowMenu
+          :apiUrl="`/fish/${fishId}/audio/${audio.id}`"
+          :fishId="fishId.toString()"
+          :editUrl="`/fish/${fishId}/audio/${audio.id}/edit`"
+          :audio="audio"
+          :is-base="isBase"
+          :is-playing="currentAudioIsPlaying"
+          :enable-set-as-base="enableCustomOption"
+          :enable-edit="enableEdit"
+          @deleted="$emit('deleted')"
+          @set-as-base="$emit('updated')"
+        />
+      </div>
     </div>
 
     <!-- 音頻播放控制 -->
@@ -63,13 +106,13 @@
       </button>
 
       <div class="flex-1">
-        <div class="text-sm font-medium text-gray-800">{{ audio.name }}</div>
-        <div class="text-xs text-gray-500">
+        <div class="text-lg font-medium text-gray-800">{{ audio.name }}</div>
+        <div class="text-md text-gray-500">
           {{ getStatusText() }}
         </div>
         <!-- 播放進度 -->
         <div v-if="currentAudioId === audio.id && playbackState.duration > 0" class="mt-1">
-          <div class="flex items-center gap-2 text-xs text-gray-400">
+          <div class="flex items-center gap-2 text-md text-gray-400">
             <span>{{ formatTime(playbackState.currentTime) }}</span>
             <div class="flex-1 bg-gray-200 rounded-full h-1">
               <div
@@ -118,12 +161,12 @@
           />
         </svg>
         <div class="flex-1">
-          <p class="text-sm font-medium text-red-800">音頻播放失敗</p>
-          <p class="text-xs text-red-600 mt-1">{{ getErrorMessage(playbackState.error) }}</p>
+          <p class="text-lg font-medium text-red-800">音頻播放失敗</p>
+          <p class="text-md text-red-600 mt-1">{{ getErrorMessage(playbackState.error) }}</p>
           <div class="flex gap-2 mt-2">
             <button
               @click="retryPlay"
-              class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors"
+              class="text-md bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors"
               :disabled="retryAttempts >= maxRetryAttempts"
             >
               {{
@@ -134,7 +177,7 @@
             </button>
             <button
               @click="dismissError"
-              class="text-xs text-red-600 hover:text-red-800 px-2 py-1 transition-colors"
+              class="text-md text-red-600 hover:text-red-800 px-2 py-1 transition-colors"
             >
               忽略
             </button>
@@ -142,14 +185,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 音頻檔案資訊 -->
-    <div v-if="audio.locate" class="mb-2">
-      <span class="text-xs font-medium text-gray-500">檔案</span>
-      <p class="text-sm text-gray-700 truncate">{{ audio.locate }}</p>
-    </div>
-
-    <div class="text-xs text-gray-400">記錄時間: {{ formatDateTime(audio.created_at) }}</div>
 
     <!-- 隱藏的音頻元素 -->
     <audio ref="audioElement" :src="audioUrl" preload="none" crossorigin="anonymous"></audio>
@@ -163,7 +198,21 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   audio: Object,
-  fishId: Number,
+  fishId: [Number, String],
+  // 新增：由父層決定是否開啟此元件的客製選項（預設關閉）
+  isBase: {
+    type: Boolean,
+    default: false,
+  },
+  enableCustomOption: {
+    type: Boolean,
+    default: false,
+  },
+  // 新增：是否顯示編輯功能（預設 true，不變更既有頁面）
+  enableEdit: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const emit = defineEmits(['updated', 'deleted'])
@@ -373,3 +422,7 @@ function formatDateTime(dateString) {
   return new Date(dateString).toLocaleString('zh-TW')
 }
 </script>
+
+<style scoped>
+/* 可選：微調基本發音強調樣式 */
+</style>

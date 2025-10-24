@@ -16,6 +16,7 @@ class CreateFishRequest extends FormRequest
         return [
             'name' => ['required', 'string'],
             'image' => ['required', 'string'],
+            'audio_filename' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

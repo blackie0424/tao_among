@@ -40,20 +40,17 @@ class FishController extends Controller
 
     public function getFish($id, Request $request)
     {
-        $locate = $request->query('locate') ? strtolower($request->query('locate')) : 'iraraley';
-        $fish = $this->fishService->getFishByIdAndLocate($id, $locate);
+        $fish = $this->fishService->getFishById($id);
         
         // 取得部落分類資料（最多顯示前5筆）
         $tribalClassifications = TribalClassification::where('fish_id', $id)
             ->orderBy('created_at', 'desc')
-            ->limit(5)
             ->get();
         
         // 取得捕獲紀錄資料（最多顯示前4筆）
         // CaptureRecord 模型已經自動處理 image_url 屬性
         $captureRecords = CaptureRecord::where('fish_id', $id)
             ->orderBy('capture_date', 'desc')
-            ->limit(4)
             ->get();
 
         // 取得 fish_note 資訊，並依 note_type 分組
@@ -466,6 +463,28 @@ class FishController extends Controller
             ], 422);
             
         }
+    }
+
+    public function updateAudioFilename(Request $request, $fishId, $audioId)
+    {
+        // 取出 fish 與指定 audio
+        $fish = Fish::with('audios')->findOrFail($fishId);
+        $audio = $fish->audios()->where('id', $audioId)->firstOrFail();
+
+        // 更新主檔案欄位
+        $fish->update([
+            'audio_filename' => $audio->name,
+        ]);
+        $fish->image = $this->supabaseStorage->getUrl('images', $fish->image);
+        foreach ($fish->audios as $audio) {
+            $audio->url = $this->supabaseStorage->getUrl('audios', $audio->name);
+        }
+      
+        // 使用 Inertia 回傳頁面與成功訊息，前端可由 props 取得 success
+        return Inertia::render('FishAudioList', [
+            'fish' => $fish,
+            'success' => '魚類發音更新成功'
+        ]);
     }
 
 }

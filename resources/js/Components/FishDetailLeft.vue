@@ -10,7 +10,7 @@
             <FishName
               :fish-name="fish.name"
               :fish-id="fish.id"
-              :audios="fish.audios"
+              :audio="fish.audio_filename"
               class="w-full max-w-2xl text-2xl mb-4"
             />
           </div>

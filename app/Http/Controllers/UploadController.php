@@ -11,6 +11,8 @@ use App\Http\Requests\SupabaseSignedUploadUrlRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\FishAudio;
+use App\Models\Fish;
+use Illuminate\Support\Facades\DB;
 
 class UploadController extends Controller
 {
@@ -338,13 +340,33 @@ class UploadController extends Controller
         $url = $service->createSignedUploadUrl($filePath);
 
         try {
+            // 使用 DB 交易，建立 FishAudio 並更新 Fish->audio_filename
+            DB::beginTransaction();
+
             $fishAudio = FishAudio::create([
                 'fish_id' => $request->route('id'),
                 'name' => $uniqueName,
-                'locate' =>"iraraley",
+                'locate' => "iraraley",
             ]);
+
+            $fishId = $request->route('id');
+            $fish = Fish::find($fishId);
+
+            if (! $fish) {
+                DB::rollBack();
+                return response()->json(['message' => '魚類資料不存在'], 404);
+            }
+
+            $fish->audio_filename = $uniqueName;
+            $fish->save();
+
+            DB::commit();
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to save audio metadata'], 500);
+            // 若失敗，回滾並回傳錯誤
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            return response()->json(['message' => '儲存音訊 metadata 失敗'], 500);
         }
 
         if ($url) {
