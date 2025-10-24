@@ -33,8 +33,19 @@ class FishService
     public function getFishById($id)
     {
         $fish = Fish::findOrFail($id);
-        $fish->image = $this->storageService->getUrl('images', $fish->image);
-        $fish->audio_filename = $this->storageService->getUrl('audio', $fish->audio_filename);
+        // 圖片：沒有時給預設圖
+        if (!empty($fish->image)) {
+            $fish->image = $this->storageService->getUrl('images', $fish->image);
+        } else {
+            $fish->image = $this->storageService->getUrl('images', 'default.png');
+        }
+
+        // 音檔：只有在有檔名時才呼叫 getUrl，避免傳入 null
+        if (!empty($fish->audio_filename)) {
+            $fish->audio_filename = $this->storageService->getUrl('audios', $fish->audio_filename);
+        } else {
+            $fish->audio_filename = null;
+        }
 
         return $fish;
     }
