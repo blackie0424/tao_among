@@ -26,9 +26,9 @@ class FishSearchService
         $this->applyCaptureFilters($query, $filters);
 
         $results = $query->get();
-        
-        // 處理圖片 URL
-        return $results;
+
+        // 將媒體 URL 組裝集中於服務層（圖片 default、音檔 null-safe）
+        return $this->fishService->assignImageUrls($results);
     }
 
     /**
