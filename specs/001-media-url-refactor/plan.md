@@ -6,6 +6,7 @@
 ## Summary
 
 重構媒體完整網址組合：
+
 - 集中於 SupabaseStorageService 組合完整 URL；資料庫僅存檔名。
 - 圖片：has_webp=true → 使用 webp；has_webp=false 或 null → 使用原圖；不做 HEAD。
 - 音訊：有檔名才產生 URL；空/NULL 不輸出該欄位。
@@ -31,9 +32,10 @@
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 Constitution 未明確定義，採專案慣例品質門檻：
+
 - 測試先行：更新或新增測試覆蓋新行為（Unit + Feature）。
 - 契約穩定：API 回傳格式調整需在合約中明定（簽名 URL 為絕對 URL）。
 - 不做外網探測：禁止 HEAD 做為執行期決策。
@@ -53,6 +55,7 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 <!--
   ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
   for this feature. Delete unused options and expand the chosen structure with
@@ -78,7 +81,7 @@ specs/001-media-url-refactor/  # 規格與計畫產物
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |

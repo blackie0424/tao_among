@@ -218,8 +218,8 @@ class FishNoteController extends BaseController
     {
         $fish = Fish::findOrFail($id);
 
-    $supabase = app(SupabaseStorageService::class);
-    $imageUrl = $supabase->getUrl('images', $fish->image, $fish->has_webp ?? null);
+        $supabase = app(SupabaseStorageService::class);
+        $imageUrl = $supabase->getUrl('images', $fish->image, $fish->has_webp ?? null);
 
         // 假設 image 欄位已經是完整路徑，否則請補上 storage 路徑
         return inertia('CreateFishNote', [
