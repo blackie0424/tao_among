@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: Signed Upload APIs
+  version: 1.0.0
+paths:
+  /prefix/api/supabase/signed-upload-url:
+    post:
+      summary: 取得圖片簽名上傳 URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename]
+              properties:
+                filename:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  path:
+                    type: string
+                  filename:
+                    type: string
+        '400': { description: 驗證失敗 }
+        '500': { description: 產生簽名上傳 URL 失敗 }
+  /prefix/api/fish/{id}/supabase/signed-upload-audio-url:
+    post:
+      summary: 取得音訊簽名上傳 URL
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename]
+              properties:
+                filename:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  path:
+                    type: string
+                  filename:
+                    type: string
+        '400': { description: 驗證失敗 }
+        '500': { description: 產生簽名上傳 URL 失敗 }

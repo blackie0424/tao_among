@@ -38,35 +38,28 @@ class SupabaseStorageService
         return "{$this->storageUrl}/object/public/{$this->bucket}/{$filePath}";
     }
 
-    public function getUrl(string $type, string $filename): string
+    public function getUrl(string $type, string $filename, ?bool $hasWebp = null): string
     {
+        // 若 filename 已是完整 URL（歷史資料），直接原樣回傳
+        if (preg_match('/^https?:\/\//i', $filename) === 1) {
+            return $filename;
+        }
+
+        // 音訊：一律走 audio 目錄
         if ($type === 'audios' || $type === 'audio') {
             return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
         }
 
-        if ($type !== 'images') {
-            throw new InvalidArgumentException('Invalid type: ' . $type);
+        // 圖片：依 hasWebp 決定 webp 或原圖，不進行任何 HEAD 探測
+        if ($type === 'images') {
+            $baseName = pathinfo($filename, PATHINFO_FILENAME);
+            if ($hasWebp === true) {
+                return "{$this->storageUrl}/object/public/{$this->bucket}/webp/{$baseName}.webp";
+            }
+            return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
         }
 
-        // 提取基名（去掉擴展名）
-        $baseName = pathinfo($filename, PATHINFO_FILENAME);
-
-        // WebP 路徑
-        $webpPath = "webp/{$baseName}.webp";
-
-        // 使用 HEAD 請求檢查 WebP 檔案是否存在
-        $response = Http::withHeaders([
-            'apikey' => $this->apiKey,
-            'Authorization' => "Bearer {$this->apiKey}",
-        ])->head("{$this->storageUrl}/object/{$this->bucket}/{$webpPath}");
-
-        if ($response->status() === 200) {
-            // WebP 存在，返回 WebP 連結
-            return "{$this->storageUrl}/object/public/{$this->bucket}/{$webpPath}";
-        }
-
-        // WebP 不存在，返回原檔連結
-        return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
+        throw new InvalidArgumentException('Invalid type: ' . $type);
     }
 
     public function createSignedUploadUrl(string $filePath, int $expiresIn = 60): ?string

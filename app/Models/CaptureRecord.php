@@ -45,6 +45,10 @@ class CaptureRecord extends Model
         }
         
         $supabaseStorage = app(\App\Services\SupabaseStorageService::class);
-        return $supabaseStorage->getUrl('images', $this->image_path);
+        $hasWebp = null;
+        if ($this->relationLoaded('fish') && $this->fish) {
+            $hasWebp = $this->fish->has_webp ?? null;
+        }
+        return $supabaseStorage->getUrl('images', $this->image_path, $hasWebp);
     }
 }

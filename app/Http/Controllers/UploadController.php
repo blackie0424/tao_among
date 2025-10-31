@@ -245,18 +245,16 @@ class UploadController extends Controller
         $service = new SupabaseStorageService();
         $url = $service->createSignedUploadUrl($filePath);
 
-        if ($url) {
-            $storageBaseUrl = env('SUPABASE_STORAGE_URL');
-            $fullUrl = $storageBaseUrl . $url;
-
-            return response()->json([
-                'url' => $fullUrl,
-                'path' => $filePath,
-                'filename' => $uniqueName,
-            ]);
+        if (!$url) {
+            return response()->json(['message' => 'Failed to create signed upload URL'], 500);
         }
 
-        return response()->json(['message' => 'Failed to create signed upload URL'], 500);
+        // 服務已回傳絕對 URL，直接轉交
+        return response()->json([
+            'url' => $url,
+            'path' => $filePath,
+            'filename' => $uniqueName,
+        ]);
     }
 
     /**
@@ -339,47 +337,44 @@ class UploadController extends Controller
         $service = new \App\Services\SupabaseStorageService();
         $url = $service->createSignedUploadUrl($filePath);
 
-        try {
-            // 使用 DB 交易，建立 FishAudio 並更新 Fish->audio_filename
-            DB::beginTransaction();
+        // 確認簽名成功後才進行 DB 異動
+        if (!$url) {
+            return response()->json(['message' => 'Failed to create signed upload URL'], 500);
+        }
 
-            $fishAudio = FishAudio::create([
-                'fish_id' => $request->route('id'),
-                'name' => $uniqueName,
-                'locate' => "iraraley",
-            ]);
+        try {
+            DB::beginTransaction();
 
             $fishId = $request->route('id');
             $fish = Fish::find($fishId);
 
-            if (! $fish) {
+            if (!$fish) {
                 DB::rollBack();
                 return response()->json(['message' => '魚類資料不存在'], 404);
             }
+
+            $fishAudio = FishAudio::create([
+                'fish_id' => $fishId,
+                'name' => $uniqueName,
+                'locate' => "iraraley",
+            ]);
 
             $fish->audio_filename = $uniqueName;
             $fish->save();
 
             DB::commit();
         } catch (\Exception $e) {
-            // 若失敗，回滾並回傳錯誤
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();
             }
             return response()->json(['message' => '儲存音訊 metadata 失敗'], 500);
         }
 
-        if ($url) {
-            $storageBaseUrl = env('SUPABASE_STORAGE_URL');
-            $fullUrl = $storageBaseUrl . $url;
-
-            return response()->json([
-                'url' => $fullUrl,
-                'path' => $filePath,
-                'filename' => $uniqueName,
-            ]);
-        }
-
-        return response()->json(['message' => 'Failed to create signed upload URL'], 500);
+        // 回傳絕對 URL
+        return response()->json([
+            'url' => $url,
+            'path' => $filePath,
+            'filename' => $uniqueName,
+        ]);
     }
 }
