@@ -81,16 +81,12 @@ class Fish extends Model
 
     public function getImageUrlAttribute()
     {
-        $storageUrl = env('SUPABASE_STORAGE_URL');
-        $bucket = env('SUPABASE_BUCKET');
-        if (!$this->image) {
-            return env('ASSET_URL') . '/images/default.png';
+        // 統一走集中服務，避免重複前置與邏輯分散
+        $supabase = app(\App\Services\SupabaseStorageService::class);
+        if (empty($this->image)) {
+            // 預設圖固定回傳原圖（不使用 webp）
+            return $supabase->getUrl('images', 'default.png', false);
         }
-        // 判斷 has_webp 欄位
-        if ($this->has_webp) {
-            $baseName = pathinfo($this->image, PATHINFO_FILENAME);
-            return "{$storageUrl}/object/public/{$bucket}/webp/{$baseName}.webp";
-        }
-        return "{$storageUrl}/object/public/{$bucket}/images/{$this->image}";
+        return $supabase->getUrl('images', $this->image, $this->has_webp ?? null);
     }
 }

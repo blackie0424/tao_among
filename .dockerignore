@@ -1,0 +1,9 @@
+.git
+node_modules/
+Dockerfile*
+*.log*
+.env*
+coverage/
+public/build/
+public/hot/
+vendor/

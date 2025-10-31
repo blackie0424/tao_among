@@ -40,37 +40,9 @@ class FishController extends Controller
 
     public function getFish($id, Request $request)
     {
-        $fish = $this->fishService->getFishById($id);
-        
-        // 取得部落分類資料（最多顯示前5筆）
-        $tribalClassifications = TribalClassification::where('fish_id', $id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        // 取得捕獲紀錄資料（最多顯示前4筆）
-        // CaptureRecord 模型已經自動處理 image_url 屬性
-        $captureRecords = CaptureRecord::where('fish_id', $id)
-            ->orderBy('capture_date', 'desc')
-            ->get();
+        $details = $this->fishService->getFishDetails((int) $id);
 
-        // 取得 fish_note 資訊，並依 note_type 分組
-        $fishNotes = FishNote::where('fish_id', $id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // 依 note_type 分組，並將每組的 collection 轉為 index keys 的陣列
-        $groupedFishNotes = $fishNotes
-            ->groupBy('note_type')
-            ->map(function ($items) {
-                return $items->values()->toArray();
-            })->toArray();
-            
-        return Inertia::render('Fish', [
-            'fish' => $fish,
-            'tribalClassifications' => $tribalClassifications,
-            'captureRecords' => $captureRecords,
-            'fishNotes' => $groupedFishNotes
-        ]);
+        return Inertia::render('Fish', $details);
     }
 
     public function getFishs(Request $request)
@@ -475,10 +447,8 @@ class FishController extends Controller
         $fish->update([
             'audio_filename' => $audio->name,
         ]);
-        $fish->image = $this->supabaseStorage->getUrl('images', $fish->image);
-        foreach ($fish->audios as $audio) {
-            $audio->url = $this->supabaseStorage->getUrl('audios', $audio->name);
-        }
+        // 由服務層統一處理媒體 URL（圖片 default、音檔 null-safe）
+        $fish = $this->fishService->assignImageUrls([$fish])[0];
       
         // 使用 Inertia 回傳頁面與成功訊息，前端可由 props 取得 success
         return Inertia::render('FishAudioList', [

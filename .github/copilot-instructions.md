@@ -50,3 +50,10 @@
 ---
 
 如需更細節範例，請參考 `README.md` 及各目錄內註解。若有不明確處，請回報以利持續優化本指令。
+
+## Active Technologies
+- PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試） (001-media-url-refactor)
+- PostgreSQL、Supabase Storage（public bucket） (001-media-url-refactor)
+
+## Recent Changes
+- 001-media-url-refactor: Added PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試）

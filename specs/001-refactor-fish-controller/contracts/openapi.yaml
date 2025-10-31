@@ -1,0 +1,8 @@
+openapi: 3.1.0
+info:
+  title: Tao Among API — Web routes focus
+  version: 1.0.0
+  description: |
+    This plan deprecates `/prefix/api` endpoints for this feature. Primary surface is SSR via `routes/web.php`.
+paths: {}
+components: {}
