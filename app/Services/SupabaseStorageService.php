@@ -19,6 +19,21 @@ class SupabaseStorageService
         $this->bucket = env('SUPABASE_BUCKET');
     }
 
+    private function makeAbsoluteStorageUrl(?string $pathOrUrl): ?string
+    {
+        if (!$pathOrUrl) {
+            return null;
+        }
+        if (preg_match('/^https?:\/\//i', $pathOrUrl) === 1) {
+            return $pathOrUrl; // already absolute
+        }
+        $base = rtrim((string) $this->storageUrl, '/');
+        if ($pathOrUrl[0] === '/') {
+            return $base . $pathOrUrl;
+        }
+        return $base . '/' . $pathOrUrl;
+    }
+
     public function uploadFile($file, string $path): string
     {
         $fileName = time().'_'.$file->getClientOriginalName();
@@ -84,9 +99,9 @@ class SupabaseStorageService
                 ]);
 
             if ($response->successful()) {
-                $url = $response->json('url');
-                
-                return $url;
+                $url = $response->json('url') ?? $response->json('signedUrl') ?? $response->json('signed_url');
+                $absolute = $this->makeAbsoluteStorageUrl($url);
+                return $absolute;
             }
 
         
@@ -94,6 +109,53 @@ class SupabaseStorageService
             return null;
         } catch (Exception $e) {
             
+            return null;
+        }
+    }
+
+    /**
+     * Create a signed upload URL in pending/audio/ for the given fish.
+     */
+    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'webm', int $expiresIn = 300): ?array
+    {
+        $date = date('Y/m/d');
+        $uuid = bin2hex(random_bytes(8));
+        $filePath = "pending/audio/{$date}/{$fishId}-{$uuid}.{$ext}";
+        $url = $this->createSignedUploadUrl($filePath, $expiresIn);
+        if (!$url) {
+            return null;
+        }
+        return [
+            'uploadUrl' => $this->makeAbsoluteStorageUrl($url),
+            'filePath' => $filePath,
+            'expiresIn' => $expiresIn,
+        ];
+    }
+
+    /**
+     * Move object within bucket (rename). Returns destination path on success.
+     */
+    public function moveObject(string $sourcePath, string $destPath): ?string
+    {
+        try {
+            $response = Http::timeout(30)
+                ->retry(2, 1000)
+                ->withHeaders([
+                    'apikey' => $this->apiKey,
+                    'Authorization' => "Bearer {$this->apiKey}",
+                    'Content-Type' => 'application/json',
+                ])->post("{$this->storageUrl}/object/move/{$this->bucket}", [
+                    'source' => $sourcePath,
+                    'destination' => $destPath,
+                    'upsert' => false,
+                ]);
+
+            if ($response->successful()) {
+                return $destPath;
+            }
+
+            return null;
+        } catch (Exception $e) {
             return null;
         }
     }
