@@ -1,0 +1,97 @@
+openapi: 3.0.3
+info:
+  title: Tribal Classifications API
+  version: 1.0.0
+paths:
+  /prefix/api/fish/{fish_id}/tribal-classifications:
+    get:
+      summary: List 6 tribes with status for a fish
+      parameters:
+        - in: path
+          name: fish_id
+          schema:
+            type: integer
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tribes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tribe:
+                          type: string
+                        exists:
+                          type: boolean
+                        id:
+                          type: integer
+    post:
+      summary: Create a tribal classification (unique per tribe)
+      parameters:
+        - in: path
+          name: fish_id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tribe]
+              properties:
+                tribe:
+                  type: string
+                  description: One of 6 allowed tribes
+                  enum: [iraraley, ivalino, iranmeilek, yayo, iratay, imorod]
+                food_category:
+                  type: string
+                processing_method:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Created
+        '409':
+          description: Duplicate tribe for fish (use notes instead; duplicates will be flagged for manual review)
+  /prefix/api/fish/{fish_id}/tribal-classifications/{tribe}:
+    put:
+      summary: Update a tribal classification for a fish
+      parameters:
+        - in: path
+          name: fish_id
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: tribe
+          schema:
+            type: string
+            enum: [iraraley, ivalino, iranmeilek, yayo, iratay, imorod]
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                food_category:
+                  type: string
+                processing_method:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Updated
+        '404':
+          description: Not found
