@@ -19,6 +19,21 @@ class SupabaseStorageService
         $this->bucket = env('SUPABASE_BUCKET');
     }
 
+    private function makeAbsoluteStorageUrl(?string $pathOrUrl): ?string
+    {
+        if (!$pathOrUrl) {
+            return null;
+        }
+        if (preg_match('/^https?:\/\//i', $pathOrUrl) === 1) {
+            return $pathOrUrl; // already absolute
+        }
+        $base = rtrim((string) $this->storageUrl, '/');
+        if ($pathOrUrl[0] === '/') {
+            return $base . $pathOrUrl;
+        }
+        return $base . '/' . $pathOrUrl;
+    }
+
     public function uploadFile($file, string $path): string
     {
         $fileName = time().'_'.$file->getClientOriginalName();
@@ -38,35 +53,28 @@ class SupabaseStorageService
         return "{$this->storageUrl}/object/public/{$this->bucket}/{$filePath}";
     }
 
-    public function getUrl(string $type, string $filename): string
+    public function getUrl(string $type, string $filename, ?bool $hasWebp = null): string
     {
+        // 若 filename 已是完整 URL（歷史資料），直接原樣回傳
+        if (preg_match('/^https?:\/\//i', $filename) === 1) {
+            return $filename;
+        }
+
+        // 音訊：一律走 audio 目錄
         if ($type === 'audios' || $type === 'audio') {
             return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
         }
 
-        if ($type !== 'images') {
-            throw new InvalidArgumentException('Invalid type: ' . $type);
+        // 圖片：依 hasWebp 決定 webp 或原圖，不進行任何 HEAD 探測
+        if ($type === 'images') {
+            $baseName = pathinfo($filename, PATHINFO_FILENAME);
+            if ($hasWebp === true) {
+                return "{$this->storageUrl}/object/public/{$this->bucket}/webp/{$baseName}.webp";
+            }
+            return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
         }
 
-        // 提取基名（去掉擴展名）
-        $baseName = pathinfo($filename, PATHINFO_FILENAME);
-
-        // WebP 路徑
-        $webpPath = "webp/{$baseName}.webp";
-
-        // 使用 HEAD 請求檢查 WebP 檔案是否存在
-        $response = Http::withHeaders([
-            'apikey' => $this->apiKey,
-            'Authorization' => "Bearer {$this->apiKey}",
-        ])->head("{$this->storageUrl}/object/{$this->bucket}/{$webpPath}");
-
-        if ($response->status() === 200) {
-            // WebP 存在，返回 WebP 連結
-            return "{$this->storageUrl}/object/public/{$this->bucket}/{$webpPath}";
-        }
-
-        // WebP 不存在，返回原檔連結
-        return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
+        throw new InvalidArgumentException('Invalid type: ' . $type);
     }
 
     public function createSignedUploadUrl(string $filePath, int $expiresIn = 60): ?string
@@ -91,9 +99,9 @@ class SupabaseStorageService
                 ]);
 
             if ($response->successful()) {
-                $url = $response->json('url');
-                
-                return $url;
+                $url = $response->json('url') ?? $response->json('signedUrl') ?? $response->json('signed_url');
+                $absolute = $this->makeAbsoluteStorageUrl($url);
+                return $absolute;
             }
 
         
@@ -101,6 +109,53 @@ class SupabaseStorageService
             return null;
         } catch (Exception $e) {
             
+            return null;
+        }
+    }
+
+    /**
+     * Create a signed upload URL in pending/audio/ for the given fish.
+     */
+    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'webm', int $expiresIn = 300): ?array
+    {
+        $date = date('Y/m/d');
+        $uuid = bin2hex(random_bytes(8));
+        $filePath = "pending/audio/{$date}/{$fishId}-{$uuid}.{$ext}";
+        $url = $this->createSignedUploadUrl($filePath, $expiresIn);
+        if (!$url) {
+            return null;
+        }
+        return [
+            'uploadUrl' => $this->makeAbsoluteStorageUrl($url),
+            'filePath' => $filePath,
+            'expiresIn' => $expiresIn,
+        ];
+    }
+
+    /**
+     * Move object within bucket (rename). Returns destination path on success.
+     */
+    public function moveObject(string $sourcePath, string $destPath): ?string
+    {
+        try {
+            $response = Http::timeout(30)
+                ->retry(2, 1000)
+                ->withHeaders([
+                    'apikey' => $this->apiKey,
+                    'Authorization' => "Bearer {$this->apiKey}",
+                    'Content-Type' => 'application/json',
+                ])->post("{$this->storageUrl}/object/move/{$this->bucket}", [
+                    'source' => $sourcePath,
+                    'destination' => $destPath,
+                    'upsert' => false,
+                ]);
+
+            if ($response->successful()) {
+                return $destPath;
+            }
+
+            return null;
+        } catch (Exception $e) {
             return null;
         }
     }

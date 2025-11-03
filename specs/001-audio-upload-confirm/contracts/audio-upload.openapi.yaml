@@ -1,0 +1,91 @@
+openapi: 3.0.3
+info:
+  title: Audio Upload Confirm API
+  version: 1.0.0
+paths:
+  /prefix/api/upload/audio/sign:
+    post:
+      summary: Create a signed upload URL for pending audio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fish_id]
+              properties:
+                fish_id:
+                  type: integer
+                  minimum: 1
+                ext:
+                  type: string
+                  description: Optional file extension (e.g., webm, mp3)
+      responses:
+        '200':
+          description: Signed URL created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [uploadUrl, filePath, expiresIn]
+                properties:
+                  uploadUrl:
+                    type: string
+                    format: uri
+                    description: 絕對簽名網址（以 Supabase 網域開頭的 https URL）
+                    example: https://your-project-ref.supabase.co/storage/v1/object/upload/sign/your-bucket/pending/audio/2025/11/01/1-uuid.webm?token=eyJ...
+                  filePath:
+                    type: string
+                    example: pending/audio/2025/11/01/uuid.webm
+                    description: 暫存路徑（僅供 confirm 使用），不包含網域
+                  expiresIn:
+                    type: integer
+                    description: 簽名網址有效秒數
+        '500':
+          description: Failed to create signed URL
+  /prefix/api/upload/audio/confirm:
+    post:
+      summary: Confirm pending audio upload and persist transactionally
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fish_id, filePath]
+              properties:
+                fish_id:
+                  type: integer
+                filePath:
+                  type: string
+                  description: Pending path to confirm (pending/audio/...)
+                originalName:
+                  type: string
+                durationMs:
+                  type: integer
+      responses:
+        '200':
+          description: Confirmed（冪等）。重複呼叫對相同 fish_id + filePath 仍回 200 並返回現況。
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: 絕對音訊檔案網址（公開），可直接播放
+                    example: https://your-project-ref.supabase.co/storage/v1/object/public/your-bucket/audio/1-uuid.webm
+                  filename:
+                    type: string
+                    description: 最終檔名（audio/ 下的實際檔名）
+                  state:
+                    type: string
+                    example: confirmed
+                    description: 流程狀態，confirmed 代表已持久化完成（冪等時同樣返回）
+        '404':
+          description: 找不到暫存物件（請確認已完成 PUT 上傳）
+        '409':
+          description: 暫存物件缺失或流程衝突（未上傳或已過期）
+        '500':
+          description: Internal error

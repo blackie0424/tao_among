@@ -18,8 +18,7 @@ class FishService
     public function getAllFishes()
     {
         $fishes = Fish::orderBy('id', 'desc')->get();
-
-        return $fishes;
+        return $this->assignImageUrls($fishes);
     }
 
     public function getFishesBySince($since)
@@ -62,9 +61,9 @@ class FishService
 
         foreach ($fishes as $fish) {
             if ($fish->image == null || $fish->image == '') {
-                $fish->image =  $this->storageService->getUrl('images', 'default.png');
+                $fish->image =  $this->storageService->getUrl('images', 'default.png', $fish->has_webp ?? null);
             } else {
-                $fish->image =  $this->storageService->getUrl('images', $fish->image);
+                $fish->image =  $this->storageService->getUrl('images', $fish->image, $fish->has_webp ?? null);
             }
             foreach ($fish->audios as $audio) {
                 if ($audio && isset($audio->name) && $audio->name) {
@@ -83,9 +82,9 @@ class FishService
     {
         // 圖片：沒有時給預設圖
         if (!empty($fish->image)) {
-            $fish->image = $this->storageService->getUrl('images', $fish->image);
+            $fish->image = $this->storageService->getUrl('images', $fish->image, $fish->has_webp ?? null);
         } else {
-            $fish->image = $this->storageService->getUrl('images', 'default.png');
+            $fish->image = $this->storageService->getUrl('images', 'default.png', $fish->has_webp ?? null);
         }
 
         // 音檔：只有在有檔名時才呼叫 getUrl，避免傳入 null

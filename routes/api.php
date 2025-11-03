@@ -35,6 +35,10 @@ Route::post('/supabase/signed-upload-url', [UploadController::class, 'getSignedU
 Route::post('/upload-audio', [UploadController::class, 'uploadAudio']);
 Route::post('/fish/{id}/supabase/signed-upload-audio-url', [UploadController::class, 'getSignedUploadAudioUrl'])->whereNumber('id');
 
+// New audio two-step upload endpoints
+Route::post('/upload/audio/sign', [UploadController::class, 'signPendingAudio']);
+Route::post('/upload/audio/confirm', [UploadController::class, 'confirmAudio']);
+
 
 Route::post('/fish/{id}/note', [FishNoteController::class, 'store'])->whereNumber('id');
 Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])
