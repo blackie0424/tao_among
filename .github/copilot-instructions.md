@@ -54,6 +54,9 @@
 ## Active Technologies
 - PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試） (001-media-url-refactor)
 - PostgreSQL、Supabase Storage（public bucket） (001-media-url-refactor)
+- PHP 8.x（Laravel）, JavaScript/TypeScript（Vue 3 + Inertia.js） + Laravel Eloquent、Inertia.js、Tailwind CSS、Pest（後端測試）、Vitest（前端測試） (005-fishs-incremental-loading)
+- PostgreSQL（prod），SQLite（tests） (005-fishs-incremental-loading)
+- PHP 8.x（Laravel） + Laravel Framework（Eloquent、Validation、Routing）、Inertia.js（前端呼叫與渲染） (006-backend-search)
 
 ## Recent Changes
 - 001-media-url-refactor: Added PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試）

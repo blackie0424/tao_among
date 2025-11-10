@@ -1,0 +1,67 @@
+openapi: 3.0.3
+info:
+  title: Fishs List (Inertia) — Cursor Pagination
+  version: 0.1.0
+  description: Web route GET /fishs 之分頁查詢參數與 Inertia props 回應結構（片段）。
+paths:
+  /fishs:
+    get:
+      summary: Fishs list page (Inertia) with cursor pagination
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: Base64URL-encoded opaque cursor; omit or null for first page.
+          schema:
+            type: string
+        - name: perPage
+          in: query
+          required: false
+          description: Page size (default 20; range 1–50). Values outside range fallback to default.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Inertia page props
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  component:
+                    type: string
+                    example: Fishs/Index
+                  props:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FishListItem'
+                      pageInfo:
+                        $ref: '#/components/schemas/PageInfo'
+                required: [component, props]
+components:
+  schemas:
+    FishListItem:
+      type: object
+      description: 現有單筆欄位形狀（本期不新增/不刪除）。
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        image_url:
+          type: string
+      required: [id, name, image_url]
+    PageInfo:
+      type: object
+      properties:
+        hasMore:
+          type: boolean
+        nextCursor:
+          type: string
+      required: [hasMore]
