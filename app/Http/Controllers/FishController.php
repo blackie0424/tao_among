@@ -12,6 +12,7 @@ use App\Models\CaptureRecord;
 use App\Services\FishService;
 use App\Services\SupabaseStorageService;
 use App\Services\FishSearchService;
+use App\Http\Requests\FishSearchRequest;
 use App\Http\Requests\TribalClassificationRequest;
 use App\Http\Requests\CaptureRecordRequest;
 use Illuminate\Http\JsonResponse;
@@ -45,17 +46,30 @@ class FishController extends Controller
         return Inertia::render('Fish', $details);
     }
 
-    public function getFishs(Request $request)
+    public function getFishs(FishSearchRequest $request)
     {
-        $filters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
-        $fishs = $this->fishSearchService->search($filters);
+        // Trace: FR-001 多條件後端搜尋, FR-003 比對規則, FR-007 perPage 正規化, FR-005 游標分頁, FR-002 精簡欄位
+        // Trace: SC-004 首屏 payload 降幅（僅回傳白名單欄位給前端無限滾動）, SC-006 游標契約一致性（last_id 明碼, nextCursor 派生）
+        // 使用 Request 清洗參數（忽略空白、perPage 正規化、游標驗證）
+        $filters = $request->cleaned();
+
+    // 游標式分頁 + 精簡欄位（提供給前端無限滾動使用）
+        $paginated = $this->fishSearchService->paginate($filters);
+
+    // 保持相容：沿用舊的完整集合供現有 Inertia 頁面（測試）檢查 image 屬性（後續可移除）
+        $legacyFilters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
+        $fishs = $this->fishSearchService->search($legacyFilters);
+
         $searchOptions = $this->fishSearchService->getSearchOptions();
-        $searchStats = $this->fishSearchService->getSearchStats($filters);
+        $searchStats = $this->fishSearchService->getSearchStats($legacyFilters);
         return Inertia::render('Fishs', [
             'fishs' => $fishs,
-            'filters' => $filters,
+            'filters' => $legacyFilters,
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
+            // 新增契約格式（FR-002, FR-005）
+            'items' => $paginated['items'],
+            'pageInfo' => $paginated['pageInfo'],
         ]);
     }
 

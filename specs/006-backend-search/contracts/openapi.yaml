@@ -1,0 +1,198 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Tao Among — Fish Search API
+  version: '0.1.0'
+  description: |
+    Contract-first OpenAPI for Backend Server-Side Search (feature 006-backend-search).
+    - Public endpoint (no auth) per FR-015
+    - Cursor pagination with explicit numeric last_id per FR-005
+    - Slim payload (id, name, image_url) per FR-002
+    - Per-page normalization: 1–50 with default 20 (per_page_default, per_page_max) per FR-007, FR-013
+    # Traceability: FR-001..FR-015 / SC-001..SC-007
+    # SC-001 p50 首批 ≤1s（名稱單欄位）
+    # SC-002 p95 多條件 ≤1.8s
+    # SC-003 p50 續載 ≤800ms
+    # SC-004 首屏 payload 減少 ≥30%
+    # SC-005 游標序列無重複/遺漏（抽樣 200 筆）
+    # SC-006 95% 首批 <1000ms 處理時間
+    # SC-007 Loading 狀態呈現（UX，不需契約層欄位）
+servers:
+  - url: https://example.com
+    description: Placeholder server URL
+paths:
+  /fishs:
+    get:
+      summary: Search fishs with server-side filters and cursor pagination
+      description: |
+        Implements FR-001..FR-015. Public endpoint (FR-015). Returns slim items and pageInfo (FR-002).
+        Sorting is id DESC, next pages via last_id cursor (FR-005). Name/capture_location/processing_method use ILIKE (FR-003).
+      tags:
+        - fishs
+      parameters:
+        # Trace: FR-003 filters, FR-001 multi-condition, FR-007/FR-013 perPage normalization, FR-005 cursor, FR-006 cursor errors
+        - in: query
+          name: name
+          schema:
+            type: string
+            maxLength: 200
+          description: Name filter (ILIKE %term%, case-insensitive). [FR-003]
+          # FR-003 name 模糊
+        - in: query
+          name: tribe
+          schema:
+            type: string
+            maxLength: 120
+          description: |
+            Tribe filter (case-insensitive exact equality). Matches only when LOWER(tribe)=LOWER(input).
+            No partial / fuzzy / wildcard matching; '%' and '_' are treated as normal characters. [FR-003]
+            中文：部落比對僅接受大小寫不敏感的等值（LOWER=LOWER），不支援模糊、前後置或任意包含；輸入中的 % 或 _ 不會展開為通配符。
+          # FR-003 tribe 等值
+        - in: query
+          name: capture_location
+          schema:
+            type: string
+            maxLength: 200
+          description: Capture location (ILIKE %term%, case-insensitive). Maps to DB column `location`. [FR-003]
+          # FR-003 capture_location 模糊
+        - in:
+            query
+            # SC-004 精簡負載樣例（顯示僅三欄）
+          name: capture_method
+          schema:
+            type: string
+            maxLength: 120
+          description:
+            Capture method (ILIKE %term%, case-insensitive). [FR-003]
+            # SC-005 尾端結束（可用於無遺漏判定的最後一批形式）
+          # FR-003 capture_method 模糊
+        - in: query
+          name: processing_method
+          schema:
+            type: string
+            maxLength: 120
+          description: Processing method (ILIKE %term%, case-insensitive). [FR-003]
+          # FR-003 processing_method 模糊
+        - in: query
+          name: food_category
+          schema:
+            type: string
+            maxLength: 120
+          description: Food category (case-insensitive exact match). [FR-001]
+          # FR-001 food_category 等值
+        - in: query
+          name: perPage
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: |
+            Page size. Normalized to [1, per_page_max] with default per_page_default (20).
+            Out-of-range or missing → treated as 20. [FR-007, FR-013]
+            中文：任何不是正整數或不在合法範圍 [1, per_page_max] 內（含小數、負數、零、超過 50、字串）將一律正規化為 20；不採 clamp（例如 51 不是調為 50，而是調為 20）。
+          # FR-007 FR-013 perPage 正規化
+        - in: query
+          name: last_id
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: |
+            Numeric cursor indicating "previous batch last id"; server applies WHERE id < last_id with ORDER BY id DESC. [FR-005]
+          # FR-005 游標 / FR-006 錯誤語意
+      responses:
+        '200':
+          description: OK — Slim list with pageInfo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FishSearchResponse'
+              examples:
+                firstPage:
+                  summary: First page (has more)
+                  value:
+                    items:
+                      - {
+                          id: 1050,
+                          name: 'Flying Fish',
+                          image_url: 'https://cdn.example/fish/1050.jpg',
+                        }
+                      - { id: 1049, name: 'Tuna', image_url: 'https://cdn.example/fish/1049.jpg' }
+                    pageInfo: { hasMore: true, nextCursor: 1049 }
+                lastPage:
+                  summary: Last page (no more)
+                  value:
+                    items: []
+                    pageInfo: { hasMore: false, nextCursor: null }
+              # FR-002 精簡欄位 / FR-005 pageInfo / SC-004 payload 減少
+        '422':
+          description: Unprocessable Entity — Invalid cursor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidCursorError'
+              examples:
+                nonNumeric:
+                  summary: last_id is not a number
+                  value: { error: 'INVALID_CURSOR', message: 'Invalid or stale last_id.' }
+                nonPositive:
+                  summary: last_id <= 0
+                  value: { error: 'INVALID_CURSOR', message: 'Invalid or stale last_id.' }
+                wrongDirection:
+                  summary: last_id violates monotonic descending order
+                  value: { error: 'INVALID_CURSOR', message: 'Invalid or stale last_id.' }
+              # FR-006 INVALID_CURSOR
+      security: [] # Public endpoint per FR-015
+components:
+  schemas:
+    FishItem:
+      type: object
+      description: Slim fish list item per FR-002
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        image_url:
+          type: string
+          format: uri
+      required: [id, name, image_url]
+      # FR-002 / SC-004 精簡負載
+    PageInfo:
+      type: object
+      properties:
+        hasMore:
+          type: boolean
+        nextCursor:
+          oneOf:
+            - type: integer
+              format: int64
+            - type: 'null'
+          description: Numeric last_id of the last item in previous batch; null when hasMore=false. [FR-005]
+      required: [hasMore]
+      # FR-005 固定欄位策略（nextCursor 可為 null 不省略）
+    FishSearchResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FishItem'
+        pageInfo:
+          $ref: '#/components/schemas/PageInfo'
+      required: [items, pageInfo]
+      # FR-002 / FR-005 / SC-004
+    InvalidCursorError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [INVALID_CURSOR]
+        message:
+          oneOf:
+            - type: string
+            - type: 'null'
+      required: [error]
+      # FR-006 錯誤格式

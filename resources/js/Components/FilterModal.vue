@@ -33,6 +33,7 @@
             :tribes="tribes"
             :food-categories="foodCategories"
             :processing-methods="processingMethods"
+            :capture-methods="captureMethods"
             @filters-change="forwardFiltersChange"
           />
         </div>
@@ -50,6 +51,7 @@ const props = defineProps({
   tribes: { type: Array, default: () => [] },
   foodCategories: { type: Array, default: () => [] },
   processingMethods: { type: Array, default: () => [] },
+  captureMethods: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['close', 'filters-change'])
