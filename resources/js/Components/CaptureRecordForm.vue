@@ -121,6 +121,8 @@
           <option value="mapazat">mapazat</option>
           <option value="mamasil">mamasil</option>
           <option value="mamacik">mamacik</option>
+          <option value="mitokzos">mitokzos</option>
+          <option value="mipaltog">mipaltog</option>
         </select>
         <div v-if="errors.capture_method" class="text-red-500 text-base mt-1">
           {{ errors.capture_method }}

@@ -53,5 +53,8 @@ Route::delete('/fish/{fish}/knowledge/{note}', [FishNoteController::class, 'dest
 
 // 發音列表管理路由
 Route::get('/fish/{fish}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
-Route::put('/fish/{fish}/audio/{audio}', [FishController::class, 'updateAudioFilename']);
+Route::get('/fish/{fish}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
+Route::put('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
+// 設定主發音（獨立路由，避免影響一般更新音訊）
+Route::put('/fish/{fish}/audio/{audio}/set-base', [FishController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
 Route::delete('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
