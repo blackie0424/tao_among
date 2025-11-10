@@ -25,6 +25,16 @@ class Fish extends Model
 
     protected static function booted()
     {
+        static::creating(function ($fish) {
+            // 測試有時只給 name，避免因 image NOT NULL 造成例外，預設補上 default.png
+            if (empty($fish->image)) {
+                $fish->image = 'default.png';
+            }
+            // has_webp 預設 false（若欄位存在）
+            if (property_exists($fish, 'has_webp') && $fish->has_webp === null) {
+                $fish->has_webp = false;
+            }
+        });
         static::deleting(function ($fish) {
             // 刪除相關的尺寸資料
             $fish->size()->delete();
@@ -87,6 +97,12 @@ class Fish extends Model
             // 預設圖固定回傳原圖（不使用 webp）
             return $supabase->getUrl('images', 'default.png', false);
         }
-        return $supabase->getUrl('images', $this->image, $this->has_webp ?? null);
+        $hasWebp = null;
+        if (array_key_exists('has_webp', $this->attributes)) {
+            $hasWebp = (bool)($this->attributes['has_webp']);
+        } elseif (isset($this->has_webp)) {
+            $hasWebp = (bool)$this->has_webp;
+        }
+        return $supabase->getUrl('images', $this->image, $hasWebp);
     }
 }

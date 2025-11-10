@@ -4,7 +4,13 @@ namespace App\Services;
 
 use App\Models\Fish;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
+/**
+ * FishSearchService — 後端搜尋核心服務
+ * Trace: FR-001 多條件後端搜尋, FR-002 精簡欄位, FR-003 比對規則, FR-005 游標分頁,
+ *        FR-007 perPage 正規化（搭配 Request）, FR-009 降低關聯載入, SC-004 payload 降幅
+ */
 class FishSearchService
 {
     protected $fishService;
@@ -162,6 +168,99 @@ class FishSearchService
             'total_results' => $query->count(),
             'tribes_covered' => $query->whereHas('tribalClassifications')->distinct('id')->count(),
             'with_capture_records' => $query->whereHas('captureRecords')->count(),
+        ];
+    }
+
+    /**
+     * 游標式分頁 + 精簡欄位（FR-001, FR-002, FR-005, FR-007, FR-009, SC-004）
+     * @param array $filters cleaned filters (FishSearchRequest::cleaned)
+     * @return array{items: array<int, array{id:int,name:string,image_url:string}>, pageInfo: array{hasMore:bool,nextCursor:int|null}}
+     */
+    public function paginate(array $filters): array
+    {
+        // Trace: FR-002 精簡欄位, FR-005 游標分頁, FR-007 正規化後 perPage 已由 Request 處理, SC-004 payload 降幅
+        $perPage = (int)($filters['perPage'] ?? config('fish_search.per_page_default'));
+        $lastId = $filters['last_id'] ?? null;
+
+        // 基底查詢：僅主表避免不必要 eager（FR-009）
+    // 重要：需選出 image 欄位，否則模型 accessor 無法判斷是否有自訂圖片，會一律回傳預設圖
+        // 同時帶出 has_webp（若資料表有此欄位），可讓 accessor 選擇 webp
+        $selects = ['id','name','image'];
+        if (\Schema::hasColumn('fish', 'has_webp')) {
+            $selects[] = 'has_webp';
+        }
+        $query = Fish::query()->select($selects)->orderByDesc('id');
+
+        // 模糊/等值條件（FR-003）
+        if (!empty($filters['name'])) {
+            // FR-003 名稱模糊（大小寫不敏感）— 使用 LOWER + LIKE 以支援 SQLite/PG
+            $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($filters['name']) . '%']);
+        }
+        if (!empty($filters['tribe']) || !empty($filters['food_category']) || !empty($filters['processing_method'])) {
+            $tribe = $filters['tribe'] ?? null;
+            $food = $filters['food_category'] ?? null;
+            $proc = $filters['processing_method'] ?? null;
+            $query->whereHas('tribalClassifications', function ($q) use ($tribe, $food, $proc) {
+                if (!empty($tribe)) {
+                    // FR-003 tribe 等值（LOWER=LOWER）
+                    $q->whereRaw('LOWER(tribe) = LOWER(?)', [$tribe]);
+                }
+                if (!empty($food)) {
+                    // FR-003 food_category 等值（LOWER=LOWER）
+                    $q->whereRaw('LOWER(food_category) = LOWER(?)', [$food]);
+                }
+                if (!empty($proc)) {
+                    // FR-003 processing_method 模糊大小寫不敏感
+                    $q->whereRaw('LOWER(processing_method) LIKE ?', ['%' . strtolower($proc) . '%']);
+                }
+            });
+        }
+        if (!empty($filters['capture_location']) || !empty($filters['capture_method'])) {
+            $loc = $filters['capture_location'] ?? null;
+            $met = $filters['capture_method'] ?? null;
+            $query->whereHas('captureRecords', function ($q) use ($loc, $met) {
+                if (!empty($loc)) {
+                    // FR-003 capture_location 模糊大小寫不敏感
+                    $q->whereRaw('LOWER(location) LIKE ?', ['%' . strtolower($loc) . '%']);
+                }
+                if (!empty($met)) {
+                    // FR-003 capture_method 模糊大小寫不敏感
+                    $q->whereRaw('LOWER(capture_method) LIKE ?', ['%' . strtolower($met) . '%']);
+                }
+            });
+        }
+        if (!is_null($lastId)) {
+            // FR-005 游標邏輯 id < last_id
+            $query->where('id', '<', (int)$lastId); // 游標條件（FR-005）
+        }
+
+        $lookahead = config('fish_search.lookahead_enabled');
+        $limit = $perPage + ($lookahead ? 1 : 0);
+        $rows = $query->limit($limit)->get();
+
+        $hasMore = false;
+        if ($lookahead && $rows->count() > $perPage) {
+            $hasMore = true;
+            $rows = $rows->slice(0, $perPage)->values();
+        }
+
+        // 映射精簡欄位（模型 accessor 提供 image_url）
+        $items = $rows->map(function (Fish $f) {
+            return [
+                'id' => $f->id,
+                'name' => $f->name,
+                'image_url' => $f->image_url,
+            ];
+        })->all();
+
+        $nextCursor = ($hasMore && !empty($items)) ? end($items)['id'] : null;
+
+        return [
+            'items' => $items,
+            'pageInfo' => [
+                'hasMore' => $hasMore,
+                'nextCursor' => $nextCursor,
+            ],
         ];
     }
 }
