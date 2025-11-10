@@ -132,7 +132,7 @@ async function handleSetAsBase() {
   try {
     const filename = props.audio.name || props.audio.file_name || props.audio.filename || ''
     // 如果需要 API 前綴或不同路徑，請調整路徑；此處使用標準 web route
-    await router.put(`/fish/${props.fishId}/audio/${props.audio.id}`, {
+    await router.put(`/fish/${props.fishId}/audio/${props.audio.id}/set-base`, {
       audio_filename: filename,
     })
 

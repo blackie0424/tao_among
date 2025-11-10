@@ -2,7 +2,7 @@
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">搜尋篩選</h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       <!-- 部落篩選 -->
       <div class="space-y-2">
         <label
@@ -65,19 +65,37 @@
           </option>
         </select>
       </div>
+      <!-- 捕獲方式篩選 -->
+      <div class="space-y-2">
+        <label
+          for="capture-method-filter"
+          class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          捕獲方式
+        </label>
+        <select
+          id="capture-method-filter"
+          v-model="localFilters.capture_method"
+          @change="emitFiltersChange"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+        >
+          <option value="">所有捕獲方式</option>
+          <option v-for="m in captureMethods" :key="m" :value="m">{{ m === '' ? '尚未紀錄' : m }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- 地點搜尋：獨立一行（全寬） -->
     <div class="mt-4">
       <label
-        for="location-search"
+        for="capture-location-search"
         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
       >
         捕獲地點
       </label>
       <input
-        id="location-search"
-        v-model="localFilters.location"
+        id="capture-location-search"
+        v-model="localFilters.capture_location"
         @input="debounceEmitFiltersChange"
         type="text"
         placeholder="輸入地點關鍵字..."
@@ -135,6 +153,10 @@ const props = defineProps({
     type: Array,
     default: () => ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?', ''],
   },
+  captureMethods: {
+    type: Array,
+    default: () => ['網捕', '釣魚', '陷阱', '徒手捕捉', '魚叉', ''],
+  },
 })
 
 const emit = defineEmits(['filters-change'])
@@ -144,7 +166,8 @@ const localFilters = ref({
   tribe: '',
   food_category: '',
   processing_method: '',
-  location: '',
+  capture_location: '',
+  capture_method: '',
   name: '',
   ...props.filters,
 })
@@ -160,7 +183,8 @@ watch(
       tribe: '',
       food_category: '',
       processing_method: '',
-      location: '',
+  capture_location: '',
+  capture_method: '',
       name: '',
       ...newFilters,
     }
@@ -189,7 +213,8 @@ const clearFilters = () => {
     tribe: '',
     food_category: '',
     processing_method: '',
-    location: '',
+    capture_location: '',
+    capture_method: '',
     name: '',
   }
   emitFiltersChange()
@@ -201,7 +226,8 @@ onMounted(() => {
     tribe: '',
     food_category: '',
     processing_method: '',
-    location: '',
+  capture_location: '',
+  capture_method: '',
     name: '',
     ...props.filters,
   }
