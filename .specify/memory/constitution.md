@@ -2,122 +2,64 @@
 Sync Impact Report
 - Version change: 1.0.0 → 1.1.0
 - Modified principles: 新增 VIII. 文件與互動語言一致性
-- Added sections: 無
-- Removed sections: 檔案尾端第二套未填寫模板（[PROJECT_NAME] Constitution 等）
-- Templates requiring updates (✅ updated / ⚠ pending):
-  ⚠ .specify/templates/plan-template.md（Constitution Check 增列語言一致性）
-  ⚠ .specify/templates/spec-template.md（新增「文件一律使用正體中文」註記）
-  ✅ .specify/templates/tasks-template.md（無需變更）
-- Follow-up TODOs:
-  TODO(plan-template): 加入語言一致性檢查項
-  TODO(spec-template): 加入正體中文要求註記
+- Removed sections: 舊模板尾端未填寫佔位符（已清除）
+- Follow-up TODOs: 無（模板已更新）
 -->
 
 # Tao Among Constitution
 
-```
-  驗證：PR Review 清單包含「語言一致性」；任何英文-only 區段需在 PR 描述註記理由。
+驗證：PR Review 清單 MUST 包含「語言一致性」；若出現僅英文敘述區塊，PR 描述 MUST 說明原因與時效。
 
-## 其他執行約束（技術棧與命名慣例）
+## I. MVP-First & 避免過度設計
 
-- 後端：PHP 8.x（Laravel + Eloquent + Pest）。
-- 前端：Vue 3 + Inertia.js + Tailwind + Vitest。
-- 資料庫：PostgreSQL（prod），SQLite（tests）。
-- 上傳/媒體：Supabase Storage（依專案服務層封裝）。
-- 命名：Vue 元件以功能命名；前端頁面採 `resources/js/Pages/*.vue`；全域元件於 `resources/js/Components/Global/`。
+每次調整 MUST 先最小化可交付價值；拒絕未被使用者故事或測試覆蓋支撐的額外抽象；避免因預期未來而增加耦合。過度設計風險 SHOULD 在 Reviewer 留言中被標示並要求縮減。
 
-## 開發流程、審查與品質關卡
+## II. Contract-First API
 
-1. Spec → Plan → Tasks：
-   - 規格含使用者故事、FR/SC、邊界案例與量測目標。
-   - 計畫明確輸入/輸出、相依與專案結構。
-   - 任務以使用者故事分組，可獨立交付與測試。
-2. Contract‑First：先提 OpenAPI，再開始 Controller/Service。
-3. Test‑First：先補測試（至少 1 個快樂路徑 + 1 個邊界），再實作。
-4. 驗收與文件：quickstart/README/合約同步更新；確保可被外部復現。
-5. CI Quality Gates：Build、Lint/型別、Pest、Vitest 全綠才可合併。
+所有後端新功能 MUST 先提交或更新 OpenAPI（`/api/documentation` 可驗證）；Controller / Service 編碼前 MUST 獲得規格（FR/SC）對齊。破壞性合約變更 MUST 於 README 或 Migrations 指令註記遷移步驟。
+
+## III. Test-First & 可測性
+
+功能程式碼提交前 MUST 具備：至少 1 個快樂路徑 + 1 個邊界案例（Pest / Vitest）。無法測試的結構（例如過深巢狀或靜態耦合） MUST 在重構後才允許合併。測試名稱 SHOULD 清晰描述行為與預期。
+
+## IV. Quality Gates
+
+CI 中 Build、Lint/型別、Pest、Vitest 必須全綠（MUST）才能合併。若因外部相依暫時失敗，需在 PR 描述提供臨時豁免理由與修復 ETA（SHOULD < 7 天）。
+
+## V. Simplicity & Readability
+
+程式碼 MUST 避免不必要層級與魔法字串；偏好明確資料流。命名 SHOULD 採語意而非技術實作細節。審查時若閱讀需要追蹤 >2 個檔案才能理解單一行為，需考慮拆分或提取函式。
+
+## VI. Observability & 可追溯性
+
+關鍵流程（查詢、上傳、交易） MUST 具備結構化紀錄（user id, duration, count）。效能或資料品質議題 SHOULD 能以日誌/指標（例如慢查詢 > 500ms）快速定位。N+1 查詢 MUST 於審查被攔截並以 eager loading 或批次查詢修正。
+
+## VII. Performance & Data Integrity
+
+批次作業 MUST 使用交易（若跨多張表）；大量讀取 SHOULD 使用分頁或串流。索引新增/調整 MUST 在遷移註記影響面。任何會放大 I/O 的迴圈（例如在 for 迴圈中執行 ORM save） MUST 提前審查重構。
+
+## VIII. 文件與互動語言一致性
+
+所有互動式文件（spec、plan、tasks、checklists） MUST 使用正體中文敘述；必要技術名詞（例如 Model、Controller、OpenAPI、Transaction）可保留英文。規範語氣 MUST 使用「MUST / SHOULD / MAY」。違反需在 PR 描述備註並獲得 Reviewer 認可。
+
+## 執行約束（技術棧與命名慣例）
+
+- 後端：PHP 8.x（Laravel + Eloquent + Pest）
+- 前端：Vue 3 + Inertia.js + Tailwind + Vitest
+- 資料庫：PostgreSQL（prod），SQLite（tests）
+- 媒體：Supabase Storage（透過 Service 層封裝）
+- Vue 元件命名：功能語意；頁面於 `resources/js/Pages/`；共用全域元件於 `resources/js/Components/Global/`
+
+## 開發流程與品質關卡
+
+1. Spec → Plan → Tasks：Spec MUST 具使用者故事/FR/SC；Plan MUST 明確架構與分層；Tasks 可獨立交付與測試。
+2. Contract‑First：OpenAPI/合約先行，審核後才撰寫控制器。
+3. Test‑First：測試先於實作；未覆蓋路徑不可合併。
+4. 文件驗收：README / quickstart / 合約 同步更新；可重現步驟 MUST 被記錄。
+5. CI Gates：所有 Gate 綠燈才可合併；不得以跳過測試形式加速。
 
 ## Governance
 
-本憲章凌駕其他流程文件，變更需經審議並遵循版本化：
-
-- 憲章修改需於 PR 中：列出動機、影響面、遷移計畫；經維運/技術負責人審核。
-- 版本規則：SemVer（MAJOR：刪改原則；MINOR：新增原則或大幅擴充；PATCH：文字釐清）。
-- 合規審查：所有 PR 需在描述中對齊憲章原則（特別是 Test‑First、Contract‑First、Quality Gates）。
+本憲章凌駕其他流程文件；任何衝突 MUST 以憲章為準。修改流程：PR 中列出動機、影響、遷移計畫；維運或技術負責人審核。版本：SemVer（MAJOR 刪改原則、MINOR 新增或擴充、PATCH 文字釐清）。PR 描述 MUST 對齊關鍵原則（II, III, IV, VIII）。
 
 **Version**: 1.1.0 | **Ratified**: 2025-11-09 | **Last Amended**: 2025-11-11
-
-# [PROJECT_NAME] Constitution
-
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
-
-## Core Principles
-
-### [PRINCIPLE_1_NAME]
-
-<!-- Example: I. Library-First -->
-
-[PRINCIPLE_1_DESCRIPTION]
-
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
-
-### [PRINCIPLE_2_NAME]
-
-<!-- Example: II. CLI Interface -->
-
-[PRINCIPLE_2_DESCRIPTION]
-
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
-
-### [PRINCIPLE_3_NAME]
-
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-
-[PRINCIPLE_3_DESCRIPTION]
-
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
-
-### [PRINCIPLE_4_NAME]
-
-<!-- Example: IV. Integration Testing -->
-
-[PRINCIPLE_4_DESCRIPTION]
-
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
-
-### [PRINCIPLE_5_NAME]
-
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-
-[PRINCIPLE_5_DESCRIPTION]
-
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
-
-## [SECTION_2_NAME]
-
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
-
-## Governance
-
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
-
-[GOVERNANCE_RULES]
-
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
-```
