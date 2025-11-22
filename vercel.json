@@ -41,7 +41,7 @@
     "APP_SERVICES_CACHE": "/tmp/services.php",
     "VIEW_COMPILED_PATH": "/tmp",
     "CACHE_DRIVER": "array",
-    "LOG_CHANNEL": "daily",
+    "LOG_CHANNEL": "stderr",
     "LOG_LEVEL": "error",
     "SESSION_DRIVER": "cookie"
   }
