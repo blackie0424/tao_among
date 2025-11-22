@@ -5,6 +5,7 @@ namespace App\Services;
 use \Carbon\Carbon;
 
 use App\Models\Fish;
+use App\Http\Resources\FishResource;
 
 class FishService
 {
@@ -18,7 +19,7 @@ class FishService
     public function getAllFishes()
     {
         $fishes = Fish::orderBy('id', 'desc')->get();
-        return $fishes;
+        return FishResource::collection($fishes);
     }
 
     public function getFishesBySince($since)
