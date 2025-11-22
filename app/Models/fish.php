@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+// 1. 引入 Attribute
+use Illuminate\Database\Eloquent\Casts\Attribute;
+
+// 2. 引入 Service
+use App\Services\SupabaseStorageService;
+
 class Fish extends Model
 {
     use HasFactory, SoftDeletes;
@@ -21,7 +27,6 @@ class Fish extends Model
     protected $fillable = ['name', 'image', 'audio_filename'];
 
     protected $appends = ['image_url'];
-
 
     protected static function booted()
     {
@@ -89,20 +94,23 @@ class Fish extends Model
         return $date->format('Y-m-d H:i:s');
     }
 
-    public function getImageUrlAttribute()
+    /**
+     * 取得圖片的完整 URL
+     * 呼叫方式: $fish->image_url
+     */
+    protected function imageUrl(): Attribute
     {
-        // 統一走集中服務，避免重複前置與邏輯分散
-        $supabase = app(\App\Services\SupabaseStorageService::class);
-        if (empty($this->image)) {
-            // 預設圖固定回傳原圖（不使用 webp）
-            return $supabase->getUrl('images', 'default.png', false);
-        }
-        $hasWebp = null;
-        if (array_key_exists('has_webp', $this->attributes)) {
-            $hasWebp = (bool)($this->attributes['has_webp']);
-        } elseif (isset($this->has_webp)) {
-            $hasWebp = (bool)$this->has_webp;
-        }
-        return $supabase->getUrl('images', $this->image, $hasWebp);
+        return Attribute::make(
+            get: function ($value, $attributes) {
+                // 處理空值：如果資料庫是 null，就給預設圖檔名
+                $filename = $attributes['image'] ?? 'default.png';
+                $hasWebp = isset($attributes['has_webp']) ? (bool)$attributes['has_webp'] : false;
+
+                // 呼叫 Service 轉換
+                return app(SupabaseStorageService::class)->getUrl('images', $filename, $hasWebp);
+            }
+        );
     }
+
+
 }
