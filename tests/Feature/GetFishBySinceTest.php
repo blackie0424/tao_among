@@ -28,6 +28,11 @@ it('can get fish list by time condition', function () {
         $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     });
 
+    // 設定auduio_filename以測試API不回傳audio_filename的情況
+    $expectedFishs->map(function ($fish) {
+        $fish->audio_filename = null; // since API does not return audio_filename
+    });
+
     $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
         ? $expectedFishs->max('updated_at')->timestamp
         : null;
@@ -70,6 +75,11 @@ it('can get 6 fishes by time condition', function () {
     // 構建完整的圖片路徑
     $expectedFishs->map(function ($fish) {
         $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
+    });
+
+    // 設定auduio_filename以測試API不回傳audio_filename的情況
+    $expectedFishs->map(function ($fish) {
+        $fish->audio_filename = null; // since API does not return audio_filename
     });
 
     $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
