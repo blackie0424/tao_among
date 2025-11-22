@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "php artisan config:clear && composer dump-autoload && vite build",
+    "build": "vite build",
     "dev": "vite",
     "test": "vitest",
     "coverage": "vitest run --coverage"
