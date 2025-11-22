@@ -26,7 +26,7 @@ class Fish extends Model
 
     protected $fillable = ['name', 'image', 'audio_filename'];
 
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url','audio_url'];
 
     protected static function booted()
     {
@@ -108,6 +108,22 @@ class Fish extends Model
 
                 // 呼叫 Service 轉換
                 return app(SupabaseStorageService::class)->getUrl('images', $filename, $hasWebp);
+            }
+        );
+    }
+
+    /**
+     * 取得聲音檔案的完整 URL
+     * 呼叫方式: $fish->audio_url
+     */
+    protected function audioUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, $attributes) {
+                // 如果是 null, 直接回傳 null。否則，呼叫 Service 轉換。
+                return $attributes['audio_filename'] === null
+                    ? null
+                    : app(SupabaseStorageService::class)->getUrl('audios', $attributes['audio_filename'], null);
             }
         );
     }
