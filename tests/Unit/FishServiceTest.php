@@ -42,7 +42,8 @@ it('assigns default image when image filename is empty and leaves audio url null
 it('assigns image and audio urls only when names are non-empty', function () {
     $fish = Fish::factory()->create([
         'image' => 'foo.jpg',
-        'audio_filename' => 'bar.mp3', // used by getFishById path; here we test audios relation path
+        'has_webp' => true,
+        'audio_filename' => 'voice.mp3', // used by getFishById path; here we test audios relation path
     ]);
 
     $audio = new FishAudio(['name' => 'voice.mp3']);
@@ -50,9 +51,9 @@ it('assigns image and audio urls only when names are non-empty', function () {
 
     $storage = m::mock(SupabaseStorageService::class);
     $storage->shouldReceive('getUrl')
-        ->once()->with('images', 'foo.jpg')->andReturn('https://cdn.example/images/foo.webp');
+        ->once()->with('images', 'foo.jpg', true)->andReturn('https://cdn.example/images/foo.webp');
     $storage->shouldReceive('getUrl')
-        ->once()->with('audios', 'voice.mp3')->andReturn('https://cdn.example/audio/voice.mp3');
+    ->once()->with('audios', 'voice.mp3')->andReturn('https://cdn.example/audio/voice.mp3');
 
     $service = new FishService($storage);
 
