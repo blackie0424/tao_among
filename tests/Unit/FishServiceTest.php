@@ -24,7 +24,7 @@ it('assigns default image when image filename is empty and leaves audio url null
     $storage = m::mock(SupabaseStorageService::class);
     $storage->shouldReceive('getUrl')
         ->once()
-        ->with('images', 'default.png')
+        ->with('images', 'default.png', false)
         ->andReturn('https://cdn.example/images/default.png');
 
     $service = new FishService($storage);
