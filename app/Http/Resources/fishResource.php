@@ -14,11 +14,22 @@ class fishResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $groupedClassifications = $this->tribalClassifications
+            ->groupBy('food_category')
+            ->map(function ($group) {
+                return $group->pluck('tribe')->toArray();
+            });
+
         return [
-                'id' => $this->id,
-                'name' => $this->name,
-                'image_url' => $this->image_url,
-                'audio_url' => $this->audio_url,
-            ];
+            'id' => $this->id,
+            'name' => $this->name,
+            'image_url' => $this->image_url,
+            'audio_url' => $this->audio_url,
+            'oyod' => implode(' ', $groupedClassifications->get('oyod', [])),
+            'rahet' => implode(' ', $groupedClassifications->get('rahet', [])),
+            'notEdible' => implode(' ', $groupedClassifications->get('不食用', [])),
+            'uncertain' => implode(' ', $groupedClassifications->get('?', [])),
+            'unclassified' => implode(' ', $groupedClassifications->get('不分類', [])),
+        ];
     }
 }

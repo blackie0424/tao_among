@@ -18,7 +18,7 @@ class FishService
 
     public function getAllFishes()
     {
-        $fishes = Fish::orderBy('id', 'desc')->get();
+        $fishes = Fish::with('tribalClassifications')->orderBy('id', 'desc')->get();
         return FishResource::collection($fishes);
     }
 
