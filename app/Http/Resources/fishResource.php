@@ -18,6 +18,20 @@ class FishResource extends JsonResource
             ->groupBy('food_category')
             ->map(function ($group) {
                 return $group->pluck('tribe')->toArray();
+            })->mapWithKeys(function ($item, $key) {
+                $newKey = $key;
+                switch ($key) {
+                    case '不食用':
+                        $newKey = 'notEdible';
+                        break;
+                    case '?':
+                        $newKey = 'uncertain';
+                        break;
+                    case '不分類':
+                        $newKey = 'unclassified';
+                        break;
+                }
+                return [$newKey => $item ?: []];
             });
 
         return [
@@ -27,9 +41,9 @@ class FishResource extends JsonResource
             'audio_url' => $this->audio_url,
             'oyod' => implode(' ', $groupedClassifications->get('oyod', [])),
             'rahet' => implode(' ', $groupedClassifications->get('rahet', [])),
-            'notEdible' => implode(' ', $groupedClassifications->get('不食用', [])),
-            'uncertain' => implode(' ', $groupedClassifications->get('?', [])),
-            'unclassified' => implode(' ', $groupedClassifications->get('不分類', [])),
+            'notEdible' => implode(' ', $groupedClassifications->get('notEdible', [])),
+            'uncertain' => implode(' ', $groupedClassifications->get('uncertain', [])),
+            'unclassified' => implode(' ', $groupedClassifications->get('unclassified', [])),
         ];
     }
 }
