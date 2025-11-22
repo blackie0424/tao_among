@@ -5,6 +5,7 @@ namespace App\Services;
 use \Carbon\Carbon;
 
 use App\Models\Fish;
+use App\Http\Resources\FishResource;
 
 class FishService
 {
@@ -17,8 +18,8 @@ class FishService
 
     public function getAllFishes()
     {
-        $fishes = Fish::orderBy('id', 'desc')->get();
-        return $this->assignImageUrls($fishes);
+        $fishes = Fish::with('tribalClassifications')->orderBy('id', 'desc')->get();
+        return FishResource::collection($fishes);
     }
 
     public function getFishesBySince($since)
