@@ -10,7 +10,7 @@ it('returns default image url when image is empty', function () {
     $url = $fish->image_url; // accessor
     $base = env('SUPABASE_STORAGE_URL');
     $bucket = env('SUPABASE_BUCKET');
-    expect($url)->toBe("{$base}/object/public/{$bucket}/images/default.png");
+    expect($url)->toBe("{$base}/object/public/{$bucket}/webp/default.webp");
 });
 
 it('returns webp url when has_webp is true', function () {
