@@ -6,6 +6,7 @@ use App\Models\FishAudio;
 use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 use App\Models\FishSize;
+use App\Http\Resources\FishResource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -23,6 +24,11 @@ it('can get fish list', function () {
         $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     });
 
+    // 設定auduio_filename以測試API不回傳audio_filename的情況
+    $fishs->map(function ($fish) {
+        $fish->audio_filename = null; // since API does not return audio_filename
+    });
+
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish');
 
@@ -30,7 +36,7 @@ it('can get fish list', function () {
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'success',
-            'data' => $fishs->toArray()
+            'data' =>  FishResource::collection($fishs)->resolve()
         ]);
 
 });
@@ -58,7 +64,7 @@ it('can get a fish data by fish id', function () {
 
     // 構建完整的圖片路徑
     $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-
+    $fish->audio_filename = null; // since API does not return audio_filename
 
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish/'.$fish->id);
@@ -110,6 +116,7 @@ it('can create a fish', function () {
     $data = [
         'name' => 'ilek',
         'image' => 'ilek.jpg',
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -132,9 +139,8 @@ it('can not  create a fish ,  fish name is empty', function () {
     $data = [
         'name' => '',
         'type' => 'oyod',
-        'locate' => 'Iraraley',
         'image' => 'ilek.jpg',
-        'process' => 'isisan'
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -157,9 +163,8 @@ it('can not  create a fish ,  fish image is empty', function () {
     $data = [
         'name' => 'ilek',
         'type' => 'oyod',
-        'locate' => 'Iraraley',
         'image' => '',
-        'process' => 'isisan'
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -182,6 +187,7 @@ it('can  create a fish ,  fish type is empty string', function () {
     $data = [
         'name' => 'ilek',
         'image' => 'ilek.png',
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -202,6 +208,7 @@ it('can  create a fish ,  fish type is null', function () {
     $data = [
         'name' => 'ilek',
         'image' => 'ilek.png',
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
