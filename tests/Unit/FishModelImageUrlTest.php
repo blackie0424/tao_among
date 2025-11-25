@@ -2,6 +2,7 @@
 
 use App\Models\Fish;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\SupabaseStorageService;
 
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
@@ -23,9 +24,7 @@ it('returns webp url when has_webp is true', function () {
 
 it('returns original image url when has_webp is false', function () {
     $fishFalse = Fish::factory()->create(['image' => 'a.png', 'has_webp' => false]);
-    $base = env('SUPABASE_STORAGE_URL');
-    $bucket = env('SUPABASE_BUCKET');
-    expect($fishFalse->image_url)->toBe("{$base}/object/public/{$bucket}/images/a.png");
+    expect($fishFalse->image_url)->toBe(app(SupabaseStorageService::class)->getUrl('images', $fishFalse->image, $fishFalse->has_webp));
 });
 
 it('passes through full url stored in image field', function () {
