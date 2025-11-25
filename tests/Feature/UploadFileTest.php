@@ -336,13 +336,10 @@ it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', f
     $serviceSpy->shouldReceive('createSignedUploadUrl')
         ->andReturn('https://mocked-url-for-db-test');
 
-    $this->withoutExceptionHandling();
     // 3. 執行請求 (Action)
     $response = $this->postJson("/prefix/api/fish/{$fishId}/supabase/signed-upload-audio-url", [
         'filename' => 'test-audio.mp3'
     ]);
-
-    $response->dump();
 
     // 4. 斷言狀態碼
     $response->assertStatus(200);
