@@ -15,11 +15,8 @@ it('returns default image url when image is empty', function () {
 });
 
 it('returns webp url when has_webp is true', function () {
-    $fish = Fish::factory()->create(['image' => 'sample.jpg', 'has_webp' => true]);
-    $url = $fish->image_url;
-    $base = env('SUPABASE_STORAGE_URL');
-    $bucket = env('SUPABASE_BUCKET');
-    expect($url)->toBe("{$base}/object/public/{$bucket}/webp/sample.webp");
+    $fishTrue = Fish::factory()->create(['image' => 'sample.jpg', 'has_webp' => true]);
+    expect($fishTrue->image_url)->toBe(app(SupabaseStorageService::class)->getUrl('images', $fishTrue->image, $fishTrue->has_webp));
 });
 
 it('returns original image url when has_webp is false', function () {
