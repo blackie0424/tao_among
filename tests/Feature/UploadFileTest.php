@@ -249,11 +249,27 @@ it('audio 上傳失敗，副檔名為 mp3 但內容不是 audio', function () {
 });
 
 it('取得 supabase audio 檔案簽名上傳網址', function () {
-    $fish = Fish::factory()->create();
+    $fishId = 999;
 
-    $response = $this->postJson("/prefix/api/fish/{$fish->id}/supabase/signed-upload-audio-url", [
+    Fish::factory()->create([
+        'id' => $fishId,
+    ]);
+
+    Http::fake([
+        // 修正 URL 模式，使用萬用字元
+            '*/object/upload/sign/*' => Http::response([
+                'url' => 'https://supabase.storage.mock/audios/test-audio.mp3?token=mocked_token',
+                'path' => 'audios/test-audio.mp3',
+                'filename' => 'test-audio.mp3',
+            ], 200),
+        ]);
+
+    $response = $this->postJson("/prefix/api/fish/{$fishId}/supabase/signed-upload-audio-url", [
         'filename' => 'test-audio.mp3'
     ]);
+
+    
+
     $response->assertStatus(200)
         ->assertJsonStructure([
             'url',
