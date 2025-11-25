@@ -268,14 +268,16 @@ it('取得 supabase audio 檔案簽名上傳網址', function () {
         'filename' => 'test-audio.mp3'
     ]);
 
-    
-
     $response->assertStatus(200)
-        ->assertJsonStructure([
-            'url',
-            'path',
-            'filename'
-        ]);
+    ->assertJson(
+        fn ($json) =>
+        $json->where('url', 'https://supabase.storage.mock/audios/test-audio.mp3?token=mocked_token')
+             // 🎯 使用 where() 方法來對動態值執行閉包檢查
+             ->where('path', fn ($path) => is_string($path) && !empty($path))
+             ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
+             // 確保沒有其他不相關的鍵影響斷言
+             ->etc()
+    );
 });
 
 it('取得 supabase image 檔案簽名上傳網址', function () {
