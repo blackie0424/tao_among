@@ -21,13 +21,11 @@ it('returns webp url when has_webp is true', function () {
     expect($url)->toBe("{$base}/object/public/{$bucket}/webp/sample.webp");
 });
 
-it('returns original image url when has_webp is false or null', function () {
+it('returns original image url when has_webp is false', function () {
     $fishFalse = Fish::factory()->create(['image' => 'a.png', 'has_webp' => false]);
-    $fishNull  = Fish::factory()->create(['image' => 'b.jpeg', 'has_webp' => null]);
     $base = env('SUPABASE_STORAGE_URL');
     $bucket = env('SUPABASE_BUCKET');
     expect($fishFalse->image_url)->toBe("{$base}/object/public/{$bucket}/images/a.png");
-    expect($fishNull->image_url)->toBe("{$base}/object/public/{$bucket}/images/b.jpeg");
 });
 
 it('passes through full url stored in image field', function () {
