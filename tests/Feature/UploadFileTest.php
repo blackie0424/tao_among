@@ -281,16 +281,29 @@ it('取得 supabase audio 檔案簽名上傳網址', function () {
 });
 
 it('取得 supabase image 檔案簽名上傳網址', function () {
+    Http::fake([
+        // 修正 URL 模式，使用萬用字元
+            '*/object/upload/sign/*' => Http::response([
+                'url' => 'https://supabase.storage.mock/images/test-image.jpg?token=mocked_token',
+                'path' => 'images/test-image.jpg',
+                'filename' => 'test-image.jpg',
+            ], 200),
+        ]);
+    
     $response = $this->postJson('/prefix/api/supabase/signed-upload-url', [
         'filename' => 'test-image.jpg',
     ]);
 
     $response->assertStatus(200)
-        ->assertJsonStructure([
-            'url',
-            'path',
-            'filename',
-        ]);
+    ->assertJson(
+        fn ($json) =>
+        $json->where('url', 'https://supabase.storage.mock/images/test-image.jpg?token=mocked_token')
+             // 🎯 使用 where() 方法來對動態值執行閉包檢查
+             ->where('path', fn ($path) => is_string($path) && !empty($path))
+             ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
+             // 確保沒有其他不相關的鍵影響斷言
+             ->etc()
+    );
 });
 
 it('取得 supabase image 檔案簽名上傳網址失敗，副檔名錯誤', function () {
