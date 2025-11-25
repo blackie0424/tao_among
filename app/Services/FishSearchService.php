@@ -183,7 +183,7 @@ class FishSearchService
         $lastId = $filters['last_id'] ?? null;
 
         // 基底查詢：僅主表避免不必要 eager（FR-009）
-    // 重要：需選出 image 欄位，否則模型 accessor 無法判斷是否有自訂圖片，會一律回傳預設圖
+        // 重要：需選出 image 欄位，否則模型 accessor 無法判斷是否有自訂圖片，會一律回傳預設圖
         // 同時帶出 has_webp（若資料表有此欄位），可讓 accessor 選擇 webp
         $selects = ['id','name','image'];
         if (\Schema::hasColumn('fish', 'has_webp')) {
