@@ -18,6 +18,14 @@ use App\Services\AudioConfirmService;
 
 class UploadController extends Controller
 {
+
+    protected $storageService;
+
+    public function __construct(SupabaseStorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
+
     /**
      * POST /prefix/api/upload/audio/sign
     *
@@ -514,8 +522,7 @@ class UploadController extends Controller
         $uniqueName = \Illuminate\Support\Str::uuid()->toString() . ($ext ? '.' . $ext : '');
         $filePath = $path . '/' . $uniqueName;
 
-        $service = new \App\Services\SupabaseStorageService();
-        $url = $service->createSignedUploadUrl($filePath);
+        $url = $this->storageService->createSignedUploadUrl($filePath);
 
         // 確認簽名成功後才進行 DB 異動
         if (!$url) {

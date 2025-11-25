@@ -319,3 +319,31 @@ it('取得 supabase image 檔案簽名上傳網址失敗，副檔名錯誤', fun
             ],
         ]);
 });
+
+it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', function () {
+    $fishId = 999;
+
+    $fish = Fish::factory()->create([
+        'id' => $fishId,
+        'image' => 'test-image.jpg',
+        'audio_filename' => 'test-audio.mp3',
+    ]);
+
+    // 1. 使用 spy() 綁定服務，並將實例儲存在 $serviceSpy 中
+    $serviceSpy = $this->spy(\App\Services\SupabaseStorageService::class);
+
+    // 2. 告訴 $serviceSpy，當它收到 'createSignedUploadUrl' 呼叫時，要回傳什麼？
+    $serviceSpy->shouldReceive('createSignedUploadUrl')
+        ->andReturn('https://mocked-url-for-db-test');
+
+    $this->withoutExceptionHandling();
+    // 3. 執行請求 (Action)
+    $response = $this->postJson("/prefix/api/fish/{$fishId}/supabase/signed-upload-audio-url", [
+        'filename' => 'test-audio.mp3'
+    ]);
+
+    $response->dump();
+
+    // 4. 斷言狀態碼
+    $response->assertStatus(200);
+});
