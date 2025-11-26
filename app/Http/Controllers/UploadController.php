@@ -20,10 +20,12 @@ class UploadController extends Controller
 {
 
     protected $storageService;
+    protected $fishAudio;
 
-    public function __construct(SupabaseStorageService $storageService)
+    public function __construct(SupabaseStorageService $storageService, FishAudio $fishAudio)
     {
         $this->storageService = $storageService;
+        $this->fishAudio = $fishAudio;
     }
 
     /**
@@ -540,7 +542,7 @@ class UploadController extends Controller
                 return response()->json(['message' => '魚類資料不存在'], 404);
             }
 
-            $fishAudio = FishAudio::create([
+            $this->fishAudio->create([
                 'fish_id' => $fishId,
                 'name' => $uniqueName,
                 'locate' => "iraraley",

@@ -4,8 +4,13 @@ use Illuminate\Http\UploadedFile;
 
 use Illuminate\Foundation\Testing\RefreshDatabase; // 加入這行
 use App\Models\Fish;
+use App\Models\FishAudio;
+use Mockery;
+use Mockery\MockInterface;
+use Exception;
 
 uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
+
 
 
 it('fish image can be uploaded, check response is 201 and message is image uploaded successfully', function () {
@@ -343,4 +348,45 @@ it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', f
 
     // 4. 斷言狀態碼
     $response->assertStatus(200);
+});
+
+it('當聲音檔案上傳後，要將聲音檔案的資料寫入資料表發生錯誤時，應在 DB 交易失敗時，確保資料庫回滾且不新增任何紀錄', function () {
+    
+    $fishId = 999;
+
+    $fish = Fish::factory()->create([
+        'id' => $fishId,
+        'image' => 'test-image.jpg',
+        'audio_filename' => 'test-audio.mp3',
+    ]);
+
+    // 1. 使用 spy() 綁定服務，並將實例儲存在 $serviceSpy 中
+    $serviceSpy = $this->spy(\App\Services\SupabaseStorageService::class);
+
+    // 2. 服務模擬：設定 spy (此處不影響測試，但保留以保持完整性)
+    $serviceSpy->shouldReceive('createSignedUploadUrl')
+        ->andReturn('https://mocked-url-for-rollback');
+
+
+    // // 3. 模擬失敗：強制 FishAudio::create 拋出例外
+    $this->partialMock(FishAudio::class, function (MockInterface $mock) {
+        // 🎯 這裡使用 $mock 變數來設定 shouldReceive
+        $mock->shouldReceive('create')
+             ->once()
+             ->andThrow(new \Exception('Simulated rollback failure'));
+    });
+    // // 4. 執行請求與斷言狀態碼 (Action & Status Assertion)
+    $response = $this->postJson("/prefix/api/fish/{$fishId}/supabase/signed-upload-audio-url", [
+        'filename' => 'test-audio.mp3'
+    ]);
+
+    $response->assertStatus(500); // 期望收到 500 錯誤
+    
+    // 預期 JSON 訊息片段 (來自 Controller 的 catch 區塊)
+    $response->assertJsonFragment([
+        'message' => '儲存音訊 metadata 失敗',
+    ]);
+    // 5. 確認資料庫中沒有新增任何 FishAudio 紀錄
+    $this->assertDatabaseCount('fish_audios', 0);
+
 });
