@@ -18,6 +18,16 @@ use App\Services\AudioConfirmService;
 
 class UploadController extends Controller
 {
+
+    protected $storageService;
+    protected $fishAudio;
+
+    public function __construct(SupabaseStorageService $storageService, FishAudio $fishAudio)
+    {
+        $this->storageService = $storageService;
+        $this->fishAudio = $fishAudio;
+    }
+
     /**
      * POST /prefix/api/upload/audio/sign
     *
@@ -514,8 +524,7 @@ class UploadController extends Controller
         $uniqueName = \Illuminate\Support\Str::uuid()->toString() . ($ext ? '.' . $ext : '');
         $filePath = $path . '/' . $uniqueName;
 
-        $service = new \App\Services\SupabaseStorageService();
-        $url = $service->createSignedUploadUrl($filePath);
+        $url = $this->storageService->createSignedUploadUrl($filePath);
 
         // 確認簽名成功後才進行 DB 異動
         if (!$url) {
@@ -533,7 +542,7 @@ class UploadController extends Controller
                 return response()->json(['message' => '魚類資料不存在'], 404);
             }
 
-            $fishAudio = FishAudio::create([
+            $this->fishAudio->create([
                 'fish_id' => $fishId,
                 'name' => $uniqueName,
                 'locate' => "iraraley",
