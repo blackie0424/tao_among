@@ -8,53 +8,110 @@ use App\Models\Fish;
 use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 
-class MultiConditionTest extends TestCase
-{
-    use RefreshDatabase;
+uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
 
-    /**
-     * US2: 多條件 AND 組合測試（名稱模糊 + tribe 等值 + processing_method 模糊 + capture_location 模糊）
-     */
-    public function test_multi_condition_and_filters(): void
-    {
-        // 目標魚：滿足所有條件
-        $targetFish = Fish::factory()->create(['name' => 'Golden Snapper']);
-        TribalClassification::factory()->forTribe('ivalino')->create([
-            'fish_id' => $targetFish->id,
-            'processing_method' => '去魚鱗',
-            'food_category' => 'oyod',
-        ]);
-        CaptureRecord::factory()->create([
-            'fish_id' => $targetFish->id,
-            'location' => 'Deep Sea Ridge',
-            'capture_method' => '網捕'
-        ]);
 
-        // 干擾魚：名稱符合但 tribe 不同
-        $other1 = Fish::factory()->create(['name' => 'Golden Trout']);
-        TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $other1->id]);
+it('should return only the target fish when all conditions are matched', function () {
+    // 目標魚：滿足所有條件
+    $targetFish = Fish::factory()->create(['name' => 'Golden Snapper']);
+    
+    // *** 修正點 1: 使用 Factory 允許的中文值 ***
+    TribalClassification::factory()->forTribe('ivalino')->create([
+        'fish_id' => $targetFish->id,
+        'processing_method' => '?',
+        'food_category' => 'oyod',
+    ]);
+    CaptureRecord::factory()->create([
+        'fish_id' => $targetFish->id,
+        'location' => 'beach',
+        'capture_method' => 'mamasi'
+    ]);
 
-        // 干擾魚：tribe 相同但名稱不符
-        $other2 = Fish::factory()->create(['name' => 'Silver Eel']);
-        TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $other2->id]);
+    // 干擾魚：名稱符合但 tribe 不同 (數據建立邏輯不變)
+    $other1 = Fish::factory()->create(['name' => 'Golden Trout']);
+    TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $other1->id]);
 
-        // 干擾魚：名稱與 tribe 符合但 processing_method 不符
-        $other3 = Fish::factory()->create(['name' => 'Golden Carp']);
-        TribalClassification::factory()->forTribe('ivalino')->create([
-            'fish_id' => $other3->id,
-            'processing_method' => '剝皮'
-        ]);
+    // 干擾魚：tribe 相同但名稱不符 (數據建立邏輯不變)
+    $other2 = Fish::factory()->create(['name' => 'Silver Eel']);
+    TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $other2->id]);
 
-        // 發送多條件搜尋
-        $response = $this->get('/fishs?name=gold&tribe=ivalino&processing_method=去魚鱗&capture_location=Ridge');
-        $response->assertStatus(200)
-            ->assertInertia(function ($page) use ($targetFish) {
-                $items = $page->toArray()['props']['items'] ?? [];
-                $names = array_map(fn($i) => $i['name'], $items);
-                // 只應包含目標魚
-                $this->assertEquals([$targetFish->name], $names);
-                // pageInfo 結果對於單筆應 hasMore=false
-                $page->where('pageInfo.hasMore', false);
-            });
-    }
-}
+    // 干擾魚：名稱與 tribe 符合但 foo_category 不符
+    $other3 = Fish::factory()->create(['name' => 'Golden Carp']);
+    TribalClassification::factory()->forTribe('ivalino')->create([
+        'fish_id' => $other3->id,
+        'food_category' => 'rahet'
+    ]);
+
+    // 發送多條件搜尋 (URL 參數必須與數據庫中的中文值匹配)
+    // 注意：URL 查詢參數中的中文會被框架自動編碼和解碼
+    $response = $this->get('/fishs?name=gold&tribe=ivalino&food_category=oyod&capture_location=beach');
+    $response->assertStatus(200)
+        ->assertInertia(function ($page) use ($targetFish) {
+            $items = $page->toArray()['props']['items'] ?? [];
+            $names = array_map(fn ($i) => $i['name'], $items);
+            
+            // 驗證結果
+            $this->assertCount(1, $names);
+            $this->assertEquals([$targetFish->name], $names);
+            
+            $page->where('pageInfo.hasMore', false);
+        });
+});
+
+it('should filter out fish when the tribe condition does not match', function () {
+    // 目標魚：所有條件都符合，tribe='ivalino'
+    $targetFish = Fish::factory()->create(['name' => 'Golden Snapper']);
+    TribalClassification::factory()->forTribe('ivalino')->create([
+        'fish_id' => $targetFish->id,
+        'food_category' => 'oyod',
+    ]);
+
+    // 干擾魚：名稱相似，但 tribe='iranmeilek' (這是我們期望被排除的魚)
+    $other1 = Fish::factory()->create(['name' => 'Golden Trout']);
+    TribalClassification::factory()->forTribe('iranmeilek')->create([
+        'fish_id' => $other1->id
+    ]);
+
+    // 發送搜尋：搜尋 name='gold' 和 tribe='ivalino'
+    // 預期：只能找到 $targetFish (Golden Snapper)
+    $response = $this->get('/fishs?name=gold&tribe=ivalino');
+
+    $response->assertStatus(200)
+        ->assertInertia(function ($page) use ($targetFish) {
+            $items = $page->toArray()['props']['items'] ?? [];
+            $names = array_map(fn ($i) => $i['name'], $items);
+
+            // 斷言：只找到目標魚 (Golden Snapper)，證明 iranmeilek 被排除
+            $this->assertCount(1, $names);
+            $this->assertEquals([$targetFish->name], $names);
+        });
+});
+
+it('should filter out fish when the food_category condition does not match', function () {
+    // 目標魚：所有條件都符合
+    $targetFish = Fish::factory()->create(['name' => 'Golden Snapper']);
+    TribalClassification::factory()->forTribe('ivalino')->create([
+        'fish_id' => $targetFish->id,
+        'food_category' => 'oyod',
+    ]);
+
+    // 干擾魚：tribe 相同，但 food_category='rahet' (與搜尋條件 'oyod' 不符)
+    $other3 = Fish::factory()->create(['name' => 'Golden Carp']);
+    TribalClassification::factory()->forTribe('ivalino')->create([
+        'fish_id' => $other3->id,
+        'food_category' => 'rahet',
+    ]);
+
+    // 發送搜尋：搜尋 'ivalino' 和 'oyod'
+    $response = $this->get('/fishs?name=gold&tribe=ivalino&food_category=oyod');
+
+    $response->assertStatus(200)
+        ->assertInertia(function ($page) use ($targetFish) {
+            $items = $page->toArray()['props']['items'] ?? [];
+            $names = array_map(fn ($i) => $i['name'], $items);
+
+            // 斷言：只找到目標魚
+            $this->assertCount(1, $names);
+            $this->assertEquals([$targetFish->name], $names);
+        });
+});
