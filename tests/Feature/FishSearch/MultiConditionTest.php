@@ -86,3 +86,32 @@ it('should filter out fish when the tribe condition does not match', function ()
             $this->assertEquals([$targetFish->name], $names);
         });
 });
+
+it('should filter out fish when the food_category condition does not match', function () {
+    // 目標魚：所有條件都符合
+    $targetFish = Fish::factory()->create(['name' => 'Golden Snapper']);
+    TribalClassification::factory()->forTribe('ivalino')->create([
+        'fish_id' => $targetFish->id,
+        'food_category' => 'oyod',
+    ]);
+
+    // 干擾魚：tribe 相同，但 food_category='rahet' (與搜尋條件 'oyod' 不符)
+    $other3 = Fish::factory()->create(['name' => 'Golden Carp']);
+    TribalClassification::factory()->forTribe('ivalino')->create([
+        'fish_id' => $other3->id,
+        'food_category' => 'rahet',
+    ]);
+
+    // 發送搜尋：搜尋 'ivalino' 和 'oyod'
+    $response = $this->get('/fishs?name=gold&tribe=ivalino&food_category=oyod');
+
+    $response->assertStatus(200)
+        ->assertInertia(function ($page) use ($targetFish) {
+            $items = $page->toArray()['props']['items'] ?? [];
+            $names = array_map(fn ($i) => $i['name'], $items);
+
+            // 斷言：只找到目標魚
+            $this->assertCount(1, $names);
+            $this->assertEquals([$targetFish->name], $names);
+        });
+});
