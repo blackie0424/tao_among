@@ -160,23 +160,3 @@ CI / 合併規則
 ```sh
 ./vendor/bin/pest
 ```
-
-## 音訊上傳新流程（兩階段）
-
-1) 取得簽名上傳網址（pending/audio/...） → 2) 前端以 PUT 上傳檔案 → 3) 呼叫 confirm API，後端確認檔案存在後搬移至 audio/... 並以交易式寫入 DB。若未呼叫 confirm，暫存檔將由排程依 TTL 自動清理；若 confirm 失敗且檔案已搬移，系統會嘗試補償刪除避免孤兒檔案。
-
-Quickstart（後端 API 範例）
-
-1. 取得簽名：POST /prefix/api/upload/audio/sign
-   - 請求：{ "fish_id": 1, "ext": "webm" }
-   - 回應：{ uploadUrl: 絕對 https URL, filePath: "pending/audio/...", expiresIn: 300 }
-
-2. 前端以 PUT 將檔案傳至 uploadUrl（Content-Type 設定為實際 MIME）。
-
-3. 確認：POST /prefix/api/upload/audio/confirm
-   - 請求：{ "fish_id": 1, "filePath": "pending/audio/..." }
-   - 回應（200）：{ url: 絕對公開網址, filename: 最終檔名, state: "confirmed" }
-
-特性
-- 冪等：重複呼叫 confirm（同 fish_id + filePath）一律回 200 並返回現況。
-- 清理：`php artisan audio:purge-pending --ttl=3600` 可手動清理過期暫存檔，Kernel 已預設每小時排程依 `config/audio.php` 的 TTL 執行。
