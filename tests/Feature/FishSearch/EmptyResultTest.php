@@ -27,27 +27,12 @@ it('loads initial items correctly and sets hasMore to false when count equals pe
         });
 });
 
-it('empty result when past tail', function () {
-    // 建立 5 筆資料，確保 id 遞減排序
-    Fish::factory()->count(5)->create();
-
-    // 初次載入 perPage=5 取得 5 筆，hasMore=false
-    $first = $this->get('/fishs?perPage=5');
-    $first->assertStatus(200)
-        ->assertInertia(function ($page) use (&$nextCursor) {
-            $items = $page->toArray()['props']['items'] ?? [];
-            $this->assertCount(5, $items);
-            $page->where('pageInfo.hasMore', false)
-                 ->where('pageInfo.nextCursor', null);
-        });
-
-    // 以最小 id - 1 作為 next 游標（手動模擬超尾端）
-    $all = Fish::orderByDesc('id')->pluck('id')->all();
-    $minId = min($all);
-    $resp2 = $this->get('/fishs?last_id=' . ($minId - 1));
-    $resp2->assertStatus(200)
-        ->assertInertia(fn ($page) => $page->where('items', [])
-            ->where('pageInfo.hasMore', false)
-            ->where('pageInfo.nextCursor', null));
+it('當last id被設為0，應該要收到422，表示資料錯誤', function () {
+    $minId = 0;
+    $response = $this->get('/fishs?last_id=' . $minId);
+    $response->assertStatus(422);
+    $response->assertJson([
+        'error' => 'INVALID_CURSOR',
+    ]);
 
 });
