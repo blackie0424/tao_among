@@ -11,7 +11,7 @@ use App\Models\CaptureRecord;
 uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
 
 
-it('multi condition and filters', function () {
+it('should filter out fish when the tribe condition does not match', function () {
     // 目標魚：滿足所有條件
     $targetFish = Fish::factory()->create(['name' => 'Golden Snapper']);
     
