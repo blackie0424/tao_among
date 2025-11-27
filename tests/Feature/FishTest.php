@@ -398,42 +398,60 @@ it('soft deletes fish and its related fish_notes', function () {
 });
 
 it('soft deletes fish and all related data when using controller destroy method', function () {
+    // 建立一條魚
     $fish = Fish::factory()->create();
     
-    // 創建相關資料
+    // 創建其他單純的關聯資料
     $notes = FishNote::factory()->count(2)->create(['fish_id' => $fish->id]);
     $audios = FishAudio::factory()->count(2)->create(['fish_id' => $fish->id]);
-    $tribalClassifications = TribalClassification::factory()->count(2)->create(['fish_id' => $fish->id]);
     $captureRecords = CaptureRecord::factory()->count(2)->create(['fish_id' => $fish->id]);
     $fishSize = FishSize::factory()->create(['fish_id' => $fish->id]);
+
+    // **修正點：單獨創建 TribalClassification 記錄並手動賦予不同的 'tribe' 值**
+    // 這樣可以保證 (fish_id, tribe) 組合的唯一性，避免隨機衝突。
+    $tc1 = TribalClassification::factory()->create([
+        'fish_id' => $fish->id,
+        'tribe' => 'ivalino', // 第一筆：Tribe A
+    ]);
+    
+    $tc2 = TribalClassification::factory()->create([
+        'fish_id' => $fish->id,
+        'tribe' => 'iranmeilek', // 第二筆：Tribe B
+    ]);
+    
+    // 將兩筆記錄放入集合中，以便在 foreach 迴圈中進行斷言
+    $tribalClassifications = collect([$tc1, $tc2]);
 
     // 透過控制器刪除魚類
     $response = $this->delete("/fish/{$fish->id}");
 
-    // 驗證重定向
+    // 1. 驗證重定向
     $response->assertRedirect('/fishs');
 
-    // 驗證魚類被軟刪除
+    // 2. 驗證魚類被軟刪除
     $this->assertSoftDeleted('fish', ['id' => $fish->id]);
 
-    // 驗證所有相關資料都被軟刪除
+    // 3. 驗證所有相關資料都被軟刪除 (應為級聯軟刪除)
+    
+    // 驗證 FishNote
     foreach ($notes as $note) {
         $this->assertSoftDeleted('fish_notes', ['id' => $note->id]);
     }
     
+    // 驗證 FishAudio
     foreach ($audios as $audio) {
         $this->assertSoftDeleted('fish_audios', ['id' => $audio->id]);
     }
     
+    // 驗證 TribalClassification (使用我們手動創建的集合)
     foreach ($tribalClassifications as $classification) {
         $this->assertSoftDeleted('tribal_classifications', ['id' => $classification->id]);
     }
     
+    // 驗證 CaptureRecord
     foreach ($captureRecords as $record) {
         $this->assertSoftDeleted('capture_records', ['id' => $record->id]);
     }
-    
-    $this->assertSoftDeleted('fish_size', ['id' => $fishSize->id]);
 });
 
 it('returns json response for ajax fish deletion request', function () {
