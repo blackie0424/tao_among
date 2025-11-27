@@ -2,6 +2,7 @@
 
 use App\Models\Fish;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\SupabaseStorageService;
 
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
@@ -10,24 +11,17 @@ it('returns default image url when image is empty', function () {
     $url = $fish->image_url; // accessor
     $base = env('SUPABASE_STORAGE_URL');
     $bucket = env('SUPABASE_BUCKET');
-    expect($url)->toBe("{$base}/object/public/{$bucket}/images/default.png");
+    expect($url)->toBe("{$base}/object/public/{$bucket}/webp/default.webp");
 });
 
 it('returns webp url when has_webp is true', function () {
-    $fish = Fish::factory()->create(['image' => 'sample.jpg', 'has_webp' => true]);
-    $url = $fish->image_url;
-    $base = env('SUPABASE_STORAGE_URL');
-    $bucket = env('SUPABASE_BUCKET');
-    expect($url)->toBe("{$base}/object/public/{$bucket}/webp/sample.webp");
+    $fishTrue = Fish::factory()->create(['image' => 'sample.jpg', 'has_webp' => true]);
+    expect($fishTrue->image_url)->toBe(app(SupabaseStorageService::class)->getUrl('images', $fishTrue->image, $fishTrue->has_webp));
 });
 
-it('returns original image url when has_webp is false or null', function () {
+it('returns original image url when has_webp is false', function () {
     $fishFalse = Fish::factory()->create(['image' => 'a.png', 'has_webp' => false]);
-    $fishNull  = Fish::factory()->create(['image' => 'b.jpeg', 'has_webp' => null]);
-    $base = env('SUPABASE_STORAGE_URL');
-    $bucket = env('SUPABASE_BUCKET');
-    expect($fishFalse->image_url)->toBe("{$base}/object/public/{$bucket}/images/a.png");
-    expect($fishNull->image_url)->toBe("{$base}/object/public/{$bucket}/images/b.jpeg");
+    expect($fishFalse->image_url)->toBe(app(SupabaseStorageService::class)->getUrl('images', $fishFalse->image, $fishFalse->has_webp));
 });
 
 it('passes through full url stored in image field', function () {

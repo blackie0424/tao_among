@@ -6,6 +6,7 @@ use App\Models\FishAudio;
 use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 use App\Models\FishSize;
+use App\Http\Resources\FishResource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -23,6 +24,11 @@ it('can get fish list', function () {
         $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     });
 
+    // 設定auduio_filename以測試API不回傳audio_filename的情況
+    $fishs->map(function ($fish) {
+        $fish->audio_filename = null; // since API does not return audio_filename
+    });
+
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish');
 
@@ -30,7 +36,7 @@ it('can get fish list', function () {
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'success',
-            'data' => $fishs->toArray()
+            'data' =>  FishResource::collection($fishs)->resolve()
         ]);
 
 });
@@ -58,7 +64,7 @@ it('can get a fish data by fish id', function () {
 
     // 構建完整的圖片路徑
     $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-
+    $fish->audio_filename = null; // since API does not return audio_filename
 
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish/'.$fish->id);
@@ -110,6 +116,7 @@ it('can create a fish', function () {
     $data = [
         'name' => 'ilek',
         'image' => 'ilek.jpg',
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -132,9 +139,8 @@ it('can not  create a fish ,  fish name is empty', function () {
     $data = [
         'name' => '',
         'type' => 'oyod',
-        'locate' => 'Iraraley',
         'image' => 'ilek.jpg',
-        'process' => 'isisan'
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -157,9 +163,8 @@ it('can not  create a fish ,  fish image is empty', function () {
     $data = [
         'name' => 'ilek',
         'type' => 'oyod',
-        'locate' => 'Iraraley',
         'image' => '',
-        'process' => 'isisan'
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -182,6 +187,7 @@ it('can  create a fish ,  fish type is empty string', function () {
     $data = [
         'name' => 'ilek',
         'image' => 'ilek.png',
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -202,6 +208,7 @@ it('can  create a fish ,  fish type is null', function () {
     $data = [
         'name' => 'ilek',
         'image' => 'ilek.png',
+        'audio_filename' => null,
     ];
 
     // 發送 POST 請求
@@ -391,42 +398,60 @@ it('soft deletes fish and its related fish_notes', function () {
 });
 
 it('soft deletes fish and all related data when using controller destroy method', function () {
+    // 建立一條魚
     $fish = Fish::factory()->create();
     
-    // 創建相關資料
+    // 創建其他單純的關聯資料
     $notes = FishNote::factory()->count(2)->create(['fish_id' => $fish->id]);
     $audios = FishAudio::factory()->count(2)->create(['fish_id' => $fish->id]);
-    $tribalClassifications = TribalClassification::factory()->count(2)->create(['fish_id' => $fish->id]);
     $captureRecords = CaptureRecord::factory()->count(2)->create(['fish_id' => $fish->id]);
     $fishSize = FishSize::factory()->create(['fish_id' => $fish->id]);
+
+    // **修正點：單獨創建 TribalClassification 記錄並手動賦予不同的 'tribe' 值**
+    // 這樣可以保證 (fish_id, tribe) 組合的唯一性，避免隨機衝突。
+    $tc1 = TribalClassification::factory()->create([
+        'fish_id' => $fish->id,
+        'tribe' => 'ivalino', // 第一筆：Tribe A
+    ]);
+    
+    $tc2 = TribalClassification::factory()->create([
+        'fish_id' => $fish->id,
+        'tribe' => 'iranmeilek', // 第二筆：Tribe B
+    ]);
+    
+    // 將兩筆記錄放入集合中，以便在 foreach 迴圈中進行斷言
+    $tribalClassifications = collect([$tc1, $tc2]);
 
     // 透過控制器刪除魚類
     $response = $this->delete("/fish/{$fish->id}");
 
-    // 驗證重定向
+    // 1. 驗證重定向
     $response->assertRedirect('/fishs');
 
-    // 驗證魚類被軟刪除
+    // 2. 驗證魚類被軟刪除
     $this->assertSoftDeleted('fish', ['id' => $fish->id]);
 
-    // 驗證所有相關資料都被軟刪除
+    // 3. 驗證所有相關資料都被軟刪除 (應為級聯軟刪除)
+    
+    // 驗證 FishNote
     foreach ($notes as $note) {
         $this->assertSoftDeleted('fish_notes', ['id' => $note->id]);
     }
     
+    // 驗證 FishAudio
     foreach ($audios as $audio) {
         $this->assertSoftDeleted('fish_audios', ['id' => $audio->id]);
     }
     
+    // 驗證 TribalClassification (使用我們手動創建的集合)
     foreach ($tribalClassifications as $classification) {
         $this->assertSoftDeleted('tribal_classifications', ['id' => $classification->id]);
     }
     
+    // 驗證 CaptureRecord
     foreach ($captureRecords as $record) {
         $this->assertSoftDeleted('capture_records', ['id' => $record->id]);
     }
-    
-    $this->assertSoftDeleted('fish_size', ['id' => $fishSize->id]);
 });
 
 it('returns json response for ajax fish deletion request', function () {

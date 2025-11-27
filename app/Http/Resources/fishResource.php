@@ -38,11 +38,11 @@ class FishResource extends JsonResource
             'name' => $this->name,
             'image_url' => $this->image_url,
             'audio_url' => $this->audio_url,
-            'oyod' => implode(' ', $groupedClassifications->get('oyod', [])),
-            'rahet' => implode(' ', $groupedClassifications->get('rahet', [])),
-            'notEdible' => implode(' ', $groupedClassifications->get('notEdible', [])),
-            'uncertain' => implode(' ', $groupedClassifications->get('uncertain', [])),
-            'unclassified' => implode(' ', $groupedClassifications->get('unclassified', [])),
+            'oyod' => implode(',', $groupedClassifications->get('oyod', [])),
+            'rahet' => implode(',', $groupedClassifications->get('rahet', [])),
+            'notEdible' => implode(',', $groupedClassifications->get('notEdible', [])),
+            'uncertain' => implode(',', $groupedClassifications->get('uncertain', [])),
+            'unclassified' => implode(',', $groupedClassifications->get('unclassified', [])),
         ];
     }
 }
