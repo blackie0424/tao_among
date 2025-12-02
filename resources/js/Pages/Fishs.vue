@@ -168,10 +168,12 @@
 
     <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
     <HomeBottomNavBar />
+    <SpeedInsights />
   </div>
 </template>
 
 <script setup>
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Head, router, Link } from '@inertiajs/vue3'
 import { ref, onMounted, watch, computed } from 'vue'
 
