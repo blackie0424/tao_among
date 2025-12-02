@@ -147,7 +147,7 @@
           >
             <div class="relative mb-3">
               <img
-                lazy="true"
+                loading="lazy"
                 :src="item.image_url"
                 :alt="item.name"
                 class="w-full h-40 object-cover rounded-lg"
