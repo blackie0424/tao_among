@@ -1,5 +1,6 @@
 import { createApp, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
+import { injectSpeedInsights } from '@vercel/speed-insights'
 import './bootstrap'
 
 const pages = import.meta.glob('./Pages/**/*.vue')
@@ -12,5 +13,8 @@ createInertiaApp({
     createApp({ render: () => h(App, props) })
       .use(plugin)
       .mount(el)
+
+    // Inject Vercel Speed Insights (client-side only)
+    injectSpeedInsights()
   },
 })
