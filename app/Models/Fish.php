@@ -107,7 +107,8 @@ class Fish extends Model
                 $hasWebp = isset($attributes['has_webp']) ? (bool)$attributes['has_webp'] : false;
 
                 // 呼叫 Service 轉換
-                return app(SupabaseStorageService::class)->getUrl('images', $filename, $hasWebp);
+                // return app(SupabaseStorageService::class)->getUrl('images', $filename, $hasWebp);
+                return  "https://pcsas9wqlior1blm.public.blob.vercel-storage.com/images/{$filename}";
             }
         );
     }
