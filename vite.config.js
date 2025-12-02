@@ -16,6 +16,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'resources/js'),
     },
   },
+  optimizeDeps: {
+    exclude: ['@vercel/speed-insights/next', '@vercel/speed-insights/react', '@vercel/speed-insights/remix'],
+  },
+  build: {
+    rollupOptions: {
+      external: [/^@vercel\/speed-insights\/(next|react|remix)$/],
+    },
+  },
   test: {
     environment: 'jsdom', // 這行很重要，讓測試有瀏覽器文件環境
     coverage: {
