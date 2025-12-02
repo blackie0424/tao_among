@@ -7,20 +7,19 @@
         class="flex flex-wrap items-center gap-x-2 gap-y-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 shadow-sm text-xl"
       >
         <div class="inline-flex items-center gap-2 shrink-0">
-        <span class="text-amber-700 dark:text-amber-300">資料筆數</span>
-        <span class="text-amber-900 dark:text-amber-200 font-semibold">{{
-          legacyTotal
-        }}</span>
-        <template v-if="totalCount !== legacyTotal">
-          <span class="mx-1 text-amber-300 dark:text-amber-700">|</span>
-          <span class="text-amber-700 dark:text-amber-300">符合條件</span>
-          <span class="text-amber-900 dark:text-amber-200 font-medium">{{
-            totalCount
-          }}</span>
-        </template>
+          <span class="text-amber-700 dark:text-amber-300">資料筆數</span>
+          <span class="text-amber-900 dark:text-amber-200 font-semibold">{{ legacyTotal }}</span>
+          <template v-if="totalCount !== legacyTotal">
+            <span class="mx-1 text-amber-300 dark:text-amber-700">|</span>
+            <span class="text-amber-700 dark:text-amber-300">符合條件</span>
+            <span class="text-amber-900 dark:text-amber-200 font-medium">{{ totalCount }}</span>
+          </template>
         </div>
-  <!-- 已套用的搜尋條件 chips（與資料筆數同列，空間不足時自動換行） -->
-  <div v-if="appliedFilters.length" class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1 ml-2">
+        <!-- 已套用的搜尋條件 chips（與資料筆數同列，空間不足時自動換行） -->
+        <div
+          v-if="appliedFilters.length"
+          class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1 ml-2"
+        >
           <span
             v-for="f in appliedFilters"
             :key="f.key + ':' + f.value"
@@ -51,7 +50,9 @@
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           @click.self="closeSearchDialog"
         >
-          <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-lg p-6 relative text-xl">
+          <div
+            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-lg p-6 relative text-xl"
+          >
             <button
               class="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
               @click="closeSearchDialog"
@@ -146,6 +147,7 @@
           >
             <div class="relative mb-3">
               <img
+                lazy="true"
                 :src="item.image_url"
                 :alt="item.name"
                 class="w-full h-40 object-cover rounded-lg"
