@@ -14,8 +14,7 @@
     "inertiajs/inertia-laravel": "^2.0",
     "laravel/framework": "^11.31",
     "laravel/sanctum": "^4.0",
-    "laravel/vapor-cli": "*",
-    "laravel/vapor-core": "^2.41",
+    "laravel/tinker": "*",
     "zircote/swagger-php": "^5.1"
   },
   "require-dev": {
