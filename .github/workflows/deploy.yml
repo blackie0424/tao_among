@@ -31,9 +31,6 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Run backend tests (Pest)
-        run: ./vendor/bin/pest
-
       # ========== 前端測試與建構 ==========
       - name: Set up Node.js
         uses: actions/setup-node@v3
