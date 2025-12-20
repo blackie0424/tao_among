@@ -1,40 +1,77 @@
-name: Deploy Laravel Application
+name: Deploy to AWS Elastic Beanstalk
 
 on:
   push:
     branches:
-      - main # 只有當代碼推送到 main 分支時觸發工作流
+      - main
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest # 在 Ubuntu 環境中運行
+  test-and-deploy:
+    runs-on: ubuntu-latest
 
     steps:
+      # ========== 程式碼檢出 ==========
       - name: Checkout code
-        uses: actions/checkout@v2 # 檢出代碼
+        uses: actions/checkout@v3
 
+      # ========== 後端測試（使用 SQLite）==========
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2' # 設定 PHP 版本
+          php-version: "8.3"
+          extensions: mbstring, xml, pgsql, sqlite3, pdo_sqlite
+          coverage: none
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist # 安裝 Composer 依賴
+        run: composer install --no-interaction --prefer-dist
 
-      - name: Set up environment variables for Neon DB
+      - name: Copy .env for testing
+        run: cp .env.testing .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Run backend tests (Pest)
+        run: ./vendor/bin/pest
+
+      # ========== 前端測試與建構 ==========
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Run frontend tests (Vitest)
+        run: npx vitest --run
+
+      - name: Build frontend assets
+        run: npm run build
+
+      # ========== 打包部署套件 ==========
+      - name: Generate deployment package
         run: |
-          echo "DB_CONNECTION=pgsql" >> .env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
-          echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
-          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          zip -r deploy.zip . \
+            -x '*.git*' \
+            -x 'node_modules/*' \
+            -x 'tests/*' \
+            -x '.env*' \
+            -x 'phpunit.xml' \
+            -x 'storage/framework/cache/*' \
+            -x 'storage/framework/sessions/*' \
+            -x 'storage/framework/views/*'
 
-      - name: Run database migrations
-        run: php artisan migrate --force # 強制執行資料庫遷移
+      # ========== 部署至 AWS EBS ==========
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: tao-among
+          environment_name: tao-among-prod
+          version_label: ${{ github.sha }}
+          region: ap-northeast-1
+          deployment_package: deploy.zip
+          wait_for_deployment: true
