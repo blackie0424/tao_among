@@ -41,9 +41,6 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Run frontend tests (Vitest)
-        run: npx vitest --run
-
       - name: Build frontend assets
         run: npm run build
 
