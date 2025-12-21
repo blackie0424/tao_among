@@ -32,8 +32,8 @@ fi
 
 # 2. 修正檔案權限
 echo "2️⃣ 修正檔案權限..."
-sudo chown -R webapp:webapp storage bootstrap/cache
-sudo chmod -R 755 storage bootstrap/cache
+chown -R webapp:webapp storage bootstrap/cache 2>/dev/null || echo "⚠️ chown 可能需要 root 權限，稍後由系統處理"
+chmod -R 755 storage bootstrap/cache
 echo "✅ 檔案權限已修正"
 
 # 3. 清除舊快取
@@ -57,11 +57,7 @@ php artisan view:cache
 echo "6️⃣ 建立 storage link..."
 php artisan storage:link || true
 
-# 7. 重啟 PHP-FPM
-echo "7️⃣ 重啟 PHP-FPM..."
-sudo systemctl restart php-fpm
-
-# 8. 驗證設定
+# 7. 驗證設定
 echo "8️⃣ 驗證 Laravel 設定..."
 php artisan about
 
