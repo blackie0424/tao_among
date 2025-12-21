@@ -11,12 +11,6 @@ if [ ! -f /usr/bin/node ]; then
     echo "✅ Node.js 已安裝"
 fi
 
-# 安裝 Composer 相依套件
-cd /var/app/staging
-echo "安裝 Composer 相依套件..."
-composer install --no-dev --optimize-autoloader --no-interaction
-echo "✅ Composer 相依套件已安裝"
-
 # 安裝 npm 相依套件
 echo "安裝 npm 相依套件..."
 npm ci --production=false
