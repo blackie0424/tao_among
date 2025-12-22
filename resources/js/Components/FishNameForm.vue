@@ -66,11 +66,10 @@ async function submitForm() {
     {
       headers: { Accept: 'application/json' },
       // 成功時（後端可回傳 props.data.id 或直接 redirect）
-      onSuccess: (fish) => {
+      onSuccess: (page) => {
         submitSuccess.value = true
         fishName.value = ''
-        // 若後端回傳 id 在 props，主動導向；否則後端若 redirect，Inertia 已處理導向
-        const fishId = fish.props.fish.id
+        const fishId = page.props.fish.id
         // 通知上層（仍 emit），讓上層元件也能反應
         emit('submitted', fishId ?? null)
       },
