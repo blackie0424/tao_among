@@ -34,12 +34,20 @@ fi
 echo "Node.js version: $(node --version)"
 echo "npm version: $(npm --version)"
 
-# 安裝依賴
-echo "Installing npm dependencies..."
-npm ci --production
+# === 重點修改：安裝所有依賴（包含 devDependencies） ===
+echo "Installing npm dependencies (including devDependencies for build)..."
+npm ci
+
+echo "✓ Dependencies installed"
+
+# 顯示已安裝的套件數量
+PACKAGE_COUNT=$(npm list --depth=0 2>/dev/null | grep -c "├──\|└──" || echo "unknown")
+echo "Installed packages: $PACKAGE_COUNT"
 
 # 編譯資源
-echo "Building assets..."
+echo ""
+echo "Building assets with Vite..."
+
 if grep -q "\"build\"" package.json; then
     npm run build
     echo "✓ Assets built successfully"
@@ -47,13 +55,25 @@ elif grep -q "\"production\"" package.json; then
     npm run production
     echo "✓ Assets built successfully"
 else
-    echo "No build script found in package.json, skipping build"
+    echo "WARNING: No build script found in package.json"
+    echo "Available scripts:"
+    npm run 2>&1 | grep -E "^\s+" || echo "None"
+    exit 1
 fi
 
-# 清理 node_modules（可選，節省空間）
-# echo "Cleaning up node_modules..."
-# rm -rf node_modules
+# === 清理 node_modules 節省空間（可選） ===
+echo ""
+echo "Cleaning up development dependencies..."
 
+# 重新安裝，但這次只安裝 production 依賴
+npm prune --production
+
+echo "✓ Development dependencies removed"
+echo "Remaining packages:"
+PROD_PACKAGE_COUNT=$(npm list --depth=0 --production 2>/dev/null | grep -c "├──\|└──" || echo "unknown")
+echo "  - Production: $PROD_PACKAGE_COUNT"
+
+echo ""
 echo "========================================="
 echo "=== Frontend build completed ==="
 echo "========================================="
