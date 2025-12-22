@@ -120,10 +120,12 @@ class Fish extends Model
     {
         return Attribute::make(
             get: function ($value, $attributes) {
-                // 如果是 null, 直接回傳 null。否則，呼叫 Service 轉換。
-                return $attributes['audio_filename'] === null
-                    ? null
-                    : app(SupabaseStorageService::class)->getUrl('audios', $attributes['audio_filename'], null);
+                // 檢查 audio_filename 是否存在且不為 null
+                if (!isset($attributes['audio_filename']) || $attributes['audio_filename'] === null) {
+                    return null;
+                }
+                
+                return app(SupabaseStorageService::class)->getUrl('audios', $attributes['audio_filename'], null);
             }
         );
     }
