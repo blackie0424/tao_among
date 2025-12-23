@@ -140,24 +140,8 @@
       </transition>
 
       <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <li v-for="item in items" :key="item.id" class="bg-white rounded-xl shadow-md">
-          <Link
-            :href="`/fish/${item.id}`"
-            class="block h-full p-4 group focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl"
-          >
-            <div class="relative mb-3">
-              <img
-                loading="lazy"
-                :src="item.image_url"
-                :alt="item.name"
-                class="w-full h-40 object-cover rounded-lg"
-              />
-            </div>
-            <span
-              class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600"
-              >{{ item.name }}</span
-            >
-          </Link>
+        <li v-for="item in items" :key="item.id">
+          <FishCard :fish="item" />
         </li>
       </ul>
 
@@ -180,6 +164,7 @@ import SearchToggleButton from '@/Components/SearchToggleButton.vue'
 // FilterModal 已由統一搜尋表單取代（若需恢復可再引用）
 import FishSearchLoading from '@/Components/Global/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/Fish/FishSearchCursorErrorBanner.vue'
+import FishCard from '@/Components/FishCard.vue'
 
 const props = defineProps({
   // legacy 完整集合（相容舊測試）
