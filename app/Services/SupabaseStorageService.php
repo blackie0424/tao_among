@@ -61,6 +61,30 @@ class SupabaseStorageService
         return "{$this->storageUrl}/object/public/{$this->bucket}/{$filePath}";
     }
 
+    /**
+     * Get the configured image folder path
+     */
+    public function getImageFolder(): string
+    {
+        return $this->imageFolder;
+    }
+
+    /**
+     * Get the configured audio folder path
+     */
+    public function getAudioFolder(): string
+    {
+        return $this->audioFolder;
+    }
+
+    /**
+     * Get the configured webp folder path
+     */
+    public function getWebpFolder(): string
+    {
+        return $this->webpFolder;
+    }
+
     public function getUrl(string $type, string $filename, ?bool $hasWebp = null): string
     {
         // 若 filename 已是完整 URL（歷史資料），直接原樣回傳

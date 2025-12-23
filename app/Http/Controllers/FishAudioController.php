@@ -103,7 +103,8 @@ class FishAudioController extends BaseController
                     if ($oldAudioPath && $oldAudioPath !== $validated['audio_filename']) {
                         $this->executeFileOperation(function () use ($oldAudioPath) {
                             $supabaseStorage = new SupabaseStorageService();
-                            $result = $supabaseStorage->deleteWithValidation('audio/' . $oldAudioPath);
+                            $audioFolder = $supabaseStorage->getAudioFolder();
+                            $result = $supabaseStorage->deleteWithValidation($audioFolder . '/' . $oldAudioPath);
                             
                             if (!$result['success']) {
                                 \Log::warning('Failed to delete old audio file', [
@@ -161,7 +162,8 @@ class FishAudioController extends BaseController
                 if ($audioFilePath) {
                     $this->executeFileOperation(function () use ($audioFilePath) {
                         $supabaseStorage = new SupabaseStorageService();
-                        $result = $supabaseStorage->deleteWithValidation('audio/' . $audioFilePath);
+                        $audioFolder = $supabaseStorage->getAudioFolder();
+                        $result = $supabaseStorage->deleteWithValidation($audioFolder . '/' . $audioFilePath);
                         
                         if (!$result['success']) {
                             \Log::warning('Failed to delete audio file during record deletion', [

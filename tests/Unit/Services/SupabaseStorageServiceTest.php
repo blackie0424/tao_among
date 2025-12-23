@@ -255,6 +255,45 @@ describe('路徑格式驗證', function () {
     });
 });
 
+describe('Getter 方法測試', function () {
+    
+    it('getImageFolder 回傳正確的資料夾名稱', function () {
+        putenv('SUPABASE_IMAGE_FOLDER=custom-images');
+        
+        $service = new SupabaseStorageService();
+        
+        expect($service->getImageFolder())->toBe('custom-images');
+    });
+    
+    it('getAudioFolder 回傳正確的資料夾名稱', function () {
+        putenv('SUPABASE_AUDIO_FOLDER=custom-audio');
+        
+        $service = new SupabaseStorageService();
+        
+        expect($service->getAudioFolder())->toBe('custom-audio');
+    });
+    
+    it('getWebpFolder 回傳正確的資料夾名稱', function () {
+        putenv('SUPABASE_WEBP_FOLDER=custom-webp');
+        
+        $service = new SupabaseStorageService();
+        
+        expect($service->getWebpFolder())->toBe('custom-webp');
+    });
+    
+    it('Getter 方法在未設定環境變數時回傳預設值', function () {
+        putenv('SUPABASE_IMAGE_FOLDER');
+        putenv('SUPABASE_AUDIO_FOLDER');
+        putenv('SUPABASE_WEBP_FOLDER');
+        
+        $service = new SupabaseStorageService();
+        
+        expect($service->getImageFolder())->toBe('images');
+        expect($service->getAudioFolder())->toBe('audio');
+        expect($service->getWebpFolder())->toBe('webp');
+    });
+});
+
 afterEach(function () {
     // 清理環境變數
     putenv('SUPABASE_IMAGE_FOLDER');
