@@ -153,10 +153,35 @@
                 class="w-full h-40 object-cover rounded-lg"
               />
             </div>
-            <span
-              class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600"
-              >{{ item.name }}</span
-            >
+            <div>
+              <span
+                class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 block mb-2"
+                >{{ item.name }}</span
+              >
+              <!-- 部落分類資訊：固定顯示 iraraley 和 imowrod -->
+              <div class="space-y-1">
+                <!-- iraraley -->
+                <div class="text-base">
+                  <span class="font-semibold text-purple-700 dark:text-purple-400">iraraley</span>
+                  <template v-if="getTribeData(item, 'iraraley')">
+                    <span class="mx-1 text-gray-400 dark:text-gray-500">·</span>
+                    <span class="font-medium text-emerald-700 dark:text-emerald-400">{{
+                      getTribeData(item, 'iraraley')
+                    }}</span>
+                  </template>
+                </div>
+                <!-- imowrod -->
+                <div class="text-base">
+                  <span class="font-semibold text-purple-700 dark:text-purple-400">imowrod</span>
+                  <template v-if="getTribeData(item, 'imowrod')">
+                    <span class="mx-1 text-gray-400 dark:text-gray-500">·</span>
+                    <span class="font-medium text-emerald-700 dark:text-emerald-400">{{
+                      getTribeData(item, 'imowrod')
+                    }}</span>
+                  </template>
+                </div>
+              </div>
+            </div>
           </Link>
         </li>
       </ul>
@@ -255,6 +280,15 @@ const appliedFilters = computed(() => {
   if (nameQuery.value) chips.push({ key: 'name', label: '名稱', value: nameQuery.value })
   return chips
 })
+
+// 輔助函式：取得特定部落的 food_category
+const getTribeData = (item, tribeName) => {
+  if (!item.tribal_classifications || !Array.isArray(item.tribal_classifications)) {
+    return null
+  }
+  const tribeData = item.tribal_classifications.find((tc) => tc.tribe === tribeName)
+  return tribeData ? tribeData.food_category : null
+}
 
 // 切換篩選面板顯示狀態
 const toggleFilterPanel = () => {
