@@ -189,7 +189,10 @@ class FishSearchService
         if (\Schema::hasColumn('fish', 'has_webp')) {
             $selects[] = 'has_webp';
         }
-        $query = Fish::query()->select($selects)->orderByDesc('id');
+        $query = Fish::query()
+            ->select($selects)
+            ->with('tribalClassifications:id,fish_id,tribe,food_category')
+            ->orderByDesc('id');
 
         // 模糊/等值條件（FR-003）
         if (!empty($filters['name'])) {
@@ -250,6 +253,10 @@ class FishSearchService
                 'id' => $f->id,
                 'name' => $f->name,
                 'image_url' => $f->image_url,
+                'tribal_classifications' => $f->tribalClassifications->map(fn ($tc) => [
+                    'tribe' => $tc->tribe,
+                    'food_category' => $tc->food_category,
+                ])->all(),
             ];
         })->all();
 
