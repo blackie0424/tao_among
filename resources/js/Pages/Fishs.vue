@@ -140,49 +140,8 @@
       </transition>
 
       <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <li v-for="item in items" :key="item.id" class="bg-white rounded-xl shadow-md">
-          <Link
-            :href="`/fish/${item.id}`"
-            class="block h-full p-4 group focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl"
-          >
-            <div class="relative mb-3">
-              <img
-                loading="lazy"
-                :src="item.image_url"
-                :alt="item.name"
-                class="w-full h-40 object-cover rounded-lg"
-              />
-            </div>
-            <div>
-              <span
-                class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 block mb-2"
-                >{{ item.name }}</span
-              >
-              <!-- 部落分類資訊：固定顯示 iraraley 和 imowrod -->
-              <div class="space-y-1">
-                <!-- iraraley -->
-                <div class="text-base">
-                  <span class="font-semibold text-purple-700 dark:text-purple-400">iraraley</span>
-                  <template v-if="getTribeData(item, 'iraraley')">
-                    <span class="mx-1 text-gray-400 dark:text-gray-500">·</span>
-                    <span class="font-medium text-emerald-700 dark:text-emerald-400">{{
-                      getTribeData(item, 'iraraley')
-                    }}</span>
-                  </template>
-                </div>
-                <!-- imowrod -->
-                <div class="text-base">
-                  <span class="font-semibold text-purple-700 dark:text-purple-400">imowrod</span>
-                  <template v-if="getTribeData(item, 'imowrod')">
-                    <span class="mx-1 text-gray-400 dark:text-gray-500">·</span>
-                    <span class="font-medium text-emerald-700 dark:text-emerald-400">{{
-                      getTribeData(item, 'imowrod')
-                    }}</span>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </Link>
+        <li v-for="item in items" :key="item.id">
+          <FishCard :fish="item" />
         </li>
       </ul>
 
@@ -205,6 +164,7 @@ import SearchToggleButton from '@/Components/SearchToggleButton.vue'
 // FilterModal 已由統一搜尋表單取代（若需恢復可再引用）
 import FishSearchLoading from '@/Components/Global/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/Fish/FishSearchCursorErrorBanner.vue'
+import FishCard from '@/Components/FishCard.vue'
 
 const props = defineProps({
   // legacy 完整集合（相容舊測試）
@@ -280,15 +240,6 @@ const appliedFilters = computed(() => {
   if (nameQuery.value) chips.push({ key: 'name', label: '名稱', value: nameQuery.value })
   return chips
 })
-
-// 輔助函式：取得特定部落的 food_category
-const getTribeData = (item, tribeName) => {
-  if (!item.tribal_classifications || !Array.isArray(item.tribal_classifications)) {
-    return null
-  }
-  const tribeData = item.tribal_classifications.find((tc) => tc.tribe === tribeName)
-  return tribeData ? tribeData.food_category : null
-}
 
 // 切換篩選面板顯示狀態
 const toggleFilterPanel = () => {
