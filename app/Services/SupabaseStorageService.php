@@ -11,12 +11,20 @@ class SupabaseStorageService
     protected string $storageUrl;
     protected string $apiKey;
     protected string $bucket;
+    protected string $imageFolder;
+    protected string $audioFolder;
+    protected string $webpFolder;
+
 
     public function __construct()
     {
         $this->storageUrl = env('SUPABASE_STORAGE_URL');
         $this->apiKey = env('SUPABASE_SERVICE_ROLE_KEY');
         $this->bucket = env('SUPABASE_BUCKET');
+        $this->imageFolder = env('SUPABASE_IMAGE_FOLDER', 'images');
+        $this->audioFolder = env('SUPABASE_AUDIO_FOLDER', 'audio');
+        $this->webpFolder = env('SUPABASE_WEBP_FOLDER', 'webp');
+
     }
 
     private function makeAbsoluteStorageUrl(?string $pathOrUrl): ?string
@@ -53,6 +61,30 @@ class SupabaseStorageService
         return "{$this->storageUrl}/object/public/{$this->bucket}/{$filePath}";
     }
 
+    /**
+     * Get the configured image folder path
+     */
+    public function getImageFolder(): string
+    {
+        return $this->imageFolder;
+    }
+
+    /**
+     * Get the configured audio folder path
+     */
+    public function getAudioFolder(): string
+    {
+        return $this->audioFolder;
+    }
+
+    /**
+     * Get the configured webp folder path
+     */
+    public function getWebpFolder(): string
+    {
+        return $this->webpFolder;
+    }
+
     public function getUrl(string $type, string $filename, ?bool $hasWebp = null): string
     {
         // 若 filename 已是完整 URL（歷史資料），直接原樣回傳
@@ -62,16 +94,16 @@ class SupabaseStorageService
 
         // 音訊：一律走 audio 目錄
         if ($type === 'audios' || $type === 'audio') {
-            return "{$this->storageUrl}/object/public/{$this->bucket}/audio/{$filename}";
+            return "{$this->storageUrl}/object/public/{$this->bucket}/{$this->audioFolder}/{$filename}";
         }
 
         // 圖片：依 hasWebp 決定 webp 或原圖，不進行任何 HEAD 探測
         if ($type === 'images') {
             $baseName = pathinfo($filename, PATHINFO_FILENAME);
             if ($hasWebp === true) {
-                return "{$this->storageUrl}/object/public/{$this->bucket}/webp/{$baseName}.webp";
+                return "{$this->storageUrl}/object/public/{$this->bucket}/{$this->webpFolder}/{$baseName}.webp";
             }
-            return "{$this->storageUrl}/object/public/{$this->bucket}/images/{$filename}";
+            return "{$this->storageUrl}/object/public/{$this->bucket}/{$this->imageFolder}/{$filename}";
         }
 
         throw new InvalidArgumentException('Invalid type: ' . $type);
