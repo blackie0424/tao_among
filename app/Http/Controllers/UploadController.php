@@ -314,14 +314,14 @@ class UploadController extends Controller
      */
     public function getSignedUploadUrl(SupabaseSignedUploadUrlRequest $request)
     {
-        $path = 'images'; // 寫死路徑
+        $service = new SupabaseStorageService();
+        $path = $service->getImageFolder();
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
 
         $uniqueName = Str::uuid()->toString() . ($ext ? '.' . $ext : '');
         $filePath = $path . '/' . $uniqueName;
 
-        $service = new SupabaseStorageService();
         $url = $service->createSignedUploadUrl($filePath);
 
         if (!$url) {
@@ -406,7 +406,7 @@ class UploadController extends Controller
             'filename.required' => '請提供音訊檔案名稱。',
         ]);
 
-        $path = 'audio';
+        $path = $this->storageService->getAudioFolder();
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
 

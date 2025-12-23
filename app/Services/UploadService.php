@@ -17,8 +17,8 @@ class UploadService
             return basename($request->file('image')->store('images', 'public'));
         } else {
             $file = $request->file('image');
-            $path = 'images';
             $storageService = new SupabaseStorageService;
+            $path = $storageService->getImageFolder();
 
             $filePath = $storageService->uploadFile($file, $path);
 
@@ -32,8 +32,8 @@ class UploadService
             return basename($request->file('audio')->store('audio', 'public'));
         } else {
             $file = $request->file('audio');
-            $path = 'audio';
             $storageService = new SupabaseStorageService;
+            $path = $storageService->getAudioFolder();
 
             $filePath = $storageService->uploadFile($file, $path);
 

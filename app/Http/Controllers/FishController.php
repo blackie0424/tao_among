@@ -20,6 +20,7 @@ use Illuminate\View\View;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Models\FishSize;
+use Illuminate\Support\Facades\Log;
 
 class FishController extends Controller
 {
@@ -53,10 +54,10 @@ class FishController extends Controller
         // 使用 Request 清洗參數（忽略空白、perPage 正規化、游標驗證）
         $filters = $request->cleaned();
 
-    // 游標式分頁 + 精簡欄位（提供給前端無限滾動使用）
+        // 游標式分頁 + 精簡欄位（提供給前端無限滾動使用）
         $paginated = $this->fishSearchService->paginate($filters);
 
-    // 保持相容：沿用舊的完整集合供現有 Inertia 頁面（測試）檢查 image 屬性（後續可移除）
+        // 保持相容：沿用舊的完整集合供現有 Inertia 頁面（測試）檢查 image 屬性（後續可移除）
         $legacyFilters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
         $fishs = $this->fishSearchService->search($legacyFilters);
 
@@ -331,7 +332,7 @@ class FishController extends Controller
                     $this->supabaseStorage->delete($record->image_path);
                 } catch (\Exception $e) {
                     // 記錄錯誤但不阻止更新操作
-                    \Log::error('Failed to delete old capture record image: ' . $e->getMessage());
+                    Log::error('Failed to delete old capture record image: ' . $e->getMessage());
                 }
             }
             
@@ -346,7 +347,7 @@ class FishController extends Controller
 
     public function destroyCaptureRecord($fishId, $recordId)
     {
-        \Log::info("Delete request received for fish: {$fishId}, record: {$recordId}");
+        Log::info("Delete request received for fish: {$fishId}, record: {$recordId}");
         
         $record = CaptureRecord::where('fish_id', $fishId)
             ->where('id', $recordId)
@@ -355,7 +356,7 @@ class FishController extends Controller
         // 執行軟刪除
         $record->delete();
         
-        \Log::info("Record deleted successfully, redirecting to capture records");
+        Log::info("Record deleted successfully, redirecting to capture records");
 
         return redirect()->route('fish.capture-records', $fishId)->with('success', '捕獲紀錄刪除成功');
     }
@@ -416,7 +417,7 @@ class FishController extends Controller
             
             return redirect('/fishs')->with('success', '魚類刪除成功');
         } catch (\Exception $e) {
-            \Log::error('魚類刪除錯誤: ' . $e->getMessage(), [
+            Log::error('魚類刪除錯誤: ' . $e->getMessage(), [
                 'fish_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
