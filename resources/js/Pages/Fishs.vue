@@ -43,101 +43,15 @@
     </div>
 
     <main ref="scrollHost">
-      <!-- 統一搜尋對話框：包含所有下拉 + 可選填文字欄位 -->
-      <transition name="fade">
-        <div
-          v-if="showSearchDialog"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          @click.self="closeSearchDialog"
-        >
-          <div
-            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-lg p-6 relative text-xl"
-          >
-            <button
-              class="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              @click="closeSearchDialog"
-              aria-label="關閉搜尋"
-            >
-              ✕
-            </button>
-            <h2 class="font-semibold mb-4 text-gray-800 dark:text-gray-100">條件搜尋</h2>
-            <form @submit.prevent="submitUnifiedSearch" class="space-y-5">
-              <!-- 下拉：族群 -->
-              <div>
-                <label class="block mb-1 text-gray-600 dark:text-gray-300">部落</label>
-                <select
-                  v-model="currentFilters.tribe"
-                  class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
-                >
-                  <option value="">請選擇部落</option>
-                  <option v-for="t in searchOptions.tribes" :key="t" :value="t">{{ t }}</option>
-                </select>
-              </div>
-              <!-- 下拉：食物分類 -->
-              <div>
-                <label class="block mb-1 text-gray-600 dark:text-gray-300">分類</label>
-                <select
-                  v-model="currentFilters.food_category"
-                  class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
-                >
-                  <option value="">請選擇分類</option>
-                  <option v-for="fc in searchOptions.dietaryClassifications" :key="fc" :value="fc">
-                    {{ fc }}
-                  </option>
-                </select>
-              </div>
-              <!-- 下拉：魚鱗的處理方式 -->
-              <div>
-                <label class="block mb-1 text-gray-600 dark:text-gray-300">魚鱗的處理</label>
-                <select
-                  v-model="currentFilters.processing_method"
-                  class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
-                >
-                  <option value="">請選擇魚鱗的處理方式</option>
-                  <option v-for="pm in searchOptions.processingMethods" :key="pm" :value="pm">
-                    {{ pm }}
-                  </option>
-                </select>
-              </div>
-              <!-- 文字：捕獲地點 -->
-              <div>
-                <label class="block mb-1 text-gray-600 dark:text-gray-300">捕獲地點</label>
-                <input
-                  v-model="currentFilters.capture_location"
-                  type="text"
-                  placeholder="可留空"
-                  class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                />
-              </div>
-              <!-- 文字：名稱關鍵字 -->
-              <div>
-                <label class="block mb-1 text-gray-600 dark:text-gray-300">名稱</label>
-                <input
-                  v-model="nameQuery"
-                  type="text"
-                  placeholder="可留空"
-                  class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                />
-              </div>
-              <div class="flex justify-between items-center pt-2">
-                <button
-                  type="button"
-                  @click="resetUnifiedSearch"
-                  class="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-                >
-                  清除
-                </button>
-                <button
-                  type="submit"
-                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  搜尋
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </transition>
+      <!-- 統一搜尋對話框元件 -->
+      <FishSearchModal
+        v-model:show="showSearchDialog"
+        v-model:filters="currentFilters"
+        v-model:nameQuery="nameQuery"
+        :searchOptions="searchOptions"
+        @submit="submitUnifiedSearch"
+        @reset="resetUnifiedSearch"
+      />
 
       <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <li v-for="item in items" :key="item.id">
@@ -156,12 +70,12 @@
 </template>
 
 <script setup>
-import { Head, router, Link } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import { ref, onMounted, watch, computed } from 'vue'
 
 import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue'
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
-// FilterModal 已由統一搜尋表單取代（若需恢復可再引用）
+import FishSearchModal from '@/Components/FishSearchModal.vue'
 import FishSearchLoading from '@/Components/Global/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/Fish/FishSearchCursorErrorBanner.vue'
 import FishCard from '@/Components/FishCard.vue'
@@ -256,7 +170,7 @@ const handleSearchToggle = (e) => {
   showSearchDialog.value = !showSearchDialog.value
 }
 
-// 搜尋對話框開關（改由右上角按鈕第二段互動 or 可分離 icon）
+// 搜尋對話框開關
 const openSearchDialog = () => {
   showSearchDialog.value = true
 }
@@ -265,7 +179,7 @@ const closeSearchDialog = () => {
 }
 const submitUnifiedSearch = () => {
   performSearch()
-  closeSearchDialog()
+  showSearchDialog.value = false
 }
 const clearUnifiedSearchForm = () => {
   currentFilters.value = {
@@ -280,9 +194,8 @@ const clearUnifiedSearchForm = () => {
 }
 // 清除並直接更新畫面回預設 /fishs（送出搜尋並關閉彈窗）
 const resetUnifiedSearch = () => {
-  clearUnifiedSearchForm()
   performSearch()
-  closeSearchDialog()
+  showSearchDialog.value = false
 }
 
 // 移除單一條件 chip 並立即重新搜尋
@@ -442,11 +355,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.fade-enter, .fade-leave-to /* .fade-leave-active in <2.1.8 */ {
-  opacity: 0;
-}
+/* 已移至 FishSearchModal.vue */
 </style>
