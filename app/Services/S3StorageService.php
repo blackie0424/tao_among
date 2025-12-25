@@ -20,6 +20,7 @@ class S3StorageService implements StorageServiceInterface
      */
     private function getFolderConfig(string $folderType): string
     {
+        // @phpstan-ignore-next-line - 動態 config key
         return config("storage.drivers.s3.folders.{$folderType}", $folderType);
     }
 
@@ -36,7 +37,9 @@ class S3StorageService implements StorageServiceInterface
         // 如果是 image 類型且有 webp，優先使用 webp
         if ($type === 'image' && $hasWebp) {
             $webpPath = $this->getWebpFolder() . '/' . pathinfo($filename, PATHINFO_FILENAME) . '.webp';
-            return Storage::disk('s3')->url($webpPath);
+            /** @var \Illuminate\Contracts\Filesystem\Cloud $disk */
+            $disk = Storage::disk('s3');
+            return $disk->url($webpPath);
         }
 
         $folder = match ($type) {
@@ -46,7 +49,9 @@ class S3StorageService implements StorageServiceInterface
             default => throw new \InvalidArgumentException("Invalid type: {$type}")
         };
 
-        return Storage::disk('s3')->url($folder . '/' . $filename);
+        /** @var \Illuminate\Contracts\Filesystem\Cloud $disk */
+        $disk = Storage::disk('s3');
+        return $disk->url($folder . '/' . $filename);
     }
 
     /**
@@ -60,7 +65,9 @@ class S3StorageService implements StorageServiceInterface
     {
         try {
             // S3 使用 presigned PUT URL
-            return Storage::disk('s3')->temporaryUrl(
+            /** @var \Illuminate\Contracts\Filesystem\Cloud $disk */
+            $disk = Storage::disk('s3');
+            return $disk->temporaryUrl(
                 $filePath,
                 now()->addSeconds($expiresIn)
             );

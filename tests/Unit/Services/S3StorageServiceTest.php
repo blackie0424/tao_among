@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * S3StorageService Unit Tests
+ * 
+ * @phpstan-ignore-file
+ */
+
 use App\Services\S3StorageService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -16,6 +22,7 @@ beforeEach(function () {
     ]);
 
     // 建立測試服務實例
+    /** @var \App\Services\S3StorageService service */
     $this->service = new S3StorageService();
 
     // 使用 fake S3 disk
