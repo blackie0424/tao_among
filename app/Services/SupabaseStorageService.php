@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\StorageServiceInterface;
 use Exception;
 use InvalidArgumentException;
 use Illuminate\Support\Facades\Http;
 
-class SupabaseStorageService
+class SupabaseStorageService implements StorageServiceInterface
 {
     protected string $storageUrl;
     protected string $apiKey;
