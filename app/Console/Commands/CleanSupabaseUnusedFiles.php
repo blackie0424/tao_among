@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\StorageServiceInterface;
 use Illuminate\Console\Command;
 
 class CleanSupabaseUnusedFiles extends Command
@@ -29,7 +30,7 @@ class CleanSupabaseUnusedFiles extends Command
 
         foreach ($unusedFishes as $fish) {
             if ($fish->image) {
-                app(\App\Services\SupabaseStorageService::class)->delete($fish->image);
+                app(StorageServiceInterface::class)->delete($fish->image);
             }
         }
 
