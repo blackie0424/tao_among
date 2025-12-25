@@ -96,7 +96,6 @@ const pageInfo = ref(props.pageInfo || { hasMore: false, nextCursor: null })
 const nameQuery = ref(currentFilters.value.name || '')
 const showCursorError = ref(false)
 const isLoading = ref(false)
-const showFilterPanel = ref(false) // 不再使用，但保留狀態以防回退需求
 const showSearchDialog = ref(false)
 // 顯示總筆數：優先以後端 searchStats.total_results，否則退回目前清單數
 const totalCount = computed(() => {
@@ -108,9 +107,6 @@ const totalCount = computed(() => {
 const legacyTotal = computed(() =>
   Array.isArray(props.fishs) ? props.fishs.length : totalCount.value
 )
-
-// 搜尋防抖動計時器
-let searchTimer = null
 
 // 顯示中的搜尋條件（chip 用）
 const appliedFilters = computed(() => {
@@ -128,11 +124,6 @@ const appliedFilters = computed(() => {
   return chips
 })
 
-// 切換篩選面板顯示狀態
-const toggleFilterPanel = () => {
-  showFilterPanel.value = !showFilterPanel.value
-}
-// 若預設是開篩選，改成：第一次點 → 開搜尋對話框；再次點（或 Shift+點）→ 開篩選
 // 直接使用 icon 切換統一搜尋表單顯示；Shift+點可清除後重新開啟
 const handleSearchToggle = (e) => {
   if (e && e.shiftKey) {
@@ -143,13 +134,6 @@ const handleSearchToggle = (e) => {
   showSearchDialog.value = !showSearchDialog.value
 }
 
-// 搜尋對話框開關
-const openSearchDialog = () => {
-  showSearchDialog.value = true
-}
-const closeSearchDialog = () => {
-  showSearchDialog.value = false
-}
 const submitUnifiedSearch = () => {
   performSearch()
   showSearchDialog.value = false
@@ -165,7 +149,6 @@ const clearUnifiedSearchForm = () => {
   }
   nameQuery.value = ''
 }
-// 清除並直接更新畫面回預設 /fishs（送出搜尋並關閉彈窗）
 const resetUnifiedSearch = () => {
   performSearch()
   showSearchDialog.value = false
@@ -181,9 +164,6 @@ const removeFilter = (key) => {
   }
   performSearch()
 }
-
-// 處理篩選條件變更
-// 統一表單不再使用即時防抖搜尋，改為按下「搜尋」才觸發
 
 // 重新啟動搜尋（第一頁）
 const performSearch = () => {
@@ -269,19 +249,6 @@ const initObserver = () => {
     })
   })
   observer.observe(sentinel.value)
-}
-
-// 清除所有篩選
-const clearAllFilters = () => {
-  currentFilters.value = {
-    name: '',
-    tribe: '',
-    food_category: '',
-    processing_method: '',
-    capture_location: '',
-    // capture_method 已暫時移除
-  }
-  nameQuery.value = ''
 }
 
 // 監聽 props 變化
