@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * AWS S3 Storage Service Implementation
- * 
+ *
  * 使用 Laravel Storage Facade 與 Flysystem S3 adapter
  * 實作 StorageServiceInterface 定義的所有方法
  */
@@ -28,10 +28,10 @@ class S3StorageService implements StorageServiceInterface
      *
      * @param string $type 檔案類型 ('image', 'audio', 'webp')
      * @param string $filename 檔案名稱
-     * @param bool $hasWebp 是否有 webp 版本（僅用於 image）
+     * @param bool|null $hasWebp 是否有 webp 版本（僅用於 image）
      * @return string 完整的檔案 URL
      */
-    public function getUrl(string $type, string $filename, bool $hasWebp = false): string
+    public function getUrl(string $type, string $filename, ?bool $hasWebp = null): string
     {
         // 如果是 image 類型且有 webp，優先使用 webp
         if ($type === 'image' && $hasWebp) {
@@ -81,7 +81,7 @@ class S3StorageService implements StorageServiceInterface
      * @param int $expiresIn 有效秒數
      * @return array|null ['url' => string, 'path' => string, 'filename' => string]
      */
-    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext, int $expiresIn = 3600): ?array
+    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'webm', int $expiresIn = 300): ?array
     {
         $filename = "audio_fish_{$fishId}_" . time() . ".{$ext}";
         $path = $this->getAudioFolder() . '/' . $filename;
@@ -219,11 +219,11 @@ class S3StorageService implements StorageServiceInterface
     /**
      * 上傳檔案（舊版直接上傳方法，建議使用簽章 URL）
      *
-     * @param UploadedFile $file 上傳的檔案
+     * @param mixed $file 上傳的檔案
      * @param string $path 目標路徑
      * @return string 儲存後的完整路徑
      */
-    public function uploadFile(UploadedFile $file, string $path): string
+    public function uploadFile($file, string $path): string
     {
         try {
             $storedPath = Storage::disk('s3')->putFileAs(

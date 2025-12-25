@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\Unit\Services;
-
 use App\Services\S3StorageService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Config;
+
+uses(Tests\TestCase::class);
 
 beforeEach(function () {
     // 設定測試用的 S3 設定
