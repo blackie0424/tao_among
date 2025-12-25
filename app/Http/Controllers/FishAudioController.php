@@ -3,20 +3,22 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use App\Services\FishService;
-use App\Services\SupabaseStorageService;
 use Inertia\Inertia;
 use Exception;
 
 class FishAudioController extends BaseController
 {
     protected $fishService;
+    protected $storageService;
 
-    public function __construct(FishService $fishService)
+    public function __construct(FishService $fishService, StorageServiceInterface $storageService)
     {
         $this->fishService = $fishService;
+        $this->storageService = $storageService;
     }
 
     /**
@@ -102,9 +104,8 @@ class FishAudioController extends BaseController
                     // Clean up old audio file if it exists and is different from the new one
                     if ($oldAudioPath && $oldAudioPath !== $validated['audio_filename']) {
                         $this->executeFileOperation(function () use ($oldAudioPath) {
-                            $supabaseStorage = new SupabaseStorageService();
-                            $audioFolder = $supabaseStorage->getAudioFolder();
-                            $result = $supabaseStorage->deleteWithValidation($audioFolder . '/' . $oldAudioPath);
+                            $audioFolder = $this->storageService->getAudioFolder();
+                            $result = $this->storageService->deleteWithValidation($audioFolder . '/' . $oldAudioPath);
                             
                             if (!$result['success']) {
                                 \Log::warning('Failed to delete old audio file', [
@@ -161,9 +162,8 @@ class FishAudioController extends BaseController
                 // Clean up the audio file from storage (non-blocking)
                 if ($audioFilePath) {
                     $this->executeFileOperation(function () use ($audioFilePath) {
-                        $supabaseStorage = new SupabaseStorageService();
-                        $audioFolder = $supabaseStorage->getAudioFolder();
-                        $result = $supabaseStorage->deleteWithValidation($audioFolder . '/' . $audioFilePath);
+                        $audioFolder = $this->storageService->getAudioFolder();
+                        $result = $this->storageService->deleteWithValidation($audioFolder . '/' . $audioFilePath);
                         
                         if (!$result['success']) {
                             \Log::warning('Failed to delete audio file during record deletion', [
