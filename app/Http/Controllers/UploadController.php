@@ -154,10 +154,9 @@ class UploadController extends Controller
      *     )
      * )
      */
-    public function uploadAudio(UploadAudioRequest $request)
+    public function uploadAudio(UploadAudioRequest $request, UploadService $uploadService)
     {
         try {
-            $uploadService = new UploadService;
             $audioName = $uploadService->uploadAudio($request);
 
             if ($audioName) {
@@ -235,11 +234,10 @@ class UploadController extends Controller
      *     )
      * )
      */
-    public function uploadImage(UploadImageRequest $request)
+    public function uploadImage(UploadImageRequest $request, UploadService $uploadService)
     {
         try {
 
-            $uploadService = new UploadService;
             $imageName = $uploadService->uploadImage($request);
 
             if ($imageName) {
