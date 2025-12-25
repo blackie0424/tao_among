@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Contracts\StorageServiceInterface;
 use App\Http\Requests\CreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
 use App\Models\Fish;
@@ -10,7 +11,6 @@ use App\Models\FishNote;
 use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 use App\Services\FishService;
-use App\Services\SupabaseStorageService;
 use App\Services\FishSearchService;
 use App\Http\Requests\FishSearchRequest;
 use App\Http\Requests\TribalClassificationRequest;
@@ -25,13 +25,13 @@ use Illuminate\Support\Facades\Log;
 class FishController extends Controller
 {
     protected $fishService;
-    protected $supabaseStorage;
+    protected $storageService;
     protected $fishSearchService;
 
-    public function __construct(FishService $fishService, SupabaseStorageService $supabaseStorage, FishSearchService $fishSearchService)
+    public function __construct(FishService $fishService, StorageServiceInterface $storageService, FishSearchService $fishSearchService)
     {
         $this->fishService = $fishService;
-        $this->supabaseStorage = $supabaseStorage;
+        $this->storageService = $storageService;
         $this->fishSearchService = $fishSearchService;
     }
 
@@ -329,7 +329,7 @@ class FishController extends Controller
             // 刪除舊圖片
             if ($record->image_path) {
                 try {
-                    $this->supabaseStorage->delete($record->image_path);
+                    $this->storageService->delete($record->image_path);
                 } catch (\Exception $e) {
                     // 記錄錯誤但不阻止更新操作
                     Log::error('Failed to delete old capture record image: ' . $e->getMessage());
