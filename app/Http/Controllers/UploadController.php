@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\SupabaseStorageService;
+use App\Contracts\StorageServiceInterface;
 use App\Services\UploadService;
 use App\Http\Requests\UploadImageRequest;
 use App\Http\Requests\UploadAudioRequest;
@@ -22,7 +22,7 @@ class UploadController extends Controller
     protected $storageService;
     protected $fishAudio;
 
-    public function __construct(SupabaseStorageService $storageService, FishAudio $fishAudio)
+    public function __construct(StorageServiceInterface $storageService, FishAudio $fishAudio)
     {
         $this->storageService = $storageService;
         $this->fishAudio = $fishAudio;
@@ -65,7 +65,7 @@ class UploadController extends Controller
 
         $ext = $validated['ext'] ?? 'webm';
 
-        $service = app(SupabaseStorageService::class);
+        $service = app(StorageServiceInterface::class);
         $fishId = (int)$validated['fish_id'];
         $signed = $service->createSignedUploadUrlForPendingAudio($fishId, $ext);
         Log::info('[audio.sign] generated', [
@@ -314,7 +314,7 @@ class UploadController extends Controller
      */
     public function getSignedUploadUrl(SupabaseSignedUploadUrlRequest $request)
     {
-        $service = new SupabaseStorageService();
+        $service = app(StorageServiceInterface::class);
         $path = $service->getImageFolder();
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
