@@ -335,7 +335,7 @@ it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', f
     ]);
 
     // 1. 使用 spy() 綁定服務，並將實例儲存在 $serviceSpy 中
-    $serviceSpy = $this->spy(\App\Services\SupabaseStorageService::class);
+    $serviceSpy = $this->spy(\App\Contracts\StorageServiceInterface::class);
 
     // 2. 告訴 $serviceSpy，當它收到 'createSignedUploadUrl' 呼叫時，要回傳什麼？
     $serviceSpy->shouldReceive('createSignedUploadUrl')
@@ -361,7 +361,7 @@ it('當聲音檔案上傳後，要將聲音檔案的資料寫入資料表發生�
     ]);
 
     // 1. 使用 spy() 綁定服務，並將實例儲存在 $serviceSpy 中
-    $serviceSpy = $this->spy(\App\Services\SupabaseStorageService::class);
+    $serviceSpy = $this->spy(\App\Contracts\StorageServiceInterface::class);
 
     // 2. 服務模擬：設定 spy (此處不影響測試，但保留以保持完整性)
     $serviceSpy->shouldReceive('createSignedUploadUrl')
