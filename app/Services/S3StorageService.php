@@ -6,6 +6,7 @@ use App\Contracts\StorageServiceInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Aws\S3\S3Client;
 
 /**
  * AWS S3 Storage Service Implementation
@@ -64,17 +65,47 @@ class S3StorageService implements StorageServiceInterface
     public function createSignedUploadUrl(string $filePath, int $expiresIn = 3600): ?string
     {
         try {
-            // S3 使用 presigned PUT URL
-            /** @var \Illuminate\Contracts\Filesystem\Cloud $disk */
-            $disk = Storage::disk('s3');
-            return $disk->temporaryUrl(
-                $filePath,
-                now()->addSeconds($expiresIn)
-            );
+            // 取得 S3 設定
+            $key = config('filesystems.disks.s3.key');
+            $secret = config('filesystems.disks.s3.secret');
+            $region = config('filesystems.disks.s3.region');
+            $bucket = config('filesystems.disks.s3.bucket');
+            
+            // 驗證必要設定
+            if (!$key || !$secret || !$region || !$bucket) {
+                Log::error('Missing S3 configuration', [
+                    'has_key' => !empty($key),
+                    'has_secret' => !empty($secret),
+                    'has_region' => !empty($region),
+                    'has_bucket' => !empty($bucket),
+                ]);
+                return null;
+            }
+            
+            // 建立 S3Client
+            $client = new S3Client([
+                'version' => 'latest',
+                'region' => $region,
+                'credentials' => [
+                    'key' => $key,
+                    'secret' => $secret,
+                ],
+            ]);
+            
+            // 建立 PutObject 命令的 presigned URL
+            $command = $client->getCommand('PutObject', [
+                'Bucket' => $bucket,
+                'Key' => $filePath,
+            ]);
+            
+            $request = $client->createPresignedRequest($command, "+{$expiresIn} seconds");
+            
+            return (string) $request->getUri();
         } catch (\Exception $e) {
             Log::error('Failed to create signed upload URL', [
                 'filePath' => $filePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             return null;
         }
