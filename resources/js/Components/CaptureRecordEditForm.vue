@@ -278,7 +278,7 @@ async function handleImageChange(event) {
     // 自動上傳圖片
     try {
       // 1. 取得簽名上傳 URL
-      const signedUrlResponse = await fetch('/prefix/api/supabase/signed-upload-url', {
+      const signedUrlResponse = await fetch('/prefix/api/storage/signed-upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name }),

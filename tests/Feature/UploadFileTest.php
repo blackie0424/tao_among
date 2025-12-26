@@ -253,7 +253,7 @@ it('audio 上傳失敗，副檔名為 mp3 但內容不是 audio', function () {
         ]);
 });
 
-it('取得 supabase audio 檔案簽名上傳網址', function () {
+it('取得 storage audio 檔案簽名上傳網址', function () {
     $fishId = 999;
 
     Fish::factory()->create([
@@ -269,7 +269,7 @@ it('取得 supabase audio 檔案簽名上傳網址', function () {
             ], 200),
         ]);
 
-    $response = $this->postJson("/prefix/api/fish/{$fishId}/supabase/signed-upload-audio-url", [
+    $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
         'filename' => 'test-audio.mp3'
     ]);
 
@@ -285,7 +285,7 @@ it('取得 supabase audio 檔案簽名上傳網址', function () {
     );
 });
 
-it('取得 supabase image 檔案簽名上傳網址', function () {
+it('取得 storage image 檔案簽名上傳網址', function () {
     Http::fake([
         // 修正 URL 模式，使用萬用字元
             '*/object/upload/sign/*' => Http::response([
@@ -295,7 +295,7 @@ it('取得 supabase image 檔案簽名上傳網址', function () {
             ], 200),
         ]);
     
-    $response = $this->postJson('/prefix/api/supabase/signed-upload-url', [
+    $response = $this->postJson('/prefix/api/storage/signed-upload-url', [
         'filename' => 'test-image.jpg',
     ]);
 
@@ -311,8 +311,8 @@ it('取得 supabase image 檔案簽名上傳網址', function () {
     );
 });
 
-it('取得 supabase image 檔案簽名上傳網址失敗，副檔名錯誤', function () {
-    $response = $this->postJson('/prefix/api/supabase/signed-upload-url', [
+it('取得 storage image 檔案簽名上傳網址失敗，副檔名錯誤', function () {
+    $response = $this->postJson('/prefix/api/storage/signed-upload-url', [
         'filename' => 'test-image.exe',
     ]);
 
@@ -342,7 +342,7 @@ it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', f
         ->andReturn('https://mocked-url-for-db-test');
 
     // 3. 執行請求 (Action)
-    $response = $this->postJson("/prefix/api/fish/{$fishId}/supabase/signed-upload-audio-url", [
+    $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
         'filename' => 'test-audio.mp3'
     ]);
 
@@ -376,7 +376,7 @@ it('當聲音檔案上傳後，要將聲音檔案的資料寫入資料表發生�
              ->andThrow(new \Exception('Simulated rollback failure'));
     });
     // // 4. 執行請求與斷言狀態碼 (Action & Status Assertion)
-    $response = $this->postJson("/prefix/api/fish/{$fishId}/supabase/signed-upload-audio-url", [
+    $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
         'filename' => 'test-audio.mp3'
     ]);
 
