@@ -7,7 +7,7 @@ use App\Contracts\StorageServiceInterface;
 use App\Services\UploadService;
 use App\Http\Requests\UploadImageRequest;
 use App\Http\Requests\UploadAudioRequest;
-use App\Http\Requests\SupabaseSignedUploadUrlRequest;
+use App\Http\Requests\SignedUploadUrlRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\FishAudio;
@@ -45,7 +45,7 @@ class UploadController extends Controller
     *   ),
     *   @OA\Response(
     *     response=200,
-    *     description="簽名網址產生成功（uploadUrl 一律為 Supabase 絕對 https 網址）",
+    *     description="簽名網址產生成功（uploadUrl 為儲存服務的絕對 https 網址）",
     *     @OA\JsonContent(
     *       required={"uploadUrl","filePath","expiresIn"},
     *       @OA\Property(property="uploadUrl", type="string", format="uri", description="Supabase 絕對簽名網址", example="https://your-project-ref.supabase.co/storage/v1/object/upload/sign/your-bucket/pending/audio/2025/11/01/1-uuid.webm?token=eyJ..."),
@@ -259,11 +259,11 @@ class UploadController extends Controller
     }
 
     /**
-     * 獲取 Supabase 簽名上傳 URL
+     * 獲取簽名上傳 URL
      *
      * @OA\Post(
      *     path="/prefix/api/supabase/signed-upload-url",
-     *     summary="取得 Supabase 簽名上傳 URL",
+     *     summary="取得簽名上傳 URL",
      *     tags={"Upload"},
      *     @OA\RequestBody(
      *         required=true,
@@ -310,7 +310,7 @@ class UploadController extends Controller
      *     )
      * )
      */
-    public function getSignedUploadUrl(SupabaseSignedUploadUrlRequest $request)
+    public function getSignedUploadUrl(SignedUploadUrlRequest $request)
     {
         $service = app(StorageServiceInterface::class);
         $path = $service->getImageFolder();

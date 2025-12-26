@@ -9,7 +9,7 @@ use App\Http\Requests\UpdateFishNoteRequest;
 use App\Models\FishNote;
 use App\Models\Fish;
 use Inertia\Inertia;
-use App\Services\SupabaseStorageService;
+use App\Contracts\StorageServiceInterface;
 use App\Services\FishService;
 use Exception;
 
@@ -218,8 +218,8 @@ class FishNoteController extends BaseController
     {
         $fish = Fish::findOrFail($id);
 
-        $supabase = app(SupabaseStorageService::class);
-        $imageUrl = $supabase->getUrl('images', $fish->image, $fish->has_webp ?? null);
+        $storage = app(StorageServiceInterface::class);
+        $imageUrl = $storage->getUrl('images', $fish->image, $fish->has_webp ?? null);
 
         // 假設 image 欄位已經是完整路徑，否則請補上 storage 路徑
         return inertia('CreateFishNote', [
