@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
 // 2. 引入 Service
-use App\Services\SupabaseStorageService;
+use App\Contracts\StorageServiceInterface;
 
 class Fish extends Model
 {
@@ -107,7 +107,7 @@ class Fish extends Model
                 $hasWebp = isset($attributes['has_webp']) ? (bool)$attributes['has_webp'] : false;
 
                 // 呼叫 Service 轉換
-                return app(SupabaseStorageService::class)->getUrl('images', $filename, $hasWebp);
+                return app(StorageServiceInterface::class)->getUrl('images', $filename, $hasWebp);
             }
         );
     }
@@ -125,7 +125,7 @@ class Fish extends Model
                     return null;
                 }
                 
-                return app(SupabaseStorageService::class)->getUrl('audios', $attributes['audio_filename'], null);
+                return app(StorageServiceInterface::class)->getUrl('audios', $attributes['audio_filename'], null);
             }
         );
     }
