@@ -20,6 +20,19 @@ beforeEach(function () {
         'audio' => 'test-audio',
         'webp' => 'test-webp',
     ]);
+    
+    // 設定 filesystems.disks.s3 以支援簽章 URL 測試
+    Config::set('filesystems.disks.s3', [
+        'driver' => 's3',
+        'key' => 'test-key',
+        'secret' => 'test-secret',
+        'region' => 'ap-northeast-1',
+        'bucket' => 'test-bucket',
+        'url' => null,
+        'endpoint' => null,
+        'use_path_style_endpoint' => false,
+        'throw' => false,
+    ]);
 
     // 建立測試服務實例
     /** @var \App\Services\S3StorageService service */
