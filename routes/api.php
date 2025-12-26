@@ -30,10 +30,12 @@ Route::put('/fish/{id}/editSize', [ApiFishController::class, 'updateSize'])->whe
 
 // 其他 API
 Route::post('/upload', [UploadController::class, 'uploadImage']);
-Route::post('/supabase/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
+
+// Storage signed upload URL endpoints
+Route::post('/storage/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
+Route::post('/fish/{id}/storage/signed-upload-audio-url', [UploadController::class, 'getSignedUploadAudioUrl'])->whereNumber('id');
 
 Route::post('/upload-audio', [UploadController::class, 'uploadAudio']);
-Route::post('/fish/{id}/supabase/signed-upload-audio-url', [UploadController::class, 'getSignedUploadAudioUrl'])->whereNumber('id');
 
 // New audio two-step upload endpoints
 Route::post('/upload/audio/sign', [UploadController::class, 'signPendingAudio']);

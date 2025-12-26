@@ -262,8 +262,8 @@ class UploadController extends Controller
      * 獲取簽名上傳 URL
      *
      * @OA\Post(
-     *     path="/prefix/api/supabase/signed-upload-url",
-     *     summary="取得簽名上傳 URL",
+     *     path="/prefix/api/storage/signed-upload-url",
+     *     summary="取得儲存服務簽名上傳 URL",
      *     tags={"Upload"},
      *     @OA\RequestBody(
      *         required=true,
@@ -335,12 +335,19 @@ class UploadController extends Controller
     }
 
     /**
-     * 獲取 Supabase 音訊檔案簽名上傳 URL
+     * 獲取音訊檔案簽名上傳 URL
      *
      * @OA\Post(
-     *     path="/prefix/api/supabase/signed-upload-audio-url",
-     *     summary="取得 Supabase 音訊檔案簽名上傳 URL",
+     *     path="/prefix/api/fish/{id}/storage/signed-upload-audio-url",
+     *     summary="取得音訊檔案簽名上傳 URL",
      *     tags={"Upload"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="魚類 ID",
+     *         @OA\Schema(type="integer", minimum=1)
+     *     ),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
