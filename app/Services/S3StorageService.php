@@ -43,8 +43,8 @@ class S3StorageService implements StorageServiceInterface
         }
 
         $folder = match ($type) {
-            'image' => $this->getImageFolder(),
-            'audio' => $this->getAudioFolder(),
+            'image', 'images' => $this->getImageFolder(),
+            'audio', 'audios' => $this->getAudioFolder(),
             'webp' => $this->getWebpFolder(),
             default => throw new \InvalidArgumentException("Invalid type: {$type}")
         };
