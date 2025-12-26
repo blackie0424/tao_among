@@ -2,7 +2,7 @@
 
 /**
  * S3StorageService Unit Tests
- * 
+ *
  * @phpstan-ignore-file
  */
 
