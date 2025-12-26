@@ -65,6 +65,14 @@ class Fish extends Model
                 }
             }
             
+            // 刪除相關捕獲記錄的圖片檔案
+            foreach ($fish->captureRecords as $record) {
+                if ($record->image_path) {
+                    $imageFolder = $storage->getImageFolder();
+                    $storage->delete($imageFolder . '/' . $record->image_path);
+                }
+            }
+            
             // === 軟刪除關聯資料（保留統計用） ===
             // 刪除相關的尺寸資料
             $fish->size()->delete();
