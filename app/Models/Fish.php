@@ -41,10 +41,9 @@ class Fish extends Model
             }
         });
         static::deleting(function ($fish) {
-            // === 立即刪除 Storage 檔案 ===
             $storage = app(StorageServiceInterface::class);
             
-            // 刪除圖片檔案
+            // 只處理 Fish 自己的圖片檔案
             if ($fish->image && $fish->image !== 'default.png') {
                 $imageFolder = $storage->getImageFolder();
                 $storage->delete($imageFolder . '/' . $fish->image);
@@ -57,37 +56,14 @@ class Fish extends Model
                 }
             }
             
-            // 刪除相關的音頻檔案
-            foreach ($fish->audios as $audio) {
-                if ($audio->locate) {
-                    $audioFolder = $storage->getAudioFolder();
-                    $storage->delete($audioFolder . '/' . $audio->locate);
-                }
-            }
-            
-            // 刪除相關捕獲記錄的圖片檔案
-            foreach ($fish->captureRecords as $record) {
-                if ($record->image_path) {
-                    $imageFolder = $storage->getImageFolder();
-                    $storage->delete($imageFolder . '/' . $record->image_path);
-                }
-            }
-            
-            // === 軟刪除關聯資料（保留統計用） ===
-            // 刪除相關的尺寸資料
+            // 軟刪除關聯資料
+            // 使用 each()->delete() 來觸發每個子模型的 deleting 事件
+            // 這樣 FishAudio 和 CaptureRecord 會自動刪除各自的檔案
             $fish->size()->delete();
-            
-            // 刪除相關的知識條目
             $fish->notes()->delete();
-            
-            // 刪除相關的音頻記錄
-            $fish->audios()->delete();
-            
-            // 刪除相關的部落分類
+            $fish->audios->each->delete();
             $fish->tribalClassifications()->delete();
-            
-            // 刪除相關的捕獲紀錄
-            $fish->captureRecords()->delete();
+            $fish->captureRecords->each->delete();
         });
     }
 
