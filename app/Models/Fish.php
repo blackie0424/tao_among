@@ -41,13 +41,38 @@ class Fish extends Model
             }
         });
         static::deleting(function ($fish) {
+            // === 立即刪除 Storage 檔案 ===
+            $storage = app(StorageServiceInterface::class);
+            
+            // 刪除圖片檔案
+            if ($fish->image && $fish->image !== 'default.png') {
+                $imageFolder = $storage->getImageFolder();
+                $storage->delete($imageFolder . '/' . $fish->image);
+                
+                // 如果有 WebP 版本也刪除
+                if ($fish->has_webp) {
+                    $imageWithoutExt = pathinfo($fish->image, PATHINFO_FILENAME);
+                    $webpFolder = $storage->getWebpFolder();
+                    $storage->delete($webpFolder . '/' . $imageWithoutExt . '.webp');
+                }
+            }
+            
+            // 刪除相關的音頻檔案
+            foreach ($fish->audios as $audio) {
+                if ($audio->locate) {
+                    $audioFolder = $storage->getAudioFolder();
+                    $storage->delete($audioFolder . '/' . $audio->locate);
+                }
+            }
+            
+            // === 軟刪除關聯資料（保留統計用） ===
             // 刪除相關的尺寸資料
             $fish->size()->delete();
             
             // 刪除相關的知識條目
             $fish->notes()->delete();
             
-            // 刪除相關的音頻文件
+            // 刪除相關的音頻記錄
             $fish->audios()->delete();
             
             // 刪除相關的部落分類
