@@ -28,11 +28,15 @@
 import TopNavBar from '../Components/Global/TopNavBar.vue'
 import CaptureRecordForm from '../Components/CaptureRecordForm.vue'
 import { router } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const props = defineProps({
   fish: Object,
   tribes: Array,
+  prefill_image: {
+    type: String,
+    default: '',
+  },
 })
 
 const formRef = ref(null)
@@ -101,4 +105,11 @@ function submitForm() {
     return
   }
 }
+
+onMounted(() => {
+  // 如果有預填圖片，通知子元件
+  if (props.prefill_image && formRef.value) {
+    formRef.value.setPrefillImage(props.prefill_image)
+  }
+})
 </script>
