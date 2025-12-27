@@ -2,10 +2,10 @@
   <div class="bg-white rounded-xl shadow-md overflow-hidden">
     <Link
       :href="`/fish/${fish.id}`"
-      class="block h-full group focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl"
+      class="block h-full group focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
-      <!-- 圖片區域 - 完整貼合上半部，僅上方圓角 -->
-      <div class="relative rounded-t-xl overflow-hidden">
+      <!-- 圖片區域 - 完整貼合上半部 -->
+      <div class="relative">
         <LazyImage
           :src="fish.image_url"
           :alt="fish.name"
