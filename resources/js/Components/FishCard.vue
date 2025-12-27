@@ -9,14 +9,16 @@
         <LazyImage
           :src="fish.image_url"
           :alt="fish.name"
-          wrapperClass="w-full h-[170px] overflow-hidden flex items-center justify-center bg-gray-100"
+          wrapperClass="w-full h-[170px] flex items-center justify-center bg-gray-100"
           imgClass="w-full h-full object-cover"
         />
       </div>
       <!-- 文字資訊區域 - 白色背景帶 padding -->
       <div class="p-4 bg-white">
         <div class="flex items-center justify-between mb-2 h-9">
-          <div class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0">
+          <div
+            class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0"
+          >
             {{ fish.name }}
           </div>
           <!-- 音檔播放按鈕靠右 -->
