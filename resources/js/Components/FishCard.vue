@@ -13,7 +13,7 @@
         />
       </div>
       <div>
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center justify-between mb-2 h-9">
           <div class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0">
             {{ fish.name }}
           </div>
