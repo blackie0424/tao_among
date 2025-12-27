@@ -19,33 +19,40 @@
         @submitted="onFishSubmitted"
         ref="nameFormRef"
       />
-      
+
       <!-- Step 3: 詢問是否新增捕獲紀錄 -->
       <div v-if="step === 3" class="max-w-md mx-auto mt-8">
         <div class="bg-white rounded-lg shadow-md p-6 text-center">
           <!-- 成功圖示 -->
-          <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-            <svg class="h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          <div
+            class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4"
+          >
+            <svg
+              class="h-8 w-8 text-green-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
-          
+
           <!-- 成功訊息 -->
           <h2 class="text-2xl font-bold text-gray-900 mb-2">魚類建立成功！</h2>
-          <p class="text-lg text-gray-600 mb-4">
-            「{{ createdFishName }}」已成功加入資料庫
-          </p>
-          
+          <p class="text-lg text-gray-600 mb-4">「{{ createdFishName }}」已成功加入資料庫</p>
+
           <!-- 詢問訊息 -->
           <div class="bg-blue-50 rounded-lg p-4 mb-6">
-            <p class="text-base text-gray-700 mb-2">
-              是否要記錄這次的捕獲資訊？
-            </p>
-            <p class="text-sm text-gray-500">
-              （圖片將自動帶入，不需重新上傳）
-            </p>
+            <p class="text-base text-gray-700 mb-2">是否要記錄這次的捕獲資訊？</p>
+            <p class="text-sm text-gray-500">（圖片將自動帶入，不需重新上傳）</p>
           </div>
-          
+
           <!-- 稍後再說按鈕 -->
           <button
             @click="skipCaptureRecord"
@@ -70,16 +77,16 @@ import FishNameForm from '@/Components/FishNameForm.vue'
 const props = defineProps({
   fish: {
     type: Object,
-    default: null
+    default: null,
   },
   showCapturePrompt: {
     type: Boolean,
-    default: false
+    default: false,
   },
   imageFileName: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const step = ref(1)
@@ -158,7 +165,7 @@ function onImageUploaded(filename) {
 
 function onFishSubmitted(fishId) {
   submitting.value = false
-  
+
   // 如果後端回傳 showCapturePrompt，進入第三步驟
   if (props.showCapturePrompt && fishId) {
     createdFishId.value = fishId
@@ -179,8 +186,8 @@ function onFishSubmitted(fishId) {
 function goToAddCaptureRecord() {
   router.visit(`/fish/${createdFishId.value}/capture-records/create`, {
     data: {
-      prefill_image: imageFileName.value
-    }
+      prefill_image: imageFileName.value,
+    },
   })
 }
 
@@ -198,7 +205,7 @@ onMounted(() => {
     uploadedFileName.value = props.imageFileName || ''
     step.value = 3
   }
-  
+
   if (!window.heic2any) {
     const script = document.createElement('script')
     script.src = 'https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js'
