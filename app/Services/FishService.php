@@ -6,12 +6,13 @@ use \Carbon\Carbon;
 
 use App\Models\Fish;
 use App\Http\Resources\FishResource;
+use App\Contracts\StorageServiceInterface;
 
 class FishService
 {
     protected $storageService;
 
-    public function __construct(SupabaseStorageService $storageService)
+    public function __construct(StorageServiceInterface $storageService)
     {
         $this->storageService = $storageService;
     }

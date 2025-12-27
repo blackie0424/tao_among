@@ -29,7 +29,7 @@ createApp({
       const fileName = Date.now() + '_' + selectedFile.value.name.replace(/[^a-zA-Z0-9._-]/g, '_')
       try {
         // 1. 取得 signed upload url
-        const res = await fetch('/prefix/api/supabase/signed-upload-url', {
+        const res = await fetch('/prefix/api/storage/signed-upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: fileName }),

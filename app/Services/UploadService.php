@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\StorageServiceInterface;
 use Illuminate\Http\Request;
 
 class UploadService
@@ -10,6 +11,11 @@ class UploadService
 
     protected $storageService;
 
+    public function __construct(StorageServiceInterface $storageService)
+    {
+        $this->storageService = $storageService;
+    }
+
     public function uploadImage(Request $request): string
     {
 
@@ -17,10 +23,9 @@ class UploadService
             return basename($request->file('image')->store('images', 'public'));
         } else {
             $file = $request->file('image');
-            $storageService = new SupabaseStorageService;
-            $path = $storageService->getImageFolder();
+            $path = $this->storageService->getImageFolder();
 
-            $filePath = $storageService->uploadFile($file, $path);
+            $filePath = $this->storageService->uploadFile($file, $path);
 
             return $filePath ? basename($filePath) : null;
         }
@@ -32,10 +37,9 @@ class UploadService
             return basename($request->file('audio')->store('audio', 'public'));
         } else {
             $file = $request->file('audio');
-            $storageService = new SupabaseStorageService;
-            $path = $storageService->getAudioFolder();
+            $path = $this->storageService->getAudioFolder();
 
-            $filePath = $storageService->uploadFile($file, $path);
+            $filePath = $this->storageService->uploadFile($file, $path);
 
             return $filePath ? basename($filePath) : null;
         }

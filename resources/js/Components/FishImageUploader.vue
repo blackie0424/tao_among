@@ -65,7 +65,7 @@ async function uploadImage() {
   }
 
   try {
-    const res = await fetch('/prefix/api/supabase/signed-upload-url', {
+    const res = await fetch('/prefix/api/storage/signed-upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename: fileName }),

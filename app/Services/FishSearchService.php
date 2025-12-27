@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Fish;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * FishSearchService — 後端搜尋核心服務
@@ -186,8 +187,12 @@ class FishSearchService
         // 重要：需選出 image 欄位，否則模型 accessor 無法判斷是否有自訂圖片，會一律回傳預設圖
         // 同時帶出 has_webp（若資料表有此欄位），可讓 accessor 選擇 webp
         $selects = ['id','name','image'];
-        if (\Schema::hasColumn('fish', 'has_webp')) {
+        if (Schema::hasColumn('fish', 'has_webp')) {
             $selects[] = 'has_webp';
+        }
+        // 加入音檔欄位以支援清單頁音檔播放
+        if (Schema::hasColumn('fish', 'audio_filename')) {
+            $selects[] = 'audio_filename';
         }
         $query = Fish::query()
             ->select($selects)
@@ -247,12 +252,13 @@ class FishSearchService
             $rows = $rows->slice(0, $perPage)->values();
         }
 
-        // 映射精簡欄位（模型 accessor 提供 image_url）
+        // 映射精簡欄位（模型 accessor 提供 image_url 和 audio_url）
         $items = $rows->map(function (Fish $f) {
             return [
                 'id' => $f->id,
                 'name' => $f->name,
                 'image_url' => $f->image_url,
+                'audio_url' => $f->audio_url, // 透過模型 accessor 轉換為完整播放連結
                 'tribal_classifications' => $f->tribalClassifications->map(fn ($tc) => [
                     'tribe' => $tc->tribe,
                     'food_category' => $tc->food_category,

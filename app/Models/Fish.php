@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
 // 2. 引入 Service
-use App\Services\SupabaseStorageService;
+use App\Contracts\StorageServiceInterface;
 
 class Fish extends Model
 {
@@ -41,20 +41,29 @@ class Fish extends Model
             }
         });
         static::deleting(function ($fish) {
-            // 刪除相關的尺寸資料
+            $storage = app(StorageServiceInterface::class);
+            
+            // 只處理 Fish 自己的圖片檔案
+            if ($fish->image && $fish->image !== 'default.png') {
+                $imageFolder = $storage->getImageFolder();
+                $storage->delete($imageFolder . '/' . $fish->image);
+                
+                // 如果有 WebP 版本也刪除
+                if ($fish->has_webp) {
+                    $imageWithoutExt = pathinfo($fish->image, PATHINFO_FILENAME);
+                    $webpFolder = $storage->getWebpFolder();
+                    $storage->delete($webpFolder . '/' . $imageWithoutExt . '.webp');
+                }
+            }
+            
+            // 軟刪除關聯資料
+            // 使用 each()->delete() 來觸發每個子模型的 deleting 事件
+            // 這樣 FishAudio 和 CaptureRecord 會自動刪除各自的檔案
             $fish->size()->delete();
-            
-            // 刪除相關的知識條目
             $fish->notes()->delete();
-            
-            // 刪除相關的音頻文件
-            $fish->audios()->delete();
-            
-            // 刪除相關的部落分類
+            $fish->audios->each->delete();
             $fish->tribalClassifications()->delete();
-            
-            // 刪除相關的捕獲紀錄
-            $fish->captureRecords()->delete();
+            $fish->captureRecords->each->delete();
         });
     }
 
@@ -107,7 +116,7 @@ class Fish extends Model
                 $hasWebp = isset($attributes['has_webp']) ? (bool)$attributes['has_webp'] : false;
 
                 // 呼叫 Service 轉換
-                return app(SupabaseStorageService::class)->getUrl('images', $filename, $hasWebp);
+                return app(StorageServiceInterface::class)->getUrl('images', $filename, $hasWebp);
             }
         );
     }
@@ -125,7 +134,7 @@ class Fish extends Model
                     return null;
                 }
                 
-                return app(SupabaseStorageService::class)->getUrl('audios', $attributes['audio_filename'], null);
+                return app(StorageServiceInterface::class)->getUrl('audios', $attributes['audio_filename'], null);
             }
         );
     }

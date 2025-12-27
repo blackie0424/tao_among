@@ -16,12 +16,16 @@ vi.mock('@inertiajs/vue3', () => ({
       const base = [
         { id: 3, name: 'AAA', image_url: 'x' },
         { id: 2, name: 'BBB', image_url: 'y' },
-        { id: 1, name: 'CCC', image_url: 'z' }
+        { id: 1, name: 'CCC', image_url: 'z' },
       ]
-      opts.onSuccess && opts.onSuccess({ props: { items: base.slice(0, 2), pageInfo: { hasMore: true, nextCursor: 1 } } })
-    })
+      opts.onSuccess &&
+        opts.onSuccess({
+          props: { items: base.slice(0, 2), pageInfo: { hasMore: true, nextCursor: 1 } },
+        })
+    }),
   },
-  Head: { name: 'Head', render: () => null }
+  Head: { name: 'Head', render: () => null },
+  Link: { name: 'Link', template: '<a><slot /></a>' },
 }))
 
 describe('Fishs infinite list', () => {
@@ -32,14 +36,20 @@ describe('Fishs infinite list', () => {
     class IOStub {
       /** @type {(entries: Array<{isIntersecting: boolean}>) => void} */
       cb
-  /** @param {(entries: Array<{isIntersecting: boolean}>) => void} cb */
-  constructor(cb: any) { this.cb = cb }
+      /** @param {(entries: Array<{isIntersecting: boolean}>) => void} cb */
+      constructor(cb: any) {
+        this.cb = cb
+      }
       /** @param {Element} el */
-  observe(el: any) { /* 初始不觸發，測試可手動 */ }
+      observe(el: any) {
+        /* 初始不觸發，測試可手動 */
+      }
       disconnect() {}
       unobserve() {}
       // 測試手動觸發
-      fire(isIntersecting = true) { this.cb([{ isIntersecting }]) }
+      fire(isIntersecting = true) {
+        this.cb([{ isIntersecting }])
+      }
     }
     // @ts-ignore
     global.IntersectionObserver = IOStub
@@ -47,7 +57,10 @@ describe('Fishs infinite list', () => {
 
   it('renders initial items and loading component hidden when not loading', () => {
     const wrapper = mount(Fishs, {
-      props: { items: [{ id: 1, name: 'Test', image_url: 'a' }], pageInfo: { hasMore: false, nextCursor: null } }
+      props: {
+        items: [{ id: 1, name: 'Test', image_url: 'a' }],
+        pageInfo: { hasMore: false, nextCursor: null },
+      },
     })
     expect(wrapper.findAll('li').length).toBe(1)
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
@@ -68,11 +81,14 @@ describe('Fishs infinite list', () => {
     // @ts-ignore
     router.get = vi.fn((url, params, opts) => {
       setTimeout(() => {
-        opts.onSuccess && opts.onSuccess({ props: { items: [], pageInfo: { hasMore: false, nextCursor: null } } })
+        opts.onSuccess &&
+          opts.onSuccess({ props: { items: [], pageInfo: { hasMore: false, nextCursor: null } } })
       }, 20)
     })
 
-    const wrapper = mount(Fishs, { props: { items: [], pageInfo: { hasMore: false, nextCursor: null } } })
+    const wrapper = mount(Fishs, {
+      props: { items: [], pageInfo: { hasMore: false, nextCursor: null } },
+    })
     // onMounted 會呼叫 fetchPage → 顯示 loading
     await wrapper.vm.$nextTick()
     expect(wrapper.find('[role="status"]').exists()).toBe(true)
@@ -92,18 +108,30 @@ describe('Fishs infinite list', () => {
     // @ts-ignore
     router.get = vi.fn((url, params, opts) => {
       if (!params.last_id) {
-        opts.onSuccess && opts.onSuccess({ props: { items: [
-          { id: 3, name: 'A', image_url: 'a' },
-          { id: 2, name: 'B', image_url: 'b' },
-        ], pageInfo: { hasMore: true, nextCursor: 2 } } })
+        opts.onSuccess &&
+          opts.onSuccess({
+            props: {
+              items: [
+                { id: 3, name: 'A', image_url: 'a' },
+                { id: 2, name: 'B', image_url: 'b' },
+              ],
+              pageInfo: { hasMore: true, nextCursor: 2 },
+            },
+          })
       } else if (params.last_id === 2) {
-        opts.onSuccess && opts.onSuccess({ props: { items: [
-          { id: 1, name: 'C', image_url: 'c' },
-        ], pageInfo: { hasMore: false, nextCursor: null } } })
+        opts.onSuccess &&
+          opts.onSuccess({
+            props: {
+              items: [{ id: 1, name: 'C', image_url: 'c' }],
+              pageInfo: { hasMore: false, nextCursor: null },
+            },
+          })
       }
     })
 
-    const wrapper = mount(Fishs, { props: { items: [], pageInfo: { hasMore: false, nextCursor: null } } })
+    const wrapper = mount(Fishs, {
+      props: { items: [], pageInfo: { hasMore: false, nextCursor: null } },
+    })
     await wrapper.vm.$nextTick()
 
     // 初次 fetchPage 會抓第一頁

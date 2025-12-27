@@ -237,7 +237,7 @@ async function handleNext() {
     if (!fishId) throw new Error('無法取得魚類編號')
 
     // 第一步：取得上傳資訊
-    const uploadRes = await fetch(`/prefix/api/fish/${fishId}/supabase/signed-upload-audio-url`, {
+    const uploadRes = await fetch(`/prefix/api/fish/${fishId}/storage/signed-upload-audio-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

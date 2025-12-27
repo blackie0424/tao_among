@@ -5,13 +5,150 @@ namespace App\Http\Controllers;
 use App\Http\Requests\TribalClassificationRequest;
 use App\Models\Fish;
 use App\Models\TribalClassification;
+use App\Services\FishService;
+use App\Traits\HasFishImageUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class TribalClassificationController extends Controller
 {
+    use HasFishImageUrl;
+
+    protected $fishService;
+
+    public function __construct(FishService $fishService)
+    {
+        $this->fishService = $fishService;
+    }
+
     /**
-     * Display a listing of the resource for a specific fish.
+     * Display a listing of tribal classifications for a specific fish (Inertia).
+     */
+    public function indexPage($fishId)
+    {
+        // 取得指定魚類資訊和部落分類
+        $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
+        
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
+        
+        // 定義部落和分類選項
+        $tribes = config('fish_options.tribes');
+        $foodCategories = config('fish_options.food_categories');
+        $processingMethods = config('fish_options.processing_methods');
+        
+        return Inertia::render('TribalClassifications', [
+            'fish' => $fishWithImage,
+            'tribes' => $tribes,
+            'foodCategories' => $foodCategories,
+            'processingMethods' => $processingMethods
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new tribal classification.
+     */
+    public function createPage($fishId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
+        
+        // 定義部落和分類選項
+        $tribes = config('fish_options.tribes');
+        $foodCategories = config('fish_options.food_categories');
+        $processingMethods = config('fish_options.processing_methods');
+        
+        return Inertia::render('CreateTribalClassification', [
+            'fish' => $fishWithImage,
+            'tribes' => $tribes,
+            'foodCategories' => $foodCategories,
+            'processingMethods' => $processingMethods
+        ]);
+    }
+
+    /**
+     * Store a newly created tribal classification (from Inertia form).
+     */
+    public function storePage(TribalClassificationRequest $request, $fishId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        
+        TribalClassification::create([
+            'fish_id' => $fish->id,
+            'tribe' => $request->tribe,
+            'food_category' => $request->food_category ?? '',
+            'processing_method' => $request->processing_method ?? '',
+            'notes' => $request->notes
+        ]);
+
+        return redirect()->back()->with('success', '部落分類新增成功');
+    }
+
+    /**
+     * Show the form for editing a tribal classification.
+     */
+    public function editPage($fishId, $classificationId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        $classification = TribalClassification::where('fish_id', $fishId)
+            ->where('id', $classificationId)
+            ->firstOrFail();
+        
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
+        
+        // 定義部落和分類選項
+        $tribes = config('fish_options.tribes');
+        $foodCategories = config('fish_options.food_categories');
+        $processingMethods = config('fish_options.processing_methods');
+        
+        return Inertia::render('EditTribalClassification', [
+            'fish' => $fishWithImage,
+            'classification' => $classification,
+            'tribes' => $tribes,
+            'foodCategories' => $foodCategories,
+            'processingMethods' => $processingMethods
+        ]);
+    }
+
+    /**
+     * Update a tribal classification (from Inertia form).
+     */
+    public function updatePage(TribalClassificationRequest $request, $fishId, $classificationId)
+    {
+        $classification = TribalClassification::where('fish_id', $fishId)
+            ->where('id', $classificationId)
+            ->firstOrFail();
+            
+        $classification->update([
+            'tribe' => $request->tribe,
+            'food_category' => $request->food_category ?? '',
+            'processing_method' => $request->processing_method ?? '',
+            'notes' => $request->notes
+        ]);
+
+        return redirect()->back()->with('success', '部落分類更新成功');
+    }
+
+    /**
+     * Delete a tribal classification (from Inertia page).
+     */
+    public function destroyPage($fishId, $classificationId)
+    {
+        $classification = TribalClassification::where('fish_id', $fishId)
+            ->where('id', $classificationId)
+            ->firstOrFail();
+            
+        $classification->delete();
+
+        return redirect()->back()->with('success', '部落分類刪除成功');
+    }
+
+    /**
+     * Display a listing of the resource for a specific fish (API).
      */
     public function index($fishId): JsonResponse
     {
@@ -33,7 +170,7 @@ class TribalClassificationController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created resource in storage (API).
      */
     public function store(TribalClassificationRequest $request, $fishId): JsonResponse
     {

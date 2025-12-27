@@ -1,7 +1,7 @@
 <template>
   <div
     :class="[
-      'relative flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden',
+      'relative flex items-center justify-center bg-gray-100 overflow-hidden',
       wrapperClass,
     ]"
     :style="wrapperStyle"
@@ -12,7 +12,7 @@
       :src="src"
       :alt="alt"
       :loading="imgLoading"
-      :class="['object-contain rounded-lg', imgClass]"
+      :class="['object-contain', imgClass]"
       :style="imgStyle"
       @load="onLoad"
       @error="onError"
