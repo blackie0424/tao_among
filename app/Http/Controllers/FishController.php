@@ -440,7 +440,9 @@ class FishController extends Controller
             return Inertia::render(
                 'CreateFish',
                 [
-                    'fish' => $fish
+                    'fish' => $fish,
+                    'showCapturePrompt' => true,
+                    'imageFileName' => $request->input('image')
                 ]
             );
             
