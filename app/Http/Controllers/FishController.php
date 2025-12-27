@@ -248,7 +248,7 @@ class FishController extends Controller
         ]);
     }
 
-    public function createCaptureRecord($fishId)
+    public function createCaptureRecord(Request $request, $fishId)
     {
         $fish = Fish::findOrFail($fishId);
         
@@ -260,7 +260,8 @@ class FishController extends Controller
         
         return Inertia::render('CreateCaptureRecord', [
             'fish' => $fishWithImage,
-            'tribes' => $tribes
+            'tribes' => $tribes,
+            'prefill_image' => $request->query('prefill_image', '')
         ]);
     }
 
@@ -440,7 +441,9 @@ class FishController extends Controller
             return Inertia::render(
                 'CreateFish',
                 [
-                    'fish' => $fish
+                    'fish' => $fish,
+                    'showCapturePrompt' => true,
+                    'imageFileName' => $request->input('image')
                 ]
             );
             

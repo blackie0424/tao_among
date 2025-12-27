@@ -298,5 +298,28 @@ async function submitForm() {
   }
 }
 
-defineExpose({ step, nextStep, prevStep, finalSubmit, submitForm })
+// 設定預填圖片（從建立魚類頁面傳來）
+function setPrefillImage(filename) {
+  console.log('[CaptureRecordForm] setPrefillImage called with:', filename)
+  console.log('[CaptureRecordForm] current step before:', step.value)
+  if (filename) {
+    form.image_filename = filename
+    // 跳過 Step 1（上傳照片），直接進入 Step 2
+    step.value = 2
+    console.log('[CaptureRecordForm] step set to:', step.value)
+    // 可選：顯示預覽圖（需要從 Storage 取得 URL）
+    // 因為我們只有檔名，無法直接顯示預覽，所以這裡不設定 imagePreview
+  }
+}
+
+defineExpose({
+  step,
+  nextStep,
+  prevStep,
+  finalSubmit,
+  submitForm,
+  uploading,
+  processing,
+  setPrefillImage,
+})
 </script>
