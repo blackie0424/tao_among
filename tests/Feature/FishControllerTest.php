@@ -80,3 +80,65 @@ it('returns 404 for non-existent fish detail', function () {
     $response = $this->get('/fish/999999');
     $response->assertStatus(404);
 });
+
+it('creates a new fish and returns capture prompt props', function () {
+    $fishData = [
+        'name' => 'Test Fish',
+        'image' => 'test-fish-123.jpg',
+    ];
+
+    $response = $this->post('/fish', $fishData);
+
+    $response->assertStatus(200)
+        ->assertInertia(
+            fn (Assert $page) => $page
+            ->component('CreateFish')
+            ->has('fish')
+            ->where('fish.name', 'Test Fish')
+            ->where('fish.image', 'test-fish-123.jpg')
+            ->where('showCapturePrompt', true)
+            ->where('imageFileName', 'test-fish-123.jpg')
+        );
+
+    // 驗證資料庫中有建立魚類
+    expect(Fish::where('name', 'Test Fish')->where('image', 'test-fish-123.jpg')->exists())->toBeTrue();
+});
+
+it('creates fish without audio_filename and still returns capture prompt', function () {
+    $fishData = [
+        'name' => 'Another Fish',
+        'image' => 'another-fish-456.jpg',
+    ];
+
+    $response = $this->post('/fish', $fishData);
+
+    $response->assertStatus(200)
+        ->assertInertia(
+            fn (Assert $page) => $page
+            ->component('CreateFish')
+            ->where('showCapturePrompt', true)
+            ->where('imageFileName', 'another-fish-456.jpg')
+        );
+});
+
+it('fails to create fish without required name', function () {
+    $fishData = [
+        'image' => 'test-fish.jpg',
+    ];
+
+    $response = $this->post('/fish', $fishData);
+
+    $response->assertStatus(302); // Redirect back with errors
+    $response->assertSessionHasErrors('name');
+});
+
+it('fails to create fish without required image', function () {
+    $fishData = [
+        'name' => 'Test Fish',
+    ];
+
+    $response = $this->post('/fish', $fishData);
+
+    $response->assertStatus(302); // Redirect back with errors
+    $response->assertSessionHasErrors('image');
+});
