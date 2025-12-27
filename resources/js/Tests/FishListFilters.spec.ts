@@ -10,7 +10,8 @@ vi.mock('@inertiajs/vue3', () => ({
       opts.onSuccess && opts.onSuccess({ props: { items: [], pageInfo: { hasMore: false, nextCursor: null } } })
     })
   },
-  Head: { name: 'Head', render: () => null }
+  Head: { name: 'Head', render: () => null },
+  Link: { name: 'Link', template: '<a><slot /></a>' }
 }))
 
 describe('Fishs filters wiring', () => {

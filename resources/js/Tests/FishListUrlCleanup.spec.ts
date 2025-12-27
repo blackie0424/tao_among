@@ -13,7 +13,8 @@ vi.mock('@inertiajs/vue3', () => ({
       ], pageInfo: { hasMore: true, nextCursor: 4 } } })
     })
   },
-  Head: { name: 'Head', render: () => null }
+  Head: { name: 'Head', render: () => null },
+  Link: { name: 'Link', template: '<a><slot /></a>' }
 }))
 
 describe('Fishs URL cleanup after pagination', () => {

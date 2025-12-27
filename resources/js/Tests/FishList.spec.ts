@@ -21,7 +21,8 @@ vi.mock('@inertiajs/vue3', () => ({
       opts.onSuccess && opts.onSuccess({ props: { items: base.slice(0, 2), pageInfo: { hasMore: true, nextCursor: 1 } } })
     })
   },
-  Head: { name: 'Head', render: () => null }
+  Head: { name: 'Head', render: () => null },
+  Link: { name: 'Link', template: '<a><slot /></a>' }
 }))
 
 describe('Fishs infinite list', () => {
