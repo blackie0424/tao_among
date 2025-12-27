@@ -89,10 +89,6 @@ class FishController extends Controller
     {
         return Inertia::render('CreateFish');
     }
-    public function createAudio()
-    {
-        return Inertia::render('CreateFishAudio');
-    }
 
     public function edit($id)
     {
@@ -177,26 +173,6 @@ class FishController extends Controller
             ], 422);
             
         }
-    }
-
-    public function updateAudioFilename(Request $request, $fishId, $audioId)
-    {
-        // 取出 fish 與指定 audio
-        $fish = Fish::with('audios')->findOrFail($fishId);
-        $audio = $fish->audios()->where('id', $audioId)->firstOrFail();
-
-        // 更新主檔案欄位
-        $fish->update([
-            'audio_filename' => $audio->name,
-        ]);
-        // 由服務層統一處理媒體 URL（圖片 default、音檔 null-safe）
-        $fish = $this->fishService->assignImageUrls([$fish])[0];
-      
-        // 使用 Inertia 回傳頁面與成功訊息，前端可由 props 取得 success
-        return Inertia::render('FishAudioList', [
-            'fish' => $fish,
-            'success' => '魚類發音更新成功'
-        ]);
     }
 
 }

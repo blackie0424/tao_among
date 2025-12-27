@@ -17,7 +17,7 @@ Route::get('/fish/create', [FishController::class, 'create'])->name('fish.create
 Route::post('/fish', [FishController::class, 'store'])->name('fish.store');
 
 Route::get('/fish/{id}', [FishController::class, 'getFish']);
-Route::get('/fish/{id}/createAudio', [FishController::class,'createAudio']);
+Route::get('/fish/{id}/createAudio', [FishAudioController::class,'create'])->name('fish.audio.create');
 
 
 
@@ -61,5 +61,5 @@ Route::get('/fish/{fish}/audio-list', [FishAudioController::class, 'audioList'])
 Route::get('/fish/{fish}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
 Route::put('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
 // 設定主發音（獨立路由，避免影響一般更新音訊）
-Route::put('/fish/{fish}/audio/{audio}/set-base', [FishController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
+Route::put('/fish/{fish}/audio/{audio}/set-base', [FishAudioController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
 Route::delete('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
