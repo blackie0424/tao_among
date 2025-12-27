@@ -4,12 +4,12 @@
       :href="`/fish/${fish.id}`"
       class="block h-full group focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl"
     >
-      <!-- 圖片區域 - 完整貼合上半部 -->
-      <div class="relative">
+      <!-- 圖片區域 - 完整貼合上半部，僅上方圓角 -->
+      <div class="relative rounded-t-xl overflow-hidden">
         <LazyImage
           :src="fish.image_url"
           :alt="fish.name"
-          wrapperClass="w-full h-40 overflow-hidden flex items-center justify-center bg-gray-100"
+          wrapperClass="w-full h-[170px] overflow-hidden flex items-center justify-center bg-gray-100"
           imgClass="w-full h-full object-cover"
         />
       </div>
