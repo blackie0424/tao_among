@@ -13,8 +13,9 @@
         />
       </div>
       <div>
-        <div class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 mb-2">
-          {{ fish.name }}
+        <div class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 mb-2 flex items-center">
+          <span>{{ fish.name }}</span>
+          <Volume v-if="fish.audio_url" :audioUrl="fish.audio_url" class="ml-1 flex-shrink-0" />
         </div>
         <!-- 部落分類資訊：固定顯示 iraraley 和 imowrod -->
         <div class="space-y-1">
@@ -47,6 +48,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import LazyImage from '@/Components/LazyImage.vue'
+import Volume from '@/Components/Volume.vue'
 
 const props = defineProps({
   fish: {
