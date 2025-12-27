@@ -11,14 +11,16 @@
           wrapperClass="w-full h-40 overflow-hidden flex items-center justify-center bg-gray-100 rounded-lg"
           imgClass="w-full h-full object-cover rounded-lg"
         />
-        <!-- 音檔播放按鈕固定在右上角 -->
-        <div v-if="fish.audio_url" class="absolute top-2 right-2 z-10" @click.stop.prevent>
-          <Volume :audioUrl="fish.audio_url" />
-        </div>
       </div>
       <div>
-        <div class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 mb-2">
-          {{ fish.name }}
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0">
+            {{ fish.name }}
+          </div>
+          <!-- 音檔播放按鈕靠右 -->
+          <div v-if="fish.audio_url" class="ml-2 flex-shrink-0" @click.stop.prevent>
+            <Volume :audioUrl="fish.audio_url" />
+          </div>
         </div>
         <!-- 部落分類資訊：固定顯示 iraraley 和 imowrod -->
         <div class="space-y-1">
