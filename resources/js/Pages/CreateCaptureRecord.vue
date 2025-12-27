@@ -28,7 +28,7 @@
 import TopNavBar from '../Components/Global/TopNavBar.vue'
 import CaptureRecordForm from '../Components/CaptureRecordForm.vue'
 import { router } from '@inertiajs/vue3'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 
 const props = defineProps({
   fish: Object,
@@ -72,8 +72,9 @@ const showLoadingVal = computed(() => {
 })
 
 function goBack() {
-  // 如果子元件在中間步驟，先回到上一步；否則回到列表
-  const step = formRef.value?.step ?? 1
+  // 使用 computed 的 currentStepVal 來取得正確的步驟值
+  const step = currentStepVal.value
+  console.log('[CreateCaptureRecord] goBack, current step:', step)
   if (step > 1 && formRef.value?.prevStep) {
     formRef.value.prevStep()
     return
@@ -89,7 +90,9 @@ function onRecordSubmitted() {
 // 整合送出到 TopNavBar 的 @submit 事件
 function submitForm() {
   if (!formRef.value) return
-  const step = formRef.value.step ?? 1
+  // 使用 computed 的 currentStepVal 來取得正確的步驟值
+  const step = currentStepVal.value
+  console.log('[CreateCaptureRecord] submitForm, current step:', step)
   // step 控制：呼叫 child 暴露的方法
   if (step === 1 && formRef.value.submitForm) {
     // for step1 we want to trigger upload and next
@@ -106,10 +109,17 @@ function submitForm() {
   }
 }
 
-onMounted(() => {
-  // 如果有預填圖片，通知子元件
-  if (props.prefill_image && formRef.value) {
-    formRef.value.setPrefillImage(props.prefill_image)
+onMounted(async () => {
+  console.log('[CreateCaptureRecord] onMounted, prefill_image:', props.prefill_image)
+  // 如果有預填圖片，等待元件完全掛載後再通知子元件
+  if (props.prefill_image) {
+    await nextTick()
+    console.log('[CreateCaptureRecord] after nextTick, formRef.value:', formRef.value)
+    if (formRef.value && formRef.value.setPrefillImage) {
+      console.log('[CreateCaptureRecord] calling setPrefillImage with:', props.prefill_image)
+      formRef.value.setPrefillImage(props.prefill_image)
+      console.log('[CreateCaptureRecord] after setPrefillImage, step should be 2')
+    }
   }
 })
 </script>

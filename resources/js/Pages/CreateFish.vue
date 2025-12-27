@@ -184,11 +184,8 @@ function onFishSubmitted(fishId) {
 
 // 點「記錄捕獲資訊」
 function goToAddCaptureRecord() {
-  router.visit(`/fish/${createdFishId.value}/capture-records/create`, {
-    data: {
-      prefill_image: imageFileName.value,
-    },
-  })
+  const url = `/fish/${createdFishId.value}/capture-records/create?prefill_image=${encodeURIComponent(imageFileName.value)}`
+  router.visit(url)
 }
 
 // 點「稍後再說」或左上角 X
