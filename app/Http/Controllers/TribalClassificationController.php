@@ -6,12 +6,15 @@ use App\Http\Requests\TribalClassificationRequest;
 use App\Models\Fish;
 use App\Models\TribalClassification;
 use App\Services\FishService;
+use App\Traits\HasFishImageUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class TribalClassificationController extends Controller
 {
+    use HasFishImageUrl;
+
     protected $fishService;
 
     public function __construct(FishService $fishService)
@@ -27,8 +30,8 @@ class TribalClassificationController extends Controller
         // 取得指定魚類資訊和部落分類
         $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
         
-        // 使用 FishService 處理圖片 URL
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
         
         // 定義部落和分類選項
         $tribes = config('fish_options.tribes');
@@ -50,8 +53,8 @@ class TribalClassificationController extends Controller
     {
         $fish = Fish::findOrFail($fishId);
         
-        // 使用 FishService 處理圖片 URL
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
         
         // 定義部落和分類選項
         $tribes = config('fish_options.tribes');
@@ -94,8 +97,8 @@ class TribalClassificationController extends Controller
             ->where('id', $classificationId)
             ->firstOrFail();
         
-        // 使用 FishService 處理圖片 URL
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
         
         // 定義部落和分類選項
         $tribes = config('fish_options.tribes');

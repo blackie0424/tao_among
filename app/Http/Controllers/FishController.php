@@ -15,7 +15,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Carbon\Carbon;
 use Inertia\Inertia;
-use App\Models\FishSize;
 use Illuminate\Support\Facades\Log;
 
 class FishController extends Controller
@@ -105,16 +104,6 @@ class FishController extends Controller
         ]);
     }
 
-    public function editSize($id)
-    {
-        // 用 fish_id 查詢 fish_size 物件
-        $fishSize = FishSize::where('fish_id', $id)->firstOrFail();
-        // 回傳編輯畫面，帶入魚類尺寸資訊
-        return Inertia::render('EditFishSize', [
-            'fishSize' => $fishSize
-        ]);
-    }
-
     public function updateName(Request $request, $id)
     {
         $fish = Fish::findOrFail($id);
@@ -133,24 +122,6 @@ class FishController extends Controller
                 'fish' => $fish
             ]
         );
-    }
-
-    public function updateSize(Request $request, $id)
-    {
-        $fish = Fish::findOrFail($id);
-        
-        $request->validate([
-            'parts' => 'array',
-        ]);
-
-        // 找到或創建 FishSize 記錄
-        $fishSize = FishSize::firstOrCreate(['fish_id' => $id]);
-        
-        $fishSize->update([
-            'parts' => $request->parts ?? [],
-        ]);
-
-        return redirect("/fish/{$id}")->with('success', '魚類尺寸更新成功');
     }
 
     public function destroy($id)

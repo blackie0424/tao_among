@@ -2,11 +2,59 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Fish;
 use App\Models\FishSize;
 use App\Http\Requests\FishSizeRequest;
+use App\Services\FishService;
+use App\Traits\HasFishImageUrl;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class FishSizeController extends Controller
 {
+    use HasFishImageUrl;
+
+    protected $fishService;
+
+    public function __construct(FishService $fishService)
+    {
+        $this->fishService = $fishService;
+    }
+
+    /**
+     * Show the form for editing fish size (Inertia).
+     */
+    public function edit($id)
+    {
+        // 用 fish_id 查詢 fish_size 物件
+        $fishSize = FishSize::where('fish_id', $id)->firstOrFail();
+        // 回傳編輯畫面，帶入魚類尺寸資訊
+        return Inertia::render('EditFishSize', [
+            'fishSize' => $fishSize
+        ]);
+    }
+
+    /**
+     * Update fish size (from Inertia form).
+     */
+    public function update(Request $request, $id)
+    {
+        $fish = Fish::findOrFail($id);
+        
+        $request->validate([
+            'parts' => 'array',
+        ]);
+
+        // 找到或創建 FishSize 記錄
+        $fishSize = FishSize::firstOrCreate(['fish_id' => $id]);
+        
+        $fishSize->update([
+            'parts' => $request->parts ?? [],
+        ]);
+
+        return redirect("/fish/{$id}")->with('success', '魚類尺寸更新成功');
+    }
+
     /**
      * 取得指定魚種的尺寸資訊
      *

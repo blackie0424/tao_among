@@ -6,6 +6,7 @@ use App\Http\Controllers\FishAudioController;
 use App\Http\Controllers\KnowledgeHubController;
 use App\Http\Controllers\CaptureRecordController;
 use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\FishSizeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [FishController::class, 'index']);
@@ -24,8 +25,10 @@ Route::get('/fish/{id}/create', [FishNoteController::class,'create']);
 Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit');
 Route::put('/fish/{id}/name', [FishController::class, 'updateName'])->name('fish.updateName');
 Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.destroy');
-Route::get('/fish/{id}/editSize', [FishController::class, 'editSize'])->name('fish.editSize');
-Route::put('/fish/{id}/size', [FishController::class, 'updateSize'])->name('fish.updateSize');
+
+// Fish Size 路由
+Route::get('/fish/{id}/editSize', [FishSizeController::class, 'edit'])->name('fish.editSize');
+Route::put('/fish/{id}/size', [FishSizeController::class, 'update'])->name('fish.updateSize');
 
 // 捕獲紀錄路由
 Route::get('/fish/{id}/capture-records', [CaptureRecordController::class, 'index'])->name('fish.capture-records');

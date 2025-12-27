@@ -7,12 +7,15 @@ use App\Models\Fish;
 use App\Models\CaptureRecord;
 use App\Services\FishService;
 use App\Contracts\StorageServiceInterface;
+use App\Traits\HasFishImageUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CaptureRecordController extends Controller
 {
+    use HasFishImageUrl;
+
     protected $fishService;
     protected $storageService;
 
@@ -30,8 +33,8 @@ class CaptureRecordController extends Controller
         // 取得指定魚類資訊和捕獲紀錄
         $fish = Fish::with('captureRecords')->findOrFail($fishId);
         
-        // 使用 FishService 處理魚類圖片 URL
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        // 使用 Trait 處理魚類圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
         
         // 確保 captureRecords 以正確的鍵名傳遞
         $fishData = $fishWithImage->toArray();
@@ -53,8 +56,8 @@ class CaptureRecordController extends Controller
     {
         $fish = Fish::findOrFail($fishId);
         
-        // 使用 FishService 處理圖片 URL
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
         
         // 定義部落選項
         $tribes = config('fish_options.tribes');
@@ -103,8 +106,8 @@ class CaptureRecordController extends Controller
             ->where('id', $recordId)
             ->firstOrFail();
         
-        // 使用 FishService 處理圖片 URL
-        $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
+        // 使用 Trait 處理圖片 URL
+        $fishWithImage = $this->assignFishImage($fish);
         
         // 定義部落選項
         $tribes = config('fish_options.tribes');
