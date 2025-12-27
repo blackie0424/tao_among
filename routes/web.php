@@ -4,6 +4,8 @@ use App\Http\Controllers\FishController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishAudioController;
 use App\Http\Controllers\KnowledgeHubController;
+use App\Http\Controllers\CaptureRecordController;
+use App\Http\Controllers\TribalClassificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [FishController::class, 'index']);
@@ -26,23 +28,23 @@ Route::get('/fish/{id}/editSize', [FishController::class, 'editSize'])->name('fi
 Route::put('/fish/{id}/size', [FishController::class, 'updateSize'])->name('fish.updateSize');
 
 // 捕獲紀錄路由
-Route::get('/fish/{id}/capture-records', [FishController::class, 'captureRecords'])->name('fish.capture-records');
-Route::get('/fish/{id}/capture-records/create', [FishController::class, 'createCaptureRecord'])->name('fish.capture-records.create');
-Route::post('/fish/{id}/capture-records', [FishController::class, 'storeCaptureRecord'])->name('fish.capture-records.store');
-Route::get('/fish/{id}/capture-records/{record_id}/edit', [FishController::class, 'editCaptureRecord'])->name('fish.capture-records.edit');
-Route::put('/fish/{id}/capture-records/{record_id}', [FishController::class, 'updateCaptureRecord'])->name('fish.capture-records.update');
-Route::delete('/fish/{id}/capture-records/{record_id}', [FishController::class, 'destroyCaptureRecord'])->name('fish.capture-records.destroy');
+Route::get('/fish/{id}/capture-records', [CaptureRecordController::class, 'index'])->name('fish.capture-records');
+Route::get('/fish/{id}/capture-records/create', [CaptureRecordController::class, 'create'])->name('fish.capture-records.create');
+Route::post('/fish/{id}/capture-records', [CaptureRecordController::class, 'store'])->name('fish.capture-records.store');
+Route::get('/fish/{id}/capture-records/{record_id}/edit', [CaptureRecordController::class, 'edit'])->name('fish.capture-records.edit');
+Route::put('/fish/{id}/capture-records/{record_id}', [CaptureRecordController::class, 'update'])->name('fish.capture-records.update');
+Route::delete('/fish/{id}/capture-records/{record_id}', [CaptureRecordController::class, 'destroy'])->name('fish.capture-records.destroy');
 
 // 知識管理路由
 Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index']);
 
-// 地方知識路由
-Route::get('/fish/{id}/tribal-classifications', [FishController::class, 'tribalClassifications'])->name('fish.tribal-classifications');
-Route::get('/fish/{id}/tribal-classifications/create', [FishController::class, 'createTribalClassification'])->name('fish.tribal-classifications.create');
-Route::post('/fish/{id}/tribal-classifications', [FishController::class, 'storeTribalClassification'])->name('fish.tribal-classifications.store');
-Route::get('/fish/{id}/tribal-classifications/{classification_id}/edit', [FishController::class, 'editTribalClassification'])->name('fish.tribal-classifications.edit');
-Route::put('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'updateTribalClassification'])->name('fish.tribal-classifications.update');
-Route::delete('/fish/{id}/tribal-classifications/{classification_id}', [FishController::class, 'destroyTribalClassification'])->name('fish.tribal-classifications.destroy');
+// 地方知識路由（部落分類）
+Route::get('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'indexPage'])->name('fish.tribal-classifications');
+Route::get('/fish/{id}/tribal-classifications/create', [TribalClassificationController::class, 'createPage'])->name('fish.tribal-classifications.create');
+Route::post('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'storePage'])->name('fish.tribal-classifications.store');
+Route::get('/fish/{id}/tribal-classifications/{classification_id}/edit', [TribalClassificationController::class, 'editPage'])->name('fish.tribal-classifications.edit');
+Route::put('/fish/{id}/tribal-classifications/{classification_id}', [TribalClassificationController::class, 'updatePage'])->name('fish.tribal-classifications.update');
+Route::delete('/fish/{id}/tribal-classifications/{classification_id}', [TribalClassificationController::class, 'destroyPage'])->name('fish.tribal-classifications.destroy');
 
 
 // 進階知識管理路由
