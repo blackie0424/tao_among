@@ -5,6 +5,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishSizeController;
 use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\FishMergeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -58,6 +59,10 @@ Route::post('/fish/{fish_id}/tribal-classifications', [TribalClassificationContr
 Route::get('/tribal-classifications/{id}', [TribalClassificationController::class, 'show'])->whereNumber('id');
 Route::put('/tribal-classifications/{id}', [TribalClassificationController::class, 'update'])->whereNumber('id');
 Route::delete('/tribal-classifications/{id}', [TribalClassificationController::class, 'destroy'])->whereNumber('id');
+
+// Fish Merge API routes
+Route::post('/fish/merge/preview', [FishMergeController::class, 'preview']);
+Route::post('/fish/merge', [FishMergeController::class, 'merge']);
 
 
 
