@@ -26,6 +26,9 @@ Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit'
 Route::put('/fish/{id}/name', [FishController::class, 'updateName'])->name('fish.updateName');
 Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.destroy');
 
+// 圖鑑主圖設定路由（傳入 capture_record_id 或 null）
+Route::put('/fish/{id}/display-image', [FishController::class, 'updateDisplayImage'])->name('fish.display-image.update');
+
 // Fish Size 路由
 Route::get('/fish/{id}/editSize', [FishSizeController::class, 'edit'])->name('fish.editSize');
 Route::put('/fish/{id}/size', [FishSizeController::class, 'update'])->name('fish.updateSize');
