@@ -7,14 +7,7 @@
         <div class="flex items-center justify-between w-full gap-2 mb-1">
           <div class="text text-xl text-secondary">魚的尺寸</div>
           <!-- 只有非編輯頁面才顯示 OverflowMenu -->
-          <OverflowMenu
-            v-if="showOverflowMenu"
-            :apiUrl="`/prefix/api/fish/${fishId}`"
-            :redirectUrl="`/`"
-            :fishId="fishId"
-            :showDelete="false"
-            :editUrl="`/fish/${fishId}/editSize`"
-          />
+          <!-- FishSize edit feature has been deprecated -->
         </div>
         <!-- 魚名與 icon 水平排列 -->
         <div

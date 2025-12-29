@@ -27,7 +27,7 @@ import OverflowMenu from '@/Components/OverflowMenu.vue'
 
 const props = defineProps({
   fishName: String,
-  fishId: String,
+  fishId: [String, Number],
   audio: String,
 })
 

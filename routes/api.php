@@ -3,7 +3,7 @@
 use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
-use App\Http\Controllers\FishSizeController;
+// use App\Http\Controllers\FishSizeController; // Deprecated: FishSize feature removed
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\FishMergeController;
 use Illuminate\Http\Request;
@@ -51,8 +51,9 @@ Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'
     ->whereNumber('id')
     ->whereNumber('note_id');
 
-Route::get('/fishSize/{fish_id}', [FishSizeController::class, 'show']);
-Route::post('/fishSize', [FishSizeController::class, 'store']);
+// Deprecated: FishSize feature removed
+// Route::get('/fishSize/{fish_id}', [FishSizeController::class, 'show']);
+// Route::post('/fishSize', [FishSizeController::class, 'store']);
 
 // Tribal Classification API routes
 Route::get('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'index'])->whereNumber('fish_id');

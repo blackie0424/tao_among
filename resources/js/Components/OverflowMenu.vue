@@ -105,7 +105,7 @@ const processing = ref(false)
 const props = defineProps({
   apiUrl: { type: String, required: true },
   redirectUrl: { type: String, default: '' },
-  fishId: { type: String, required: true },
+  fishId: { type: [String, Number], required: true },
   showEdit: { type: Boolean, default: true },
   showDelete: { type: Boolean, default: true },
   editUrl: { type: String, default: '' }, // 新增：外部可設定編輯連結
