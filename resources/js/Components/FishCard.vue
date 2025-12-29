@@ -7,7 +7,7 @@
       <!-- 圖片區域 - 完整貼合上半部 -->
       <div class="relative">
         <LazyImage
-          :src="fish.image_url"
+          :src="fish.display_image_url || fish.image_url"
           :alt="fish.name"
           wrapperClass="w-full h-[170px] flex items-center justify-center bg-gray-100"
           imgClass="w-full h-full object-cover"

@@ -1,13 +1,26 @@
 <template>
   <div class="bg-white rounded-lg shadow-md overflow-hidden">
     <!-- 捕獲照片 -->
-    <div class="aspect-w-16 aspect-h-12 bg-gray-100">
+    <div class="aspect-w-16 aspect-h-12 bg-gray-100 relative">
       <LazyImage
         :src="recordImageUrl"
         :alt="`${record.tribe} 捕獲紀錄`"
         wrapperClass="w-full h-48 bg-gray-100"
         imgClass="w-full h-full object-cover"
       />
+
+      <!-- 當前主圖標記 -->
+      <div
+        v-if="isDisplayImage"
+        class="absolute top-2 left-2 bg-yellow-500 text-white px-3 py-1 rounded-full flex items-center gap-1 text-lg font-bold shadow-lg"
+      >
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+          />
+        </svg>
+        <span>圖鑑主圖</span>
+      </div>
     </div>
 
     <!-- 紀錄資訊 -->
@@ -42,6 +55,24 @@
       <div v-if="record.notes" class="mb-1">
         <span class="text-xl font-medium text-gray-800">備註：{{ record.notes }}</span>
       </div>
+
+      <!-- 設為首圖按鈕 -->
+      <button
+        v-if="!isDisplayImage"
+        @click="setAsDisplayImage"
+        :disabled="isUpdating"
+        class="mt-2 w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-lg font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+          />
+        </svg>
+        <span>{{ isUpdating ? '設定中...' : '設為圖鑑主圖' }}</span>
+      </button>
     </div>
   </div>
 </template>
@@ -49,14 +80,48 @@
 <script setup>
 import LazyImage from './LazyImage.vue'
 import OverflowMenu from './OverflowMenu.vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
   record: Object,
   fishId: Number,
+  displayCaptureRecordId: Number, // 當前設定為圖鑑主圖的捕獲紀錄 ID
 })
 
 const emit = defineEmits(['updated', 'deleted'])
+
+const isUpdating = ref(false)
+
+// 判斷此捕獲紀錄是否為當前圖鑑主圖
+const isDisplayImage = computed(() => {
+  return props.displayCaptureRecordId === props.record.id
+})
+
+// 設定為圖鑑主圖
+function setAsDisplayImage() {
+  if (isUpdating.value) return
+
+  isUpdating.value = true
+
+  router.put(
+    `/fish/${props.fishId}/display-image`,
+    { capture_record_id: props.record.id },
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        emit('updated')
+      },
+      onError: (errors) => {
+        console.error('設定圖鑑主圖失敗:', errors)
+        alert('設定失敗，請稍後再試')
+      },
+      onFinish: () => {
+        isUpdating.value = false
+      },
+    }
+  )
+}
 
 // 處理捕獲紀錄圖片 URL
 const recordImageUrl = computed(() => {
