@@ -20,19 +20,34 @@
       </button>
       <div
         v-if="menuOpen"
-        class="absolute right-0 mt-2 w-48 bg-white border rounded shadow-md z-50"
+        class="absolute right-0 mt-2 w-56 md:w-64 bg-white border rounded-lg shadow-lg z-[9999]"
       >
-        <ul>
+        <ul class="py-1">
           <li
             v-if="showEdit && enableEdit"
             @click="editData"
-            class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-base"
+            class="px-4 py-2.5 hover:bg-gray-100 cursor-pointer text-base md:text-lg transition-colors"
           >
             編輯
           </li>
+          <li v-if="enableSetAsDisplayImage">
+            <button
+              class="w-full text-left px-4 py-2.5 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed text-base md:text-lg transition-colors flex items-center gap-2"
+              :disabled="isDisplayImage || processing"
+              @click="handleSetAsDisplayImage"
+              :title="isDisplayImage ? '已為圖鑑主圖' : '設為圖鑑主圖'"
+            >
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                />
+              </svg>
+              <span>{{ isDisplayImage ? '目前主圖' : '設為圖鑑主圖' }}</span>
+            </button>
+          </li>
           <li v-if="enableSetAsBase">
             <button
-              class="w-full text-left px-4 py-2 hover:bg-gray-50 disabled:opacity-50"
+              class="w-full text-left px-4 py-2.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-base md:text-lg transition-colors"
               :disabled="isBase || isPlaying || processing"
               @click="handleSetAsBase"
               :title="
@@ -46,12 +61,12 @@
               指定為基本發音
             </button>
           </li>
-          <li v-if="showDelete">
+          <li v-if="showDelete" class="border-t border-gray-100 mt-1">
             <button
-              class="w-full text-left px-4 py-2 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-red-600"
-              :disabled="isBase || isPlaying || processing"
+              class="w-full text-left px-4 py-2.5 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-red-600 text-base md:text-lg transition-colors"
+              :disabled="isBase || isPlaying || processing || isDisplayImage"
               @click="deleteData"
-              :title="disableDeleteWhenBase && isBase ? '此檔案已為基本發音，無法刪除' : '刪除'"
+              :title="getDeleteTitle()"
             >
               刪除
             </button>
@@ -106,12 +121,28 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // 捕獲紀錄相關：是否啟用「設為圖鑑主圖」選項
+  enableSetAsDisplayImage: {
+    type: Boolean,
+    default: false,
+  },
+  // 捕獲紀錄相關：是否已為圖鑑主圖
+  isDisplayImage: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['deleted', 'set-as-base'])
+const emit = defineEmits(['deleted', 'set-as-base', 'set-as-display-image'])
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
+}
+
+function getDeleteTitle() {
+  if (props.isDisplayImage) return '此捕獲紀錄為圖鑑主圖，無法刪除'
+  if (props.disableDeleteWhenBase && props.isBase) return '此檔案已為基本發音，無法刪除'
+  return '刪除'
 }
 
 // 編輯連結由外部設定，預設為 /fish/{fishId}/edit
@@ -143,6 +174,16 @@ async function handleSetAsBase() {
   } finally {
     processing.value = false
   }
+}
+
+/**
+ * 設為圖鑑主圖
+ */
+function handleSetAsDisplayImage() {
+  if (props.isDisplayImage || processing.value) return
+
+  emit('set-as-display-image')
+  menuOpen.value = false
 }
 
 /**
