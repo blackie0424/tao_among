@@ -12,7 +12,7 @@
 
           <!-- 三點選單 -->
           <OverflowMenu
-            :apiUrl="`/prefix/api/tribal-classifications/${classification.id}`"
+            :apiUrl="`/fish/${fishId}/tribal-classifications/${classification.id}`"
             :fishId="classification.fish_id.toString()"
             :editUrl="`/fish/${fishId}/tribal-classifications/${classification.id}/edit`"
             @deleted="$emit('deleted')"
