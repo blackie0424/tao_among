@@ -206,7 +206,7 @@ class FishController extends Controller
 
     /**
      * 顯示魚類合併頁面
-     * 
+     *
      * @param int $id 目標魚類 ID
      * @return \Inertia\Response
      */
@@ -237,5 +237,3 @@ class FishController extends Controller
     }
 
 }
-
-

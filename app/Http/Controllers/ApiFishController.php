@@ -317,7 +317,7 @@ class ApiFishController extends Controller
 
     /**
      * 搜尋魚類（用於合併頁面選擇器）
-     * 
+     *
      * @OA\Get(
      *     path="/prefix/api/fishs/search",
      *     summary="搜尋魚類（合併頁面）",
@@ -350,19 +350,19 @@ class ApiFishController extends Controller
             ], 400);
         }
 
-        $fishes = Fish::where(function($q) use ($query) {
+        $fishes = Fish::where(function ($q) use ($query) {
             $q->where('name_zh_tw', 'LIKE', "%{$query}%")
               ->orWhere('name_zh_cn', 'LIKE', "%{$query}%")
               ->orWhere('name_en', 'LIKE', "%{$query}%")
               ->orWhere('name_amis', 'LIKE', "%{$query}%");
         })
-        ->when($excludeId, function($q) use ($excludeId) {
+        ->when($excludeId, function ($q) use ($excludeId) {
             $q->where('id', '!=', $excludeId);
         })
         ->with('captureRecords:id,fish_id,image_url')
         ->limit(20)
         ->get()
-        ->map(function($fish) {
+        ->map(function ($fish) {
             return [
                 'id' => $fish->id,
                 'name_zh_tw' => $fish->name_zh_tw,
@@ -379,4 +379,3 @@ class ApiFishController extends Controller
         ]);
     }
 }
-
