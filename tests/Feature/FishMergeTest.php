@@ -116,8 +116,8 @@ it('情境 A-1：無衝突時全部資料成功合併', function () {
     ]);
     TribalClassification::create([
         'fish_id' => $source->id,
-        'tribe' => 'iranmeylek',
-        'food_category' => 'x',
+        'tribe' => 'iranmeilek',
+        'food_category' => '不食用',
         'processing_method' => '不食用',
     ]);
 
@@ -141,7 +141,7 @@ it('情境 A-1：無衝突時全部資料成功合併', function () {
 
     // 驗證部落分類全部保留
     expect(TribalClassification::where('fish_id', $target->id)->pluck('tribe')->toArray())
-        ->toContain('ivalino', 'yayo', 'iraraley', 'iranmeylek');
+        ->toContain('ivalino', 'yayo', 'iraraley', 'iranmeilek');
 
     // 驗證來源魚類被軟刪除
     expect(Fish::find($source->id))->toBeNull();
