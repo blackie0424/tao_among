@@ -22,6 +22,7 @@ Route::get('/health-check', function () {
 
 // 將 fish 相關 API 路由指向 ApiFishController
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
+Route::get('/fishs/search', [ApiFishController::class, 'search']);
 Route::post('/fish', [ApiFishController::class, 'store']);
 Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
 Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
