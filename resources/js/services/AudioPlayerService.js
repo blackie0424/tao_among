@@ -361,7 +361,16 @@ class AudioPlayerService {
       if (audioElement.canPlayType) {
         const mimeType = this.getMimeTypeFromUrl(audioUrl)
         if (mimeType && audioElement.canPlayType(mimeType) === '') {
-          throw new Error(`瀏覽器不支援此音頻格式: ${mimeType}`)
+          // 提供更友善的錯誤訊息
+          const format = audioUrl.split('.').pop()?.toUpperCase()
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+
+          if (isIOS && mimeType === 'audio/webm') {
+            throw new Error(
+              `iOS Safari 不支援 ${format} 格式，請使用桌面瀏覽器播放或聯繫管理員轉換檔案為 MP3 格式`
+            )
+          }
+          throw new Error(`瀏覽器不支援此音頻格式 (${format})，建議使用 MP3 格式`)
         }
       }
 
@@ -451,13 +460,14 @@ class AudioPlayerService {
     }
 
     const mimeTypes = {
-      mp3: 'audio/mpeg',
-      wav: 'audio/wav',
-      ogg: 'audio/ogg',
-      webm: 'audio/webm',
-      m4a: 'audio/mp4',
-      aac: 'audio/aac',
-      flac: 'audio/flac',
+      mp3: 'audio/mpeg', // MP3 格式（全平台播放，但 iOS 無法錄製）
+      wav: 'audio/wav', // WAV 格式（未壓縮，檔案巨大）
+      ogg: 'audio/ogg', // OGG 格式（iOS 不支援）
+      webm: 'audio/webm', // WebM 格式（iOS 不支援）
+      m4a: 'audio/mp4', // M4A 格式（AAC 編碼，iOS 最佳選擇）
+      mp4: 'audio/mp4', // MP4 音頻（與 M4A 相同）
+      aac: 'audio/aac', // 純 AAC 格式
+      flac: 'audio/flac', // FLAC 無損格式（有限支援）
     }
 
     formatInfo.mimeType = mimeTypes[extension]

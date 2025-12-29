@@ -40,7 +40,7 @@ class UploadController extends Controller
     *     @OA\JsonContent(
     *       required={"fish_id"},
     *       @OA\Property(property="fish_id", type="integer", example=1, minimum=1),
-    *       @OA\Property(property="ext", type="string", example="webm", enum={"webm","mp3","wav","m4a","mp4"})
+    *       @OA\Property(property="ext", type="string", example="m4a", enum={"m4a","mp3","wav","mp4","aac"})
     *     )
     *   ),
     *   @OA\Response(
@@ -402,8 +402,11 @@ class UploadController extends Controller
                 'string',
                 function ($attribute, $value, $fail) {
                     $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
-                    if (!in_array($ext, ['mp3', 'wav','webm','m4a','mp4'])) {
-                        $fail('音訊檔案格式僅限 mp3, wav, webm, m4a,mp4。');
+                    // m4a: AAC 編碼的音頻檔案（iOS、Chrome、Firefox、Edge 全支援）【推薦】
+                    // mp3: 通用音頻格式（全平台播放支援，但瀏覽器無法直接錄製）
+                    // aac: 純 AAC 格式（部分瀏覽器支援）
+                    if (!in_array($ext, ['mp3', 'wav', 'm4a', 'mp4', 'aac'])) {
+                        $fail('音訊檔案格式僅限 mp3, wav, webm, m4a, mp4, aac。');
                     }
                 }
             ],

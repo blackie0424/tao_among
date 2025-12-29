@@ -94,11 +94,11 @@ describe('getUrl 方法 - 音訊路徑測試', function () {
         putenv('SUPABASE_AUDIO_FOLDER=prod-audio');
         
         $service = new SupabaseStorageService();
-        $url = $service->getUrl('audios', 'prod-sound.webm', null);
-        
+        $url = $service->getUrl('audios', 'prod-sound.m4a', null);
+
         expect($url)
-            ->toContain('/prod-audio/prod-sound.webm')
-            ->not->toContain('/audio/prod-sound.webm');
+            ->toContain('/prod-audio/prod-sound.m4a')
+            ->not->toContain('/audio/prod-sound.m4a');
     });
     
     it('audio 和 audios 類型都使用相同的資料夾', function () {

@@ -13,7 +13,7 @@ it('可以建立 fishAudio 資料並正確存取', function () {
     // 建立一個 fishAudio 物件
     $audio = FishAudio::create([
         'fish_id' => $fish->id,
-        'name' => 'https://example.com/audio/test.webm',
+        'name' => 'https://example.com/audio/test.m4a',
         'locate' => 'yayo',
     ]);
 
@@ -21,7 +21,7 @@ it('可以建立 fishAudio 資料並正確存取', function () {
     $this->assertDatabaseHas('fish_audios', [
         'id' => $audio->id,
         'fish_id' => $fish->id,
-        'name' => 'https://example.com/audio/test.webm',
+        'name' => 'https://example.com/audio/test.m4a',
         'locate' => 'yayo',
     ]);
 });
