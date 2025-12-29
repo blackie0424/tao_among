@@ -28,10 +28,52 @@
                 </span>
               </div>
               <div class="flex items-center">
-                <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                <span class="text-gray-700"> 涵蓋 {{ uniqueTribes.length }} 個部落 </span>
+                <span
+                  :class="[
+                    'inline-block w-3 h-3 rounded-full mr-2',
+                    isAllTribesRecorded ? 'bg-green-500' : 'bg-gray-400',
+                  ]"
+                ></span>
+                <span
+                  :class="['font-medium', isAllTribesRecorded ? 'text-green-700' : 'text-gray-700']"
+                >
+                  涵蓋 {{ uniqueTribes.length }} / {{ totalTribesCount }} 個部落
+                  <span v-if="isAllTribesRecorded" class="ml-1 text-green-600">✓</span>
+                </span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 完成狀態提示 -->
+      <div
+        v-if="isAllTribesRecorded"
+        class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4 mb-6 shadow-sm"
+      >
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg
+              class="w-8 h-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <div class="ml-4 flex-1">
+            <h3 class="text-lg font-bold text-green-800 mb-1">✨ 已完成所有部落的地方知識記錄</h3>
+            <p class="text-sm text-green-700">
+              您已完整記錄 <span class="font-semibold">{{ totalTribesCount }}</span> 個部落對於「{{
+                fish.name
+              }}」的飲食分類與處理方式資料
+            </p>
           </div>
         </div>
       </div>
@@ -70,8 +112,9 @@
       </div>
     </div>
 
-    <!-- 新增地方知識 FAB 按鈕 -->
+    <!-- 新增地方知識 FAB 按鈕（僅在未完成時顯示） -->
     <FabButton
+      v-if="!isAllTribesRecorded"
       bgClass="bg-green-600"
       hoverClass="hover:bg-green-700"
       textClass="text-white"
@@ -107,11 +150,19 @@ const props = defineProps({
   processingMethods: Array,
 })
 
+// 部落總數
+const totalTribesCount = computed(() => props.tribes?.length || 6)
+
 // 計算已涵蓋的部落數量
 const uniqueTribes = computed(() => {
   if (!props.fish.tribal_classifications) return []
   const tribes = props.fish.tribal_classifications.map((c) => c.tribe)
   return [...new Set(tribes)]
+})
+
+// 判斷是否已完成所有部落的記錄
+const isAllTribesRecorded = computed(() => {
+  return uniqueTribes.value.length >= totalTribesCount.value
 })
 
 function onClassificationUpdated() {
