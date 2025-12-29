@@ -23,3 +23,7 @@ yarn-error.log
 .vercel
 /coverage
 /vendor
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
