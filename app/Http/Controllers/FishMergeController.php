@@ -19,7 +19,7 @@ class FishMergeController extends Controller
 
     /**
      * 預覽合併操作
-     * 
+     *
      * @OA\Post(
      *     path="/prefix/api/fish/merge/preview",
      *     summary="預覽魚類合併操作",
@@ -102,7 +102,7 @@ class FishMergeController extends Controller
 
     /**
      * 執行合併操作
-     * 
+     *
      * @OA\Post(
      *     path="/prefix/api/fish/merge",
      *     summary="執行魚類合併",

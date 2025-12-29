@@ -6,6 +6,7 @@
         :apiUrl="`/fish/${fishId}`"
         :redirectUrl="`/fishs`"
         :fishId="fishId"
+        :enableMergeFish="true"
         @deleted="onFishDeleted"
       />
     </div>

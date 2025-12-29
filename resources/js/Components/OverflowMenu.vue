@@ -61,6 +61,24 @@
               指定為基本發音
             </button>
           </li>
+          <li v-if="enableMergeFish" class="border-t border-gray-100">
+            <button
+              class="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-base md:text-lg transition-colors flex items-center gap-2"
+              @click="handleMergeFish"
+              :disabled="processing"
+              title="合併重複的魚類資料"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                />
+              </svg>
+              <span>合併重複魚類</span>
+            </button>
+          </li>
           <li v-if="showDelete" class="border-t border-gray-100 mt-1">
             <button
               class="w-full text-left px-4 py-2.5 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-red-600 text-base md:text-lg transition-colors"
@@ -131,9 +149,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // 魚類合併：是否啟用「合併重複魚類」選項
+  enableMergeFish: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['deleted', 'set-as-base', 'set-as-display-image'])
+const emit = defineEmits(['deleted', 'set-as-base', 'set-as-display-image', 'merge-fish'])
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
@@ -184,6 +207,14 @@ function handleSetAsDisplayImage() {
 
   emit('set-as-display-image')
   menuOpen.value = false
+}
+
+/**
+ * 合併魚類
+ */
+function handleMergeFish() {
+  menuOpen.value = false
+  router.visit(`/fish/${props.fishId}/merge`)
 }
 
 /**

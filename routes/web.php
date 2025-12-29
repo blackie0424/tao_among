@@ -18,6 +18,8 @@ Route::post('/fish', [FishController::class, 'store'])->name('fish.store');
 
 Route::get('/fish/{id}', [FishController::class, 'getFish']);
 Route::get('/fish/{id}/createAudio', [FishAudioController::class,'create'])->name('fish.audio.create');
+Route::get('/fish/{id}/merge', [FishController::class, 'showMergePage'])->name('fish.merge.page');
+
 
 
 

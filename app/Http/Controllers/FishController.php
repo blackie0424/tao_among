@@ -204,4 +204,35 @@ class FishController extends Controller
         return back()->with('success', '已設定為圖鑑主圖');
     }
 
-}
+    /**
+     * 顯示魚類合併頁面
+     * 
+     * @param int $id 目標魚類 ID
+     * @return \Inertia\Response
+     */
+    public function showMergePage($id)
+    {
+        $fish = Fish::with(['fishSize', 'captureRecords'])
+            ->findOrFail($id);
+
+        // 取得圖鑑主圖 URL
+        $imageUrl = null;
+        if ($fish->display_capture_record_id) {
+            $displayRecord = $fish->captureRecords->firstWhere('id', $fish->display_capture_record_id);
+            $imageUrl = $displayRecord?->image_url;
+        } elseif ($fish->captureRecords->isNotEmpty()) {
+            $imageUrl = $fish->captureRecords->first()->image_url;
+        }
+
+        return Inertia::render('MergeFish', [
+            'fish' => [
+                'id' => $fish->id,
+                'name_zh_tw' => $fish->name_zh_tw,
+                'name_zh_cn' => $fish->name_zh_cn,
+                'name_en' => $fish->name_en,
+                'name_amis' => $fish->name_amis,
+                'image_url' => $imageUrl,
+            ],
+        ]);
+    }
+
