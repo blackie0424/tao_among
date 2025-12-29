@@ -199,7 +199,7 @@ async function deleteData() {
 
   if (!confirm('確定要刪除此項目嗎？')) return
 
-  console.log('開始刪除操作，API URL:', props.apiUrl)
+  processing.value = true
 
   // 使用 POST 配合 _method 來模擬 DELETE 請求
   router.post(
@@ -208,11 +208,8 @@ async function deleteData() {
       _method: 'DELETE',
     },
     {
-      onStart: () => {
-        console.log('刪除請求開始')
-      },
+      preserveScroll: true,
       onSuccess: (page) => {
-        console.log('刪除成功，響應:', page)
         if (props.redirectUrl) {
           router.visit('/fishs')
         } else {
@@ -220,12 +217,6 @@ async function deleteData() {
         }
       },
       onError: (errors) => {
-        console.error('刪除錯誤詳情:', {
-          errors,
-          apiUrl: props.apiUrl,
-          timestamp: new Date().toISOString(),
-        })
-
         // 改進錯誤消息處理
         let errorMessage = '刪除失敗'
         if (errors.message) {
@@ -241,7 +232,7 @@ async function deleteData() {
         alert(errorMessage)
       },
       onFinish: () => {
-        console.log('刪除請求完成')
+        processing.value = false
       },
     }
   )
