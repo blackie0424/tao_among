@@ -175,4 +175,33 @@ class FishController extends Controller
         }
     }
 
+    /**
+     * 更新圖鑑顯示圖片（在不同捕獲紀錄之間切換）
+     *
+     * 注意：此 API 不支援傳入 null 重設為原始圖片
+     * 重設為 null 只會由系統自動處理（ON DELETE SET NULL 或軟刪除 fallback）
+     */
+    public function updateDisplayImage(Request $request, $id)
+    {
+        $request->validate([
+            'capture_record_id' => 'required|integer|exists:capture_records,id'
+        ]);
+
+        $fish = Fish::findOrFail($id);
+        $captureRecordId = $request->input('capture_record_id');
+
+        // 驗證捕獲紀錄是否屬於這條魚
+        $captureRecord = $fish->captureRecords()->where('id', $captureRecordId)->first();
+        
+        if (!$captureRecord) {
+            return back()->withErrors(['capture_record_id' => '捕獲紀錄不屬於此魚類']);
+        }
+
+        $fish->update([
+            'display_capture_record_id' => $captureRecordId
+        ]);
+
+        return back()->with('success', '已設定為圖鑑主圖');
+    }
+
 }

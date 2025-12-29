@@ -24,9 +24,9 @@ class Fish extends Model
      */
     protected $table = 'fish';
 
-    protected $fillable = ['name', 'image', 'audio_filename'];
+    protected $fillable = ['name', 'image', 'audio_filename', 'display_capture_record_id'];
 
-    protected $appends = ['image_url','audio_url'];
+    protected $appends = ['image_url','audio_url', 'display_image_url'];
 
     protected static function booted()
     {
@@ -97,6 +97,12 @@ class Fish extends Model
         return $this->hasMany(CaptureRecord::class, 'fish_id');
     }
 
+    // 多對一關聯：使用者選擇的圖鑑展示圖片（參考捕獲紀錄）
+    public function displayCaptureRecord()
+    {
+        return $this->belongsTo(CaptureRecord::class, 'display_capture_record_id');
+    }
+
     // 確保關聯在序列化時保持 camelCase 命名
     protected function serializeDate(\DateTimeInterface $date)
     {
@@ -135,6 +141,31 @@ class Fish extends Model
                 }
                 
                 return app(StorageServiceInterface::class)->getUrl('audios', $attributes['audio_filename'], null);
+            }
+        );
+    }
+
+    /**
+     * 取得圖鑑要顯示的圖片 URL
+     * 優先顯示使用者選擇的捕獲紀錄圖片，否則顯示 Fish 自己的圖片
+     * 呼叫方式: $fish->display_image_url
+     */
+    protected function displayImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                // 優先：使用者選擇的捕獲紀錄圖片
+                if ($this->display_capture_record_id) {
+                    $record = $this->displayCaptureRecord;
+                    
+                    // 確保紀錄存在且未被軟刪除
+                    if ($record && !$record->trashed()) {
+                        return $record->image_url;
+                    }
+                }
+                
+                // 回退：使用 Fish 自己的圖片
+                return $this->image_url;
             }
         );
     }

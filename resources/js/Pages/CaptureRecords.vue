@@ -71,6 +71,7 @@
             :key="record.id"
             :record="record"
             :fishId="fish.id"
+            :displayCaptureRecordId="fish.display_capture_record_id"
             @updated="onRecordUpdated"
             @deleted="onRecordDeleted"
           />
