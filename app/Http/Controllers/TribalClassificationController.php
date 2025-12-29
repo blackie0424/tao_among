@@ -51,19 +51,26 @@ class TribalClassificationController extends Controller
      */
     public function createPage($fishId)
     {
-        $fish = Fish::findOrFail($fishId);
+        $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
         
         // 使用 Trait 處理圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
         
         // 定義部落和分類選項
-        $tribes = config('fish_options.tribes');
+        $allTribes = config('fish_options.tribes');
         $foodCategories = config('fish_options.food_categories');
         $processingMethods = config('fish_options.processing_methods');
         
+        // 取得已記錄的部落
+        $usedTribes = $fish->tribalClassifications->pluck('tribe')->toArray();
+        
+        // 過濾出尚未記錄的部落
+        $availableTribes = array_values(array_diff($allTribes, $usedTribes));
+        
         return Inertia::render('CreateTribalClassification', [
             'fish' => $fishWithImage,
-            'tribes' => $tribes,
+            'tribes' => $availableTribes,
+            'usedTribes' => $usedTribes,
             'foodCategories' => $foodCategories,
             'processingMethods' => $processingMethods
         ]);
@@ -75,6 +82,17 @@ class TribalClassificationController extends Controller
     public function storePage(TribalClassificationRequest $request, $fishId)
     {
         $fish = Fish::findOrFail($fishId);
+        
+        // 檢查是否已存在相同部落的分類
+        $existingClassification = TribalClassification::where('fish_id', $fish->id)
+            ->where('tribe', $request->tribe)
+            ->first();
+            
+        if ($existingClassification) {
+            return redirect()->back()
+                ->withErrors(['tribe' => '此魚類已有該部落的地方知識記錄，請直接編輯現有記錄或選擇其他部落。'])
+                ->withInput();
+        }
         
         TribalClassification::create([
             'fish_id' => $fish->id,
@@ -178,7 +196,20 @@ class TribalClassificationController extends Controller
 
         $validated = $request->validated();
 
-        // 檢查是否已存在相同部落的分類（允許同部落多筆記錄）
+        // 檢查是否已存在相同部落的分類
+        $existingClassification = TribalClassification::where('fish_id', $fish->id)
+            ->where('tribe', $validated['tribe'])
+            ->first();
+            
+        if ($existingClassification) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => [
+                    'tribe' => ['此魚類已有該部落的地方知識記錄，請直接編輯現有記錄或選擇其他部落。']
+                ]
+            ], 422);
+        }
+        
         $classification = TribalClassification::create([
             'fish_id' => $fish->id,
             'tribe' => $validated['tribe'],

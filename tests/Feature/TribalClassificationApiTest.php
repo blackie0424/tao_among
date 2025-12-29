@@ -294,7 +294,14 @@ describe('Tribal Classification API', function () {
         $response2 = $this->postJson("/prefix/api/fish/{$fish->id}/tribal-classifications", $data2);
 
         $response1->assertStatus(201);
-        $response2->assertStatus(500); // Should fail due to unique constraint
+        $response2->assertStatus(422); // Should return validation error
+        
+        $response2->assertJson([
+            'message' => 'Validation failed',
+            'errors' => [
+                'tribe' => ['此魚類已有該部落的地方知識記錄，請直接編輯現有記錄或選擇其他部落。']
+            ]
+        ]);
 
         $this->assertDatabaseCount('tribal_classifications', 1);
     });
