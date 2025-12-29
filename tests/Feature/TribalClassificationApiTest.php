@@ -305,4 +305,51 @@ describe('Tribal Classification API', function () {
 
         $this->assertDatabaseCount('tribal_classifications', 1);
     });
+
+    it('can restore soft deleted classification when creating with same tribe', function () {
+        $fish = Fish::factory()->create();
+        
+        // 建立第一筆記錄
+        $data1 = [
+            'tribe' => 'iraraley',
+            'food_category' => 'oyod',
+            'notes' => 'First classification'
+        ];
+        
+        $response1 = $this->postJson("/prefix/api/fish/{$fish->id}/tribal-classifications", $data1);
+        $response1->assertStatus(201);
+        
+        $classificationId = $response1->json('data.id');
+        
+        // 刪除記錄（軟刪除）
+        $deleteResponse = $this->deleteJson("/prefix/api/tribal-classifications/{$classificationId}");
+        $deleteResponse->assertStatus(200);
+        
+        // 驗證記錄被軟刪除
+        $this->assertSoftDeleted('tribal_classifications', ['id' => $classificationId]);
+        
+        // 使用相同部落建立新記錄（應該恢復軟刪除的記錄）
+        $data2 = [
+            'tribe' => 'iraraley',
+            'food_category' => 'rahet',
+            'notes' => 'Second classification - should restore'
+        ];
+        
+        $response2 = $this->postJson("/prefix/api/fish/{$fish->id}/tribal-classifications", $data2);
+        $response2->assertStatus(201);
+        
+        // 驗證記錄被恢復且資料已更新
+        $this->assertDatabaseHas('tribal_classifications', [
+            'id' => $classificationId,
+            'fish_id' => $fish->id,
+            'tribe' => 'iraraley',
+            'food_category' => 'rahet',
+            'notes' => 'Second classification - should restore',
+            'deleted_at' => null
+        ]);
+        
+        // 驗證只有一筆記錄（恢復的，不是新建的）
+        $this->assertDatabaseCount('tribal_classifications', 1);
+        expect($response2->json('data.id'))->toBe($classificationId);
+    });
 });

@@ -83,7 +83,7 @@ class TribalClassificationController extends Controller
     {
         $fish = Fish::findOrFail($fishId);
         
-        // 檢查是否已存在相同部落的分類
+        // 檢查是否已存在相同部落的分類（不包含軟刪除）
         $existingClassification = TribalClassification::where('fish_id', $fish->id)
             ->where('tribe', $request->tribe)
             ->first();
@@ -94,15 +94,32 @@ class TribalClassificationController extends Controller
                 ->withInput();
         }
         
-        TribalClassification::create([
-            'fish_id' => $fish->id,
-            'tribe' => $request->tribe,
-            'food_category' => $request->food_category ?? '',
-            'processing_method' => $request->processing_method ?? '',
-            'notes' => $request->notes
-        ]);
+        // 檢查是否有軟刪除的記錄，若有則恢復並更新
+        $trashedClassification = TribalClassification::onlyTrashed()
+            ->where('fish_id', $fish->id)
+            ->where('tribe', $request->tribe)
+            ->first();
+            
+        if ($trashedClassification) {
+            // 恢復軟刪除的記錄並更新資料
+            $trashedClassification->restore();
+            $trashedClassification->update([
+                'food_category' => $request->food_category ?? '',
+                'processing_method' => $request->processing_method ?? '',
+                'notes' => $request->notes
+            ]);
+        } else {
+            // 建立新記錄
+            TribalClassification::create([
+                'fish_id' => $fish->id,
+                'tribe' => $request->tribe,
+                'food_category' => $request->food_category ?? '',
+                'processing_method' => $request->processing_method ?? '',
+                'notes' => $request->notes
+            ]);
+        }
 
-        return redirect()->back()->with('success', '部落分類新增成功');
+        return redirect()->route('fish.tribal-classifications', ['id' => $fish->id]);
     }
 
     /**
@@ -162,7 +179,7 @@ class TribalClassificationController extends Controller
             
         $classification->delete();
 
-        return redirect()->back()->with('success', '部落分類刪除成功');
+        return redirect()->back();
     }
 
     /**
@@ -196,7 +213,7 @@ class TribalClassificationController extends Controller
 
         $validated = $request->validated();
 
-        // 檢查是否已存在相同部落的分類
+        // 檢查是否已存在相同部落的分類（不包含軟刪除）
         $existingClassification = TribalClassification::where('fish_id', $fish->id)
             ->where('tribe', $validated['tribe'])
             ->first();
@@ -210,13 +227,31 @@ class TribalClassificationController extends Controller
             ], 422);
         }
         
-        $classification = TribalClassification::create([
-            'fish_id' => $fish->id,
-            'tribe' => $validated['tribe'],
-            'food_category' => $validated['food_category'] ?? '',
-            'processing_method' => $validated['processing_method'] ?? '',
-            'notes' => $validated['notes']
-        ]);
+        // 檢查是否有軟刪除的記錄，若有則恢復並更新
+        $trashedClassification = TribalClassification::onlyTrashed()
+            ->where('fish_id', $fish->id)
+            ->where('tribe', $validated['tribe'])
+            ->first();
+            
+        if ($trashedClassification) {
+            // 恢復軟刪除的記錄並更新資料
+            $trashedClassification->restore();
+            $trashedClassification->update([
+                'food_category' => $validated['food_category'] ?? '',
+                'processing_method' => $validated['processing_method'] ?? '',
+                'notes' => $validated['notes']
+            ]);
+            $classification = $trashedClassification->fresh();
+        } else {
+            // 建立新記錄
+            $classification = TribalClassification::create([
+                'fish_id' => $fish->id,
+                'tribe' => $validated['tribe'],
+                'food_category' => $validated['food_category'] ?? '',
+                'processing_method' => $validated['processing_method'] ?? '',
+                'notes' => $validated['notes']
+            ]);
+        }
 
         return response()->json([
             'message' => 'Tribal classification created successfully',

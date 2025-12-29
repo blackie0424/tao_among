@@ -167,11 +167,11 @@ const isAllTribesRecorded = computed(() => {
 
 function onClassificationUpdated() {
   // 重新載入頁面以顯示更新的分類
-  router.reload()
+  router.reload({ only: ['fish'], preserveScroll: true })
 }
 
 function onClassificationDeleted() {
   // 重新載入頁面以移除刪除的分類
-  router.reload()
+  router.reload({ only: ['fish'], preserveScroll: true })
 }
 </script>
