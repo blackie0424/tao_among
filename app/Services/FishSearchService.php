@@ -186,6 +186,7 @@ class FishSearchService
         // 基底查詢：僅主表避免不必要 eager（FR-009）
         // 重要：需選出 image 欄位，否則模型 accessor 無法判斷是否有自訂圖片，會一律回傳預設圖
         // 同時帶出 has_webp（若資料表有此欄位），可讓 accessor 選擇 webp
+        // 加入 display_capture_record_id 以支援圖鑑主圖選擇功能
         $selects = ['id','name','image'];
         if (Schema::hasColumn('fish', 'has_webp')) {
             $selects[] = 'has_webp';
@@ -194,9 +195,16 @@ class FishSearchService
         if (Schema::hasColumn('fish', 'audio_filename')) {
             $selects[] = 'audio_filename';
         }
+        // 加入圖鑑主圖選擇欄位
+        if (Schema::hasColumn('fish', 'display_capture_record_id')) {
+            $selects[] = 'display_capture_record_id';
+        }
         $query = Fish::query()
             ->select($selects)
-            ->with('tribalClassifications:id,fish_id,tribe,food_category')
+            ->with([
+                'tribalClassifications:id,fish_id,tribe,food_category',
+                'displayCaptureRecord:id,image_path' // 預載圖鑑主圖關聯（僅需 id 和 image_path）
+            ])
             ->orderByDesc('id');
 
         // 模糊/等值條件（FR-003）
