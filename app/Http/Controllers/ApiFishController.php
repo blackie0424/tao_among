@@ -378,3 +378,5 @@ class ApiFishController extends Controller
             'data' => $fishes,
         ]);
     }
+}
+
