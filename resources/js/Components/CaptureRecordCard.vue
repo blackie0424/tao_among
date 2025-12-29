@@ -1,7 +1,7 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md overflow-hidden">
+  <div class="bg-white rounded-lg shadow-md overflow-visible relative">
     <!-- 捕獲照片 -->
-    <div class="aspect-w-16 aspect-h-12 bg-gray-100 relative">
+    <div class="aspect-w-16 aspect-h-12 bg-gray-100 relative overflow-hidden rounded-t-lg">
       <LazyImage
         :src="recordImageUrl"
         :alt="`${record.tribe} 捕獲紀錄`"
@@ -27,52 +27,39 @@
     <div class="p-4">
       <!-- 部落標籤和選單 -->
       <div class="flex items-center mb-1">
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-2 flex-1 min-w-0">
           <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-lg font-medium bg-blue-100 text-blue-800"
+            class="inline-flex items-center px-3 py-1 rounded-full text-base md:text-lg font-medium bg-blue-100 text-blue-800 truncate"
           >
             {{ displayLabel }}
           </span>
           <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-lg font-medium bg-green-100 text-green-800"
+            class="inline-flex items-center px-3 py-1 rounded-full text-base md:text-lg font-medium bg-green-100 text-green-800 truncate"
           >
             {{ record.capture_method }}
           </span>
         </div>
 
         <!-- 三點選單：靠右 -->
-        <div class="ml-auto">
+        <div class="ml-2 flex-shrink-0">
           <OverflowMenu
             :apiUrl="`/fish/${fishId}/capture-records/${record.id}`"
             :fishId="fishId.toString()"
             :editUrl="`/fish/${fishId}/capture-records/${record.id}/edit`"
+            :enableSetAsDisplayImage="true"
+            :isDisplayImage="isDisplayImage"
             @deleted="$emit('deleted')"
+            @set-as-display-image="setAsDisplayImage"
           />
         </div>
       </div>
 
       <!-- 備註 -->
       <div v-if="record.notes" class="mb-1">
-        <span class="text-xl font-medium text-gray-800">備註：{{ record.notes }}</span>
+        <span class="text-lg md:text-xl font-medium text-gray-800 break-words"
+          >備註：{{ record.notes }}</span
+        >
       </div>
-
-      <!-- 設為首圖按鈕 -->
-      <button
-        v-if="!isDisplayImage"
-        @click="setAsDisplayImage"
-        :disabled="isUpdating"
-        class="mt-2 w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-lg font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-          />
-        </svg>
-        <span>{{ isUpdating ? '設定中...' : '設為圖鑑主圖' }}</span>
-      </button>
     </div>
   </div>
 </template>
