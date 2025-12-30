@@ -80,11 +80,26 @@ class FishMergeService
             }
         }
         
+        // 扁平化衝突資料為前端期望的格式
+        $flattenedConflicts = [];
+        foreach ($conflicts as $conflictType => $conflictItems) {
+            foreach ($conflictItems as $conflict) {
+                $flattenedConflicts[] = [
+                    'type' => $conflictType,
+                    'message' => $this->getConflictMessage($conflictType, $conflict),
+                ];
+            }
+        }
+        
         return [
             'target' => $target,
             'sources' => $sources,
-            'conflicts' => $conflicts,
+            'conflicts' => $flattenedConflicts,
             'summary' => $summary,
+            // 為前端提供正確的欄位名稱
+            'notes_count' => $summary['notes_to_transfer'],
+            'audios_count' => $summary['audios_to_transfer'],
+            'capture_records_count' => $summary['records_to_transfer'],
         ];
     }
     
@@ -230,5 +245,22 @@ class FishMergeService
             'valid' => empty($errors),
             'errors' => $errors,
         ];
+    }
+
+    /**
+     * 生成衝突訊息
+     */
+    private function getConflictMessage(string $conflictType, array $conflict): string
+    {
+        switch ($conflictType) {
+            case 'tribal_classifications':
+                return "魚類 #{$conflict['source_fish_id']} 與主要魚類都有部落「{$conflict['tribe']}」的分類資料";
+            
+            case 'fish_size':
+                return "魚類 #{$conflict['source_fish_id']} 與主要魚類都有體型資料";
+            
+            default:
+                return "發現資料衝突";
+        }
     }
 }
