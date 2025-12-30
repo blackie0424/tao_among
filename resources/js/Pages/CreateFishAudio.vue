@@ -127,16 +127,19 @@ function startRecording() {
     .getUserMedia({ audio: true })
     .then(async (_stream) => {
       stream = _stream
-      // 判斷支援格式
+      // 判斷支援格式，全平台統一優先使用 M4A (AAC 編碼)
       let mimeType = ''
-      if (MediaRecorder.isTypeSupported('audio/webm')) {
-        mimeType = 'audio/webm'
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        mimeType = 'audio/mp4'
+
+      // 優先使用 M4A 格式，確保跨平台相容性
+      // M4A (audio/mp4) 支援：iOS、Chrome、Firefox、Edge、Safari
+      // 不再使用 WebM，避免 iOS Safari 不相容問題
+      if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4' // M4A 格式 (AAC 編碼)
       } else if (MediaRecorder.isTypeSupported('audio/aac')) {
-        mimeType = 'audio/aac'
+        mimeType = 'audio/aac' // 純 AAC 格式 (降級選項)
       } else {
-        recordingError.value = '瀏覽器不支援錄音格式，請改用 Chrome 或 Edge。'
+        recordingError.value =
+          '瀏覽器不支援錄音格式，請使用現代瀏覽器 (Chrome、Firefox、Safari、Edge)'
         stream.getTracks().forEach((track) => track.stop())
         return
       }
@@ -228,9 +231,12 @@ async function handleNext() {
   }
   submitting.value = true
   try {
-    let ext = 'webm'
-    if (audioBlob.value.type === 'audio/mp4') ext = 'mp4'
-    if (audioBlob.value.type === 'audio/aac') ext = 'aac'
+    // 根據錄製的 MIME 類型決定副檔名
+    // 統一使用 M4A 格式 (audio/mp4 with AAC encoding)
+    // 確保跨平台相容性 (iOS、Android、Desktop 全支援)
+    let ext = 'm4a' // 預設 M4A 格式
+    if (audioBlob.value.type === 'audio/mp4') ext = 'm4a' // M4A 格式（AAC 編碼）
+    if (audioBlob.value.type === 'audio/aac') ext = 'aac' // 純 AAC（降級）
 
     // 取得 fish id
     const fishId = getFishIdFromUrl()

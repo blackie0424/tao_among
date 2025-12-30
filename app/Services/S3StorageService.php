@@ -115,11 +115,11 @@ class S3StorageService implements StorageServiceInterface
      * 為待審音檔建立簽章上傳 URL
      *
      * @param int $fishId 魚類 ID
-     * @param string $ext 副檔名
+     * @param string $ext 副檔名 (預設 m4a)
      * @param int $expiresIn 有效秒數
      * @return array|null ['url' => string, 'path' => string, 'filename' => string]
      */
-    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'webm', int $expiresIn = 300): ?array
+    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'm4a', int $expiresIn = 300): ?array
     {
         $filename = "audio_fish_{$fishId}_" . time() . ".{$ext}";
         $path = $this->getAudioFolder() . '/' . $filename;

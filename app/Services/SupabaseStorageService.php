@@ -149,7 +149,7 @@ class SupabaseStorageService implements StorageServiceInterface
     /**
      * Create a signed upload URL in pending/audio/ for the given fish.
      */
-    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'webm', int $expiresIn = 300): ?array
+    public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'm4a', int $expiresIn = 300): ?array
     {
         $date = date('Y/m/d');
         $uuid = bin2hex(random_bytes(8));
