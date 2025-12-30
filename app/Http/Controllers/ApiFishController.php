@@ -361,7 +361,7 @@ class ApiFishController extends Controller
                 return [
                     'id' => $fish->id,
                     'name' => $fish->name,
-                    'image_url' => $fish->captureRecords->first()?->image_url,
+                    'image_url' => $fish->image_url,
                 ];
             });
 

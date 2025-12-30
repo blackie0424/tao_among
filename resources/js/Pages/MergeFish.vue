@@ -29,7 +29,7 @@
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
       <div class="flex items-center gap-4">
         <div
-          class="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
+          class="w-64 h-64 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
           v-if="fish.image_url"
         >
           <img :src="fish.image_url" :alt="fish.name" class="w-full h-full object-cover" />
@@ -96,7 +96,7 @@
             @click.stop="toggleSelectFish(result.id)"
           />
           <div
-            class="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
+            class="w-64 h-64 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
             v-if="result.image_url"
           >
             <img :src="result.image_url" :alt="result.name" class="w-full h-full object-cover" />
