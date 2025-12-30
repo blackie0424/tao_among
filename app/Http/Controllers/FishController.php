@@ -212,25 +212,16 @@ class FishController extends Controller
      */
     public function showMergePage($id)
     {
-        $fish = Fish::with(['fishSize', 'captureRecords'])
+        $fish = Fish::with(['captureRecords'])
             ->findOrFail($id);
 
-        // 取得圖鑑主圖 URL
-        $imageUrl = null;
-        if ($fish->display_capture_record_id) {
-            $displayRecord = $fish->captureRecords->firstWhere('id', $fish->display_capture_record_id);
-            $imageUrl = $displayRecord?->image_url;
-        } elseif ($fish->captureRecords->isNotEmpty()) {
-            $imageUrl = $fish->captureRecords->first()->image_url;
-        }
+        // 取得圖鑑主圖 URL（優先使用 display_image_url accessor）
+        $imageUrl = $fish->display_image_url;
 
         return Inertia::render('MergeFish', [
             'fish' => [
                 'id' => $fish->id,
-                'name_zh_tw' => $fish->name_zh_tw,
-                'name_zh_cn' => $fish->name_zh_cn,
-                'name_en' => $fish->name_en,
-                'name_amis' => $fish->name_amis,
+                'name' => $fish->name,
                 'image_url' => $imageUrl,
             ],
         ]);

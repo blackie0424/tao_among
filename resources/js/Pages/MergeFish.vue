@@ -1,5 +1,5 @@
 <template>
-  <Head :title="`合併魚類 - ${fish.name_zh_tw || fish.name_en || '未命名'}`" />
+  <Head :title="`合併魚類 - ${fish.name || '未命名'}`" />
   <div class="max-w-7xl mx-auto p-4 md:p-6">
     <!-- 返回按鈕 -->
     <div class="mb-6">
@@ -22,9 +22,7 @@
     <!-- 頁面標題 -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">合併重複魚類</h1>
-      <p class="text-gray-600">
-        將其他魚類資料合併到「{{ fish.name_zh_tw || fish.name_en || '未命名' }}」
-      </p>
+      <p class="text-gray-600">將其他魚類資料合併到「{{ fish.name || '未命名' }}」</p>
     </div>
 
     <!-- 主要魚類資訊卡片 -->
@@ -34,17 +32,12 @@
           class="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
           v-if="fish.image_url"
         >
-          <img :src="fish.image_url" :alt="fish.name_zh_tw" class="w-full h-full object-cover" />
+          <img :src="fish.image_url" :alt="fish.name" class="w-full h-full object-cover" />
         </div>
         <div class="flex-1">
           <h2 class="text-2xl font-bold text-gray-900 mb-2">
-            {{ fish.name_zh_tw || fish.name_en || '未命名' }}
+            {{ fish.name || '未命名' }}
           </h2>
-          <div class="text-sm text-gray-600 space-y-1">
-            <div v-if="fish.name_en">英文：{{ fish.name_en }}</div>
-            <div v-if="fish.name_zh_cn">簡體：{{ fish.name_zh_cn }}</div>
-            <div v-if="fish.name_amis">阿美語：{{ fish.name_amis }}</div>
-          </div>
         </div>
         <div class="text-right">
           <div class="text-sm text-gray-600">主要魚類（目標）</div>
@@ -106,19 +99,11 @@
             class="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
             v-if="result.image_url"
           >
-            <img
-              :src="result.image_url"
-              :alt="result.name_zh_tw"
-              class="w-full h-full object-cover"
-            />
+            <img :src="result.image_url" :alt="result.name" class="w-full h-full object-cover" />
           </div>
           <div class="flex-1">
             <div class="font-semibold text-gray-900">
-              {{ result.name_zh_tw || result.name_en || '未命名' }}
-            </div>
-            <div class="text-sm text-gray-600">
-              <span v-if="result.name_en">{{ result.name_en }}</span>
-              <span v-if="result.name_amis" class="ml-2">{{ result.name_amis }}</span>
+              {{ result.name || '未命名' }}
             </div>
           </div>
           <div class="text-xs text-gray-500">ID: {{ result.id }}</div>
@@ -367,7 +352,7 @@ async function executeMerge() {
 
   if (
     !confirm(
-      `確定要將 ${selectedFishIds.value.length} 筆魚類資料合併到「${props.fish.name_zh_tw || props.fish.name_en}」嗎？此操作無法復原。`
+      `確定要將 ${selectedFishIds.value.length} 筆魚類資料合併到「${props.fish.name}」嗎？此操作無法復原。`
     )
   ) {
     return
