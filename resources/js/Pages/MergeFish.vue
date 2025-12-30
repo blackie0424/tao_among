@@ -57,7 +57,7 @@
             v-model="searchQuery"
             @input="handleSearch"
             type="text"
-            placeholder="搜尋魚類名稱（中文、英文、阿美語）..."
+            placeholder="魚類名稱"
             class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <svg
