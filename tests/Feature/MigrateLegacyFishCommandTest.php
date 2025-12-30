@@ -8,23 +8,29 @@ uses(RefreshDatabase::class);
 
 describe('MigrateLegacyFishCommand', function () {
     
-    it('shows success message when all fish already have capture records', function () {
-        // 建立有捕獲紀錄的魚類
-        $fish = Fish::factory()->create();
-        CaptureRecord::factory()->create(['fish_id' => $fish->id]);
+    it('shows success message when all fish images are already in capture records', function () {
+        // 建立魚類和捕獲紀錄，圖片路徑相同
+        $fish = Fish::factory()->create(['image' => 'test-image.jpg']);
+        CaptureRecord::factory()->create([
+            'fish_id' => $fish->id,
+            'image_path' => 'test-image.jpg'  // 使用相同的圖片
+        ]);
 
         $this->artisan('migrate:legacy-fish')
-            ->expectsOutput('✅ 所有魚類都已有捕獲紀錄！無需處理。')
+            ->expectsOutput('✅ 所有魚類的圖片都已存在於捕獲紀錄中！無需處理。')
             ->assertExitCode(0);
     });
 
     it('can preview migration with dry-run option', function () {
-        // 建立沒有捕獲紀錄的魚類
-        $fish = Fish::factory()->create(['name' => '測試魚']);
+        // 建立魚類，圖片尚未加入捕獲紀錄
+        $fish = Fish::factory()->create([
+            'name' => '測試魚',
+            'image' => 'test-fish.jpg'
+        ]);
 
         $this->artisan('migrate:legacy-fish', ['--dry-run' => true])
             ->expectsOutput('🔍 DRY-RUN 模式（不會真正寫入資料庫）')
-            ->expectsOutputToContain('找到 1 筆沒有捕獲紀錄的魚類')
+            ->expectsOutputToContain('找到 1 筆魚類的圖片尚未加入捕獲紀錄')
             ->expectsOutputToContain('測試魚')
             ->expectsOutput('⚠️  這只是預覽，尚未寫入資料庫')
             ->assertExitCode(0);
@@ -33,8 +39,8 @@ describe('MigrateLegacyFishCommand', function () {
         expect(CaptureRecord::count())->toBe(0);
     });
 
-    it('creates capture records for fish without records', function () {
-        // 建立沒有捕獲紀錄的魚類
+    it('creates capture records for fish images not in records', function () {
+        // 建立魚類，圖片尚未加入捕獲紀錄
         $fish1 = Fish::factory()->create([
             'name' => '魚類A',
             'image' => 'test-image-1.jpg',
@@ -49,7 +55,7 @@ describe('MigrateLegacyFishCommand', function () {
 
         // 執行遷移
         $this->artisan('migrate:legacy-fish')
-            ->expectsOutputToContain('找到 2 筆沒有捕獲紀錄的魚類')
+            ->expectsOutputToContain('找到 2 筆魚類的圖片尚未加入捕獲紀錄')
             ->expectsOutput('✅ 成功建立 2 筆捕獲紀錄')
             ->assertExitCode(0);
 
@@ -72,52 +78,58 @@ describe('MigrateLegacyFishCommand', function () {
         expect($record2->image_path)->toBe('test-image-2.jpg');
     });
 
-    it('does not affect existing capture records', function () {
-        // 建立已有捕獲紀錄的魚類
-        $fishWithRecord = Fish::factory()->create();
-        $existingRecord = CaptureRecord::factory()->create([
-            'fish_id' => $fishWithRecord->id,
-            'tribe' => 'ivalino',
-            'location' => '原有地點',
+    it('adds fish image to capture records even if fish already has other records', function () {
+        // 建立魚類，已有捕獲紀錄但使用不同圖片
+        $fish = Fish::factory()->create([
+            'image' => 'fish-original.jpg'
         ]);
-
-        // 建立沒有捕獲紀錄的魚類
-        $fishWithoutRecord = Fish::factory()->create();
+        
+        // 建立使用不同圖片的捕獲紀錄
+        CaptureRecord::factory()->create([
+            'fish_id' => $fish->id,
+            'image_path' => 'capture-photo-1.jpg',
+            'tribe' => 'ivalino',
+            'location' => '已有紀錄的地點',
+        ]);
 
         // 執行遷移
         $this->artisan('migrate:legacy-fish')
+            ->expectsOutputToContain('找到 1 筆魚類的圖片尚未加入捕獲紀錄')
             ->assertExitCode(0);
 
-        // 驗證原有的捕獲紀錄未被修改
-        $existingRecord->refresh();
-        expect($existingRecord->tribe)->toBe('ivalino');
-        expect($existingRecord->location)->toBe('原有地點');
+        // 驗證該魚類現在有 2 筆捕獲紀錄
+        expect($fish->captureRecords()->count())->toBe(2);
 
-        // 驗證新建立的捕獲紀錄
-        $newRecord = CaptureRecord::where('fish_id', $fishWithoutRecord->id)->first();
+        // 驗證原有紀錄未被修改
+        $existingRecord = CaptureRecord::where('image_path', 'capture-photo-1.jpg')->first();
+        expect($existingRecord->tribe)->toBe('ivalino');
+        expect($existingRecord->location)->toBe('已有紀錄的地點');
+
+        // 驗證新建立的紀錄使用魚類的圖片
+        $newRecord = CaptureRecord::where('image_path', 'fish-original.jpg')->first();
         expect($newRecord)->not->toBeNull();
         expect($newRecord->tribe)->toBe('iraraley');
         expect($newRecord->location)->toBe('不確定');
     });
 
-    it('shows correct verification results after migration', function () {
-        // 建立 3 筆沒有捕獲紀錄的魚類
-        Fish::factory()->count(3)->create();
-
-        // 建立 2 筆已有捕獲紀錄的魚類
-        $fishWithRecords = Fish::factory()->count(2)->create();
-        foreach ($fishWithRecords as $fish) {
-            CaptureRecord::factory()->create(['fish_id' => $fish->id]);
-        }
+    it('does not create duplicate records for same fish image', function () {
+        // 建立魚類，其圖片已經在捕獲紀錄中
+        $fish = Fish::factory()->create([
+            'image' => 'same-image.jpg'
+        ]);
+        
+        CaptureRecord::factory()->create([
+            'fish_id' => $fish->id,
+            'image_path' => 'same-image.jpg',  // 使用相同圖片
+        ]);
 
         // 執行遷移
         $this->artisan('migrate:legacy-fish')
-            ->expectsOutputToContain('剩餘未處理的魚類: 0')
-            ->expectsOutputToContain('已有捕獲紀錄的魚類: 5')
+            ->expectsOutput('✅ 所有魚類的圖片都已存在於捕獲紀錄中！無需處理。')
             ->assertExitCode(0);
 
-        // 驗證結果
-        expect(Fish::doesntHave('captureRecords')->count())->toBe(0);
-        expect(Fish::has('captureRecords')->count())->toBe(5);
+        // 驗證沒有建立重複的紀錄
+        expect($fish->captureRecords()->count())->toBe(1);
+        expect(CaptureRecord::where('image_path', 'same-image.jpg')->count())->toBe(1);
     });
 });

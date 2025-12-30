@@ -40,17 +40,27 @@ class MigrateLegacyFishToCaptureRecords extends Command
             $this->newLine();
         }
 
-        // 查詢沒有捕獲紀錄的魚類
-        $fishWithoutRecords = Fish::doesntHave('captureRecords')->get();
+        // 查詢需要處理的魚類：Fish.image 尚未出現在捕獲紀錄中的魚類
+        $allFish = Fish::with('captureRecords')->get();
         
-        $count = $fishWithoutRecords->count();
+        $fishNeedingMigration = $allFish->filter(function ($fish) {
+            // 檢查是否已經有使用 Fish.image 作為 image_path 的捕獲紀錄
+            $hasImageRecord = $fish->captureRecords->contains(function ($record) use ($fish) {
+                return $record->image_path === $fish->image;
+            });
+            
+            // 如果沒有，則需要遷移
+            return !$hasImageRecord;
+        });
+        
+        $count = $fishNeedingMigration->count();
         
         if ($count === 0) {
-            $this->info('✅ 所有魚類都已有捕獲紀錄！無需處理。');
+            $this->info('✅ 所有魚類的圖片都已存在於捕獲紀錄中！無需處理。');
             return Command::SUCCESS;
         }
 
-        $this->info("找到 {$count} 筆沒有捕獲紀錄的魚類");
+        $this->info("找到 {$count} 筆魚類的圖片尚未加入捕獲紀錄");
         $this->newLine();
 
         if ($dryRun) {
@@ -66,7 +76,7 @@ class MigrateLegacyFishToCaptureRecords extends Command
         $bar = $this->output->createProgressBar($count);
         $bar->start();
 
-        foreach ($fishWithoutRecords as $fish) {
+        foreach ($fishNeedingMigration as $fish) {
             try {
                 // 準備捕獲紀錄資料
                 $captureData = [
@@ -82,7 +92,8 @@ class MigrateLegacyFishToCaptureRecords extends Command
                 if ($dryRun) {
                     // Dry-run 模式：只顯示資料
                     $this->newLine();
-                    $this->line("Fish ID: {$fish->id} | 名稱: {$fish->name}");
+                    $existingRecordsCount = $fish->captureRecords->count();
+                    $this->line("Fish ID: {$fish->id} | 名稱: {$fish->name} | 現有紀錄數: {$existingRecordsCount}");
                     $this->line("  → image_path: {$captureData['image_path']}");
                     $this->line("  → tribe: {$captureData['tribe']}");
                     $this->line("  → location: {$captureData['location']}");
@@ -133,8 +144,16 @@ class MigrateLegacyFishToCaptureRecords extends Command
             // 驗證結果
             $this->newLine();
             $this->info('📊 驗證結果：');
-            $remainingCount = Fish::doesntHave('captureRecords')->count();
-            $this->line("  - 剩餘未處理的魚類: {$remainingCount}");
+            
+            // 重新檢查還有多少魚類的圖片未加入捕獲紀錄
+            $remainingFish = Fish::with('captureRecords')->get()->filter(function ($fish) {
+                return !$fish->captureRecords->contains(function ($record) use ($fish) {
+                    return $record->image_path === $fish->image;
+                });
+            });
+            
+            $remainingCount = $remainingFish->count();
+            $this->line("  - 剩餘圖片未加入捕獲紀錄的魚類: {$remainingCount}");
             $this->line("  - 已有捕獲紀錄的魚類: " . Fish::has('captureRecords')->count());
         }
 
