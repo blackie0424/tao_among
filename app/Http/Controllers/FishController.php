@@ -136,7 +136,7 @@ class FishController extends Controller
                 ]);
             }
             
-            return redirect('/fishs')->with('success', '魚類刪除成功');
+            return Inertia::location('/fishs');
         } catch (\Exception $e) {
             Log::error('魚類刪除錯誤: ' . $e->getMessage(), [
                 'fish_id' => $id,
@@ -150,7 +150,7 @@ class FishController extends Controller
                 ], 500);
             }
             
-            return redirect('/fishs')->with('error', '刪除魚類時發生錯誤: ' . $e->getMessage());
+            return back()->with('error', '刪除魚類時發生錯誤: ' . $e->getMessage());
         }
     }
 
