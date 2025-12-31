@@ -21,14 +21,6 @@
       </svg>
       <span class="ml-3" :class="textClass">{{ loadingText }}</span>
     </div>
-    <div v-else-if="error" class="flex justify-center items-center my-8">
-      <template v-if="type === 'image'">
-        <span :class="['text-sm', textClass]">{{ errorText || '圖片載入失敗' }}</span>
-      </template>
-      <template v-else>
-        <span :class="['text-sm', textClass]">{{ errorText || '資料載入失敗' }}</span>
-      </template>
-    </div>
   </div>
 </template>
 

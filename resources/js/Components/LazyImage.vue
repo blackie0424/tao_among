@@ -1,15 +1,12 @@
 <template>
   <div
-    :class="[
-      'relative flex items-center justify-center bg-gray-100 overflow-hidden',
-      wrapperClass,
-    ]"
+    :class="['relative flex items-center justify-center bg-gray-100 overflow-hidden', wrapperClass]"
     :style="wrapperStyle"
   >
     <LoadingBar :loading="loading" :error="error" type="image" loading-text="資料載入中..." />
     <img
-      v-show="!loading && !error"
-      :src="src"
+      v-show="!loading"
+      :src="error ? defaultSrc : src"
       :alt="alt"
       :loading="imgLoading"
       :class="['object-contain', imgClass]"
@@ -32,6 +29,10 @@ const props = defineProps({
   imgClass: { type: String, default: '' },
   imgStyle: { type: [String, Object], default: '' },
   imgIndex: { type: Number, default: 0 }, // 新增：圖片在列表中的索引
+  defaultSrc: {
+    type: String,
+    default: '/images/default.png', // 預設圖片路徑
+  },
 })
 
 const loading = ref(true)
