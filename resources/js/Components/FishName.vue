@@ -31,8 +31,6 @@ const props = defineProps({
 })
 
 function onFishDeleted() {
-  console.log('魚類刪除成功，準備跳轉到魚類列表頁面')
-  // 魚類刪除成功後跳轉到魚類列表頁面
-  router.visit('/fishs')
+  router.visit('/fishs', { preserveScroll: true })
 }
 </script>

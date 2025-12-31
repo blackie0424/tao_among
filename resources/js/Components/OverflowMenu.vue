@@ -76,7 +76,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { router } from '@inertiajs/vue3'
@@ -209,12 +208,9 @@ async function deleteData() {
     },
     {
       preserveScroll: true,
-      onSuccess: (page) => {
-        if (props.redirectUrl) {
-          router.visit('/fishs')
-        } else {
-          emit('deleted')
-        }
+      onSuccess: () => {
+        alert('資料刪除成功')
+        emit('deleted')
       },
       onError: (errors) => {
         // 改進錯誤消息處理

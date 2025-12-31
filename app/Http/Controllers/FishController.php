@@ -127,16 +127,14 @@ class FishController extends Controller
             
             // 執行軟刪除（會自動觸發級聯刪除）
             $fish->delete();
+            Log::info('魚類刪除成功: ', [
+                'fish_id' => $fish->id,
+                'fish_name' => $fish->name
+            ]);
             
-            // 檢查是否為 AJAX 請求
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => '魚類刪除成功'
-                ]);
-            }
-            
-            return Inertia::location('/fishs');
+            return Inertia::render('Fish', [
+                'fish' => $fish
+            ]);
         } catch (\Exception $e) {
             Log::error('魚類刪除錯誤: ' . $e->getMessage(), [
                 'fish_id' => $id,
