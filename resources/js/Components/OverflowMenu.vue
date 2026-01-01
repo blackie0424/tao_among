@@ -210,7 +210,6 @@ async function deleteData() {
       preserveScroll: true,
       onSuccess: () => {
         alert('資料刪除成功')
-        emit('deleted')
       },
       onError: (errors) => {
         // 改進錯誤消息處理
