@@ -76,7 +76,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { router } from '@inertiajs/vue3'
@@ -187,10 +186,11 @@ function handleSetAsDisplayImage() {
 }
 
 /**
- * 刪除：保留基本刪除流程（使用 axios 或 fetch），成功後 emit deleted
+ * 刪除：使用標準 Inertia 流程，後端會自動跳轉並顯示 flash message
  */
 async function deleteData() {
   menuOpen.value = false
+
   // 防護檢查：若設定不允許刪除基本發音則直接返回
   if (props.disableDeleteWhenBase && props.isBase) {
     alert('此檔案已為基本發音，無法刪除。')
@@ -201,41 +201,13 @@ async function deleteData() {
 
   processing.value = true
 
-  // 使用 POST 配合 _method 來模擬 DELETE 請求
-  router.post(
-    props.apiUrl,
-    {
-      _method: 'DELETE',
+  // 使用 Inertia DELETE 請求，後端會處理跳轉和訊息顯示
+  router.delete(props.apiUrl, {
+    preserveScroll: true,
+    onFinish: () => {
+      processing.value = false
     },
-    {
-      preserveScroll: true,
-      onSuccess: (page) => {
-        if (props.redirectUrl) {
-          router.visit('/fishs')
-        } else {
-          emit('deleted')
-        }
-      },
-      onError: (errors) => {
-        // 改進錯誤消息處理
-        let errorMessage = '刪除失敗'
-        if (errors.message) {
-          errorMessage += '：' + errors.message
-        } else if (typeof errors === 'string') {
-          errorMessage += '：' + errors
-        } else if (errors.error) {
-          errorMessage += '：' + errors.error
-        } else {
-          errorMessage += '：未知錯誤，請檢查網路連線或聯繫管理員'
-        }
-
-        alert(errorMessage)
-      },
-      onFinish: () => {
-        processing.value = false
-      },
-    }
-  )
+  })
 }
 
 // 點擊外部自動關閉選單
