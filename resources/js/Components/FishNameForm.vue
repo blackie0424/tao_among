@@ -89,6 +89,16 @@ async function submitEditForm() {
   if (!props.fishId) return
 
   const nameToSend = fishName.value || '我不知道'
+  const requestUrl = `/fish/${props.fishId}/name`
+
+  // 詳細的除錯資訊
+  console.log('=== 更新魚類名稱 DEBUG ===')
+  console.log('fishId:', props.fishId, 'type:', typeof props.fishId)
+  console.log('nameToSend:', nameToSend)
+  console.log('requestUrl:', requestUrl)
+  console.log('完整 URL:', window.location.origin + requestUrl)
+  console.log('========================')
+
   submitting.value = true
   submitError.value = ''
   submitSuccess.value = false
@@ -97,18 +107,21 @@ async function submitEditForm() {
   // 使用 Inertia router.put 發送到 /fish/${props.fishId}/name
   // 後端會 redirect 並帶 flash message，Inertia 自動處理導向
   router.put(
-    `/fish/${props.fishId}/name`,
+    requestUrl,
     { name: nameToSend },
     {
       // 移除 onSuccess 中的手動導向，避免與後端 redirect 衝突
-      onSuccess: () => {
+      onSuccess: (response) => {
+        console.log('✅ PUT 請求成功', response)
         // 後端已處理 redirect，這裡不需要任何導向操作
         submitEditSuccess.value = true
       },
       onError: (errors) => {
+        console.error('❌ PUT 請求失敗', errors)
         submitError.value = errors?.message || '更新失敗'
       },
       onFinish: () => {
+        console.log('PUT 請求完成')
         submitting.value = false
       },
     }

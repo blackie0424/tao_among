@@ -102,9 +102,21 @@ class FishController extends Controller
 
     public function updateName(Request $request, $id)
     {
+        // 詳細的除錯資訊
+        Log::info('=== 更新魚類名稱 DEBUG ===');
+        Log::info('Request method: ' . $request->method());
+        Log::info('Request URL: ' . $request->fullUrl());
+        Log::info('Request path: ' . $request->path());
+        Log::info('Fish ID: ' . $id);
+        Log::info('Request data: ', $request->all());
+        Log::info('Headers: ', $request->headers->all());
+        Log::info('========================');
+        
         $fish = Fish::findOrFail($id);
         $request->validate(['name' => 'required|string|max:255']);
         $fish->update(['name' => $request->name]);
+        
+        Log::info('魚類名稱已更新: ' . $fish->name);
         
         // 加入 redirect + flash message
         return redirect("/fish/{$id}")
