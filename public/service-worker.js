@@ -1,10 +1,18 @@
 // Service Worker 版本（修改此版本號會觸發更新）
-const SW_VERSION = 'v1.1.0'
+const SW_VERSION = 'v1.2.0-ios-fix'
 const CACHE_NAME = `tao-among-${SW_VERSION}`
 
 self.addEventListener('install', (event) => {
   console.log(`[SW ${SW_VERSION}] Installing...`)
   self.skipWaiting()
+})
+
+// 監聽來自頁面的訊息
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log(`[SW ${SW_VERSION}] Received SKIP_WAITING message`)
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {
