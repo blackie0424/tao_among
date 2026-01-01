@@ -1,5 +1,5 @@
 // Service Worker 版本（修改此版本號會觸發更新）
-const SW_VERSION = 'v1.2.0-ios-fix'
+const SW_VERSION = 'v1.3.0-exclude-inertia'
 const CACHE_NAME = `tao-among-${SW_VERSION}`
 
 self.addEventListener('install', (event) => {
@@ -40,6 +40,12 @@ self.addEventListener('fetch', (event) => {
   // 只快取 GET 請求，讓 POST/PUT/DELETE 直接通過
   if (event.request.method !== 'GET') {
     // 不攔截非 GET 請求，直接發送到網路
+    return
+  }
+
+  // 不攔截 Inertia.js 的 XHR 請求（帶有 X-Inertia header）
+  // 這些請求返回 JSON，不應該被快取
+  if (event.request.headers.get('X-Inertia')) {
     return
   }
 
