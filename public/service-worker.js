@@ -1,5 +1,5 @@
 // Service Worker 版本（修改此版本號會觸發更新）
-const SW_VERSION = 'v1.3.0-exclude-inertia'
+const SW_VERSION = 'v1.4.0-protocol-fix'
 const CACHE_NAME = `tao-among-${SW_VERSION}`
 
 self.addEventListener('install', (event) => {
@@ -43,14 +43,24 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // 不攔截 Inertia.js 的 XHR 請求（帶有 X-Inertia header）
-  // 這些請求返回 JSON，不應該被快取
+  // 排除 Inertia.js 的 XHR 請求（帶有 X-Inertia header）
   if (event.request.headers.get('X-Inertia')) {
     return
   }
 
   // 只快取同源的 GET 請求
   if (!event.request.url.startsWith(self.location.origin)) {
+    return
+  }
+
+  // 排除 HTML 導航請求，只快取靜態資源
+  const url = new URL(event.request.url)
+  const isStaticAsset = /\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|ico|webp)$/i.test(
+    url.pathname
+  )
+
+  // 只快取靜態資源，不快取 HTML 頁面
+  if (!isStaticAsset) {
     return
   }
 
