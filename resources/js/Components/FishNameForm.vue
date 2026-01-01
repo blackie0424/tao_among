@@ -86,7 +86,6 @@ async function submitEditForm() {
     { name: nameToSend },
     {
       onFinish: () => {
-        console.log('PUT 請求完成')
         submitting.value = false
       },
     }
