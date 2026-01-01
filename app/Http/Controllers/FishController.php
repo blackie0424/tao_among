@@ -124,31 +124,26 @@ class FishController extends Controller
     {
         try {
             $fish = Fish::findOrFail($id);
+            $fishName = $fish->name;
             
             // 執行軟刪除（會自動觸發級聯刪除）
             $fish->delete();
-            Log::info('魚類刪除成功: ', [
-                'fish_id' => $fish->id,
-                'fish_name' => $fish->name
+            
+            Log::info('魚類刪除成功', [
+                'fish_id' => $id,
+                'fish_name' => $fishName
             ]);
             
-            return Inertia::render('Fish', [
-                'fish' => $fish
-            ]);
+            // 使用標準 Inertia 流程：redirect + flash message
+            return redirect('/fishs')->with('success', "魚類「{$fishName}」已成功刪除！");
+            
         } catch (\Exception $e) {
             Log::error('魚類刪除錯誤: ' . $e->getMessage(), [
                 'fish_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
             
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '刪除魚類時發生錯誤: ' . $e->getMessage()
-                ], 500);
-            }
-            
-            return back()->with('error', '刪除魚類時發生錯誤: ' . $e->getMessage());
+            return back()->with('error', '刪除魚類時發生錯誤：' . $e->getMessage());
         }
     }
 
