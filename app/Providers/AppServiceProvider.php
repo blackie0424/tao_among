@@ -6,6 +6,7 @@ use App\Contracts\StorageServiceInterface;
 use App\Services\S3StorageService;
 use App\Services\SupabaseStorageService;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // 生產環境強制使用 HTTPS 協定
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }
