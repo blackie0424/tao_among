@@ -2,12 +2,7 @@
   <div class="container mx-auto p-4 relative">
     <TopNavBar :goBack="goBack" title="編輯魚類名稱" :showSubmit="true" :submitNote="submitEdit" />
     <div class="pt-16">
-      <FishNameForm
-        :fishId="fish.id"
-        :fishNameInit="fish.name"
-        @submitted="onFishSubmitted"
-        ref="fishNameFormRef"
-      />
+      <FishNameForm :fishId="fish.id" :fishNameInit="fish.name" ref="fishNameFormRef" />
     </div>
   </div>
 </template>
@@ -26,10 +21,6 @@ const fishNameFormRef = ref(null)
 
 function goBack() {
   window.history.length > 1 ? window.history.back() : router.visit('/fishs')
-}
-
-function onFishSubmitted(fishId) {
-  router.visit(`/fish/${fishId}`)
 }
 
 // 整合送出到 TopNavBar 的 @submit 事件

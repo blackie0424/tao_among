@@ -93,20 +93,17 @@ async function submitEditForm() {
   submitError.value = ''
   submitSuccess.value = false
   submitEditSuccess.value = false
-  // 使用 Inertia router.put 發送到 /fish/${props.fishId}/name（由後端處理 flash 與導向）
+
+  // 使用 Inertia router.put 發送到 /fish/${props.fishId}/name
+  // 後端會 redirect 並帶 flash message，Inertia 自動處理導向
   router.put(
     `/fish/${props.fishId}/name`,
     { name: nameToSend },
     {
-      headers: { Accept: 'application/json' },
-      // 成功時（後端可回傳 props.data.id 或直接 redirect）
-      onSuccess: (fish) => {
+      // 移除 onSuccess 中的手動導向，避免與後端 redirect 衝突
+      onSuccess: () => {
+        // 後端已處理 redirect，這裡不需要任何導向操作
         submitEditSuccess.value = true
-        fishName.value = ''
-        // 若後端回傳 id 在 props，主動導向；否則後端若 redirect，Inertia 已處理導向
-        const fishId = fish.props.fish.id
-        // 通知上層（仍 emit），讓上層元件也能反應
-        emit('submitted', fishId ?? null)
       },
       onError: (errors) => {
         submitError.value = errors?.message || '更新失敗'
