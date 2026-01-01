@@ -103,21 +103,12 @@ class FishController extends Controller
     public function updateName(Request $request, $id)
     {
         $fish = Fish::findOrFail($id);
+        $request->validate(['name' => 'required|string|max:255']);
+        $fish->update(['name' => $request->name]);
         
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
-
-        $fish->update([
-            'name' => $request->name,
-        ]);
-
-        return Inertia::render(
-            'EditFishName',
-            [
-                'fish' => $fish
-            ]
-        );
+        // 加入 redirect + flash message
+        return redirect("/fish/{$id}")
+            ->with('success', "魚類名稱已更新為「{$fish->name}」！");
     }
 
     public function destroy($id)
