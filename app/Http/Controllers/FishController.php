@@ -154,14 +154,10 @@ class FishController extends Controller
     {
         try {
             $fish = Fish::create($request->validated());
-            return Inertia::render(
-                'CreateFish',
-                [
-                    'fish' => $fish,
-                    'showCapturePrompt' => true,
-                    'imageFileName' => $request->input('image')
-                ]
-            );
+            
+            // 使用 redirect + flash message 統一流程
+            return redirect("/fish/{$fish->id}")
+                ->with('success', "魚類「{$fish->name}」新增成功！");
             
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([

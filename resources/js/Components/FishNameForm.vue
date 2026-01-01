@@ -15,9 +15,6 @@
         required
       />
     </div>
-    <div v-if="submitError" class="text-red-600 mt-2">{{ submitError }}</div>
-    <div v-if="submitSuccess" class="text-green-600 mt-2">魚類新增成功！</div>
-    <div v-if="submitEditSuccess" class="text-green-600 mt-2">魚類更新成功！</div>
   </form>
 </template>
 
@@ -35,9 +32,6 @@ const emit = defineEmits(['submitted'])
 
 const fishName = ref('')
 const submitting = ref(false)
-const submitError = ref('')
-const submitSuccess = ref(false)
-const submitEditSuccess = ref(false)
 
 const placeholderText = computed(() => (fishName.value ? '' : '我不知道'))
 
@@ -56,25 +50,17 @@ async function submitForm() {
   const nameToSend = fishName.value || '我不知道'
   if (!props.uploadedFileName) return
   submitting.value = true
-  submitError.value = ''
-  submitSuccess.value = false
 
-  // 使用 Inertia router.post 發送到 /fish/create（由後端處理 flash 與導向）
+  // 使用 Inertia router.post 發送到 /fish（由後端處理 flash 與導向）
   router.post(
     '/fish',
     { name: nameToSend, image: props.uploadedFileName },
     {
-      headers: { Accept: 'application/json' },
-      // 成功時（後端可回傳 props.data.id 或直接 redirect）
       onSuccess: (page) => {
-        submitSuccess.value = true
         fishName.value = ''
-        const fishId = page.props.fish.id
-        // 通知上層（仍 emit），讓上層元件也能反應
+        const fishId = page.props.fish?.id
+        // 通知上層元件
         emit('submitted', fishId ?? null)
-      },
-      onError: (errors) => {
-        submitError.value = errors?.message || '新增失敗'
       },
       onFinish: () => {
         submitting.value = false
@@ -100,9 +86,6 @@ async function submitEditForm() {
   console.log('========================')
 
   submitting.value = true
-  submitError.value = ''
-  submitSuccess.value = false
-  submitEditSuccess.value = false
 
   // 使用 Inertia router.put 發送到 /fish/${props.fishId}/name
   // 後端會 redirect 並帶 flash message，Inertia 自動處理導向
@@ -110,16 +93,6 @@ async function submitEditForm() {
     requestUrl,
     { name: nameToSend },
     {
-      // 移除 onSuccess 中的手動導向，避免與後端 redirect 衝突
-      onSuccess: (response) => {
-        console.log('✅ PUT 請求成功', response)
-        // 後端已處理 redirect，這裡不需要任何導向操作
-        submitEditSuccess.value = true
-      },
-      onError: (errors) => {
-        console.error('❌ PUT 請求失敗', errors)
-        submitError.value = errors?.message || '更新失敗'
-      },
       onFinish: () => {
         console.log('PUT 請求完成')
         submitting.value = false
