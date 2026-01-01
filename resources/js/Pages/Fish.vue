@@ -68,7 +68,7 @@
 <script setup>
 import { Head } from '@inertiajs/vue3'
 
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
 import FishDetailRight from '@/Components/FishDetailRight.vue'
@@ -111,19 +111,6 @@ function handleLocateData({ locate, notes: newNotes }) {
   currentLocate.value = locate
   notes.value = newNotes
 }
-
-import ArmSelector from '@/Components/ArmSelector.vue'
-
-const selectedParts = ref([])
-const fishId = ref(props.fish.id)
-
-onMounted(async () => {
-  const res = await fetch(`/prefix/api/fishSize/${fishId.value}`)
-  const data = await res.json()
-  if (res.ok && data.data?.parts) {
-    selectedParts.value = data.data.parts
-  }
-})
 
 // 將後端已分組的資料直接暴露為 computed（若未給予則為空物件）
 const groupedNotes = computed(() => props.fishNotes || {})
