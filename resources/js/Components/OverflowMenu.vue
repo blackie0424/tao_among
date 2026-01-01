@@ -202,8 +202,8 @@ async function deleteData() {
   processing.value = true
 
   // 使用 Inertia DELETE 請求，後端會處理跳轉和訊息顯示
+  // 移除 preserveScroll，讓後端的 redirect 能正常導向到列表頁
   router.delete(props.apiUrl, {
-    preserveScroll: true,
     onFinish: () => {
       processing.value = false
     },
