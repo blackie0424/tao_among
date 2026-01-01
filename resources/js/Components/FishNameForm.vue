@@ -77,14 +77,6 @@ async function submitEditForm() {
   const nameToSend = fishName.value || '我不知道'
   const requestUrl = `/fish/${props.fishId}/name`
 
-  // 詳細的除錯資訊
-  console.log('=== 更新魚類名稱 DEBUG ===')
-  console.log('fishId:', props.fishId, 'type:', typeof props.fishId)
-  console.log('nameToSend:', nameToSend)
-  console.log('requestUrl:', requestUrl)
-  console.log('完整 URL:', window.location.origin + requestUrl)
-  console.log('========================')
-
   submitting.value = true
 
   // 使用 Inertia router.put 發送到 /fish/${props.fishId}/name
