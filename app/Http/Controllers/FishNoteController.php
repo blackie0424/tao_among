@@ -214,29 +214,72 @@ class FishNoteController extends BaseController
         return $stats;
     }
 
+    /**
+     * Show the form for creating a new knowledge note
+     */
     public function create($id)
     {
-        $fish = Fish::findOrFail($id);
+        try {
+            $fish = $this->findResourceOrFail(Fish::class, $id, '魚類');
+            $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
 
-        $storage = app(StorageServiceInterface::class);
-        $imageUrl = $storage->getUrl('images', $fish->image, $fish->has_webp ?? null);
+            $this->logOperation('Knowledge create form accessed', [
+                'fish_id' => $id
+            ]);
 
-        // 假設 image 欄位已經是完整路徑，否則請補上 storage 路徑
-        return inertia('CreateFishNote', [
-            'fish' => [
-                'id' => $fish->id,
-                'name' => $fish->name,
-                'image' => $imageUrl,
-            ],
-        ]);
-        
+            return Inertia::render('CreateFishNote', [
+                'fish' => [
+                    'id' => $fishWithImage->id,
+                    'name' => $fishWithImage->name,
+                    'image' => $fishWithImage->image,
+                ],
+                'noteTypes' => $this->getNoteTypes()
+            ]);
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '無法載入新增頁面');
+        }
+    }
+
+    /**
+     * Store a newly created knowledge note (from Inertia form)
+     */
+    public function storeKnowledge(FishNoteRequest $request, $fishId)
+    {
+        try {
+            return $this->executeWithTransaction(function () use ($request, $fishId) {
+                // Verify fish exists
+                $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
+                
+                // Create the note
+                $note = FishNote::create([
+                    'fish_id' => $fish->id,
+                    'note' => $request->note,
+                    'note_type' => $request->note_type,
+                    'locate' => $request->locate,
+                ]);
+
+                $this->logOperation('Knowledge created successfully', [
+                    'fish_id' => $fishId,
+                    'note_id' => $note->id,
+                    'note_data' => $note->toArray()
+                ]);
+
+                return redirect()->route('fish.knowledge-list', $fishId)
+                    ->with('success', '進階知識已成功新增');
+            }, 'knowledge creation');
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '新增進階知識失敗');
+        }
     }
 
 
     /**
+     * Store a newly created resource in storage (API - Legacy).
+     * Note: For new implementations, use storeKnowledge() instead which uses Inertia and flash messages.
+     *
      * @OA\Post(
      *     path="/prefix/api/fish/{id}/note",
-     *     summary="新增魚類筆記",
+     *     summary="新增魚類筆記 (API)",
      *     tags={"FishNote"},
      *     @OA\Parameter(
      *         name="id",

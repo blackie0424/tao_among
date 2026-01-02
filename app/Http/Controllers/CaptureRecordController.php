@@ -117,6 +117,7 @@ class CaptureRecordController extends Controller
             'record' => $record,
             'tribes' => $tribes
         ]);
+       
     }
 
     /**
@@ -156,7 +157,8 @@ class CaptureRecordController extends Controller
         $record->update($updateData);
 
         // 重新載入捕獲紀錄頁面
-        return redirect()->route('fish.capture-records', $fishId);
+        return redirect("/fish/{$fishId}/capture-records")
+               ->with('success', "資料更新成功！");
     }
 
     /**

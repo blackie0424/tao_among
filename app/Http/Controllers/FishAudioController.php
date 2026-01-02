@@ -10,6 +10,7 @@ use App\Services\FishService;
 use App\Traits\HasFishImageUrl;
 use Inertia\Inertia;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class FishAudioController extends BaseController
 {
@@ -119,7 +120,7 @@ class FishAudioController extends BaseController
                             $result = $this->storageService->deleteWithValidation($audioFolder . '/' . $oldAudioPath);
                             
                             if (!$result['success']) {
-                                \Log::warning('Failed to delete old audio file', [
+                                Log::warning('Failed to delete old audio file', [
                                     'file_path' => $oldAudioPath,
                                     'error' => $result['error'] ?? 'Unknown error'
                                 ]);
@@ -177,7 +178,7 @@ class FishAudioController extends BaseController
                         $result = $this->storageService->deleteWithValidation($audioFolder . '/' . $audioFilePath);
                         
                         if (!$result['success']) {
-                            \Log::warning('Failed to delete audio file during record deletion', [
+                            Log::warning('Failed to delete audio file during record deletion', [
                                 'file_path' => $audioFilePath,
                                 'error' => $result['error'] ?? 'Unknown error'
                             ]);
