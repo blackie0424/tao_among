@@ -8,7 +8,7 @@
           <!-- 魚類圖片 -->
           <div class="w-full md:w-1/3">
             <LazyImage
-              :src="fish.image"
+              :src="fish.display_image_url || fish.image_url"
               :alt="fish.name"
               wrapperClass="w-full h-48 bg-gray-100 rounded-lg"
               imgClass="w-full h-full object-contain"

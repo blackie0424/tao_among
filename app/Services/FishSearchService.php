@@ -260,12 +260,13 @@ class FishSearchService
             $rows = $rows->slice(0, $perPage)->values();
         }
 
-        // 映射精簡欄位（模型 accessor 提供 image_url 和 audio_url）
+        // 映射精簡欄位（模型 accessor 提供 image_url、display_image_url 和 audio_url）
         $items = $rows->map(function (Fish $f) {
             return [
                 'id' => $f->id,
                 'name' => $f->name,
                 'image_url' => $f->image_url,
+                'display_image_url' => $f->display_image_url, // 優先使用圖鑑主圖
                 'audio_url' => $f->audio_url, // 透過模型 accessor 轉換為完整播放連結
                 'tribal_classifications' => $f->tribalClassifications->map(fn ($tc) => [
                     'tribe' => $tc->tribe,
