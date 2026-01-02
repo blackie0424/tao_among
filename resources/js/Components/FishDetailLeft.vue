@@ -17,7 +17,7 @@
         </div>
       </div>
       <LazyImage
-        :src="fish.image"
+        :src="fish.display_image_url || fish.image_url"
         :alt="fish.name"
         wrapperClass="fish-image-wrapper"
         imgClass="fish-image"
