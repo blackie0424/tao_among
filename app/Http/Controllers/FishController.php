@@ -8,6 +8,7 @@ use App\Http\Requests\CreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
 use App\Models\Fish;
 use App\Models\FishNote;
+use App\Models\CaptureRecord;
 use App\Services\FishService;
 use App\Services\FishSearchService;
 use App\Http\Requests\FishSearchRequest;
@@ -154,6 +155,20 @@ class FishController extends Controller
     {
         try {
             $fish = Fish::create($request->validated());
+            
+            // 自動建立首次捕獲紀錄（方案B：確保圖片有對應的 capture_record）
+            $captureRecord = CaptureRecord::create([
+                'fish_id' => $fish->id,
+                'image_path' => $request->validated()['image'],
+                'tribe' => 'iraraley', // 使用第一個有效的部落
+                'location' => '待補充',
+                'capture_method' => 'mamasil',
+                'capture_date' => now(),
+                'notes' => '首次建立時自動產生，請至捕獲紀錄頁面補充資訊'
+            ]);
+            
+            // 自動設定為圖鑑主圖
+            $fish->update(['display_capture_record_id' => $captureRecord->id]);
             
             // 使用 redirect + flash message 統一流程
             return redirect("/fish/{$fish->id}")
