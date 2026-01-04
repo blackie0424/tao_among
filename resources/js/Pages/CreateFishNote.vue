@@ -13,7 +13,7 @@
         :noteTypes="noteTypes"
         :fishId="fish.id"
         :fishName="fish.name"
-        :fishImage="fish.image"
+        :fishImage="fish.display_image_url || fish.image_url"
         @submitted="onNoteSubmitted"
         ref="formRef"
       />
