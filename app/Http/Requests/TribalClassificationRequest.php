@@ -23,8 +23,8 @@ class TribalClassificationRequest extends FormRequest
     {
         return [
             'tribe' => 'required|in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley',
-            'food_category' => 'nullable|in:oyod,rahet,不分類,不食用,?,',
-            'processing_method' => 'nullable|in:去魚鱗,不去魚鱗,剝皮,不食用,?,',
+            'food_category' => 'nullable|in:oyod,rahet,不分類,不食用,?',
+            'processing_method' => 'nullable|in:去魚鱗,不去魚鱗,剝皮,不食用,?',
             'notes' => 'nullable|string|max:65535'
         ];
     }

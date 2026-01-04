@@ -158,7 +158,45 @@ class TribalClassificationController extends Controller
         $classification = TribalClassification::where('fish_id', $fishId)
             ->where('id', $classificationId)
             ->firstOrFail();
+        
+        // 如果要更改部落，需要特殊處理
+        if ($request->tribe !== $classification->tribe) {
+            // 檢查是否已存在相同部落的分類（不包含軟刪除）
+            $existingClassification = TribalClassification::where('fish_id', $fishId)
+                ->where('tribe', $request->tribe)
+                ->where('id', '!=', $classificationId)
+                ->first();
+                
+            if ($existingClassification) {
+                return redirect()->back()
+                    ->withErrors(['tribe' => '此魚類已有該部落的地方知識記錄，請選擇其他部落。'])
+                    ->withInput();
+            }
             
+            // 檢查是否有軟刪除的記錄
+            $trashedClassification = TribalClassification::onlyTrashed()
+                ->where('fish_id', $fishId)
+                ->where('tribe', $request->tribe)
+                ->first();
+                
+            if ($trashedClassification) {
+                // 先軟刪除目前的記錄
+                $classification->delete();
+                
+                // 恢復軟刪除的記錄並更新資料
+                $trashedClassification->restore();
+                $trashedClassification->update([
+                    'food_category' => $request->food_category ?? '',
+                    'processing_method' => $request->processing_method ?? '',
+                    'notes' => $request->notes
+                ]);
+                
+                return redirect()->route('fish.tribal-classifications', ['id' => $fishId])
+                    ->with('success', '地方知識已成功更新');
+            }
+        }
+            
+        // 沒有部落變更或沒有軟刪除記錄，直接更新
         $classification->update([
             'tribe' => $request->tribe,
             'food_category' => $request->food_category ?? '',
