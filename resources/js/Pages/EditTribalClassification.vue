@@ -2,7 +2,7 @@
   <div class="container mx-auto p-4 relative">
     <TopNavBar
       :goBack="goBack"
-      title="編輯地方知識"
+      :title="`編輯${fish.name}的地方知識`"
       :showSubmit="true"
       :submitNote="submitForm"
       :submitLabel="'更新'"
