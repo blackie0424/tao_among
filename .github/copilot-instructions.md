@@ -1,10 +1,16 @@
 # Tao Among Copilot Instructions
 
+## 前提條件
+
+- 回應必須使用繁體中文。
+- 在進行變更時，如果變更量有可能超過 200 行，請事先確認「這個指示的變更量可能會超過 200 行，您是否要執行？」
+- 對於大的變更，首先制定計畫，然後告訴使用者「我打算這樣進行計畫。」如果使用者要求修正計畫，請進行調整後再提議。
+
 ## 專案架構與開發重點
 
-- **全端魚類資料管理系統**，後端採 Laravel (PHP) + PostgreSQL，前端為 Vue 3 SPA（Inertia.js），Tailwind CSS 主題，支援 Vercel 雲端部署。
+- **全端魚類資料管理系統**，後端採 Laravel (PHP) + PostgreSQL，前端為 Vue 3 SPA（Inertia.js），Tailwind CSS 主題，採用AWS EB 搭配 AWS S3進行後端伺服器運作及檔案儲存服務。
 - **API 設計**：RESTful，路由集中於 `routes/api.php`、`routes/web.php`，控制器於 `app/Http/Controllers/`，資料驗證於 `app/Http/Requests/`。
-- **資料流**：前端透過 Inertia.js 呼叫 API，資料模型集中於 `app/Models/`，圖片/音檔上傳整合 Supabase。
+- **資料流**：前端透過 Inertia.js 呼叫 API，資料模型集中於 `app/Models/`，圖片/音檔上傳整合 S3。
 - **元件化前端**：`resources/js/Components/` 為 UI 元件，`Pages/` 為頁面，`Tests/` 用 Vitest 撰寫單元測試。
 - **測試**：後端用 Pest，前端用 Vitest，測試指令：`./vendor/bin/pest`、`npx vitest`。
 - **樣式**：`resources/css/` 以 Tailwind 為主，`fish.css` 補充主題變數與自訂樣式。
@@ -14,7 +20,7 @@
 
 - **本地啟動**：`php artisan serve` 啟動後端，`npm run dev` 啟動前端。
 - **測試**：後端 `./vendor/bin/pest`，前端 `npx vitest`。
-- **部署**：推送 main 分支自動部署至 Vercel。
+- **部署**：推送 main 分支自動部署至 Github ，Github Actions 負責 CI/CD。
 - **API 文件**：Swagger 設定於 `config/l5-swagger.php`，路徑 `/api/documentation`。
 
 ## 專案慣例與模式
@@ -42,9 +48,9 @@
 ## 進階協作與注意事項
 
 - **跨層溝通**：API schema 變更需同步更新前端型別與 Swagger 文件。
-- **圖片/音檔上傳**：統一走 Supabase，相關服務於 `app/Services/UploadService.php`。
+- **圖片/音檔上傳**：統一走 S3，相關服務於 `app/Services/UploadService.php`。
 - **安全性**：API 驗證用 Laravel Sanctum，前端表單嚴格驗證，避免 XSS/CSRF。
-- **效能**：避免 N+1 查詢，前端圖片 lazy loading，API 回應時間監控於 Vercel。
+- **效能**：避免 N+1 查詢，前端圖片 lazy loading。
 - **分支策略**：遵循 Git Flow，feature 分支合併前需通過所有測試。
 
 ---
@@ -52,6 +58,7 @@
 如需更細節範例，請參考 `README.md` 及各目錄內註解。若有不明確處，請回報以利持續優化本指令。
 
 ## Active Technologies
+
 - PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試） (001-media-url-refactor)
 - PostgreSQL、Supabase Storage（public bucket） (001-media-url-refactor)
 - PHP 8.x（Laravel）, JavaScript/TypeScript（Vue 3 + Inertia.js） + Laravel Eloquent、Inertia.js、Tailwind CSS、Pest（後端測試）、Vitest（前端測試） (005-fishs-incremental-loading)
@@ -59,4 +66,5 @@
 - PHP 8.x（Laravel） + Laravel Framework（Eloquent、Validation、Routing）、Inertia.js（前端呼叫與渲染） (006-backend-search)
 
 ## Recent Changes
+
 - 001-media-url-refactor: Added PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試）
