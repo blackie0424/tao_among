@@ -1,25 +1,7 @@
 <template>
   <form @submit.prevent class="space-y-4">
-    <!-- 魚類提醒 -->
-    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-      <div class="w-12 h-12 flex-shrink-0">
-        <LazyImage
-          :src="fishImage"
-          :alt="fishName"
-          wrapperClass="w-full h-full bg-gray-200 rounded-lg"
-          imgClass="w-full h-full object-contain"
-        />
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-900">正在編輯 {{ fishName }} 的捕獲紀錄</p>
-        <p class="text-xs text-gray-500">修改照片或捕獲資訊</p>
-      </div>
-    </div>
-
     <!-- 當前照片和上傳新照片 -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1"> 捕獲照片 </label>
-
       <!-- 當前照片 -->
       <div v-if="record.image_url && !imagePreview" class="mb-4">
         <p class="text-sm text-gray-600 mb-2">當前照片：</p>
@@ -27,8 +9,8 @@
           <LazyImage
             :src="record.image_url"
             :alt="'當前捕獲照片'"
-            wrapperClass="w-32 h-32 bg-gray-100 rounded-lg"
-            imgClass="w-full h-full object-cover"
+            wrapperClass="fish-image-wrapper"
+            imgClass="fish-image"
           />
         </div>
       </div>
