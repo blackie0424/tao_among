@@ -35,8 +35,12 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">尚未紀錄</option>
-                <option v-for="category in foodCategories" :key="category" :value="category">
-                  {{ category || '空值' }}
+                <option
+                  v-for="category in filteredFoodCategories"
+                  :key="category"
+                  :value="category"
+                >
+                  {{ category }}
                 </option>
               </select>
             </div>
@@ -49,8 +53,8 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">尚未紀錄</option>
-                <option v-for="method in processingMethods" :key="method" :value="method">
-                  {{ method || '空值' }}
+                <option v-for="method in filteredProcessingMethods" :key="method" :value="method">
+                  {{ method }}
                 </option>
               </select>
             </div>
@@ -142,7 +146,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -151,6 +155,15 @@ const props = defineProps({
   foodCategories: Array,
   processingMethods: Array,
   fishId: Number,
+})
+
+// 過濾掉空值選項
+const filteredFoodCategories = computed(() => {
+  return (props.foodCategories || []).filter((category) => category !== null && category !== '')
+})
+
+const filteredProcessingMethods = computed(() => {
+  return (props.processingMethods || []).filter((method) => method !== null && method !== '')
 })
 
 const emit = defineEmits(['updated', 'deleted'])

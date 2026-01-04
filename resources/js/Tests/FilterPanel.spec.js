@@ -7,8 +7,8 @@ describe('FilterPanel', () => {
   const defaultProps = {
     filters: {},
     tribes: ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'],
-    foodCategories: ['oyod', 'rahet', '不分類', '不食用', '?', ''],
-    processingMethods: ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?', ''],
+    foodCategories: ['oyod', 'rahet', '不分類', '不食用', '?'],
+    processingMethods: ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '?'],
   }
 
   beforeEach(() => {
