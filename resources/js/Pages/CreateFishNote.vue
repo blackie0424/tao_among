@@ -4,7 +4,7 @@
       :goBack="goBack"
       :submitNote="submitNote"
       :submitting="form.processing"
-      title="新增魚類知識"
+      :title="`新增${fish.name}的進階知識`"
     />
     <div class="pt-16">
       <!-- 魚圖片與名稱 -->
