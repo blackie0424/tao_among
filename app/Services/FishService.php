@@ -53,20 +53,20 @@ class FishService
         return $result;
     }
 
+    /**
+     * 為魚類集合的 audios 關聯設定 url 欄位
+     *
+     * 注意：不要覆蓋 $fish->image，因為 Fish Model 的 accessor（image_url, display_image_url）
+     * 會自動根據原始檔名產生完整 URL。
+     */
     public function assignImageUrls($fishes)
     {
         if (empty($fishes)) {
             return [];
         }
 
-        $assetUrl = env('ASSET_URL');
-
         foreach ($fishes as $fish) {
-            if ($fish->image == null || $fish->image == '') {
-                $fish->image =  $this->storageService->getUrl('images', 'default.png', $fish->has_webp ?? null);
-            } else {
-                $fish->image =  $this->storageService->getUrl('images', $fish->image, $fish->has_webp ?? null);
-            }
+            // 只處理 audios 關聯的 url 欄位
             foreach ($fish->audios as $audio) {
                 if ($audio && isset($audio->name) && $audio->name) {
                     $audio->url = $this->storageService->getUrl('audios', $audio->name);
@@ -78,24 +78,15 @@ class FishService
     }
 
     /**
-     * 將單筆 fish 物件套用媒體 URL 規則（圖片 default、音檔 null-safe、audios.url）
+     * 將單筆 fish 物件套用媒體 URL 規則（音檔 audios.url）
+     *
+     * 注意：不要覆蓋 $fish->image 或 $fish->audio_filename，
+     * 因為 Fish Model 的 accessor（image_url, audio_url, display_image_url）
+     * 會自動根據原始檔名產生完整 URL。直接覆蓋會導致 accessor 收到
+     * 已轉換的 URL 而產生錯誤的雙重路徑。
      */
     public function decorateFishMedia(Fish $fish): Fish
     {
-        // 圖片：沒有時給預設圖
-        if (!empty($fish->image)) {
-            $fish->image = $this->storageService->getUrl('images', $fish->image, $fish->has_webp ?? null);
-        } else {
-            $fish->image = $this->storageService->getUrl('images', 'default.png', $fish->has_webp ?? null);
-        }
-
-        // 音檔：只有在有檔名時才呼叫 getUrl，避免傳入 null
-        if (!empty($fish->audio_filename)) {
-            $fish->audio_filename = $this->storageService->getUrl('audios', $fish->audio_filename);
-        } else {
-            $fish->audio_filename = null;
-        }
-
         // 針對 audios 關聯（若已載入）設定 url 欄位
         if ($fish->relationLoaded('audios')) {
             foreach ($fish->audios as $audio) {
