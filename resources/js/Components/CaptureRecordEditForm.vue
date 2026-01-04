@@ -136,18 +136,22 @@
 
     <!-- 捕獲方式 -->
     <div>
-      <label for="capture_method" class="block text-sm font-medium text-gray-700 mb-1">
-        捕獲方式 <span class="text-red-500">*</span>
-      </label>
-      <input
+      <label for="capture_method" class="block text-xl font-medium text-gray-700 mb-2"
+        >捕獲方式 <span class="text-red-500">*</span></label
+      >
+      <select
         id="capture_method"
         v-model="form.capture_method"
-        type="text"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="例如：傳統魚網、釣竿、陷阱"
-        required
-      />
-      <div v-if="errors.capture_method" class="text-red-500 text-sm mt-1">
+        class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">請選擇捕獲方式</option>
+        <option value="mapazat">mapazat</option>
+        <option value="mamasil">mamasil</option>
+        <option value="mamacik">mamacik</option>
+        <option value="mitokzos">mitokzos</option>
+        <option value="mipaltog">mipaltog</option>
+      </select>
+      <div v-if="errors.capture_method" class="text-red-500 text-base mt-1">
         {{ errors.capture_method }}
       </div>
     </div>
