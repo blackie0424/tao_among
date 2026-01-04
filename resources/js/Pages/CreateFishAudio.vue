@@ -9,7 +9,17 @@
       :submitLabel="submitting ? '送出中...' : '下一步'"
       :showLoading="submitting"
     />
+
     <div class="pt-16 flex flex-col items-center">
+      <!-- 魚類提醒 -->
+      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+        <LazyImage
+          :src="fish.display_image_url || fish.image_url"
+          :alt="fish.name"
+          wrapperClass="fish-image-wrapper"
+          imgClass="fish-image"
+        />
+      </div>
       <div class="mb-6">
         <button
           v-if="!isRecording"
@@ -57,7 +67,13 @@
 <script setup>
 import { ref, onBeforeUnmount, nextTick } from 'vue'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import LazyImage from '../Components/LazyImage.vue'
+
 import { router } from '@inertiajs/vue3'
+
+const props = defineProps({
+  fish: Object,
+})
 
 const isRecording = ref(false)
 const audioBlob = ref(null)

@@ -28,9 +28,14 @@ class FishAudioController extends BaseController
     /**
      * Show the form for creating a new fish audio
      */
-    public function create()
+    public function create($fishId)
     {
-        return Inertia::render('CreateFishAudio');
+        $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
+        $fishWithUrls = $this->assignFishImage($fish);
+
+        return Inertia::render('CreateFishAudio', [
+            'fish' => $fishWithUrls,
+        ]);
     }
 
     /**
