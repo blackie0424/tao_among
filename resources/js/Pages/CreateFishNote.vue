@@ -2,126 +2,52 @@
   <div class="container mx-auto p-4 relative">
     <TopNavBar
       :goBack="goBack"
-      :submitNote="submitNote"
-      :submitting="form.processing"
-      :title="`新增${fish.name}的進階知識`"
+      title="新增進階知識"
+      :showSubmit="true"
+      :submitNote="submitForm"
+      :submitLabel="'儲存'"
     />
     <div class="pt-16">
-      <!-- 魚圖片與名稱 -->
-      <div class="flex flex-col items-center mb-8">
-        <div class="w-256 h-256 mb-2">
-          <FishImage
-            :image="fish.image"
-            :name="fish.name"
-            class="w-full h-full object-cover rounded-full"
-          />
-        </div>
-        <FishName :fish-name="fish.name" class="text-2xl font-bold" />
-      </div>
-
-      <form @submit.prevent="submitNote" class="space-y-6">
-        <!-- 地區選擇 -->
-        <div>
-          <div class="font-semibold mb-2">選擇地區 <span class="text-red-500">*</span></div>
-          <div class="flex flex-wrap gap-3">
-            <button
-              v-for="loc in locates"
-              :key="loc.value"
-              type="button"
-              :class="[
-                'px-4 py-2 rounded-full border transition',
-                form.locate === loc.value
-                  ? 'bg-yellow-500 text-white border-yellow-500'
-                  : 'bg-gray-100 border-gray-300 hover:bg-yellow-100',
-              ]"
-              @click="form.locate = loc.value"
-            >
-              {{ loc.label }}
-            </button>
-          </div>
-          <div v-if="form.errors.locate" class="text-red-500 text-sm mt-1">
-            {{ form.errors.locate }}
-          </div>
-        </div>
-
-        <!-- 知識類別選擇 -->
-        <div>
-          <div class="font-semibold mb-2">選擇知識類別 <span class="text-red-500">*</span></div>
-          <div class="flex flex-wrap gap-3">
-            <button
-              v-for="type in noteTypes"
-              :key="type"
-              type="button"
-              :class="[
-                'px-4 py-2 rounded-full border transition',
-                form.note_type === type
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-gray-100 border-gray-300 hover:bg-blue-100',
-              ]"
-              @click="form.note_type = type"
-            >
-              {{ type }}
-            </button>
-          </div>
-          <div v-if="form.errors.note_type" class="text-red-500 text-sm mt-1">
-            {{ form.errors.note_type }}
-          </div>
-        </div>
-
-        <!-- 筆記輸入 -->
-        <div>
-          <div class="font-semibold mb-2">知識內容 <span class="text-red-500">*</span></div>
-          <textarea
-            v-model="form.note"
-            class="w-full border rounded p-3 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            rows="4"
-            placeholder="請輸入知識內容"
-          ></textarea>
-          <div v-if="form.errors.note" class="text-red-500 text-sm mt-1">
-            {{ form.errors.note }}
-          </div>
-        </div>
-      </form>
+      <FishNoteForm
+        :tribes="tribes"
+        :noteTypes="noteTypes"
+        :fishId="fish.id"
+        :fishName="fish.name"
+        :fishImage="fish.image"
+        @submitted="onNoteSubmitted"
+        ref="formRef"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3'
-import FishImage from '@/Components/FishImage.vue'
-import FishName from '@/Components/FishName.vue'
-import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import TopNavBar from '../Components/Global/TopNavBar.vue'
+import FishNoteForm from '../Components/FishNoteForm.vue'
+import { router } from '@inertiajs/vue3'
+import { ref } from 'vue'
 
 const props = defineProps({
-  fish: Object, // { id, name, image }
-  noteTypes: Array, // 從後端傳來的知識類別
+  fish: Object,
+  tribes: Array,
+  noteTypes: Array,
 })
 
-const locates = [
-  { value: 'Imorod', label: 'Imorod' },
-  { value: 'Iratay', label: 'Iratay' },
-  { value: 'Yayo', label: 'Yayo' },
-  { value: 'Iraraley', label: 'Iraraley' },
-  { value: 'Iranmeylek', label: 'Iranmeylek' },
-  { value: 'Ivalino', label: 'Ivalino' },
-]
-
-// 使用 Inertia form
-const form = useForm({
-  locate: '',
-  note_type: '',
-  note: '',
-})
-
-function submitNote() {
-  form.post(`/fish/${props.fish.id}/knowledge`, {
-    onSuccess: () => {
-      // 表單會自動 reset 或跳轉到列表頁
-    },
-  })
-}
+const formRef = ref(null)
 
 function goBack() {
-  window.history.length > 1 ? window.history.back() : (window.location.href = '/')
+  router.visit(`/fish/${props.fish.id}/knowledge-list`)
+}
+
+function onNoteSubmitted() {
+  // 返回進階知識列表頁面
+  router.visit(`/fish/${props.fish.id}/knowledge-list`)
+}
+
+// 整合送出到 TopNavBar 的 @submit 事件
+function submitForm() {
+  if (formRef.value) {
+    formRef.value.submitForm()
+  }
 }
 </script>

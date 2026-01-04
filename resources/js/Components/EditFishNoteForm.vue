@@ -16,9 +16,45 @@
       </div>
     </div>
 
+    <!-- 部落資訊 -->
+    <div>
+      <label for="locate" class="block text-sm font-medium text-gray-700 mb-1">
+        部落 <span class="text-red-500">*</span>
+      </label>
+      <select
+        id="locate"
+        v-model="form.locate"
+        @blur="touchField('locate')"
+        :class="[
+          'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors',
+          errors.locate
+            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500',
+        ]"
+        required
+      >
+        <option value="">請選擇部落</option>
+        <option v-for="tribe in tribes" :key="tribe" :value="tribe">
+          {{ tribe }}
+        </option>
+      </select>
+      <div v-if="errors.locate" class="flex items-center gap-1 text-red-500 text-sm mt-1">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        {{ errors.locate }}
+      </div>
+    </div>
+
     <!-- 知識分類 -->
     <div>
-      <label for="note_type" class="block text-sm font-medium text-gray-700 mb-1"> 知識分類 </label>
+      <label for="note_type" class="block text-sm font-medium text-gray-700 mb-1">
+        知識分類 <span class="text-red-500">*</span>
+      </label>
       <select
         id="note_type"
         v-model="form.note_type"
@@ -29,8 +65,9 @@
             ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
             : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500',
         ]"
+        required
       >
-        <option value="">一般知識</option>
+        <option value="">請選擇分類</option>
         <option v-for="type in noteTypes" :key="type" :value="type">
           {{ type }}
         </option>
@@ -96,34 +133,6 @@
       </div>
     </div>
 
-    <!-- 位置資訊 -->
-    <div>
-      <label for="locate" class="block text-sm font-medium text-gray-700 mb-1"> 位置資訊 </label>
-      <input
-        id="locate"
-        v-model="form.locate"
-        @blur="touchField('locate')"
-        type="text"
-        :class="[
-          'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors',
-          errors.locate
-            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500',
-        ]"
-        placeholder="例如：太魯閣溪上游、立霧溪出海口"
-      />
-      <div v-if="errors.locate" class="flex items-center gap-1 text-red-500 text-sm mt-1">
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        {{ errors.locate }}
-      </div>
-    </div>
-
     <!-- 網路錯誤提示 -->
     <div v-if="networkError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
       <div class="flex items-start gap-2">
@@ -177,6 +186,7 @@ import { useFormValidation, validationRules } from '../composables/useFormValida
 const props = defineProps({
   note: Object,
   noteTypes: Array,
+  tribes: Array,
   fishId: Number,
   fishName: String,
   fishImage: String,

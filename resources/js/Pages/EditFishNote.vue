@@ -11,6 +11,7 @@
       <EditFishNoteForm
         :note="note"
         :noteTypes="noteTypes"
+        :tribes="tribes"
         :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.image"
@@ -32,6 +33,7 @@ const props = defineProps({
   fish: Object,
   note: Object,
   noteTypes: Array,
+  tribes: Array,
 })
 
 const formRef = ref(null)
