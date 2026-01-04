@@ -70,7 +70,8 @@ class FishNoteController extends BaseController
             return Inertia::render('EditFishNote', [
                 'fish' => $this->fishService->assignImageUrls([$fish])[0],
                 'note' => $note,
-                'noteTypes' => $this->getNoteTypes()
+                'noteTypes' => $this->getNoteTypes(),
+                'tribes' => $this->getTribes()
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入編輯頁面');
@@ -179,18 +180,19 @@ class FishNoteController extends BaseController
     }
 
     /**
-     * Get available note types in preferred order
+     * Get available note types from config
      */
     private function getNoteTypes()
     {
-        return [
-            '一般知識',
-            '生態習性',
-            '營養價值',
-            '烹飪方法',
-            '文化意義',
-            '其他'
-        ];
+        return config('fish_options.note_types');
+    }
+
+    /**
+     * Get available tribes from config
+     */
+    private function getTribes()
+    {
+        return config('fish_options.tribes');
     }
 
     /**
@@ -233,7 +235,8 @@ class FishNoteController extends BaseController
                     'name' => $fishWithImage->name,
                     'image' => $fishWithImage->image,
                 ],
-                'noteTypes' => $this->getNoteTypes()
+                'noteTypes' => $this->getNoteTypes(),
+                'tribes' => $this->getTribes()
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入新增頁面');

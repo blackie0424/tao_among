@@ -2,7 +2,7 @@
   <div class="container mx-auto p-4 relative">
     <TopNavBar
       :goBack="goBack"
-      title="編輯進階知識"
+      :title="`編輯${fish.name}的進階知識`"
       :showSubmit="canSubmit && !processing"
       :submitNote="submitForm"
       :submitLabel="processing ? '更新中...' : '更新'"
@@ -11,6 +11,7 @@
       <EditFishNoteForm
         :note="note"
         :noteTypes="noteTypes"
+        :tribes="tribes"
         :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.image"
@@ -32,6 +33,7 @@ const props = defineProps({
   fish: Object,
   note: Object,
   noteTypes: Array,
+  tribes: Array,
 })
 
 const formRef = ref(null)

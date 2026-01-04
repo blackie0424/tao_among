@@ -203,7 +203,7 @@ body {
 .fish-image-wrapper {
   background-color: #fff;
   width: 100%;
-  max-width: 48rem;
+  max-width: 30rem;
   margin-left: auto;
   margin-right: auto;
   display: flex;
