@@ -76,10 +76,10 @@ return [
     |
     */
     'capture_methods' => [
-        'mapazat',
-        'mamasil',
-        'mamacik',
-        'mitokzos',
-        'mipaltog',
+        'mapazat' => 'mapazat 網魚',
+        'mamasil' => 'mamasil 白天釣魚',
+        'mamacik' => 'mamacik 夜間釣魚',
+        'mitokzos' => 'mitokzos',
+        'mipaltog' => 'mipaltog',
     ],
 ];

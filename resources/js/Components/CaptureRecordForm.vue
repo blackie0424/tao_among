@@ -118,8 +118,8 @@
           class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">請選擇捕獲方式</option>
-          <option v-for="method in capture_methods" :key="method" :value="method">
-            {{ method }}
+          <option v-for="(label, value) in capture_methods" :key="value" :value="value">
+            {{ label }}
           </option>
         </select>
         <div v-if="errors.capture_method" class="text-red-500 text-base mt-1">
