@@ -11,6 +11,7 @@
       <CaptureRecordEditForm
         :record="record"
         :tribes="tribes"
+        :capture_methods="capture_methods"
         :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
@@ -32,6 +33,7 @@ const props = defineProps({
   fish: Object,
   record: Object,
   tribes: Array,
+  capture_methods: Array,
 })
 
 const formRef = ref(null)

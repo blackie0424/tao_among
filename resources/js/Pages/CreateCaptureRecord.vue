@@ -14,6 +14,7 @@
     <div class="pt-16">
       <CaptureRecordForm
         :tribes="tribes"
+        :capture_methods="capture_methods"
         :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
@@ -33,6 +34,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 const props = defineProps({
   fish: Object,
   tribes: Array,
+  capture_methods: Array,
   prefill_image: {
     type: String,
     default: '',

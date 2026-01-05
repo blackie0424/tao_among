@@ -61,10 +61,14 @@ class CaptureRecordController extends Controller
         
         // 定義部落選項
         $tribes = config('fish_options.tribes');
+
+        // 定義捕獲方式選項
+        $capture_methods = config('fish_options.capture_methods');
         
         return Inertia::render('CreateCaptureRecord', [
             'fish' => $fishWithImage,
             'tribes' => $tribes,
+            'capture_methods' => $capture_methods,
             'prefill_image' => $request->query('prefill_image', '')
         ]);
     }
@@ -111,11 +115,15 @@ class CaptureRecordController extends Controller
         
         // 定義部落選項
         $tribes = config('fish_options.tribes');
+
+        // 定義捕獲方式選項
+        $capture_methods = config('fish_options.capture_methods');
         
         return Inertia::render('EditCaptureRecord', [
             'fish' => $fishWithImage,
             'record' => $record,
-            'tribes' => $tribes
+            'tribes' => $tribes,
+            'capture_methods' => $capture_methods
         ]);
        
     }

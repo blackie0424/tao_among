@@ -145,11 +145,9 @@
         class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         <option value="">請選擇捕獲方式</option>
-        <option value="mapazat">mapazat</option>
-        <option value="mamasil">mamasil</option>
-        <option value="mamacik">mamacik</option>
-        <option value="mitokzos">mitokzos</option>
-        <option value="mipaltog">mipaltog</option>
+        <option v-for="method in capture_methods" :key="method" :value="method">
+          {{ method }}
+        </option>
       </select>
       <div v-if="errors.capture_method" class="text-red-500 text-base mt-1">
         {{ errors.capture_method }}
@@ -197,6 +195,7 @@ import LazyImage from './LazyImage.vue'
 const props = defineProps({
   record: Object,
   tribes: Array,
+  capture_methods: Array,
   fishId: Number,
   fishName: String,
   fishImage: String,
