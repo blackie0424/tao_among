@@ -29,11 +29,6 @@
       <div class="flex items-center mb-1">
         <div class="flex items-center space-x-2 flex-1 min-w-0">
           <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-base md:text-lg font-medium bg-blue-100 text-blue-800 truncate"
-          >
-            {{ displayLabel }}
-          </span>
-          <span
             class="inline-flex items-center px-3 py-1 rounded-full text-base md:text-lg font-medium bg-green-100 text-green-800 truncate"
           >
             {{ record.capture_method }}
@@ -52,6 +47,13 @@
             @set-as-display-image="setAsDisplayImage"
           />
         </div>
+      </div>
+      <div class="mb-1">
+        <span
+          class="inline-flex items-center px-3 py-1 rounded-full text-base md:text-lg font-medium bg-blue-100 text-blue-800 truncate"
+        >
+          {{ displayLabel }}
+        </span>
       </div>
 
       <!-- 備註 -->
