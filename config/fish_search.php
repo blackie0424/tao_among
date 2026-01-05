@@ -2,10 +2,10 @@
 
 return [
     // 預設每批回傳筆數（PWA 無限滾動用批次大小），單次搜尋會話期間固定。
-    'per_page_default' => env('FISH_SEARCH_PER_PAGE_DEFAULT', 50),
+    'per_page_default' => env('FISH_SEARCH_PER_PAGE_DEFAULT', 100),
 
     // 允許的最大每批筆數上限（伺服器防護界線）。
-    'per_page_max' => env('FISH_SEARCH_PER_PAGE_MAX', 80),
+    'per_page_max' => env('FISH_SEARCH_PER_PAGE_MAX', 200),
 
     // 前瞻抓取是否啟用（perPage+1），用來正確判斷 hasMore。
     'lookahead_enabled' => env('FISH_SEARCH_LOOKAHEAD_ENABLED', true),
