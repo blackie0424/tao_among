@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Contracts\StorageServiceInterface;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -36,6 +37,8 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $storage = app(StorageServiceInterface::class);
+        
         return array_merge(parent::share($request), [
             // 共享 flash messages 到所有 Inertia 頁面
             'flash' => [
@@ -48,6 +51,12 @@ class HandleInertiaRequests extends Middleware
             'errors' => fn () => $request->session()->get('errors')
                 ? $request->session()->get('errors')->getBag('default')->getMessages()
                 : (object) [],
+            
+            // 共享儲存資料夾配置給前端
+            'storageFolders' => [
+                'image' => $storage->getImageFolder(),
+                'webp' => $storage->getWebpFolder(),
+            ],
         ]);
     }
 }

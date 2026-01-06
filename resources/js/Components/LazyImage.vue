@@ -19,6 +19,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import LoadingBar from '@/Components/LoadingBar.vue'
 
 const props = defineProps({
@@ -35,13 +36,20 @@ const props = defineProps({
   },
 })
 
+// 從 Inertia 共享資料取得資料夾配置
+const page = usePage()
+const storageFolders = computed(
+  () => page.props.storageFolders || { image: 'images', webp: 'webp' }
+)
+
 const loading = ref(true)
 const error = ref(false)
 const useWebp = ref(true) // 是否嘗試使用 webp 格式
 
 /**
  * 將圖片 URL 轉換為 webp 格式
- * 例如: /path/to/image.jpg -> /path/to/image.webp
+ * 根據後端配置的資料夾名稱進行替換
+ * 例如: .../dev-images/fish.jpg -> .../dev-webp/fish.webp
  */
 function toWebpUrl(url) {
   if (!url) return url
@@ -49,8 +57,32 @@ function toWebpUrl(url) {
   if (url.toLowerCase().endsWith('.webp')) return url
   // 若是本地預設圖片則不轉換
   if (url.startsWith('/images/')) return url
+
+  const imageFolder = storageFolders.value.image
+  const webpFolder = storageFolders.value.webp
+
+  // 替換資料夾路徑：從 image 資料夾改為 webp 資料夾
+  // 並將副檔名改為 .webp
+  let webpUrl = url
+
+  // 替換資料夾名稱（處理 URL 中的路徑）
+  if (imageFolder && webpFolder) {
+    // 匹配資料夾名稱（確保是完整的資料夾名稱，避免部分匹配）
+    const folderPattern = new RegExp(`/${escapeRegExp(imageFolder)}/`, 'g')
+    webpUrl = webpUrl.replace(folderPattern, `/${webpFolder}/`)
+  }
+
   // 替換副檔名為 .webp
-  return url.replace(/\.(jpg|jpeg|png|gif|bmp)$/i, '.webp')
+  webpUrl = webpUrl.replace(/\.(jpg|jpeg|png|gif|bmp)$/i, '.webp')
+
+  return webpUrl
+}
+
+/**
+ * 轉義正則表達式特殊字元
+ */
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /**
