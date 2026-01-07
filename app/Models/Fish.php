@@ -73,12 +73,6 @@ class Fish extends Model
         return $this->hasMany(FishNote::class, 'fish_id');
     }
 
-    // 一對多關聯：一隻魚有多個筆記
-    public function size()
-    {
-        return $this->hasOne(FishSize::class, 'fish_id');
-    }
-
     // 一對多關聯：一隻魚有多個audio
     public function audios()
     {

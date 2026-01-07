@@ -5,7 +5,6 @@ use App\Models\FishNote;
 use App\Models\FishAudio;
 use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
-use App\Models\FishSize;
 use App\Http\Resources\FishResource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -405,7 +404,6 @@ it('soft deletes fish and all related data when using controller destroy method'
     $notes = FishNote::factory()->count(2)->create(['fish_id' => $fish->id]);
     $audios = FishAudio::factory()->count(2)->create(['fish_id' => $fish->id]);
     $captureRecords = CaptureRecord::factory()->count(2)->create(['fish_id' => $fish->id]);
-    $fishSize = FishSize::factory()->create(['fish_id' => $fish->id]);
 
     // **修正點：單獨創建 TribalClassification 記錄並手動賦予不同的 'tribe' 值**
     // 這樣可以保證 (fish_id, tribe) 組合的唯一性，避免隨機衝突。
