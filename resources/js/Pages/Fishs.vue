@@ -43,7 +43,7 @@
 
 <script setup>
 import { Head, router } from '@inertiajs/vue3'
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 
 import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue'
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
@@ -97,6 +97,83 @@ const nameQuery = ref(currentFilters.value.name || '')
 const showCursorError = ref(false)
 const isLoading = ref(false)
 const showSearchDialog = ref(false)
+
+// === SessionStorage 狀態保存 ===
+const STORAGE_KEY = 'fishs_list_state'
+const CACHE_TTL = 30 * 60 * 1000 // 30 分鐘過期
+
+// 保存狀態到 sessionStorage
+const saveStateToStorage = () => {
+  try {
+    const state = {
+      items: items.value,
+      pageInfo: pageInfo.value,
+      scrollY: window.scrollY,
+      filters: currentFilters.value,
+      nameQuery: nameQuery.value,
+      timestamp: Date.now(),
+    }
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch (e) {
+    // sessionStorage 不可用或容量已滿，忽略
+  }
+}
+
+// 從 sessionStorage 還原狀態
+const restoreStateFromStorage = () => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return false
+
+    const state = JSON.parse(raw)
+    // 檢查是否過期
+    if (Date.now() - state.timestamp > CACHE_TTL) {
+      sessionStorage.removeItem(STORAGE_KEY)
+      return false
+    }
+
+    // 檢查篩選條件是否一致（若 URL 帶有不同篩選則不還原）
+    const urlFilters = props.filters || {}
+    const cachedFilters = state.filters || {}
+    const filterKeys = ['tribe', 'food_category', 'processing_method', 'capture_location']
+    const filtersMatch = filterKeys.every(
+      (key) => (urlFilters[key] || '') === (cachedFilters[key] || '')
+    )
+    const nameMatch = (urlFilters.name || '') === (state.nameQuery || '')
+
+    if (!filtersMatch || !nameMatch) {
+      sessionStorage.removeItem(STORAGE_KEY)
+      return false
+    }
+
+    // 還原狀態
+    items.value = state.items || []
+    pageInfo.value = state.pageInfo || { hasMore: false, nextCursor: null }
+    currentFilters.value = state.filters || currentFilters.value
+    nameQuery.value = state.nameQuery || ''
+
+    // 延遲還原捲動位置（等待 DOM 渲染完成）
+    nextTick(() => {
+      setTimeout(() => {
+        window.scrollTo(0, state.scrollY || 0)
+      }, 50)
+    })
+
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
+// 清除快取
+const clearStateStorage = () => {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY)
+  } catch (e) {
+    // 忽略
+  }
+}
+
 // 顯示總筆數：優先以後端 searchStats.total_results，否則退回目前清單數
 const totalCount = computed(() => {
   const stat = props.searchStats && props.searchStats.total_results
@@ -167,6 +244,7 @@ const removeFilter = (key) => {
 
 // 重新啟動搜尋（第一頁）
 const performSearch = () => {
+  clearStateStorage() // 新搜尋時清除快取
   showCursorError.value = false
   pageInfo.value = { hasMore: false, nextCursor: null }
   fetchPage({})
@@ -269,6 +347,14 @@ watch(
 
 // 初始化
 onMounted(() => {
+  // 嘗試從 sessionStorage 還原狀態（優先）
+  const restored = restoreStateFromStorage()
+  if (restored && items.value.length) {
+    // 成功還原，初始化 observer 後即完成
+    initObserver()
+    return
+  }
+
   // 若網址含分頁參數（last_id/perPage），首次載入就清理並重抓第一頁，避免重整後只看到部分資料
   try {
     const url = new URL(window.location.href)
@@ -291,6 +377,16 @@ onMounted(() => {
     }
   }
   initObserver()
+})
+
+// 離開頁面前保存狀態
+onBeforeUnmount(() => {
+  if (items.value.length) {
+    saveStateToStorage()
+  }
+  if (observer) {
+    observer.disconnect()
+  }
 })
 </script>
 
