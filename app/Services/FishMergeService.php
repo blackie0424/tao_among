@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Models\FishAudio;
-use App\Models\FishSize;
 use App\Models\CaptureRecord;
 use App\Models\TribalClassification;
 use Illuminate\Support\Facades\DB;
@@ -22,10 +21,10 @@ class FishMergeService
      */
     public function previewMerge(int $targetFishId, array $sourceFishIds): array
     {
-        $target = Fish::with(['notes', 'audios', 'size', 'tribalClassifications', 'captureRecords'])
+        $target = Fish::with(['notes', 'audios', 'tribalClassifications', 'captureRecords'])
             ->findOrFail($targetFishId);
         
-        $sources = Fish::with(['notes', 'audios', 'size', 'tribalClassifications', 'captureRecords'])
+        $sources = Fish::with(['notes', 'audios', 'tribalClassifications', 'captureRecords'])
             ->whereIn('id', $sourceFishIds)
             ->get();
         
@@ -63,20 +62,6 @@ class FishMergeService
                     // 無衝突
                     $summary['classifications_to_transfer']++;
                 }
-            }
-            
-            // 檢測尺寸衝突
-            if ($target->size && $source->size) {
-                $conflicts['fish_size'][] = [
-                    'source_fish_id' => $source->id,
-                    'target_exists' => true,
-                    'source_exists' => true,
-                    'target_data' => $target->size,
-                    'source_data' => $source->size,
-                    'resolution' => 'keep_target', // 策略：C-3 主魚類有就保留
-                ];
-            } elseif (!$target->size && $source->size) {
-                $summary['size_will_transfer'] = true;
             }
         }
         
@@ -173,28 +158,7 @@ class FishMergeService
                     }
                 }
                 
-                // 5. 處理尺寸（智慧選擇：主魚類有就保留，沒有才轉移）
-                $targetHasSize = FishSize::where('fish_id', $targetFishId)->exists();
-                $sourceSize = FishSize::where('fish_id', $sourceFishId)->first();
-                
-                if ($sourceSize) {
-                    if ($targetHasSize) {
-                        // 主魚類有尺寸，刪除被併入的
-                        Log::info("Fish size conflict detected and resolved", [
-                            'target_fish_id' => $targetFishId,
-                            'source_fish_id' => $sourceFishId,
-                            'action' => 'deleted_source',
-                        ]);
-                        $sourceSize->delete();
-                        $mergeResults['conflicts_resolved']['fish_size']++;
-                    } else {
-                        // 主魚類無尺寸，轉移被併入的
-                        $sourceSize->update(['fish_id' => $targetFishId]);
-                        $mergeResults['transferred']['fish_size'] = true;
-                    }
-                }
-                
-                // 6. 軟刪除來源魚類
+                // 5. 軟刪除來源魚類（已移除 FishSize 處理）
                 $source->delete();
                 $mergeResults['merged_fish_ids'][] = $sourceFishId;
                 

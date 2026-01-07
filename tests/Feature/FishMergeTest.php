@@ -3,7 +3,6 @@
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Models\FishAudio;
-use App\Models\FishSize;
 use App\Models\CaptureRecord;
 use App\Models\TribalClassification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -217,69 +216,6 @@ it('情境 B-1：部落分類衝突時保留主魚類資料', function () {
     expect(TribalClassification::where('fish_id', $target->id)->count())->toBe(3);
 });
 
-// ==================== 情境 C：尺寸衝突 ====================
-
-it('情境 C-3：主魚類有尺寸時保留主魚類的尺寸', function () {
-    $target = Fish::factory()->create(['name' => '黃鰭鮪']);
-    $targetSize = FishSize::create([
-        'fish_id' => $target->id,
-        'parts' => ['手指1', '手指2', '半掌1', '手掌'],
-    ]);
-
-    $source = Fish::factory()->create(['name' => '黃旗魚']);
-    $sourceSize = FishSize::create([
-        'fish_id' => $source->id,
-        'parts' => ['手指1', '半掌2', '手掌', '下臂1'],
-    ]);
-
-    // 執行合併
-    $response = $this->postJson('/prefix/api/fish/merge', [
-        'target_fish_id' => $target->id,
-        'source_fish_ids' => [$source->id],
-    ]);
-
-    $response->assertStatus(200)
-        ->assertJsonPath('data.conflicts_resolved.fish_size', 1);
-
-    // 驗證保留主魚類的尺寸
-    $finalSize = FishSize::where('fish_id', $target->id)->first();
-    expect($finalSize->parts)->toBe(['手指1', '手指2', '半掌1', '手掌']); // 主魚類的
-    expect($finalSize->id)->toBe($targetSize->id); // 保留原本的記錄
-
-    // 驗證被併入的尺寸已刪除
-    expect(FishSize::find($sourceSize->id))->toBeNull();
-    expect(FishSize::withTrashed()->find($sourceSize->id))->not->toBeNull();
-});
-
-it('情境 C-3：主魚類無尺寸時轉移被併入魚類的尺寸', function () {
-    $target = Fish::factory()->create(['name' => '黃鰭鮪']);
-    // 主魚類沒有尺寸資料
-
-    $source = Fish::factory()->create(['name' => '黃旗魚']);
-    $sourceSize = FishSize::create([
-        'fish_id' => $source->id,
-        'parts' => ['手指1', '半掌2', '手掌', '下臂1'],
-    ]);
-
-    // 執行合併
-    $response = $this->postJson('/prefix/api/fish/merge', [
-        'target_fish_id' => $target->id,
-        'source_fish_ids' => [$source->id],
-    ]);
-
-    $response->assertStatus(200)
-        ->assertJsonPath('data.transferred.fish_size', true);
-
-    // 驗證尺寸已轉移到主魚類
-    $finalSize = FishSize::where('fish_id', $target->id)->first();
-    expect($finalSize)->not->toBeNull();
-    expect($finalSize->parts)->toBe(['手指1', '半掌2', '手掌', '下臂1']);
-    expect($finalSize->id)->toBe($sourceSize->id); // 轉移的是原本的記錄
-
-    // 驗證來源魚類無尺寸資料
-    expect(FishSize::where('fish_id', $source->id)->exists())->toBeFalse();
-});
-
 // ==================== 預覽功能測試 ====================
 
 it('可以預覽合併操作並檢測衝突', function () {
@@ -290,7 +226,6 @@ it('可以預覽合併操作並檢測衝突', function () {
         'food_category' => 'oyod',
         'processing_method' => '去魚鱗',
     ]);
-    FishSize::create(['fish_id' => $target->id, 'parts' => ['手指1']]);
 
     $source = Fish::factory()->create(['name' => '黃旗魚']);
     FishNote::factory()->count(2)->create(['fish_id' => $source->id]);
@@ -301,7 +236,6 @@ it('可以預覽合併操作並檢測衝突', function () {
         'food_category' => 'rahet',
         'processing_method' => '剝皮',
     ]);
-    FishSize::create(['fish_id' => $source->id, 'parts' => ['手指1', '半掌1']]); // 衝突
 
     $response = $this->postJson('/prefix/api/fish/merge/preview', [
         'target_fish_id' => $target->id,
@@ -317,12 +251,10 @@ it('可以預覽合併操作並檢測衝突', function () {
         ->assertJsonPath('data.summary.audios_to_transfer', 1)
         ->assertJsonPath('data.summary.classifications_conflicts', 1);
 
-    // 驗證衝突資訊
+    // 驗證衝突資訊（已扁平化格式）
     $conflicts = $response->json('data.conflicts');
-    expect($conflicts)->toHaveKey('tribal_classifications');
-    expect($conflicts)->toHaveKey('fish_size');
-    expect($conflicts['tribal_classifications'][0]['tribe'])->toBe('ivalino');
-    expect($conflicts['tribal_classifications'][0]['resolution'])->toBe('keep_target');
+    expect($conflicts)->toBeArray();
+    expect($conflicts[0]['type'])->toBe('tribal_classifications');
 });
 
 // ==================== 批次合併測試 ====================

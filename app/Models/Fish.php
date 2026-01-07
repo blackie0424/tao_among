@@ -59,7 +59,6 @@ class Fish extends Model
             // 軟刪除關聯資料
             // 使用 each()->delete() 來觸發每個子模型的 deleting 事件
             // 這樣 FishAudio 和 CaptureRecord 會自動刪除各自的檔案
-            $fish->size()->delete();
             $fish->notes()->delete();
             $fish->audios->each->delete();
             $fish->tribalClassifications()->delete();

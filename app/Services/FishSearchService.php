@@ -25,7 +25,7 @@ class FishSearchService
      */
     public function search(array $filters)
     {
-        $query = Fish::with(['size', 'tribalClassifications', 'captureRecords'])
+        $query = Fish::with(['tribalClassifications', 'captureRecords'])
                      ->orderBy('id', 'desc'); // 最新的資料最先顯示
 
         $this->applyNameFilter($query, $filters);
@@ -149,7 +149,7 @@ class FishSearchService
      */
     public function buildSearchQuery(array $filters)
     {
-        $query = Fish::with(['size', 'tribalClassifications', 'captureRecords']);
+        $query = Fish::with(['tribalClassifications', 'captureRecords']);
 
         $this->applyNameFilter($query, $filters);
         $this->applyTribalFilters($query, $filters);
