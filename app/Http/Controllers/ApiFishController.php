@@ -302,7 +302,7 @@ class ApiFishController extends Controller
             ->when($excludeId, function ($q) use ($excludeId) {
                 $q->where('id', '!=', $excludeId);
             })
-            ->with('captureRecords:id,fish_id,image_url')
+            ->with('captureRecords:id,fish_id,image_path')
             ->limit(20)
             ->get()
             ->map(function ($fish) {

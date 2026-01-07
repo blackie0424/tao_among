@@ -21,7 +21,7 @@
 
     <!-- 頁面標題 -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">將其他魚類資料合併到「{{ fish.name }}</h1>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">將其他魚類資料合併到{{ fish.name }}</h1>
     </div>
 
     <!-- 主要魚類資訊卡片 -->
