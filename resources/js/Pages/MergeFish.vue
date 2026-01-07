@@ -21,27 +21,20 @@
 
     <!-- 頁面標題 -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">合併重複魚類</h1>
-      <p class="text-gray-600">將其他魚類資料合併到「{{ fish.name || '未命名' }}」</p>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">將其他魚類資料合併到「{{ fish.name }}</h1>
     </div>
 
     <!-- 主要魚類資訊卡片 -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
       <div class="flex items-center gap-4">
-        <div
-          class="w-64 h-64 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
-          v-if="fish.image_url"
-        >
-          <img :src="fish.image_url" :alt="fish.name" class="w-full h-full object-cover" />
-        </div>
-        <div class="flex-1">
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">
-            {{ fish.name || '未命名' }}
-          </h2>
-        </div>
-        <div class="text-right">
-          <div class="text-sm text-gray-600">主要魚類（目標）</div>
-          <div class="text-xs text-gray-500">ID: {{ fish.id }}</div>
+        <!-- 魚類圖片 -->
+        <div class="w-full md:w-1/3">
+          <LazyImage
+            :src="fish.image_url"
+            :alt="fish.name"
+            wrapperClass="w-full h-48 bg-gray-100 rounded-lg"
+            imgClass="w-full h-full object-contain"
+          />
         </div>
       </div>
     </div>
@@ -260,6 +253,7 @@
 import { ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import axios from 'axios'
+import LazyImage from '../Components/LazyImage.vue'
 
 const props = defineProps({
   fish: {

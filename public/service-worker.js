@@ -3,7 +3,7 @@
  * 採用 Stale-While-Revalidate 策略優化使用者體驗
  */
 
-const CACHE_VERSION = 'v1.0.1'
+const CACHE_VERSION = 'v1.0.3'
 const CACHE_NAME = `tao-among-${CACHE_VERSION}`
 
 // 預快取的核心資源（僅靜態資源，不包含 HTML 頁面）
@@ -30,7 +30,7 @@ const CACHEABLE_EXTENSIONS = [
 ]
 
 // 不應該快取的路徑
-const EXCLUDE_PATHS = ['/api/', '/sanctum/', '/login', '/logout', '/register']
+const EXCLUDE_PATHS = ['/prefix/api/', '/sanctum/', '/login', '/logout', '/register']
 
 /**
  * 安裝事件：預快取核心資源
@@ -190,12 +190,23 @@ async function networkFirst(request) {
  */
 self.addEventListener('fetch', (event) => {
   const request = event.request
+  const url = new URL(request.url)
 
-  if (!shouldCache(request)) {
+  // API 請求完全不處理，讓瀏覽器原生處理
+  // 這樣錯誤時會正確顯示錯誤，而不會從快取取得錯誤內容
+  if (EXCLUDE_PATHS.some((path) => url.pathname.startsWith(path))) {
+    return // 完全不介入，讓瀏覽器處理
+  }
+
+  // 非同源請求不處理
+  if (url.origin !== self.location.origin) {
     return
   }
 
-  const url = new URL(request.url)
+  // 非 GET 請求不處理
+  if (request.method !== 'GET') {
+    return
+  }
 
   // 根據請求類型選擇快取策略
   if (isNavigationRequest(request)) {
