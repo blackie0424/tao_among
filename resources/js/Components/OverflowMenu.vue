@@ -61,6 +61,24 @@
               指定為基本發音
             </button>
           </li>
+          <li v-if="enableMergeFish" class="border-t border-gray-100">
+            <button
+              class="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-base md:text-lg transition-colors flex items-center gap-2"
+              @click="handleMergeFish"
+              :disabled="processing"
+              title="合併重複的魚類資料"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                />
+              </svg>
+              <span>合併重複魚類</span>
+            </button>
+          </li>
           <li v-if="showDelete" class="border-t border-gray-100 mt-1">
             <button
               class="w-full text-left px-4 py-2.5 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-red-600 text-base md:text-lg transition-colors"
@@ -86,7 +104,7 @@ const processing = ref(false)
 const props = defineProps({
   apiUrl: { type: String, required: true },
   redirectUrl: { type: String, default: '' },
-  fishId: { type: String, required: true },
+  fishId: { type: [String, Number], required: true },
   showEdit: { type: Boolean, default: true },
   showDelete: { type: Boolean, default: true },
   editUrl: { type: String, default: '' }, // 新增：外部可設定編輯連結
@@ -130,9 +148,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // 魚類合併：是否啟用「合併重複魚類」選項
+  enableMergeFish: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['deleted', 'set-as-base', 'set-as-display-image'])
+const emit = defineEmits(['deleted', 'set-as-base', 'set-as-display-image', 'merge-fish'])
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
@@ -186,7 +209,16 @@ function handleSetAsDisplayImage() {
 }
 
 /**
- * 刪除：使用標準 Inertia 流程，後端會自動跳轉並顯示 flash message
+<
+ * 合併魚類
+ */
+function handleMergeFish() {
+  menuOpen.value = false
+  router.visit(`/fish/${props.fishId}/merge`)
+}
+
+/**
+ * 刪除：保留基本刪除流程（使用 axios 或 fetch），成功後 emit deleted
  */
 async function deleteData() {
   menuOpen.value = false

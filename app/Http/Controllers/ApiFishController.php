@@ -151,7 +151,6 @@ class ApiFishController extends Controller
         
     }
 
-    
     /**
      * @OA\Post(
      *     path="/prefix/api/fish",
@@ -261,6 +260,62 @@ class ApiFishController extends Controller
 
         return response()->json([
             'message' => 'Fish deleted successfully',
+        ]);
+    }
+
+    /**
+     * 搜尋魚類（用於合併頁面選擇器）
+     *
+     * @OA\Get(
+     *     path="/prefix/api/fishs/search",
+     *     summary="搜尋魚類（合併頁面）",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="exclude",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="integer"),
+     *         description="排除的魚類 ID"
+     *     ),
+     *     @OA\Response(response=200, description="成功")
+     * )
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->query('q');
+        $excludeId = $request->query('exclude');
+
+        if (!$query) {
+            return response()->json([
+                'message' => 'Query parameter is required',
+                'data' => [],
+            ], 400);
+        }
+
+        $fishes = Fish::where('name', 'LIKE', "%{$query}%")
+            ->when($excludeId, function ($q) use ($excludeId) {
+                $q->where('id', '!=', $excludeId);
+            })
+            ->with('captureRecords:id,fish_id,image_url')
+            ->limit(20)
+            ->get()
+            ->map(function ($fish) {
+                return [
+                    'id' => $fish->id,
+                    'name' => $fish->name,
+                    'image_url' => $fish->image_url,
+                ];
+            });
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $fishes,
         ]);
     }
 }

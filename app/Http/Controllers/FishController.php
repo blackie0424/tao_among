@@ -211,4 +211,27 @@ class FishController extends Controller
         return back()->with('success', '已設定為圖鑑主圖');
     }
 
+    /**
+     * 顯示魚類合併頁面
+     *
+     * @param int $id 目標魚類 ID
+     * @return \Inertia\Response
+     */
+    public function showMergePage($id)
+    {
+        $fish = Fish::with(['captureRecords'])
+            ->findOrFail($id);
+
+        // 取得圖鑑主圖 URL（優先使用 display_image_url accessor）
+        $imageUrl = $fish->display_image_url;
+
+        return Inertia::render('MergeFish', [
+            'fish' => [
+                'id' => $fish->id,
+                'name' => $fish->name,
+                'image_url' => $imageUrl,
+            ],
+        ]);
+    }
+
 }

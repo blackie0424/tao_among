@@ -4,6 +4,7 @@ use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\FishMergeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -20,6 +21,7 @@ Route::get('/health-check', function () {
 
 // 將 fish 相關 API 路由指向 ApiFishController
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
+Route::get('/fishs/search', [ApiFishController::class, 'search']);
 Route::post('/fish', [ApiFishController::class, 'store']);
 Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
 Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
@@ -47,12 +49,17 @@ Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'
     ->whereNumber('id')
     ->whereNumber('note_id');
 
+
 // Tribal Classification API routes
 Route::get('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'index'])->whereNumber('fish_id');
 Route::post('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'store'])->whereNumber('fish_id');
 Route::get('/tribal-classifications/{id}', [TribalClassificationController::class, 'show'])->whereNumber('id');
 Route::put('/tribal-classifications/{id}', [TribalClassificationController::class, 'update'])->whereNumber('id');
 Route::delete('/tribal-classifications/{id}', [TribalClassificationController::class, 'destroy'])->whereNumber('id');
+
+// Fish Merge API routes
+Route::post('/fish/merge/preview', [FishMergeController::class, 'preview']);
+Route::post('/fish/merge', [FishMergeController::class, 'merge']);
 
 
 

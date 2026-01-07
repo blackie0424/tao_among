@@ -6,6 +6,7 @@ use App\Http\Controllers\FishAudioController;
 use App\Http\Controllers\KnowledgeHubController;
 use App\Http\Controllers\CaptureRecordController;
 use App\Http\Controllers\TribalClassificationController;
+
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [FishController::class, 'index']);
@@ -17,6 +18,8 @@ Route::post('/fish', [FishController::class, 'store'])->name('fish.store');
 
 Route::get('/fish/{id}', [FishController::class, 'getFish']);
 Route::get('/fish/{id}/createAudio', [FishAudioController::class,'create'])->name('fish.audio.create');
+Route::get('/fish/{id}/merge', [FishController::class, 'showMergePage'])->name('fish.merge.page');
+
 
 
 
@@ -28,7 +31,6 @@ Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.dest
 
 // 圖鑑主圖設定路由（傳入 capture_record_id 或 null）
 Route::put('/fish/{id}/display-image', [FishController::class, 'updateDisplayImage'])->name('fish.display-image.update');
-
 // 捕獲紀錄路由
 Route::get('/fish/{id}/capture-records', [CaptureRecordController::class, 'index'])->name('fish.capture-records');
 Route::get('/fish/{id}/capture-records/create', [CaptureRecordController::class, 'create'])->name('fish.capture-records.create');
