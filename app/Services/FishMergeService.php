@@ -137,12 +137,13 @@ class FishMergeService
                 // 4. 處理部落分類（保留主魚類，刪除衝突的被併入資料）
                 $sourceClassifications = TribalClassification::where('fish_id', $sourceFishId)->get();
                 foreach ($sourceClassifications as $classification) {
-                    $conflict = TribalClassification::where('fish_id', $targetFishId)
+                    // 檢查主魚類是否有「未刪除」的相同部落記錄
+                    $activeConflict = TribalClassification::where('fish_id', $targetFishId)
                         ->where('tribe', $classification->tribe)
                         ->exists();
                     
-                    if ($conflict) {
-                        // 有衝突：保留主魚類，刪除被併入的
+                    if ($activeConflict) {
+                        // 有未刪除的衝突：保留主魚類，刪除被併入的
                         Log::info("Tribal classification conflict detected and resolved", [
                             'tribe' => $classification->tribe,
                             'target_fish_id' => $targetFishId,
@@ -152,9 +153,28 @@ class FishMergeService
                         $classification->delete();
                         $mergeResults['conflicts_resolved']['tribal_classifications']++;
                     } else {
-                        // 無衝突：轉移
-                        $classification->update(['fish_id' => $targetFishId]);
-                        $mergeResults['transferred']['tribal_classifications']++;
+                        // 檢查主魚類是否有「已軟刪除」的相同部落記錄
+                        $softDeletedConflict = TribalClassification::onlyTrashed()
+                            ->where('fish_id', $targetFishId)
+                            ->where('tribe', $classification->tribe)
+                            ->first();
+                        
+                        if ($softDeletedConflict) {
+                            // 主魚類有軟刪除的記錄：永久刪除它，然後轉移來源資料
+                            Log::info("Soft-deleted tribal classification found, replacing with source data", [
+                                'tribe' => $classification->tribe,
+                                'target_fish_id' => $targetFishId,
+                                'source_fish_id' => $sourceFishId,
+                                'action' => 'force_deleted_target_transferred_source',
+                            ]);
+                            $softDeletedConflict->forceDelete();
+                            $classification->update(['fish_id' => $targetFishId]);
+                            $mergeResults['transferred']['tribal_classifications']++;
+                        } else {
+                            // 無衝突：直接轉移
+                            $classification->update(['fish_id' => $targetFishId]);
+                            $mergeResults['transferred']['tribal_classifications']++;
+                        }
                     }
                 }
                 

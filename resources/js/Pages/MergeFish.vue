@@ -88,18 +88,20 @@
             class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
             @click.stop="toggleSelectFish(result.id)"
           />
-          <div
-            class="w-64 h-64 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0"
-            v-if="result.image_url"
-          >
-            <img :src="result.image_url" :alt="result.name" class="w-full h-full object-cover" />
+          <!-- 魚類圖片 -->
+          <div class="w-full md:w-1/3">
+            <LazyImage
+              :src="result.image_url"
+              :alt="result.name"
+              wrapperClass="w-full h-48 bg-gray-100 rounded-lg"
+              imgClass="w-full h-full object-contain"
+            />
           </div>
           <div class="flex-1">
             <div class="font-semibold text-gray-900">
-              {{ result.name || '未命名' }}
+              {{ result.name }}
             </div>
           </div>
-          <div class="text-xs text-gray-500">ID: {{ result.id }}</div>
         </div>
       </div>
 

@@ -216,6 +216,63 @@ it('情境 B-1：部落分類衝突時保留主魚類資料', function () {
     expect(TribalClassification::where('fish_id', $target->id)->count())->toBe(3);
 });
 
+it('情境 B-2：主魚類部落分類已軟刪除時，以來源資料取代', function () {
+    // 建立主魚類
+    $target = Fish::factory()->create(['name' => '黃鰭鮪']);
+    $targetClassification = TribalClassification::create([
+        'fish_id' => $target->id,
+        'tribe' => 'ivalino',
+        'food_category' => 'oyod',
+        'processing_method' => '去魚鱗',
+        'notes' => '舊資料',
+    ]);
+    // 軟刪除主魚類的 ivalino 分類
+    $targetClassification->delete();
+    
+    TribalClassification::create([
+        'fish_id' => $target->id,
+        'tribe' => 'yayo',
+        'food_category' => 'rahet',
+        'processing_method' => '不去魚鱗',
+    ]);
+
+    // 建立被併入魚類（有相同部落，但主魚類的已被軟刪除）
+    $source = Fish::factory()->create(['name' => '黃旗魚']);
+    $sourceClassification = TribalClassification::create([
+        'fish_id' => $source->id,
+        'tribe' => 'ivalino', // 主魚類有但已軟刪除
+        'food_category' => 'rahet',
+        'processing_method' => '剝皮',
+        'notes' => '新資料',
+    ]);
+
+    // 執行合併
+    $response = $this->postJson('/prefix/api/fish/merge', [
+        'target_fish_id' => $target->id,
+        'source_fish_ids' => [$source->id],
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.transferred.tribal_classifications', 1);
+
+    // 驗證主魚類的軟刪除記錄已被永久刪除
+    expect(TribalClassification::withTrashed()->find($targetClassification->id))->toBeNull();
+
+    // 驗證來源的 ivalino 分類已轉移到主魚類
+    $ivalinoClassification = TribalClassification::where('fish_id', $target->id)
+        ->where('tribe', 'ivalino')
+        ->first();
+
+    expect($ivalinoClassification)->not->toBeNull();
+    expect($ivalinoClassification->food_category)->toBe('rahet'); // 來源資料
+    expect($ivalinoClassification->processing_method)->toBe('剝皮'); // 來源資料
+    expect($ivalinoClassification->notes)->toBe('新資料'); // 來源資料
+    expect($ivalinoClassification->id)->toBe($sourceClassification->id); // 是來源的記錄
+
+    // 驗證總共有 2 個部落分類（yayo + ivalino）
+    expect(TribalClassification::where('fish_id', $target->id)->count())->toBe(2);
+});
+
 // ==================== 預覽功能測試 ====================
 
 it('可以預覽合併操作並檢測衝突', function () {
