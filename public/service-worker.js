@@ -3,7 +3,7 @@
  * 採用 Stale-While-Revalidate 策略優化使用者體驗
  */
 
-const CACHE_VERSION = 'v1.0.1'
+const CACHE_VERSION = 'v1.0.2'
 const CACHE_NAME = `tao-among-${CACHE_VERSION}`
 
 // 預快取的核心資源（僅靜態資源，不包含 HTML 頁面）
@@ -30,7 +30,7 @@ const CACHEABLE_EXTENSIONS = [
 ]
 
 // 不應該快取的路徑
-const EXCLUDE_PATHS = ['/api/', '/sanctum/', '/login', '/logout', '/register']
+const EXCLUDE_PATHS = ['/prefix/api/', '/sanctum/', '/login', '/logout', '/register']
 
 /**
  * 安裝事件：預快取核心資源
