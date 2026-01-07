@@ -3,12 +3,11 @@
  * 採用 Stale-While-Revalidate 策略優化使用者體驗
  */
 
-const CACHE_VERSION = 'v1.0.0'
+const CACHE_VERSION = 'v1.0.1'
 const CACHE_NAME = `tao-among-${CACHE_VERSION}`
 
-// 預快取的核心資源
+// 預快取的核心資源（僅靜態資源，不包含 HTML 頁面）
 const PRECACHE_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -158,6 +157,7 @@ async function cacheFirst(request) {
 
 /**
  * Network-First 策略（用於導航請求）
+ * 注意：不使用 fallback 到首頁，避免造成錯誤導航
  */
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME)
@@ -174,9 +174,14 @@ async function networkFirst(request) {
       return cachedResponse
     }
 
-    // 離線時顯示首頁作為 fallback
-    const fallback = await cache.match('/')
-    return fallback || new Response('Offline', { status: 503 })
+    // 離線時返回錯誤訊息，不要 fallback 到首頁以避免造成混淆
+    return new Response(
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>離線</title></head><body><h1>您目前處於離線狀態</h1><p>請檢查網路連線後重新整理頁面。</p></body></html>',
+      {
+        status: 503,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      }
+    )
   }
 }
 
