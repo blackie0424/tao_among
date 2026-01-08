@@ -40,7 +40,7 @@ describe('Fish Audio Management', function () {
         it('redirects with error for non-existent fish', function () {
             $response = $this->get('/fish/999/audio-list');
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('displays empty list when fish has no audio', function () {
@@ -105,14 +105,14 @@ describe('Fish Audio Management', function () {
             $audio = FishAudio::factory()->create();
             $response = $this->get("/fish/999/audio/{$audio->id}/edit");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error for non-existent audio', function () {
             $fish = Fish::factory()->create();
             $response = $this->get("/fish/{$fish->id}/audio/999/edit");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error when audio does not belong to fish', function () {
@@ -122,7 +122,7 @@ describe('Fish Audio Management', function () {
 
             $response = $this->get("/fish/{$fish1->id}/audio/{$audio->id}/edit");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
     });
 
@@ -201,7 +201,7 @@ describe('Fish Audio Management', function () {
             ]);
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error when audio does not belong to fish', function () {
@@ -214,7 +214,7 @@ describe('Fish Audio Management', function () {
             ]);
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('handles optional audio filename update', function () {
@@ -264,7 +264,7 @@ describe('Fish Audio Management', function () {
             $response = $this->delete("/fish/{$fish->id}/audio/999");
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error when audio does not belong to fish', function () {
@@ -275,7 +275,7 @@ describe('Fish Audio Management', function () {
             $response = $this->delete("/fish/{$fish1->id}/audio/{$audio->id}");
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('does not hard delete audio', function () {
@@ -367,7 +367,7 @@ describe('Fish Audio Management', function () {
             // Accessing audio list should redirect with error since fish is deleted
             $response = $this->get("/fish/{$fish->id}/audio-list");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('handles concurrent audio operations', function () {
@@ -400,17 +400,17 @@ describe('Fish Audio Management', function () {
             // Try to access audio through wrong fish
             $response = $this->get("/fish/{$fish2->id}/audio/{$audio->id}/edit");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
 
             $response = $this->put("/fish/{$fish2->id}/audio/{$audio->id}", [
                 'name' => 'Should not work'
             ]);
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
 
             $response = $this->delete("/fish/{$fish2->id}/audio/{$audio->id}");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
     });
 

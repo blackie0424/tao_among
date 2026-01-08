@@ -40,7 +40,7 @@ describe('Fish Knowledge Management', function () {
         it('redirects with error for non-existent fish', function () {
             $response = $this->get('/fish/999/knowledge-list');
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('groups notes by type correctly', function () {
@@ -144,14 +144,14 @@ describe('Fish Knowledge Management', function () {
             $note = FishNote::factory()->create();
             $response = $this->get("/fish/999/knowledge/{$note->id}/edit");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error for non-existent note', function () {
             $fish = Fish::factory()->create();
             $response = $this->get("/fish/{$fish->id}/knowledge/999/edit");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error when note does not belong to fish', function () {
@@ -161,7 +161,7 @@ describe('Fish Knowledge Management', function () {
 
             $response = $this->get("/fish/{$fish1->id}/knowledge/{$note->id}/edit");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
     });
 
@@ -239,7 +239,7 @@ describe('Fish Knowledge Management', function () {
             ]);
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error when knowledge does not belong to fish', function () {
@@ -253,7 +253,7 @@ describe('Fish Knowledge Management', function () {
             ]);
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
     });
 
@@ -281,7 +281,7 @@ describe('Fish Knowledge Management', function () {
             $response = $this->delete("/fish/{$fish->id}/knowledge/999");
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('redirects with error when knowledge does not belong to fish', function () {
@@ -292,7 +292,7 @@ describe('Fish Knowledge Management', function () {
             $response = $this->delete("/fish/{$fish1->id}/knowledge/{$note->id}");
 
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
 
         it('does not hard delete knowledge', function () {

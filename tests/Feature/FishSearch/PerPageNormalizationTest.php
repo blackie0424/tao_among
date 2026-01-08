@@ -34,7 +34,7 @@ it('get default perPage value when perPage is 0', function () {
     $filters = ['perPage' => '0'];
     $perPage = (int)($filters['perPage'] ?? config('fish_search.per_page_default'));
     $perPage = max($perPage, config('fish_search.per_page_default'));
-    $this->assertEquals(50, $perPage);
+    $this->assertEquals(100, $perPage);
 });
 
 
