@@ -298,7 +298,7 @@ class ApiFishController extends Controller
             ], 400);
         }
 
-        $fishes = Fish::where('name', 'LIKE', "%{$query}%")
+        $fishes = Fish::where('name', 'LIKE', "%".strtolower($query)."%")
             ->when($excludeId, function ($q) use ($excludeId) {
                 $q->where('id', '!=', $excludeId);
             })
