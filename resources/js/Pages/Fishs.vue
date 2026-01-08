@@ -153,12 +153,16 @@ const restoreStateFromStorage = async () => {
     currentFilters.value = state.filters || currentFilters.value
     nameQuery.value = state.nameQuery || ''
 
+    // 用於追蹤快取是否需要更新
+    let cacheNeedsUpdate = false
+
     // 檢查是否有需要刪除的魚類（deleted IDs）
     const deletedIds = getDeletedIds()
     if (deletedIds.length > 0) {
       // 從 items 中移除已刪除的魚類
       items.value = items.value.filter((item) => !deletedIds.includes(item.id))
       clearDeletedIds()
+      cacheNeedsUpdate = true
     }
 
     // 檢查是否有需要更新的魚類（stale IDs）
@@ -167,6 +171,12 @@ const restoreStateFromStorage = async () => {
       // 局部更新：只更新有變動的魚類資料
       await refreshStaleItems(staleIds)
       clearStaleIds()
+      cacheNeedsUpdate = true
+    }
+
+    // 若有刪除或更新，重新保存快取以確保下次重新整理時資料正確
+    if (cacheNeedsUpdate) {
+      saveStateToStorage()
     }
 
     // 延遲還原捲動位置（等待 DOM 渲染完成）
