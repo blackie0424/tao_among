@@ -21,6 +21,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { markFishStale } from '@/utils/fishListCache'
 
 // 建立模式用 uploadedFileName，編輯模式用 fishId、fishNameInit
 const props = defineProps({
@@ -85,6 +86,10 @@ async function submitEditForm() {
     requestUrl,
     { name: nameToSend },
     {
+      onSuccess: () => {
+        // 標記此魚類需要在 Fishs 頁面更新
+        markFishStale(props.fishId)
+      },
       onFinish: () => {
         submitting.value = false
       },

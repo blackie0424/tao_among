@@ -256,6 +256,7 @@ import { ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import LazyImage from '../Components/LazyImage.vue'
+import { markFishStale, markFishesDeleted } from '@/utils/fishListCache'
 
 const props = defineProps({
   fish: {
@@ -363,8 +364,13 @@ async function executeMerge() {
       source_fish_ids: selectedFishIds.value,
     })
 
-    // 合併成功，跳轉回魚類詳情頁
-    router.visit(`/fish/${props.fish.id}`, {
+    // 標記被合併的魚類為已刪除（從 Fishs 頁面快取中移除）
+    markFishesDeleted(selectedFishIds.value)
+    // 標記目標魚類需要更新（因為合併後資料有變動）
+    markFishStale(props.fish.id)
+
+    // 合併成功，跳轉回捕獲紀錄頁面
+    router.visit(`/fish/${props.fish.id}/capture-records`, {
       onSuccess: () => {
         alert('合併成功！')
       },

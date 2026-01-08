@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateFishRequest;
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Services\FishService;
+use App\Services\FishSearchService;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 
@@ -15,10 +16,12 @@ class ApiFishController extends Controller
 {
 
     protected $fishService;
+    protected $fishSearchService;
 
-    public function __construct(FishService $fishService)
+    public function __construct(FishService $fishService, FishSearchService $fishSearchService)
     {
         $this->fishService = $fishService;
+        $this->fishSearchService = $fishSearchService;
     }
 
     /**
@@ -90,6 +93,38 @@ class ApiFishController extends Controller
                 'lastUpdateTime' => time()
             ], 404);
         }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/prefix/api/fish/{id}/compact",
+     *     summary="取得單筆魚類精簡資料（與 Fishs 頁面 items 格式相容）",
+     *     tags={"Fish"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="成功"),
+     *     @OA\Response(response=404, description="找不到資料")
+     * )
+     */
+    public function getCompactFishById($id): JsonResponse
+    {
+        $data = $this->fishSearchService->getCompactFishById((int) $id);
+
+        if (!$data) {
+            return response()->json([
+                'message' => 'data not found',
+                'data' => null,
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $data,
+        ]);
     }
 
 

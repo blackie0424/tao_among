@@ -71,6 +71,7 @@ import LazyImage from './LazyImage.vue'
 import OverflowMenu from './OverflowMenu.vue'
 import { computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { markFishStale } from '@/utils/fishListCache'
 
 const props = defineProps({
   record: Object,
@@ -99,6 +100,8 @@ function setAsDisplayImage() {
     {
       preserveScroll: true,
       onSuccess: () => {
+        // 標記此魚類需要在 Fishs 頁面更新（因為主圖改變）
+        markFishStale(props.fishId)
         emit('updated')
       },
       onError: (errors) => {
