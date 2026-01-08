@@ -52,7 +52,7 @@ import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
 import FishSearchLoading from '@/Components/Global/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/Fish/FishSearchCursorErrorBanner.vue'
 import FishCard from '@/Components/FishCard.vue'
-import { getStaleIds, clearStaleIds } from '@/utils/fishListCache'
+import { getStaleIds, clearStaleIds, getDeletedIds, clearDeletedIds } from '@/utils/fishListCache'
 
 const props = defineProps({
   // legacy 完整集合（相容舊測試）
@@ -152,6 +152,14 @@ const restoreStateFromStorage = async () => {
     pageInfo.value = state.pageInfo || { hasMore: false, nextCursor: null }
     currentFilters.value = state.filters || currentFilters.value
     nameQuery.value = state.nameQuery || ''
+
+    // 檢查是否有需要刪除的魚類（deleted IDs）
+    const deletedIds = getDeletedIds()
+    if (deletedIds.length > 0) {
+      // 從 items 中移除已刪除的魚類
+      items.value = items.value.filter((item) => !deletedIds.includes(item.id))
+      clearDeletedIds()
+    }
 
     // 檢查是否有需要更新的魚類（stale IDs）
     const staleIds = getStaleIds()
