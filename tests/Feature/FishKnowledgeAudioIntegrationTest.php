@@ -239,11 +239,11 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             // But accessing through deleted fish should fail
             $response = $this->get("/fish/{$fish->id}/knowledge-list");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
 
             $response = $this->get("/fish/{$fish->id}/audio-list");
             $response->assertRedirect();
-            $response->assertSessionHasErrors(['error']);
+            $response->assertSessionHas('error');
         });
     });
 

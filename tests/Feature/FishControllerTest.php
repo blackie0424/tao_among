@@ -81,7 +81,7 @@ it('returns 404 for non-existent fish detail', function () {
     $response->assertStatus(404);
 });
 
-it('creates a new fish and returns capture prompt props', function () {
+it('creates a new fish and redirects to show page with success message', function () {
     $fishData = [
         'name' => 'Test Fish',
         'image' => 'test-fish-123.jpg',
@@ -89,22 +89,26 @@ it('creates a new fish and returns capture prompt props', function () {
 
     $response = $this->post('/fish', $fishData);
 
-    $response->assertStatus(200)
-        ->assertInertia(
-            fn (Assert $page) => $page
-            ->component('CreateFish')
-            ->has('fish')
-            ->where('fish.name', 'Test Fish')
-            ->where('fish.image', 'test-fish-123.jpg')
-            ->where('showCapturePrompt', true)
-            ->where('imageFileName', 'test-fish-123.jpg')
-        );
+    // 取得新增的魚類
+    $fish = Fish::where('name', 'Test Fish')->first();
+
+    $response->assertRedirect("/fish/{$fish->id}")
+        ->assertSessionHas('success', "魚類「Test Fish」新增成功！");
 
     // 驗證資料庫中有建立魚類
-    expect(Fish::where('name', 'Test Fish')->where('image', 'test-fish-123.jpg')->exists())->toBeTrue();
+    expect($fish)->not->toBeNull();
+    expect($fish->image)->toBe('test-fish-123.jpg');
+
+    // 驗證自動建立的捕獲紀錄
+    $captureRecord = \App\Models\CaptureRecord::where('fish_id', $fish->id)->first();
+    expect($captureRecord)->not->toBeNull();
+    expect($captureRecord->image_path)->toBe('test-fish-123.jpg');
+
+    // 驗證魚類的顯示圖片已連結到捕獲紀錄
+    expect($fish->display_capture_record_id)->toBe($captureRecord->id);
 });
 
-it('creates fish without audio_filename and still returns capture prompt', function () {
+it('creates fish without audio_filename and redirects correctly', function () {
     $fishData = [
         'name' => 'Another Fish',
         'image' => 'another-fish-456.jpg',
@@ -112,13 +116,9 @@ it('creates fish without audio_filename and still returns capture prompt', funct
 
     $response = $this->post('/fish', $fishData);
 
-    $response->assertStatus(200)
-        ->assertInertia(
-            fn (Assert $page) => $page
-            ->component('CreateFish')
-            ->where('showCapturePrompt', true)
-            ->where('imageFileName', 'another-fish-456.jpg')
-        );
+    $fish = Fish::where('name', 'Another Fish')->first();
+
+    $response->assertRedirect("/fish/{$fish->id}");
 });
 
 it('fails to create fish without required name', function () {

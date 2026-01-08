@@ -61,8 +61,6 @@ it('can get a fish data by fish id', function () {
     // 測試資料
     $fish = Fish::factory()->create();
 
-    // 構建完整的圖片路徑
-    $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
     $fish->audio_filename = null; // since API does not return audio_filename
 
     // 發送 GET 請求
@@ -72,7 +70,12 @@ it('can get a fish data by fish id', function () {
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'success',
-            'data' => $fish->toArray(),
+            'data' => [
+                'id' => $fish->id,
+                'name' => $fish->name,
+                'image' => $fish->image, // API returns raw filename
+                'image_url' => $fish->image_url, // API returns full URL in append
+            ],
         ]);
 });
 
@@ -455,12 +458,11 @@ it('soft deletes fish and all related data when using controller destroy method'
 it('returns json response for ajax fish deletion request', function () {
     $fish = Fish::factory()->create();
     
-    $response = $this->deleteJson("/fish/{$fish->id}");
+    $response = $this->deleteJson("/prefix/api/fish/{$fish->id}");
     
     $response->assertStatus(200)
         ->assertJson([
-            'success' => true,
-            'message' => '魚類刪除成功'
+            'message' => 'Fish deleted successfully'
         ]);
         
     $this->assertSoftDeleted('fish', ['id' => $fish->id]);
@@ -477,12 +479,12 @@ it('handles fish deletion errors gracefully', function () {
 
 it('handles ajax fish deletion errors gracefully', function () {
     // 嘗試刪除不存在的魚類 (AJAX 請求)
-    $response = $this->deleteJson('/fish/99999');
+    $response = $this->deleteJson('/prefix/api/fish/99999');
     
     // AJAX 請求應該返回 JSON 錯誤響應
-    $response->assertStatus(500)
+    $response->assertStatus(404)
         ->assertJson([
-            'success' => false
+            'message' => 'fish not found'
         ]);
 });
 

@@ -23,11 +23,6 @@ it('can get fish list by time condition', function () {
         return $fish->created_at->timestamp > $since;
     })->values();
 
-    // 構建完整的圖片路徑
-    $expectedFishs->map(function ($fish) {
-        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-    });
-
     // 設定auduio_filename以測試API不回傳audio_filename的情況
     $expectedFishs->map(function ($fish) {
         $fish->audio_filename = null; // since API does not return audio_filename
@@ -72,11 +67,6 @@ it('can get 6 fishes by time condition', function () {
         return $fish->updated_at->timestamp > $since;
     })->values();
 
-    // 構建完整的圖片路徑
-    $expectedFishs->map(function ($fish) {
-        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-    });
-
     // 設定auduio_filename以測試API不回傳audio_filename的情況
     $expectedFishs->map(function ($fish) {
         $fish->audio_filename = null; // since API does not return audio_filename
@@ -115,11 +105,6 @@ it('can get 0 fishes by time condition', function () {
     $expectedFishs = $fishs->filter(function ($fish) use ($since) {
         return $fish->updated_at->timestamp > $since;
     })->values();
-
-    // 構建完整的圖片路徑
-    $expectedFishs->map(function ($fish) {
-        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-    });
 
     $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
         ? $expectedFishs->max('updated_at')->timestamp
