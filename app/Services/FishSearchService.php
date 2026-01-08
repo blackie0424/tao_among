@@ -173,6 +173,51 @@ class FishSearchService
     }
 
     /**
+     * 取得單筆魚類精簡資料（與 Fishs 頁面 items 格式相容）
+     * 用於局部更新快取中的特定魚類
+     *
+     * @param int $id 魚類 ID
+     * @return array|null 精簡格式資料，若找不到則回傳 null
+     */
+    public function getCompactFishById(int $id): ?array
+    {
+        $selects = ['id', 'name', 'image'];
+        if (Schema::hasColumn('fish', 'has_webp')) {
+            $selects[] = 'has_webp';
+        }
+        if (Schema::hasColumn('fish', 'audio_filename')) {
+            $selects[] = 'audio_filename';
+        }
+        if (Schema::hasColumn('fish', 'display_capture_record_id')) {
+            $selects[] = 'display_capture_record_id';
+        }
+
+        $fish = Fish::query()
+            ->select($selects)
+            ->with([
+                'tribalClassifications:id,fish_id,tribe,food_category',
+                'displayCaptureRecord:id,image_path'
+            ])
+            ->find($id);
+
+        if (!$fish) {
+            return null;
+        }
+
+        return [
+            'id' => $fish->id,
+            'name' => $fish->name,
+            'image_url' => $fish->image_url,
+            'display_image_url' => $fish->display_image_url,
+            'audio_url' => $fish->audio_url,
+            'tribal_classifications' => $fish->tribalClassifications->map(fn ($tc) => [
+                'tribe' => $tc->tribe,
+                'food_category' => $tc->food_category,
+            ])->all(),
+        ];
+    }
+
+    /**
      * 游標式分頁 + 精簡欄位（FR-001, FR-002, FR-005, FR-007, FR-009, SC-004）
      * @param array $filters cleaned filters (FishSearchRequest::cleaned)
      * @return array{items: array<int, array{id:int,name:string,image_url:string}>, pageInfo: array{hasMore:bool,nextCursor:int|null}}

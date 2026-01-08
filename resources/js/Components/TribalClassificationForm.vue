@@ -87,6 +87,7 @@
 import { reactive, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import LazyImage from './LazyImage.vue'
+import { markFishStale } from '@/utils/fishListCache'
 
 const props = defineProps({
   tribes: Array,
@@ -124,6 +125,8 @@ function submitForm() {
 
   router.post(`/fish/${props.fishId}/tribal-classifications`, form, {
     onSuccess: () => {
+      // 標記此魚類需要在 Fishs 頁面更新
+      markFishStale(props.fishId)
       // 重置表單
       form.tribe = ''
       form.food_category = ''

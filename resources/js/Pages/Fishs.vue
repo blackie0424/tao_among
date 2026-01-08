@@ -52,6 +52,7 @@ import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
 import FishSearchLoading from '@/Components/Global/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/Fish/FishSearchCursorErrorBanner.vue'
 import FishCard from '@/Components/FishCard.vue'
+import { getStaleIds, clearStaleIds } from '@/utils/fishListCache'
 
 const props = defineProps({
   // legacy 完整集合（相容舊測試）
@@ -120,7 +121,7 @@ const saveStateToStorage = () => {
 }
 
 // 從 sessionStorage 還原狀態
-const restoreStateFromStorage = () => {
+const restoreStateFromStorage = async () => {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return false
@@ -152,6 +153,14 @@ const restoreStateFromStorage = () => {
     currentFilters.value = state.filters || currentFilters.value
     nameQuery.value = state.nameQuery || ''
 
+    // 檢查是否有需要更新的魚類（stale IDs）
+    const staleIds = getStaleIds()
+    if (staleIds.length > 0) {
+      // 局部更新：只更新有變動的魚類資料
+      await refreshStaleItems(staleIds)
+      clearStaleIds()
+    }
+
     // 延遲還原捲動位置（等待 DOM 渲染完成）
     nextTick(() => {
       setTimeout(() => {
@@ -163,6 +172,31 @@ const restoreStateFromStorage = () => {
   } catch (e) {
     return false
   }
+}
+
+// 局部更新：針對特定魚類 ID 呼叫 API 取得最新資料並替換
+const refreshStaleItems = async (staleIds) => {
+  const fetchPromises = staleIds.map(async (id) => {
+    try {
+      const response = await fetch(`/prefix/api/fish/${id}/compact`)
+      if (!response.ok) return null
+      const result = await response.json()
+      return result.data
+    } catch (e) {
+      return null
+    }
+  })
+
+  const freshDataList = await Promise.all(fetchPromises)
+
+  // 在 items 中替換對應的資料
+  freshDataList.forEach((freshData) => {
+    if (!freshData) return
+    const index = items.value.findIndex((item) => item.id === freshData.id)
+    if (index !== -1) {
+      items.value[index] = freshData
+    }
+  })
 }
 
 // 清除快取
@@ -346,9 +380,9 @@ watch(
 )
 
 // 初始化
-onMounted(() => {
+onMounted(async () => {
   // 嘗試從 sessionStorage 還原狀態（優先）
-  const restored = restoreStateFromStorage()
+  const restored = await restoreStateFromStorage()
   if (restored && items.value.length) {
     // 成功還原，初始化 observer 後即完成
     initObserver()

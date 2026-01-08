@@ -24,6 +24,7 @@ Route::get('/fish', [ApiFishController::class, 'getFishs']);
 Route::get('/fishs/search', [ApiFishController::class, 'search']);
 Route::post('/fish', [ApiFishController::class, 'store']);
 Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
+Route::get('/fish/{id}/compact', [ApiFishController::class, 'getCompactFishById'])->whereNumber('id');
 Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
 Route::put('/fish/{id}', [ApiFishController::class, 'update'])->whereNumber('id');
 Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotes'])->whereNumber('id');
