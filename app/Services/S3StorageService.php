@@ -268,7 +268,7 @@ class S3StorageService implements StorageServiceInterface
                 dirname($path),
                 $file,
                 basename($path),
-                'public'
+                ['visibility' => 'public', 'CacheControl' => 'max-age=31536000']
             );
 
             if (!$storedPath) {

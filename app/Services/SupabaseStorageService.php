@@ -53,6 +53,7 @@ class SupabaseStorageService implements StorageServiceInterface
         ])->attach('file', file_get_contents($file->getRealPath()), $fileName)
             ->post("{$this->storageUrl}/object/{$this->bucket}/{$filePath}", [
                 'access' => 'public',
+                'cacheControl' => '31536000',
             ]);
 
         if (! $response->successful()) {
