@@ -98,6 +98,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
+import { markFishDeleted } from '@/utils/fishListCache'
 
 const menuOpen = ref(false)
 const processing = ref(false)
@@ -232,6 +233,16 @@ async function deleteData() {
   if (!confirm('確定要刪除此項目嗎？')) return
 
   processing.value = true
+
+  // 檢查是否為刪除魚類本身（apiUrl 格式為 /fish/{id}）
+  const isFishDeletion = /^\/fish\/\d+$/.test(props.apiUrl)
+
+  // 重要：在發送請求前就標記為已刪除
+  // 因為 Inertia 的 onSuccess 會在頁面導航完成後才執行，
+  // 那時 Fishs 頁面的 restoreStateFromStorage 已經執行完畢了
+  if (isFishDeletion && props.fishId) {
+    markFishDeleted(props.fishId)
+  }
 
   // 使用 Inertia DELETE 請求，後端會處理跳轉和訊息顯示
   // 移除 preserveScroll，讓後端的 redirect 能正常導向到列表頁
