@@ -1,81 +1,74 @@
-<!-- filepath: /Users/chungyueh/Herd/tao_among/resources/js/Pages/Fish.vue -->
 <template>
   <Head :title="`${fish.name}的基本資料`" />
-  <!-- 增加 padding-bottom 以避開底部固定工具列；行動裝置包含 safe-area -->
-  <div
-    class="container mx-auto py-8"
-    style="padding-bottom: calc(6rem + env(safe-area-inset-bottom))"
-  >
-    <div class="flex flex-col md:flex-row gap-4 md:gap-8 items-start justify-center">
-      <!-- 左欄：魚資訊 -->
-      <div class="w-full md:w-1/2">
-        <FishDetailLeft :fish="fish" />
-      </div>
 
-      <!-- 右欄：部落分類區塊 + 筆記 -->
-      <div class="w-full md:w-1/2 space-y-4">
-        <TribalClassificationSummary :classifications="tribalClassifications" :fishId="fish.id" />
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
 
-        <!-- 新增：依 note_type 分組顯示 fish_notes（樣式與地方知識一致） -->
-        <div class="rounded-xl bg-white shadow-md border border-gray-200 p-4 mb-20 md:mb-10">
-          <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-semibold text-gray-900">進階知識</h3>
-          </div>
-
-          <div v-if="Object.keys(groupedNotes).length">
-            <div v-for="(items, type) in groupedNotes" :key="type" class="mb-4">
-              <h4 class="font-medium">
-                {{ type }} <span class="text-lg text-gray-500">({{ items.length }})</span>
-              </h4>
-              <ul>
-                <li v-for="note in items" :key="note.id" class="border rounded p-2 mt-2">
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="flex items-center gap-3">
-                      <!-- locate 圓角徽章 -->
-                      <span
-                        class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-lg font-medium text-gray-700"
-                      >
-                        {{ note.locate }}
-                      </span>
-
-                      <!-- 筆記內容（同列顯示） -->
-                      <div class="text-lg text-gray-700 leading-tight">
-                        {{ note.note }}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div v-else class="text-gray-500">尚無筆記</div>
-        </div>
-      </div>
+    <!-- Left Column: Tribal Classification Summary -->
+    <div class="space-y-8">
+      <TribalClassificationSummary :classifications="tribalClassifications" :fishId="fish.id" />
     </div>
 
-    <BottomNavBar
-      :fishBasicInfo="`/fish/${fish.id}`"
-      :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
-      :captureRecords="`/fish/${fish.id}/capture-records`"
-      :knowledge="`/fish/${fish.id}/knowledge`"
-      :audioList="`/fish/${fish.id}/audio-list`"
-      :currentPage="'fishBasicInfo'"
-    />
+    <!-- Right Column: Advanced Knowledge / Notes Section -->
+    <div class="space-y-8">
+      <div class="rounded-2xl bg-white shadow-sm border border-stone-200 p-6">
+          <div class="flex items-center justify-between mb-6 pb-4 border-b border-stone-100">
+              <h3 class="text-2xl font-serif font-bold text-stone-800 flex items-center gap-2">
+                  <span>進階知識</span>
+                  <span class="text-sm font-sans font-normal text-stone-400 bg-stone-50 px-2 py-0.5 rounded-full border border-stone-100">Notes</span>
+              </h3>
+          </div>
+
+          <div v-if="Object.keys(groupedNotes).length" class="space-y-8">
+              <div v-for="(items, type) in groupedNotes" :key="type" class="relative pl-4 border-l-2 border-stone-200">
+                  <h4 class="text-lg font-bold text-stone-700 mb-4 -ml-4 flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-stone-300 ring-4 ring-white"></span>
+                        {{ type }}
+                        <span class="text-stone-400 text-sm font-normal">({{ items.length }})</span>
+                  </h4>
+
+                  <ul class="space-y-4">
+                      <li v-for="note in items" :key="note.id" class="group">
+                            <div class="bg-stone-50 hover:bg-stone-100 rounded-xl p-4 transition-colors duration-200">
+                              <div class="flex flex-col gap-2">
+                                  <!-- Location Badge -->
+                                  <div class="flex items-center gap-2">
+                                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-white text-stone-600 border border-stone-200 shadow-sm">
+                                          📍 {{ getLocateLabel(note.locate) }}
+                                      </span>
+                                      <span class="text-xs text-stone-400">{{ formatDate(note.created_at) }}</span>
+                                  </div>
+
+                                  <!-- Note Content -->
+                                  <div class="text-base text-stone-800 leading-relaxed font-serif">
+                                      {{ note.note }}
+                                  </div>
+                              </div>
+                            </div>
+                      </li>
+                  </ul>
+              </div>
+          </div>
+
+          <div v-else class="text-center py-12 bg-stone-50 rounded-xl border border-dashed border-stone-200">
+              <p class="text-stone-400">尚無進階筆記</p>
+          </div>
+      </div>
+    </div>
   </div>
 </template>
 
+<script>
+import FishLayout from '@/Layouts/FishLayout.vue'
+
+export default {
+  layout: FishLayout,
+}
+</script>
+
 <script setup>
 import { Head } from '@inertiajs/vue3'
-
-import { ref, computed } from 'vue'
-import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
-import FishDetailLeft from '@/Components/FishDetailLeft.vue'
-import FishDetailRight from '@/Components/FishDetailRight.vue'
-import FabButton from '@/Components/FabButton.vue'
-import BottomNavBar from '../Components/Global/BottomNavBar.vue'
+import { computed } from 'vue'
 import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
-import CaptureRecordSummary from '@/Components/CaptureRecordSummary.vue'
 
 const props = defineProps({
   fish: Object,
@@ -88,11 +81,29 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  // 新增：接收 controller 已依 note_type 分組好的資料（物件）
   fishNotes: {
     type: Object,
     default: () => ({}),
   },
+})
+
+// Check if fishNotes is provided directly (from updated backend).
+// If not, fallback to grouping fish.notes on the client side.
+const groupedNotes = computed(() => {
+    if (props.fishNotes && Object.keys(props.fishNotes).length > 0) {
+        return props.fishNotes;
+    }
+
+    // Fallback: Group by note_type manually from props.fish.notes
+    const notes = props.fish?.notes || [];
+    if (!Array.isArray(notes)) return {};
+
+    return notes.reduce((acc, note) => {
+        const type = note.note_type || '其他';
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(note);
+        return acc;
+    }, {});
 })
 
 const locates = [
@@ -104,22 +115,15 @@ const locates = [
   { value: 'yayo', label: 'Yayo' },
 ]
 
-const currentLocate = ref(props.initialLocate || locates[0].value)
-const notes = ref(props.fish.notes || [])
-
-function handleLocateData({ locate, notes: newNotes }) {
-  currentLocate.value = locate
-  notes.value = newNotes
+function getLocateLabel(value) {
+    const found = locates.find(l => l.value === value)
+    return found ? found.label : value
 }
 
-// 將後端已分組的資料直接暴露為 computed（若未給予則為空物件）
-const groupedNotes = computed(() => props.fishNotes || {})
-
-// 簡單格式化日期（可以依需求調整）
 function formatDate(dt) {
   if (!dt) return ''
   try {
-    return new Date(dt).toLocaleString()
+    return new Date(dt).toLocaleDateString()
   } catch (e) {
     return dt
   }
