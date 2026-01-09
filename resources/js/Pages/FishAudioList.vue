@@ -1,98 +1,58 @@
 <template>
   <Head :title="`${fish.name}的發音列表`" />
 
-  <div class="container mx-auto p-4 relative">
-    <div class="pb-20">
-      <!-- 魚類資訊 -->
-      <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div class="flex flex-col md:flex-row items-center gap-4">
-          <!-- 魚類圖片 -->
-          <div class="w-full md:w-1/3">
-            <LazyImage
-              :src="fish.display_image_url || fish.image_url"
-              :alt="fish.name"
-              wrapperClass="w-full h-48 bg-gray-100 rounded-lg"
-              imgClass="w-full h-full object-contain"
-            />
-          </div>
+  <div class="space-y-8">
+      <!-- Section Header -->
+      <div class="flex items-center justify-between">
+         <div>
+            <h2 class="text-2xl font-serif font-bold text-stone-800">語音存檔</h2>
+            <p class="text-stone-500 mt-1">累積的族語發音紀錄</p>
+         </div>
 
-          <!-- 魚類資訊 -->
-          <div class="w-full md:w-2/3">
-            <h2 class="text-2xl font-bold mb-2">{{ fish.name }}</h2>
-            <p class="text-gray-600 mb-4">發音列表管理</p>
+         <!-- FAB / Action (Desktop) -->
+         <Link
+            :href="`/fish/${fish.id}/createAudio`"
+            class="hidden md:inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow-sm transition-colors text-sm font-medium"
+         >
+            <span class="mr-2 text-lg">🎵</span> 新增發音
+         </Link>
+      </div>
 
-            <!-- 統計資訊 -->
-            <div class="flex flex-wrap gap-4 text-sm">
-              <div class="flex items-center">
-                <span class="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
-                <span class="text-gray-700"> 已記錄 {{ audioCount }} 個發音檔案 </span>
-              </div>
-              <div class="flex items-center">
-                <span class="inline-block w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
-                <span class="text-gray-700">
-                  {{ playbackStatus }}
-                </span>
-              </div>
-            </div>
-          </div>
+      <!-- Network Status -->
+      <div v-if="!isOnline" class="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+        <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <div>
+          <p class="text-sm font-bold text-amber-800">網路連線中斷</p>
+          <p class="text-xs text-amber-600">音頻播放功能可能無法正常使用，請檢查網路連線</p>
         </div>
       </div>
 
-      <!-- 網路狀態提示 -->
-      <div v-if="!isOnline" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <div>
-            <p class="text-sm font-medium text-yellow-800">網路連線中斷</p>
-            <p class="text-xs text-yellow-600">音頻播放功能可能無法正常使用，請檢查網路連線</p>
-          </div>
+      <div v-if="wasOffline" class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3">
+        <svg class="w-6 h-6 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <div>
+          <p class="text-sm font-bold text-emerald-800">網路連線已恢復</p>
+          <p class="text-xs text-emerald-600">音頻播放功能已恢復正常</p>
         </div>
       </div>
 
-      <div v-if="wasOffline" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <div>
-            <p class="text-sm font-medium text-green-800">網路連線已恢復</p>
-            <p class="text-xs text-green-600">音頻播放功能已恢復正常</p>
+      <!-- Stats -->
+      <div class="flex flex-wrap gap-4 text-sm">
+          <div class="bg-white border border-stone-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-stone-600">
+             <span class="w-2.5 h-2.5 bg-purple-500 rounded-full"></span>
+             已記錄 {{ audioCount }} 筆
           </div>
-        </div>
+          <div class="bg-white border border-stone-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-stone-600">
+             <span class="w-2.5 h-2.5 bg-orange-500 rounded-full"></span>
+             {{ playbackStatus }}
+          </div>
       </div>
 
-      <!-- 發音列表 -->
-      <div class="bg-white rounded-lg shadow-md p-4">
-        <h3 class="text-lg font-semibold mb-4">發音列表</h3>
-
-        <!-- 空狀態 -->
-        <div v-if="audioCount === 0" class="text-center py-8">
-          <div class="text-gray-400 mb-4">
-            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-              ></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">尚未記錄發音檔案</h3>
-          <p class="text-gray-500">點擊右下角的按鈕開始記錄這條魚的發音資訊</p>
-        </div>
-
-        <!-- 發音卡片列表 -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Audio List -->
+      <div v-if="audioCount > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FishAudioCard
             v-for="audio in fish.audios"
             :key="audio.id"
@@ -104,58 +64,64 @@
             @updated="onAudioUpdated"
             @deleted="onAudioDeleted"
           />
-        </div>
       </div>
-    </div>
 
-    <!-- 新增發音 FAB 按鈕 -->
-    <FabButton
-      bgClass="bg-purple-600"
-      hoverClass="hover:bg-purple-700"
-      textClass="text-white"
-      label="新增發音"
-      icon="🎵"
-      :to="`/fish/${fish.id}/createAudio`"
-      position="right-bottom"
-    />
-
-    <!-- 底部導航列 -->
-    <BottomNavBar
-      :fishBasicInfo="`/fish/${fish.id}`"
-      :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
-      :captureRecords="`/fish/${fish.id}/capture-records`"
-      :knowledge="`/fish/${fish.id}/knowledge`"
-      :audioList="`/fish/${fish.id}/audio-list`"
-      :currentPage="'audioList'"
-    />
+      <!-- Empty State -->
+      <div v-else class="text-center py-16 bg-white rounded-2xl border border-dashed border-stone-200">
+             <div class="text-stone-300 mb-4">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
+                </svg>
+             </div>
+             <h3 class="text-lg font-bold text-stone-700">尚未記錄語音</h3>
+             <p class="text-stone-500 mt-2 mb-6">點擊下方按鈕開始記錄</p>
+             <Link
+                :href="`/fish/${fish.id}/createAudio`"
+                class="inline-flex items-center px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow-sm transition-colors font-medium"
+             >
+                立即新增
+             </Link>
+      </div>
   </div>
+
+  <!-- FAB for Mobile -->
+  <FabButton
+    bgClass="bg-purple-600"
+    hoverClass="hover:bg-purple-700"
+    textClass="text-white"
+    label="新增"
+    icon="🎵"
+    :to="`/fish/${fish.id}/createAudio`"
+    position="right-bottom"
+  />
 </template>
 
-<script setup>
-import { Head } from '@inertiajs/vue3'
+<script>
+import FishLayout from '@/Layouts/FishLayout.vue'
 
-import FishAudioCard from '../Components/FishAudioCard.vue'
-import LazyImage from '../Components/LazyImage.vue'
-import FabButton from '../Components/FabButton.vue'
-import BottomNavBar from '../Components/Global/BottomNavBar.vue'
-import audioPlayerService from '../services/AudioPlayerService.js'
-import { router } from '@inertiajs/vue3'
+export default {
+  layout: FishLayout,
+}
+</script>
+
+<script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
-import { useNetworkStatus } from '../composables/useNetworkStatus.js'
+import { Head, Link, router } from '@inertiajs/vue3'
+import FishAudioCard from '@/Components/FishAudioCard.vue'
+import FabButton from '@/Components/FabButton.vue'
+import audioPlayerService from '@/services/AudioPlayerService.js'
+import { useNetworkStatus } from '@/composables/useNetworkStatus.js' // Ensure path is correct
 
 const props = defineProps({
   fish: Object,
 })
 
-// 網路狀態監控
 const { isOnline, wasOffline } = useNetworkStatus()
 
-// 計算發音數量
 const audioCount = computed(() => {
   return props.fish.audios ? props.fish.audios.length : 0
 })
 
-// 計算播放狀態文字
 const playbackStatus = computed(() => {
   const playbackState = audioPlayerService.getPlaybackState()
 
@@ -172,23 +138,19 @@ const playbackStatus = computed(() => {
   return '待播放'
 })
 
-// 取 fish 中代表「基本發音」的欄位，並只取最後的檔名
 const baseAudioBasename = computed(() => {
   const raw = (props.fish && props.fish.audio_filename) || ''
   return raw ? String(raw).split('/').pop() : ''
 })
 
-// 輔助：從 audio 物件取可能的檔名欄位 (優先使用 audio.name)
 const getAudioBasename = (audio) => {
   if (!audio) return ''
   const candidate = audio.name || audio.filename || audio.file_name || ''
   return candidate ? String(candidate).split('/').pop() : ''
 }
 
-// 監聽網路重連事件
 onMounted(() => {
   const handleReconnect = () => {
-    // 網路重連後重新載入資料
     router.reload({ only: ['fish'] })
   }
 
@@ -200,12 +162,10 @@ onMounted(() => {
 })
 
 function onAudioUpdated() {
-  // 重新載入頁面以顯示更新的發音
-  //router.reload()
+  // router.reload()
 }
 
 function onAudioDeleted() {
-  // 重新載入頁面以移除刪除的發音
   router.reload()
 }
 </script>

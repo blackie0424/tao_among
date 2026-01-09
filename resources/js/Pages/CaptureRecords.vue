@@ -1,71 +1,37 @@
 <template>
   <Head :title="`${fish.name}的捕獲紀錄`" />
 
-  <div class="container mx-auto p-4 relative text-3xl">
-    <div class="pb-20">
-      <!-- 魚類資訊 -->
-      <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div class="flex flex-col md:flex-row items-center gap-4">
-          <!-- 魚類圖片 -->
-          <div class="w-full md:w-1/3">
-            <LazyImage
-              :src="fish.display_image_url || fish.image_url"
-              :alt="fish.name"
-              wrapperClass="w-full h-48 bg-gray-100 rounded-lg"
-              imgClass="w-full h-full object-contain"
-            />
-          </div>
+  <div class="space-y-8">
+      <!-- Section Header -->
+      <div class="flex items-center justify-between">
+         <div>
+            <h2 class="text-2xl font-serif font-bold text-stone-800">捕獲紀錄</h2>
+            <p class="text-stone-500 mt-1">累積的捕獲照片與相關資訊</p>
+         </div>
 
-          <!-- 魚類資訊 -->
-          <div class="w-full md:w-2/3">
-            <h2 class="text-4xl font-bold mb-2">{{ fish.name }}</h2>
-            <p class="text-gray-600 mb-4">捕獲紀錄與照片</p>
-
-            <!-- 統計資訊 -->
-            <div class="flex flex-wrap gap-4 text-xl">
-              <div class="flex items-center">
-                <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-                <span class="text-gray-700">
-                  已記錄 {{ fish.captureRecords?.length || 0 }} 筆捕獲紀錄
-                </span>
-              </div>
-              <div class="flex items-center">
-                <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                <span class="text-gray-700"> 涵蓋 {{ uniqueTribes.length }} 個部落 </span>
-              </div>
-            </div>
-          </div>
-        </div>
+         <!-- FAB / Action (Desktop) -->
+         <Link
+            :href="`/fish/${fish.id}/capture-records/create`"
+            class="hidden md:inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors text-sm font-medium"
+         >
+            <span class="mr-2 text-lg">+</span> 新增紀錄
+         </Link>
       </div>
 
-      <!-- 捕獲紀錄列表 -->
-      <div class="bg-white rounded-lg shadow-md p-4">
-        <h3 class="text-3xl font-semibold mb-4">捕獲紀錄</h3>
-
-        <!-- 空狀態 -->
-        <div v-if="fish.captureRecords?.length === 0" class="text-center py-8">
-          <div class="text-gray-400 mb-4">
-            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-              ></path>
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-              ></path>
-            </svg>
+      <!-- Stats -->
+      <div class="flex flex-wrap gap-4 text-sm">
+          <div class="bg-white border border-stone-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-stone-600">
+             <span class="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
+             已記錄 {{ fish.captureRecords?.length || 0 }} 筆
           </div>
-          <h3 class="text-3xl font-medium text-gray-900 mb-2">尚未記錄捕獲紀錄</h3>
-          <p class="text-xl text-gray-500">點擊右下角的按鈕開始記錄這條魚的捕獲照片和相關資訊</p>
-        </div>
+          <div class="bg-white border border-stone-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-stone-600">
+             <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+             涵蓋 {{ uniqueTribes.length }} 個部落
+          </div>
+      </div>
 
-        <!-- 捕獲紀錄卡片列表 -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-4xl">
+      <!-- Gallery Grid -->
+      <div v-if="fish.captureRecords?.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <CaptureRecordCard
             v-for="record in fish.captureRecords"
             :key="record.id"
@@ -75,49 +41,58 @@
             @updated="onRecordUpdated"
             @deleted="onRecordDeleted"
           />
-        </div>
       </div>
-    </div>
 
-    <!-- 新增捕獲紀錄 FAB 按鈕 -->
-    <FabButton
-      bgClass="bg-blue-600"
-      hoverClass="hover:bg-blue-700"
-      textClass="text-white"
-      label="新增捕獲紀錄"
-      icon="+"
-      :to="`/fish/${fish.id}/capture-records/create`"
-      position="right-bottom"
-    />
+      <!-- Empty State -->
+      <div v-else class="text-center py-16 bg-white rounded-2xl border border-dashed border-stone-200">
+             <div class="text-stone-300 mb-4">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+             </div>
+             <h3 class="text-lg font-bold text-stone-700">尚未記錄捕獲照片</h3>
+             <p class="text-stone-500 mt-2 mb-6">點擊下方按鈕開始記錄</p>
+             <Link
+                :href="`/fish/${fish.id}/capture-records/create`"
+                class="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors font-medium"
+             >
+                立即新增
+             </Link>
+      </div>
 
-    <!-- 底部導航列 -->
-    <BottomNavBar
-      :fishBasicInfo="`/fish/${fish.id}`"
-      :tribalKnowledge="`/fish/${fish.id}/tribal-classifications`"
-      :captureRecords="`/fish/${fish.id}/capture-records`"
-      :knowledge="`/fish/${fish.id}/knowledge`"
-      :audioList="`/fish/${fish.id}/audio-list`"
-      :currentPage="'captureRecords'"
-    />
   </div>
+
+  <!-- FAB for Mobile -->
+  <FabButton
+    bgClass="bg-blue-600"
+    hoverClass="hover:bg-blue-700"
+    textClass="text-white"
+    label="新增"
+    icon="+"
+    :to="`/fish/${fish.id}/capture-records/create`"
+    position="right-bottom"
+  />
 </template>
 
-<script setup>
-import { Head } from '@inertiajs/vue3'
+<script>
+import FishLayout from '@/Layouts/FishLayout.vue'
 
-import CaptureRecordCard from '../Components/CaptureRecordCard.vue'
-import LazyImage from '../Components/LazyImage.vue'
-import FabButton from '../Components/FabButton.vue'
-import BottomNavBar from '../Components/Global/BottomNavBar.vue'
-import { router } from '@inertiajs/vue3'
+export default {
+  layout: FishLayout,
+}
+</script>
+
+<script setup>
 import { computed } from 'vue'
+import { Head, Link, router } from '@inertiajs/vue3'
+import CaptureRecordCard from '@/Components/CaptureRecordCard.vue'
+import FabButton from '@/Components/FabButton.vue'
 
 const props = defineProps({
   fish: Object,
   tribes: Array,
 })
 
-// 計算已涵蓋的部落數量
 const uniqueTribes = computed(() => {
   if (!props.fish.captureRecords) return []
   const tribes = props.fish.captureRecords.map((r) => r.tribe)
@@ -125,12 +100,10 @@ const uniqueTribes = computed(() => {
 })
 
 function onRecordUpdated() {
-  // 重新載入頁面以顯示更新的紀錄
   router.reload()
 }
 
 function onRecordDeleted() {
-  // 重新載入頁面以移除刪除的紀錄
   router.reload()
 }
 </script>
