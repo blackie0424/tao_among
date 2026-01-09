@@ -17,6 +17,7 @@ class CreateFishRequest extends FormRequest
             'name' => ['required', 'string'],
             'image' => ['required', 'string'],
             'audio_filename' => ['nullable', 'string', 'max:255'],
+            'capture_method' => ['required', 'string', 'in:' . implode(',', array_keys(config('fish_options.capture_methods')))],
         ];
     }
 }
