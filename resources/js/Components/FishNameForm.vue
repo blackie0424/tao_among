@@ -15,6 +15,24 @@
         required
       />
     </div>
+
+    <div class="mb-4" v-if="!props.fishId">
+      <label for="captureMethod" class="block font-semibold mb-2">捕獲方式</label>
+      <select
+        id="captureMethod"
+        v-model="selectedCaptureMethod"
+        class="w-full border rounded px-3 py-2"
+        required
+      >
+        <option
+          v-for="(label, key) in props.captureMethods"
+          :key="key"
+          :value="key"
+        >
+          {{ label }}
+        </option>
+      </select>
+    </div>
   </form>
 </template>
 
@@ -28,10 +46,12 @@ const props = defineProps({
   uploadedFileName: String, // 建立模式用
   fishId: { type: [String, Number], default: null }, // 編輯模式用
   fishNameInit: { type: String, default: '' }, // 編輯模式用
+  captureMethods: { type: Object, default: () => ({}) }, // 建立模式用
 })
 const emit = defineEmits(['submitted'])
 
 const fishName = ref('')
+const selectedCaptureMethod = ref('mamasil')
 const submitting = ref(false)
 
 const placeholderText = computed(() => (fishName.value ? '' : '我不知道'))
@@ -55,7 +75,11 @@ async function submitForm() {
   // 使用 Inertia router.post 發送到 /fish（由後端處理 flash 與導向）
   router.post(
     '/fish',
-    { name: nameToSend, image: props.uploadedFileName },
+    {
+      name: nameToSend,
+      image: props.uploadedFileName,
+      capture_method: selectedCaptureMethod.value,
+    },
     {
       onSuccess: (page) => {
         fishName.value = ''
