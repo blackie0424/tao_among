@@ -249,9 +249,7 @@ const fetchAndPrependCreatedItems = async (createdIds) => {
   const newDataList = await Promise.all(fetchPromises)
 
   // 過濾掉失敗的請求，並按 ID 降序排列（最新的在前）
-  const validNewItems = newDataList
-    .filter((item) => item !== null)
-    .sort((a, b) => b.id - a.id)
+  const validNewItems = newDataList.filter((item) => item !== null).sort((a, b) => b.id - a.id)
 
   // 插入到 items 開頭（避免重複）
   validNewItems.forEach((newItem) => {
