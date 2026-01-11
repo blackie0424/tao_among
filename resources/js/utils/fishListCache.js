@@ -7,10 +7,11 @@
 
 const STALE_IDS_KEY = 'fishs_stale_ids'
 const DELETED_IDS_KEY = 'fishs_deleted_ids'
+const CREATED_IDS_KEY = 'fishs_created_ids'
 const STORAGE_KEY = 'fishs_list_state'
 
 /**
- * 清除 Fishs 頁面的所有快取（新增魚類後使用）
+ * 清除 Fishs 頁面的所有快取（強制重新載入時使用）
  * 這會讓 Fishs 頁面下次載入時重新從伺服器取得資料
  */
 export function clearFishListCache() {
@@ -18,6 +19,7 @@ export function clearFishListCache() {
     sessionStorage.removeItem(STORAGE_KEY)
     sessionStorage.removeItem(STALE_IDS_KEY)
     sessionStorage.removeItem(DELETED_IDS_KEY)
+    sessionStorage.removeItem(CREATED_IDS_KEY)
   } catch (e) {
     // sessionStorage 不可用，忽略
   }
@@ -144,6 +146,51 @@ export function getDeletedIds() {
 export function clearDeletedIds() {
   try {
     sessionStorage.removeItem(DELETED_IDS_KEY)
+  } catch (e) {
+    // 忽略
+  }
+}
+
+// === 新增標記相關函式 ===
+
+/**
+ * 標記新增的魚類 ID（新增後使用）
+ * @param {number|string} fishId - 魚類 ID
+ */
+export function markFishCreated(fishId) {
+  try {
+    const ids = getCreatedIds()
+    const id = Number(fishId)
+    if (!ids.includes(id)) {
+      ids.push(id)
+      sessionStorage.setItem(CREATED_IDS_KEY, JSON.stringify(ids))
+    }
+  } catch (e) {
+    // sessionStorage 不可用，忽略
+  }
+}
+
+/**
+ * 取得所有新增的魚類 ID
+ * @returns {number[]} 魚類 ID 陣列
+ */
+export function getCreatedIds() {
+  try {
+    const raw = sessionStorage.getItem(CREATED_IDS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.map(Number) : []
+  } catch (e) {
+    return []
+  }
+}
+
+/**
+ * 清除所有新增的魚類 ID 標記
+ */
+export function clearCreatedIds() {
+  try {
+    sessionStorage.removeItem(CREATED_IDS_KEY)
   } catch (e) {
     // 忽略
   }

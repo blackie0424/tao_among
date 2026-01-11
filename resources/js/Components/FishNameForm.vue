@@ -21,7 +21,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { markFishStale, clearFishListCache } from '@/utils/fishListCache'
+import { markFishStale, markFishCreated } from '@/utils/fishListCache'
 
 // 建立模式用 uploadedFileName，編輯模式用 fishId、fishNameInit
 const props = defineProps({
@@ -58,10 +58,12 @@ async function submitForm() {
     { name: nameToSend, image: props.uploadedFileName },
     {
       onSuccess: (page) => {
-        // 新增魚類成功，清除 Fishs 頁面快取，確保返回時會重新載入
-        clearFishListCache()
-        fishName.value = ''
         const fishId = page.props.fish?.id
+        // 新增魚類成功，標記新增的魚類 ID，返回 Fishs 頁面時會查詢並插入
+        if (fishId) {
+          markFishCreated(fishId)
+        }
+        fishName.value = ''
         // 通知上層元件
         emit('submitted', fishId ?? null)
       },
