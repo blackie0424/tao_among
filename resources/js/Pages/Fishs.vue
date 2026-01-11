@@ -52,7 +52,14 @@ import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
 import FishSearchLoading from '@/Components/Global/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/Fish/FishSearchCursorErrorBanner.vue'
 import FishCard from '@/Components/FishCard.vue'
-import { getStaleIds, clearStaleIds, getDeletedIds, clearDeletedIds } from '@/utils/fishListCache'
+import {
+  getStaleIds,
+  clearStaleIds,
+  getDeletedIds,
+  clearDeletedIds,
+  getCreatedIds,
+  clearCreatedIds,
+} from '@/utils/fishListCache'
 
 const props = defineProps({
   // legacy 完整集合（相容舊測試）
@@ -156,6 +163,15 @@ const restoreStateFromStorage = async () => {
     // 用於追蹤快取是否需要更新
     let cacheNeedsUpdate = false
 
+    // 檢查是否有新增的魚類（created IDs）
+    const createdIds = getCreatedIds()
+    if (createdIds.length > 0) {
+      // 查詢新增的魚類資料並插入到清單開頭
+      await fetchAndPrependCreatedItems(createdIds)
+      clearCreatedIds()
+      cacheNeedsUpdate = true
+    }
+
     // 檢查是否有需要刪除的魚類（deleted IDs）
     const deletedIds = getDeletedIds()
     if (deletedIds.length > 0) {
@@ -213,6 +229,33 @@ const refreshStaleItems = async (staleIds) => {
     const index = items.value.findIndex((item) => item.id === freshData.id)
     if (index !== -1) {
       items.value[index] = freshData
+    }
+  })
+}
+
+// 新增魚類：查詢新增的魚類資料並插入到清單開頭
+const fetchAndPrependCreatedItems = async (createdIds) => {
+  const fetchPromises = createdIds.map(async (id) => {
+    try {
+      const response = await fetch(`/prefix/api/fish/${id}/compact`)
+      if (!response.ok) return null
+      const result = await response.json()
+      return result.data
+    } catch (e) {
+      return null
+    }
+  })
+
+  const newDataList = await Promise.all(fetchPromises)
+
+  // 過濾掉失敗的請求，並按 ID 降序排列（最新的在前）
+  const validNewItems = newDataList.filter((item) => item !== null).sort((a, b) => b.id - a.id)
+
+  // 插入到 items 開頭（避免重複）
+  validNewItems.forEach((newItem) => {
+    const exists = items.value.some((item) => item.id === newItem.id)
+    if (!exists) {
+      items.value.unshift(newItem)
     }
   })
 }
