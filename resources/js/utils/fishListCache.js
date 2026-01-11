@@ -7,6 +7,21 @@
 
 const STALE_IDS_KEY = 'fishs_stale_ids'
 const DELETED_IDS_KEY = 'fishs_deleted_ids'
+const STORAGE_KEY = 'fishs_list_state'
+
+/**
+ * 清除 Fishs 頁面的所有快取（新增魚類後使用）
+ * 這會讓 Fishs 頁面下次載入時重新從伺服器取得資料
+ */
+export function clearFishListCache() {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(STALE_IDS_KEY)
+    sessionStorage.removeItem(DELETED_IDS_KEY)
+  } catch (e) {
+    // sessionStorage 不可用，忽略
+  }
+}
 
 /**
  * 標記某筆魚類資料需要更新
