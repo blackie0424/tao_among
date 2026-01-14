@@ -67,15 +67,10 @@
 
 <script setup>
 import { Head } from '@inertiajs/vue3'
-
 import { ref, computed } from 'vue'
-import Breadcrumb from '@/Components/Global/Breadcrumb.vue'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
-import FishDetailRight from '@/Components/FishDetailRight.vue'
-import FabButton from '@/Components/FabButton.vue'
-import BottomNavBar from '../Components/Global/BottomNavBar.vue'
 import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
-import CaptureRecordSummary from '@/Components/CaptureRecordSummary.vue'
+import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 
 const props = defineProps({
   fish: Object,
