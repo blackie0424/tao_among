@@ -15,7 +15,7 @@ it('renders homepage with Index component', function () {
 });
 
 it('renders fish list with expected props', function () {
-    // 兩筆資料：一筆無音檔，一筆有音檔（本頁僅驗證圖片 URL 存在）
+    // 兩筆資料：一筆無音檔，一筆有音檔
     Fish::factory()->create(['audio_filename' => null]);
     Fish::factory()->create(['audio_filename' => 'voice.mp3']);
 
@@ -28,12 +28,11 @@ it('renders fish list with expected props', function () {
         ->assertInertia(
             fn (Assert $page) => $page
             ->component('Fishs')
-            ->has('fishs')
+            ->has('items')
+            ->has('pageInfo')
             ->has('filters')
             ->has('searchOptions')
             ->has('searchStats')
-            ->where('fishs.0.image', fn ($v) => is_string($v) && $v !== '')
-            ->where('fishs.1.image', fn ($v) => is_string($v) && $v !== '')
         );
 });
 

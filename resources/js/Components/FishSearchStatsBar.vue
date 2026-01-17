@@ -6,12 +6,7 @@
       <!-- 資料筆數統計 -->
       <div class="inline-flex items-center gap-2 shrink-0">
         <span class="text-amber-700 dark:text-amber-300">資料筆數</span>
-        <span class="text-amber-900 dark:text-amber-200 font-semibold">{{ legacyTotal }}</span>
-        <template v-if="totalCount !== legacyTotal">
-          <span class="mx-1 text-amber-300 dark:text-amber-700">|</span>
-          <span class="text-amber-700 dark:text-amber-300">符合條件</span>
-          <span class="text-amber-900 dark:text-amber-200 font-medium">{{ totalCount }}</span>
-        </template>
+        <span class="text-amber-900 dark:text-amber-200 font-semibold">{{ totalCount }}</span>
       </div>
 
       <!-- 已套用的搜尋條件 chips（與資料筆數同列，空間不足時自動換行） -->
@@ -49,10 +44,6 @@
 <script setup>
 defineProps({
   totalCount: {
-    type: Number,
-    required: true,
-  },
-  legacyTotal: {
     type: Number,
     required: true,
   },

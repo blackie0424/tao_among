@@ -53,18 +53,16 @@ class FishController extends Controller
         // 游標式分頁 + 精簡欄位（提供給前端無限滾動使用）
         $paginated = $this->fishSearchService->paginate($filters);
 
-        // 保持相容：沿用舊的完整集合供現有 Inertia 頁面（測試）檢查 image 屬性（後續可移除）
+        // 篩選條件（供前端 UI 顯示）
         $legacyFilters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
-        $fishs = $this->fishSearchService->search($legacyFilters);
 
         $searchOptions = $this->fishSearchService->getSearchOptions();
         $searchStats = $this->fishSearchService->getSearchStats($legacyFilters);
         return Inertia::render('Fishs', [
-            'fishs' => $fishs,
             'filters' => $legacyFilters,
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
-            // 新增契約格式（FR-002, FR-005）
+            // 精簡欄位 + 游標分頁（FR-002, FR-005）
             'items' => $paginated['items'],
             'pageInfo' => $paginated['pageInfo'],
         ]);
