@@ -3,13 +3,23 @@
     :class="['relative flex items-center justify-center bg-gray-100 overflow-hidden', wrapperClass]"
     :style="wrapperStyle"
   >
-    <LoadingBar :loading="loading" :error="error" type="image" loading-text="資料載入中..." />
+    <!-- Loading 狀態使用絕對定位覆蓋，不影響圖片佈局 -->
+    <div
+      v-if="loading && !error"
+      class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10"
+    >
+      <LoadingBar :loading="true" :error="false" type="image" loading-text="資料載入中..." />
+    </div>
+    <!-- 圖片始終渲染（不用 v-show），使用 opacity 控制可見性，確保 lazy loading 正常運作 -->
     <img
-      v-show="!loading"
       :src="currentSrc"
       :alt="alt"
       :loading="imgLoading"
-      :class="['object-contain', imgClass]"
+      :class="[
+        'object-contain transition-opacity duration-300',
+        imgClass,
+        loading ? 'opacity-0' : 'opacity-100',
+      ]"
       :style="imgStyle"
       @load="onLoad"
       @error="onError"
