@@ -40,6 +40,7 @@ describe('圖鑑主圖選擇功能', function () {
     it('可以設定捕獲紀錄為圖鑑主圖', function () {
         $this->fish->update(['display_capture_record_id' => $this->record1->id]);
         $this->fish->refresh();
+        $this->fish->load('displayCaptureRecord'); // 預載關聯以支援 accessor
         
         expect($this->fish->display_capture_record_id)->toBe($this->record1->id);
         expect($this->fish->display_image_url)->toBe($this->record1->image_url);
@@ -49,11 +50,13 @@ describe('圖鑑主圖選擇功能', function () {
         // 設定為第一張
         $this->fish->update(['display_capture_record_id' => $this->record1->id]);
         $this->fish->refresh();
+        $this->fish->load('displayCaptureRecord'); // 預載關聯以支援 accessor
         expect($this->fish->display_image_url)->toBe($this->record1->image_url);
         
         // 切換為第二張
         $this->fish->update(['display_capture_record_id' => $this->record2->id]);
         $this->fish->refresh();
+        $this->fish->load('displayCaptureRecord'); // 重新預載關聯
         expect($this->fish->display_image_url)->toBe($this->record2->image_url);
     });
     
@@ -76,13 +79,14 @@ describe('圖鑑主圖選擇功能', function () {
         // 設定主圖
         $this->fish->update(['display_capture_record_id' => $this->record1->id]);
         $this->fish->refresh();
+        $this->fish->load('displayCaptureRecord'); // 預載關聯以支援 accessor
         expect($this->fish->display_image_url)->toBe($this->record1->image_url);
         
         // 軟刪除捕獲紀錄
         $this->record1->delete();
         
         // 重新載入 fish（不包含軟刪除的關聯）
-        $this->fish = Fish::find($this->fish->id);
+        $this->fish = Fish::with('displayCaptureRecord')->find($this->fish->id);
         
         // display_capture_record_id 仍保留，但 display_image_url 自動 fallback
         expect($this->fish->display_capture_record_id)->toBe($this->record1->id);
@@ -94,6 +98,7 @@ describe('圖鑑主圖選擇功能', function () {
         $this->fish->update(['display_capture_record_id' => $this->record1->id]);
         $this->record1->delete();
         $this->fish->refresh();
+        $this->fish->load('displayCaptureRecord'); // 預載關聯（會是 null 因為軟刪除）
         
         // 確認 fallback 運作
         expect($this->fish->display_image_url)->toBe($this->fish->image_url);
@@ -101,6 +106,7 @@ describe('圖鑑主圖選擇功能', function () {
         // 恢復捕獲紀錄
         $this->record1->restore();
         $this->fish->refresh();
+        $this->fish->load('displayCaptureRecord'); // 重新預載關聯
         
         // 確認重新指向捕獲紀錄圖片
         expect($this->fish->display_image_url)->toBe($this->record1->image_url);

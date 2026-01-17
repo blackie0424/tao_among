@@ -107,7 +107,7 @@ class FishService
      */
     public function getFishDetails(int $id): array
     {
-        $fish = Fish::with(['tribalClassifications', 'captureRecords', 'notes', 'audios'])
+        $fish = Fish::with(['tribalClassifications', 'captureRecords', 'notes', 'audios', 'displayCaptureRecord'])
             ->findOrFail($id);
 
         // 套用媒體 URL 規則

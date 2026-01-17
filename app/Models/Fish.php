@@ -149,12 +149,16 @@ class Fish extends Model
             get: function () {
                 // 優先：使用者選擇的捕獲紀錄圖片
                 if ($this->display_capture_record_id) {
-                    $record = $this->displayCaptureRecord;
-                    
-                    // 確保紀錄存在且未被軟刪除
-                    if ($record && !$record->trashed()) {
-                        return $record->image_url;
+                    // 只在關聯已預載時才使用，避免 N+1 查詢
+                    if ($this->relationLoaded('displayCaptureRecord')) {
+                        $record = $this->displayCaptureRecord;
+                        
+                        // 確保紀錄存在且未被軟刪除
+                        if ($record && !$record->trashed()) {
+                            return $record->image_url;
+                        }
                     }
+                    // 若未預載，回退使用 Fish 自己的圖片（避免 N+1）
                 }
                 
                 // 回退：使用 Fish 自己的圖片

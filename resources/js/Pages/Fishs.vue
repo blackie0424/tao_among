@@ -5,7 +5,6 @@
     <!-- 資料筆數統計卡 + Filter Chips -->
     <FishSearchStatsBar
       :totalCount="totalCount"
-      :legacyTotal="legacyTotal"
       :appliedFilters="appliedFilters"
       @remove-filter="removeFilter"
     >
@@ -26,8 +25,8 @@
       />
 
       <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <li v-for="item in items" :key="item.id">
-          <FishCard :fish="item" />
+        <li v-for="(item, index) in items" :key="item.id">
+          <FishCard :fish="item" :index="index" />
         </li>
       </ul>
 
@@ -62,9 +61,7 @@ import {
 } from '@/utils/fishListCache'
 
 const props = defineProps({
-  // legacy 完整集合（相容舊測試）
-  fishs: { type: Array, default: () => [] },
-  // 新搜尋契約（後端精簡列表）
+  // 精簡欄位列表（後端游標分頁）
   items: { type: Array, default: () => [] },
   pageInfo: { type: Object, default: () => ({ hasMore: false, nextCursor: null }) },
   filters: {
@@ -275,10 +272,6 @@ const totalCount = computed(() => {
   if (typeof stat === 'number') return stat
   return Array.isArray(items.value) ? items.value.length : 0
 })
-// legacy 全部總數（未精簡）：使用 props.fishs 長度作為原始總數顯示
-const legacyTotal = computed(() =>
-  Array.isArray(props.fishs) ? props.fishs.length : totalCount.value
-)
 
 // 顯示中的搜尋條件（chip 用）
 const appliedFilters = computed(() => {
