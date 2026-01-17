@@ -25,8 +25,8 @@
       />
 
       <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <li v-for="item in items" :key="item.id">
-          <FishCard :fish="item" />
+        <li v-for="(item, index) in items" :key="item.id">
+          <FishCard :fish="item" :index="index" />
         </li>
       </ul>
 
