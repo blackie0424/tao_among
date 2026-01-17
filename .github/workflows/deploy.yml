@@ -1,4 +1,4 @@
-name: Deploy to AWS Elastic Beanstalk
+name: Deploy to EC2 (Rsync Version)
 
 on:
   push:
@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ========== 程式碼檢出 ==========
+      # 1. 檢出程式碼
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # ========== 後端測試 ==========
+      # 2. PHP 前置作業 (測試用)
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -31,7 +31,7 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
-      # ========== 前端測試與建構 ==========
+      # 3. 前端建構
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -44,35 +44,52 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
-      # ========== 打包部署套件（排除 vendor/） ==========
-      - name: Generate deployment package
-        run: |
-          zip -r deploy.zip . \
-            -x '*.git*' \
-            -x 'node_modules/*' \
-            -x 'vendor/*' \
-            -x 'tests/*' \
-            -x '.env*' \
-            -x 'phpunit.xml' \
-            -x 'storage/framework/cache/*' \
-            -x 'storage/framework/sessions/*' \
-            -x 'storage/framework/views/*' \
-            -x 'storage/logs/*' \
-            -x '.phpunit.result.cache'
-
-          # 確認打包成功
-          echo "✅ deploy.zip 建立完成"
-          unzip -l deploy.zip | head -20
-
-      # ========== 部署至 AWS EBS ==========
-      - name: Deploy to Elastic Beanstalk
-        uses: einaregilsson/beanstalk-deploy@v21
+      # 4. Rsync 部署前端資源 (關鍵修改)
+      - name: Sync assets to EC2
+        uses: easingthemes/ssh-deploy@main
         with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: Tao-among-single-instance
-          environment_name: Tao-among-single-instance-env
-          version_label: ${{ github.sha }}
-          region: ap-northeast-1
-          deployment_package: deploy.zip
-          wait_for_deployment: true
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          ARGS: "-avz --delete"
+          SOURCE: "public/build/"
+          REMOTE_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_USER: ${{ secrets.EC2_USERNAME }}
+          # ⚠️ 請將 your-project 修改為你實際的目錄名稱
+          TARGET: "/var/www/html/tao_among/public/build/"
+          SCRIPT_BEFORE: "mkdir -p /var/www/html/tao_among/public/build"
+
+      # 5. SSH 連線執行部署指令
+      - name: Execute remote commands via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            set -e  #
+            PROJECT_PATH="/var/www/html/tao_among" # ⚠️ 請修改這裡
+
+            echo "🚀 開始部署後端邏輯..."
+            cd $PROJECT_PATH
+
+            # 拉取最新程式碼 (不包含已被 ignore 的 public/build，所以不會衝突)
+            git pull origin main
+
+            # 安裝依賴
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+            # 執行遷移與優化
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan event:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # 確保權限
+            sudo chown -R ec2-user:nginx storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+
+            # 重啟服務
+            sudo systemctl reload php-fpm
+
+            echo "✅ 部署完成！"
