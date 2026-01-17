@@ -54,8 +54,8 @@ jobs:
           REMOTE_HOST: ${{ secrets.EC2_HOST }}
           REMOTE_USER: ${{ secrets.EC2_USERNAME }}
           # ⚠️ 請將 your-project 修改為你實際的目錄名稱
-          TARGET: "/var/www/html/tao_among/public/build/"
-          SCRIPT_BEFORE: "mkdir -p /var/www/html/tao_among/public/build"
+          TARGET: "/var/www/tao_among/public/build/"
+          SCRIPT_BEFORE: "mkdir -p /var/www/tao_among/public/build"
 
       # 5. SSH 連線執行部署指令
       - name: Execute remote commands via SSH
