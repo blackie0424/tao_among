@@ -67,7 +67,7 @@ jobs:
           port: 22
           script: |
             set -e  #
-            PROJECT_PATH="/var/www/html/tao_among" # ⚠️ 請修改這裡
+            PROJECT_PATH="/var/www/tao_among" # ⚠️ 請修改這裡
 
             echo "🚀 開始部署後端邏輯..."
             cd $PROJECT_PATH
