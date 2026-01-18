@@ -11,7 +11,7 @@
       <LoadingBar :loading="true" :error="false" type="image" loading-text="資料載入中..." />
     </div>
     <!-- 使用 picture 標籤支援響應式圖片 -->
-    <picture v-if="responsiveUrls">
+    <picture v-if="responsiveUrls && !useDesktopFallback">
       <!-- 手機版本：< 768px -->
       <source :srcset="responsiveUrls.mobile" media="(max-width: 767px)" type="image/webp" />
       <!-- 平板版本：768px - 1023px -->
@@ -24,7 +24,7 @@
       <source :srcset="responsiveUrls.desktop" media="(min-width: 1024px)" type="image/webp" />
       <!-- fallback img -->
       <img
-        :src="currentSrc"
+        :src="responsiveUrls.desktop"
         :alt="alt"
         :loading="imgLoading"
         :class="[
@@ -34,13 +34,13 @@
         ]"
         :style="imgStyle"
         @load="onLoad"
-        @error="onError"
+        @error="onResponsiveError"
       />
     </picture>
-    <!-- 非響應式圖片（無 webp 或本地圖片）使用一般 img 標籤 -->
+    <!-- 當響應式圖片失敗或非響應式圖片時，使用桌機版或原始圖片 -->
     <img
       v-else
-      :src="currentSrc"
+      :src="finalSrc"
       :alt="alt"
       :loading="imgLoading"
       :class="[
@@ -84,6 +84,7 @@ const storageFolders = computed(
 const loading = ref(true)
 const error = ref(false)
 const useWebp = ref(true) // 是否嘗試使用 webp 格式
+const useDesktopFallback = ref(false) // 響應式圖片失敗時，fallback 到桌機版
 
 /**
  * 將圖片 URL 轉換為 webp 格式
@@ -173,8 +174,35 @@ const responsiveUrls = computed(() => {
   return getResponsiveImageUrls(imageUrl)
 })
 
+/**
+ * 計算最終顯示的圖片 URL
+ * 用於非響應式圖片或響應式圖片 fallback 時
+ */
+const finalSrc = computed(() => {
+  // 若發生錯誤，顯示預設圖片
+  if (error.value) {
+    return props.defaultSrc
+  }
+  // 若響應式圖片失敗，使用桌機版 webp
+  if (useDesktopFallback.value && responsiveUrls.value) {
+    return responsiveUrls.value.desktop
+  }
+  // 否則使用 currentSrc
+  return currentSrc.value
+})
+
 function onLoad() {
   loading.value = false
+}
+
+/**
+ * 響應式圖片載入失敗時的處理
+ * 會 fallback 到桌機版（原始 webp）
+ */
+function onResponsiveError() {
+  // 切換到使用桌機版 fallback
+  useDesktopFallback.value = true
+  // 保持 loading 狀態，等待桌機版載入
 }
 
 function onError() {
@@ -196,6 +224,7 @@ watch(
     loading.value = true
     error.value = false
     useWebp.value = true // 重新嘗試 webp
+    useDesktopFallback.value = false // 重設響應式 fallback 狀態
   }
 )
 

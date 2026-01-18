@@ -3,7 +3,7 @@
     class="show_image w-full max-w-3xl mx-auto flex items-center justify-center mb-6 p-4 rounded-lg shadow-custom h-60"
   >
     <!-- 使用 picture 標籤支援響應式圖片 -->
-    <picture v-if="responsiveUrls">
+    <picture v-if="responsiveUrls && !useDesktopFallback">
       <!-- 手機版本：< 768px -->
       <source :srcset="responsiveUrls.mobile" media="(max-width: 767px)" type="image/webp" />
       <!-- 平板版本：768px - 1023px -->
@@ -16,16 +16,17 @@
       <source :srcset="responsiveUrls.desktop" media="(min-width: 1024px)" type="image/webp" />
       <!-- fallback img -->
       <img
-        :src="image"
+        :src="responsiveUrls.desktop"
         :alt="name"
         loading="lazy"
         class="max-h-full max-w-full object-contain rounded-lg"
+        @error="onResponsiveError"
       />
     </picture>
-    <!-- 非響應式圖片使用一般 img 標籤 -->
+    <!-- 當響應式圖片失敗或非響應式圖片時，使用桌機版或原始圖片 -->
     <img
       v-else
-      :src="image"
+      :src="finalSrc"
       :alt="name"
       loading="lazy"
       class="max-h-full max-w-full object-contain rounded-lg"
@@ -33,13 +34,15 @@
   </div>
 </template>
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getResponsiveImageUrls, isResponsiveWebp } from '@/composables/useResponsiveImage.js'
 
 const props = defineProps({
   image: String,
   name: String,
 })
+
+const useDesktopFallback = ref(false) // 響應式圖片失敗時，fallback 到桌機版
 
 /**
  * 計算響應式圖片 URL 集合
@@ -50,4 +53,30 @@ const responsiveUrls = computed(() => {
   }
   return getResponsiveImageUrls(props.image)
 })
+
+/**
+ * 計算最終顯示的圖片 URL
+ */
+const finalSrc = computed(() => {
+  // 若響應式圖片失敗，使用桌機版 webp
+  if (useDesktopFallback.value && responsiveUrls.value) {
+    return responsiveUrls.value.desktop
+  }
+  return props.image
+})
+
+/**
+ * 響應式圖片載入失敗時的處理
+ */
+function onResponsiveError() {
+  useDesktopFallback.value = true
+}
+
+// 當 image 改變時重設狀態
+watch(
+  () => props.image,
+  () => {
+    useDesktopFallback.value = false
+  }
+)
 </script>
