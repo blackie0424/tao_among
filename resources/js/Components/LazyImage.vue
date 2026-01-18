@@ -10,8 +10,36 @@
     >
       <LoadingBar :loading="true" :error="false" type="image" loading-text="資料載入中..." />
     </div>
-    <!-- 圖片始終渲染（不用 v-show），使用 opacity 控制可見性，確保 lazy loading 正常運作 -->
+    <!-- 使用 picture 標籤支援響應式圖片 -->
+    <picture v-if="responsiveUrls">
+      <!-- 手機版本：< 768px -->
+      <source :srcset="responsiveUrls.mobile" media="(max-width: 767px)" type="image/webp" />
+      <!-- 平板版本：768px - 1023px -->
+      <source
+        :srcset="responsiveUrls.tablet"
+        media="(min-width: 768px) and (max-width: 1023px)"
+        type="image/webp"
+      />
+      <!-- 桌機版本：>= 1024px -->
+      <source :srcset="responsiveUrls.desktop" media="(min-width: 1024px)" type="image/webp" />
+      <!-- fallback img -->
+      <img
+        :src="currentSrc"
+        :alt="alt"
+        :loading="imgLoading"
+        :class="[
+          'object-contain transition-opacity duration-300',
+          imgClass,
+          loading ? 'opacity-0' : 'opacity-100',
+        ]"
+        :style="imgStyle"
+        @load="onLoad"
+        @error="onError"
+      />
+    </picture>
+    <!-- 非響應式圖片（無 webp 或本地圖片）使用一般 img 標籤 -->
     <img
+      v-else
       :src="currentSrc"
       :alt="alt"
       :loading="imgLoading"
@@ -31,6 +59,7 @@
 import { ref, watch, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import LoadingBar from '@/Components/LoadingBar.vue'
+import { getResponsiveImageUrls, isResponsiveWebp } from '@/composables/useResponsiveImage.js'
 
 const props = defineProps({
   src: String,
@@ -119,6 +148,29 @@ const currentSrc = computed(() => {
   }
   // 否則使用原始 URL
   return props.src
+})
+
+/**
+ * 計算響應式圖片 URL 集合
+ * 只有當圖片是 webp 格式時才產生響應式版本
+ * 回傳 { desktop, tablet, mobile } 或 null
+ */
+const responsiveUrls = computed(() => {
+  // 若發生錯誤則不使用響應式圖片
+  if (error.value) {
+    return null
+  }
+
+  // 取得當前的圖片 URL（可能已轉換為 webp）
+  const imageUrl = currentSrc.value
+
+  // 檢查是否為可產生響應式版本的 webp 圖片
+  if (!isResponsiveWebp(imageUrl)) {
+    return null
+  }
+
+  // 產生響應式圖片 URL
+  return getResponsiveImageUrls(imageUrl)
 })
 
 function onLoad() {
