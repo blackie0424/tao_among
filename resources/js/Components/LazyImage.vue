@@ -10,9 +10,37 @@
     >
       <LoadingBar :loading="true" :error="false" type="image" loading-text="資料載入中..." />
     </div>
-    <!-- 圖片始終渲染（不用 v-show），使用 opacity 控制可見性，確保 lazy loading 正常運作 -->
+    <!-- 使用 picture 標籤支援響應式圖片 -->
+    <picture v-if="responsiveUrls && !useDesktopFallback">
+      <!-- 手機版本：< 768px -->
+      <source :srcset="responsiveUrls.mobile" media="(max-width: 767px)" type="image/webp" />
+      <!-- 平板版本：768px - 1023px -->
+      <source
+        :srcset="responsiveUrls.tablet"
+        media="(min-width: 768px) and (max-width: 1023px)"
+        type="image/webp"
+      />
+      <!-- 桌機版本：>= 1024px -->
+      <source :srcset="responsiveUrls.desktop" media="(min-width: 1024px)" type="image/webp" />
+      <!-- fallback img：使用原始版本 -->
+      <img
+        :src="responsiveUrls.original"
+        :alt="alt"
+        :loading="imgLoading"
+        :class="[
+          'object-contain transition-opacity duration-300',
+          imgClass,
+          loading ? 'opacity-0' : 'opacity-100',
+        ]"
+        :style="imgStyle"
+        @load="onLoad"
+        @error="onResponsiveError"
+      />
+    </picture>
+    <!-- 當響應式圖片失敗或非響應式圖片時，使用桌機版或原始圖片 -->
     <img
-      :src="currentSrc"
+      v-else
+      :src="finalSrc"
       :alt="alt"
       :loading="imgLoading"
       :class="[
@@ -31,6 +59,7 @@
 import { ref, watch, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import LoadingBar from '@/Components/LoadingBar.vue'
+import { getResponsiveImageUrls, isResponsiveWebp } from '@/composables/useResponsiveImage.js'
 
 const props = defineProps({
   src: String,
@@ -55,6 +84,7 @@ const storageFolders = computed(
 const loading = ref(true)
 const error = ref(false)
 const useWebp = ref(true) // 是否嘗試使用 webp 格式
+const useDesktopFallback = ref(false) // 響應式圖片失敗時，fallback 到桌機版
 
 /**
  * 將圖片 URL 轉換為 webp 格式
@@ -121,8 +151,58 @@ const currentSrc = computed(() => {
   return props.src
 })
 
+/**
+ * 計算響應式圖片 URL 集合
+ * 只有當圖片是 webp 格式時才產生響應式版本
+ * 回傳 { desktop, tablet, mobile } 或 null
+ */
+const responsiveUrls = computed(() => {
+  // 若發生錯誤則不使用響應式圖片
+  if (error.value) {
+    return null
+  }
+
+  // 取得當前的圖片 URL（可能已轉換為 webp）
+  const imageUrl = currentSrc.value
+
+  // 檢查是否為可產生響應式版本的 webp 圖片
+  if (!isResponsiveWebp(imageUrl)) {
+    return null
+  }
+
+  // 產生響應式圖片 URL
+  return getResponsiveImageUrls(imageUrl)
+})
+
+/**
+ * 計算最終顯示的圖片 URL
+ * 用於非響應式圖片或響應式圖片 fallback 時
+ */
+const finalSrc = computed(() => {
+  // 若發生錯誤，顯示預設圖片
+  if (error.value) {
+    return props.defaultSrc
+  }
+  // 若響應式圖片失敗，使用原始版 webp
+  if (useDesktopFallback.value && responsiveUrls.value) {
+    return responsiveUrls.value.original
+  }
+  // 否則使用 currentSrc
+  return currentSrc.value
+})
+
 function onLoad() {
   loading.value = false
+}
+
+/**
+ * 響應式圖片載入失敗時的處理
+ * 會 fallback 到原始版（檔名.webp）
+ */
+function onResponsiveError() {
+  // 切換到使用桌機版 fallback
+  useDesktopFallback.value = true
+  // 保持 loading 狀態，等待桌機版載入
 }
 
 function onError() {
@@ -144,6 +224,7 @@ watch(
     loading.value = true
     error.value = false
     useWebp.value = true // 重新嘗試 webp
+    useDesktopFallback.value = false // 重設響應式 fallback 狀態
   }
 )
 
