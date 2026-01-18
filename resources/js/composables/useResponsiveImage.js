@@ -2,9 +2,10 @@
  * 響應式圖片 URL 生成工具
  *
  * 後端會自動將上傳的圖片產生三種尺寸：
- * - 檔名.webp：桌機用（原始尺寸或大尺寸）
+ * - 檔名_large.webp：桌機用
  * - 檔名_medium.webp：平板用
  * - 檔名_small.webp：手機用
+ * - 檔名.webp：原始版本（作為 fallback）
  *
  * 此工具根據傳入的 webp URL 產生對應的各尺寸 URL
  */
@@ -27,18 +28,23 @@ export function getResponsiveImageUrls(webpUrl) {
     return null
   }
 
-  // 檢查是否已經是 _medium 或 _small 版本，若是則取得基礎 URL
-  const baseUrl = webpUrl.replace(/_medium\.webp$/i, '.webp').replace(/_small\.webp$/i, '.webp')
+  // 檢查是否已經是 _large, _medium 或 _small 版本，若是則取得基礎 URL
+  const baseUrl = webpUrl
+    .replace(/_large\.webp$/i, '.webp')
+    .replace(/_medium\.webp$/i, '.webp')
+    .replace(/_small\.webp$/i, '.webp')
 
   // 產生各尺寸的 URL
-  const desktopUrl = baseUrl
+  const desktopUrl = baseUrl.replace(/\.webp$/i, '_large.webp')
   const tabletUrl = baseUrl.replace(/\.webp$/i, '_medium.webp')
   const mobileUrl = baseUrl.replace(/\.webp$/i, '_small.webp')
+  const originalUrl = baseUrl // 原始版本作為 fallback
 
   return {
     desktop: desktopUrl,
     tablet: tabletUrl,
     mobile: mobileUrl,
+    original: originalUrl,
   }
 }
 

@@ -12,9 +12,10 @@ describe('useResponsiveImage', () => {
       const result = getResponsiveImageUrls(url)
 
       expect(result).toEqual({
-        desktop: 'https://example.com/webp/fish.webp',
+        desktop: 'https://example.com/webp/fish_large.webp',
         tablet: 'https://example.com/webp/fish_medium.webp',
         mobile: 'https://example.com/webp/fish_small.webp',
+        original: 'https://example.com/webp/fish.webp',
       })
     })
 
@@ -23,9 +24,10 @@ describe('useResponsiveImage', () => {
       const result = getResponsiveImageUrls(url)
 
       expect(result).toEqual({
-        desktop: 'https://example.com/webp/fish.webp',
+        desktop: 'https://example.com/webp/fish_large.webp',
         tablet: 'https://example.com/webp/fish_medium.webp',
         mobile: 'https://example.com/webp/fish_small.webp',
+        original: 'https://example.com/webp/fish.webp',
       })
     })
 
@@ -34,9 +36,22 @@ describe('useResponsiveImage', () => {
       const result = getResponsiveImageUrls(url)
 
       expect(result).toEqual({
-        desktop: 'https://example.com/webp/fish.webp',
+        desktop: 'https://example.com/webp/fish_large.webp',
         tablet: 'https://example.com/webp/fish_medium.webp',
         mobile: 'https://example.com/webp/fish_small.webp',
+        original: 'https://example.com/webp/fish.webp',
+      })
+    })
+
+    it('should normalize _large.webp URL and return correct responsive URLs', () => {
+      const url = 'https://example.com/webp/fish_large.webp'
+      const result = getResponsiveImageUrls(url)
+
+      expect(result).toEqual({
+        desktop: 'https://example.com/webp/fish_large.webp',
+        tablet: 'https://example.com/webp/fish_medium.webp',
+        mobile: 'https://example.com/webp/fish_small.webp',
+        original: 'https://example.com/webp/fish.webp',
       })
     })
 
@@ -72,9 +87,10 @@ describe('useResponsiveImage', () => {
       const result = getResponsiveImageUrls(url)
 
       expect(result).toEqual({
-        desktop: 'https://bucket.s3.amazonaws.com/prod-webp/subfolder/my-fish-image.webp',
+        desktop: 'https://bucket.s3.amazonaws.com/prod-webp/subfolder/my-fish-image_large.webp',
         tablet: 'https://bucket.s3.amazonaws.com/prod-webp/subfolder/my-fish-image_medium.webp',
         mobile: 'https://bucket.s3.amazonaws.com/prod-webp/subfolder/my-fish-image_small.webp',
+        original: 'https://bucket.s3.amazonaws.com/prod-webp/subfolder/my-fish-image.webp',
       })
     })
   })

@@ -14,16 +14,16 @@
       />
       <!-- 桌機版本：>= 1024px -->
       <source :srcset="responsiveUrls.desktop" media="(min-width: 1024px)" type="image/webp" />
-      <!-- fallback img -->
+      <!-- fallback img：使用原始版本 -->
       <img
-        :src="responsiveUrls.desktop"
+        :src="responsiveUrls.original"
         :alt="name"
         loading="lazy"
         class="max-h-full max-w-full object-contain rounded-lg"
         @error="onResponsiveError"
       />
     </picture>
-    <!-- 當響應式圖片失敗或非響應式圖片時，使用桌機版或原始圖片 -->
+    <!-- 當響應式圖片失敗或非響應式圖片時，使用原始版或傳入的圖片 -->
     <img
       v-else
       :src="finalSrc"
@@ -42,7 +42,7 @@ const props = defineProps({
   name: String,
 })
 
-const useDesktopFallback = ref(false) // 響應式圖片失敗時，fallback 到桌機版
+const useDesktopFallback = ref(false) // 響應式圖片失敗時，fallback 到原始版
 
 /**
  * 計算響應式圖片 URL 集合
@@ -58,9 +58,9 @@ const responsiveUrls = computed(() => {
  * 計算最終顯示的圖片 URL
  */
 const finalSrc = computed(() => {
-  // 若響應式圖片失敗，使用桌機版 webp
+  // 若響應式圖片失敗，使用原始版 webp
   if (useDesktopFallback.value && responsiveUrls.value) {
-    return responsiveUrls.value.desktop
+    return responsiveUrls.value.original
   }
   return props.image
 })

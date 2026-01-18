@@ -22,9 +22,9 @@
       />
       <!-- 桌機版本：>= 1024px -->
       <source :srcset="responsiveUrls.desktop" media="(min-width: 1024px)" type="image/webp" />
-      <!-- fallback img -->
+      <!-- fallback img：使用原始版本 -->
       <img
-        :src="responsiveUrls.desktop"
+        :src="responsiveUrls.original"
         :alt="alt"
         :loading="imgLoading"
         :class="[
@@ -183,9 +183,9 @@ const finalSrc = computed(() => {
   if (error.value) {
     return props.defaultSrc
   }
-  // 若響應式圖片失敗，使用桌機版 webp
+  // 若響應式圖片失敗，使用原始版 webp
   if (useDesktopFallback.value && responsiveUrls.value) {
-    return responsiveUrls.value.desktop
+    return responsiveUrls.value.original
   }
   // 否則使用 currentSrc
   return currentSrc.value
@@ -197,7 +197,7 @@ function onLoad() {
 
 /**
  * 響應式圖片載入失敗時的處理
- * 會 fallback 到桌機版（原始 webp）
+ * 會 fallback 到原始版（檔名.webp）
  */
 function onResponsiveError() {
   // 切換到使用桌機版 fallback
