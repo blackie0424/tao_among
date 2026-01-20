@@ -67,6 +67,13 @@
           <h2 class="text-xl font-bold flex items-center gap-2">
             <span>🏝️</span> 地方知識
           </h2>
+          <Link 
+            :href="`/fish/${fish.id}/tribal-classifications/create`" 
+            class="flex items-center gap-1 text-sm bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-medium active:scale-95 transition-transform"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            新增地方知識
+          </Link>
         </div>
         
         <div class="space-y-3">
@@ -105,6 +112,13 @@
            <h2 class="text-xl font-bold flex items-center gap-2">
             <span>📖</span> 進階知識
           </h2>
+          <Link 
+            :href="`/fish/${fish.id}/create`" 
+            class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-full font-medium active:scale-95 transition-transform"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            新增進階知識
+          </Link>
         </div>
 
         <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
@@ -139,18 +153,7 @@
 
     </main>
 
-    <!-- 底部 Sticky 操作按鈕 -->
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-50 flex gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-       <a :href="`/fish/${fish.id}/tribal-classifications/create`" class="flex-1 bg-indigo-600 text-white rounded-lg py-3 flex items-center justify-center gap-2 font-medium shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition-transform">
-         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-         新增地方知識
-       </a>
-       <a :href="`/fish/${fish.id}/create`" class="flex-1 bg-teal-600 text-white rounded-lg py-3 flex items-center justify-center gap-2 font-medium shadow-lg hover:bg-teal-700 active:scale-[0.98] transition-transform min-w-[120px]">
-         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-         新增進階知識
-       </a>
-    </div>
-
+    <BottomNavBar :fishId="fish.id" activeTab="knowledge" />
   </div>
 </template>
 
@@ -158,6 +161,7 @@
 import { Head, router, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import LazyImage from '@/Components/LazyImage.vue'
+import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 
 const props = defineProps({
   fish: Object,

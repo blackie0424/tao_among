@@ -20,6 +20,13 @@
           <h2 class="text-xl font-bold flex items-center gap-2">
             <span>📸</span> 捕獲照片
           </h2>
+          <Link 
+            :href="`/fish/${fish.id}/capture-records/create`" 
+            class="flex items-center gap-1 text-sm bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-medium active:scale-95 transition-transform"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            新增照片
+          </Link>
         </div>
         
         <div v-if="captureRecords.length" class="grid grid-cols-2 gap-4">
@@ -60,6 +67,13 @@
            <h2 class="text-xl font-bold flex items-center gap-2">
             <span>🔊</span> 發音錄音
           </h2>
+          <Link 
+            :href="`/fish/${fish.id}/createAudio`" 
+            class="flex items-center gap-1 text-sm bg-rose-100 text-rose-700 px-3 py-1.5 rounded-full font-medium active:scale-95 transition-transform"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            新增錄音
+          </Link>
         </div>
 
         <div v-if="fish.audios && fish.audios.length" class="space-y-3">
@@ -116,24 +130,14 @@
 
     </main>
 
-    <!-- 底部 Sticky 操作按鈕 -->
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-50 flex gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-       <a :href="`/fish/${fish.id}/capture-records/create`" class="flex-1 bg-blue-600 text-white rounded-lg py-3 flex items-center justify-center gap-2 font-medium shadow-lg hover:bg-blue-700 active:scale-[0.98] transition-transform">
-         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-         新增照片
-       </a>
-       <a :href="`/fish/${fish.id}/createAudio`" class="flex-1 bg-rose-600 text-white rounded-lg py-3 flex items-center justify-center gap-2 font-medium shadow-lg hover:bg-rose-700 active:scale-[0.98] transition-transform">
-         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18l9-4-9-4-9 4 9 4zm0 0v-8"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 10a7 7 0 11-14 0"></path></svg>
-         新增錄音
-       </a>
-    </div>
-
+    <BottomNavBar :fishId="fish.id" activeTab="media" />
   </div>
 </template>
 
 <script setup>
 import { Head, router, Link } from '@inertiajs/vue3'
 import LazyImage from '@/Components/LazyImage.vue'
+import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 
 const props = defineProps({
   fish: Object,
