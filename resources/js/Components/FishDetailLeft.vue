@@ -2,21 +2,23 @@
 <template>
   <div class="w-full flex flex-col items-center">
     <!-- 手機使用較小底距，桌面維持較大空間以保持排版 -->
-    <div class="pb-6 md:pb-20 w-full relative">
-      <div class="relative rounded-lg overflow-hidden shadow-sm">
+    <div class="w-full relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <!-- 圖片區域：移除個別圓角，由外層容器控制 -->
+      <div class="relative aspect-[4/3] bg-gray-100">
         <LazyImage
           :src="fish.display_image_url || fish.image_url"
           :alt="fish.name"
-          wrapperClass="fish-image-wrapper aspect-[4/3] w-full bg-gray-100"
-          imgClass="fish-image w-full h-full object-cover"
+          wrapperClass="w-full h-full"
+          imgClass="w-full h-full object-cover"
         />
-        
-        <!-- 發音按鈕浮動於右下角 -->
-        <div v-if="fish.audio_url" class="absolute bottom-4 right-4 z-10">
-          <div class="bg-white/80 backdrop-blur-sm rounded-full p-1 shadow-lg border border-white/50">
-             <Volume :audioUrl="fish.audio_url" />
-          </div>
-        </div>
+      </div>
+
+      <!-- 魚名與發音區塊：移除頂部圓角與邊框 -->
+      <div class="flex items-center justify-between p-4 bg-white border-t border-gray-100">
+         <h1 class="text-3xl font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
+         <div v-if="fish.audio_url" class="flex-shrink-0">
+            <Volume :audioUrl="fish.audio_url" />
+         </div>
       </div>
     </div>
   </div>
