@@ -46,10 +46,10 @@
 
     <!-- 響應式佈局容器 -->
     <main class="container mx-auto max-w-7xl px-4 py-6">
-      
-      <div class="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+  
+      <div class="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
         
-        <!-- 左欄：核心識別 & 地方知識 (Desktop Sticky) -->
+        <!-- 左欄：核心識別 & 地方知識 (Desktop Sticky) - 維持不變 -->
         <div class="space-y-6 lg:sticky lg:top-20">
           <!-- 1. 核心識別區塊 (照片、魚名、發音) -->
           <section>
@@ -65,18 +65,18 @@
           </section>
         </div>
 
-        <!-- 右欄：捕獲紀錄 & 進階知識 (Desktop Scrollable) -->
-        <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-2 scrollbar-hide">
-          
+        <!-- 中欄：捕獲紀錄 (Desktop Scrollable) -->
+        <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:px-2 scrollbar-hide">
           <!-- 3. 捕獲紀錄區塊 (Photo Grid) -->
           <section>
              <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
               <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-                <div class="flex items-center gap-3">
-                  <h3 class="text-xl font-semibold text-gray-900">捕獲紀錄</h3>
-                  <span class="text-sm text-gray-500">{{ captureRecords.length }} 筆資料</span>
+                <div class="flex items-center gap-2">
+                   <h3 class="text-xl font-semibold text-gray-900">捕獲紀錄</h3>
+                   <span class="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{{ captureRecords.length }}</span>
                 </div>
-                <!-- Desktop Action Button -->
+                
+                <!-- Desktop Add Button -->
                 <Link 
                   v-if="user"
                   :href="`/fish/${fish.id}/capture-records/create`" 
@@ -125,7 +125,10 @@
               </div>
             </div>
           </section>
+        </div>
 
+        <!-- 右欄：進階知識 (Desktop Scrollable) -->
+        <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pl-2 scrollbar-hide">
           <!-- 4. 進階知識 (Fish Notes) -->
           <section>
             <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
@@ -142,34 +145,40 @@
                 </div>
               </div>
 
+              <!-- 知識卡片列表 ... (省略內容，假設內容不變) -->
               <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
-                <div v-for="(items, type) in groupedNotes" :key="type">
-                  <h4 class="font-medium text-gray-800 mb-2 flex items-center">
-                    <span class="w-1 h-4 bg-blue-500 rounded-full mr-2"></span>
-                    {{ type }} 
-                    <span class="ml-2 text-sm text-gray-500">({{ items.length }})</span>
-                  </h4>
-                  <ul class="space-y-3">
-                    <li v-for="note in items" :key="note.id" class="bg-gray-50 rounded-lg p-3">
-                      <div class="flex flex-col gap-1">
-                        <span class="inline-flex self-start items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">
-                          {{ note.locate }}
-                        </span>
-                        <p class="text-gray-700 text-base leading-relaxed whitespace-pre-line">
-                          {{ note.note }}
-                        </p>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
+                  <div v-for="(items, type) in groupedNotes" :key="type">
+                    <h4 class="font-medium text-gray-800 mb-2 px-1">
+                      <span class="w-1 h-4 bg-blue-500 rounded-full mr-2"></span>
+                      {{ type }} 
+                      <span class="ml-2 text-sm text-gray-500">({{ items.length }})</span>
+                    </h4>
+                    <ul class="space-y-3">
+                      <li 
+                        v-for="note in items" 
+                        :key="note.id" 
+                        class="bg-gray-50 rounded-lg p-3 border border-gray-200"
+                      >
+                        <div class="flex flex-col gap-1">
+                          <span class="inline-flex self-start items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">
+                            {{ note.locate }}
+                          </span>
+                          <p class="text-gray-700 text-base leading-relaxed whitespace-pre-line">
+                            {{ note.note }}
+                          </p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
               </div>
-              <div v-else class="text-center py-6 text-gray-500">
-                尚無知識筆記
+              <div v-else class="text-center py-8 text-gray-500">
+                <p>尚未建立知識筆記</p>
               </div>
+
             </div>
           </section>
-
         </div>
+
       </div>
     </main>
 

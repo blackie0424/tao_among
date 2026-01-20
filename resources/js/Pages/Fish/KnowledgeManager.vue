@@ -45,7 +45,7 @@
 
     <!-- 響應式佈局容器 -->
     <main class="container mx-auto max-w-7xl px-4 py-6">
-      <div class="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+      <div class="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
         
         <!-- 左欄：核心識別 (Desktop Sticky) -->
         <div class="space-y-6 lg:sticky lg:top-20 hidden lg:block">
@@ -54,8 +54,8 @@
           </section>
         </div>
 
-        <!-- 右欄：知識管理內容 -->
-        <div class="space-y-6 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-2 scrollbar-hide">
+        <!-- 中欄：基本管理 & 地方知識 (Desktop Scrollable) -->
+        <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:px-2 scrollbar-hide">
           
           <!-- 區塊 S: 基本資料管理 (Mobile: Full Card; Desktop: Actions Only) -->
           <section>
@@ -144,7 +144,11 @@
               </div>
             </div>
           </section>
+        </div>
 
+        <!-- 右欄：進階知識 (Desktop Scrollable) -->
+        <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pl-2 scrollbar-hide">
+          
           <!-- 區塊 B: 進階知識 -->
           <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
