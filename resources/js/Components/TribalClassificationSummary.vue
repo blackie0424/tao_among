@@ -4,6 +4,13 @@
     <!-- 標題區塊：淺底與下邊框，視覺分區 -->
     <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
       <h3 class="text-xl font-semibold text-gray-900">地方知識</h3>
+      <Link 
+        v-if="user"
+        :href="`/fish/${fishId}/tribal-classifications/create`" 
+        class="hidden lg:inline-flex items-center gap-1 text-sm text-indigo-600 font-medium hover:text-indigo-800 hover:bg-indigo-50 px-3 py-1 rounded-md transition"
+      >
+        <span class="text-lg leading-none">+</span> 新增地方知識
+      </Link>
     </div>
 
     <!-- 無資料狀態 -->
@@ -69,6 +76,9 @@
 </template>
 
 <script setup>
+import { usePage, Link } from '@inertiajs/vue3'
+import { computed } from 'vue'
+
 const props = defineProps({
   classifications: {
     type: Array,
@@ -79,4 +89,7 @@ const props = defineProps({
     required: true,
   },
 })
+
+const page = usePage()
+const user = computed(() => page.props.auth?.user)
 </script>

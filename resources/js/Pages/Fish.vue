@@ -1,14 +1,46 @@
 <template>
   <Head :title="`${fish.name}的基本資料`" />
   
-  <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-    <!-- 頂部導覽列 -->
+  <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6">
+    <!-- 頂部導覽列 (RWD) -->
     <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100">
-      <div class="container mx-auto max-w-2xl px-4 h-14 flex items-center gap-2">
-        <Link href="/fishs" class="text-gray-600 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100 transition">
-           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        </Link>
-        <h1 class="text-lg font-bold text-gray-900 truncate">{{ fish.name }}</h1>
+      <div class="container mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
+        <!-- Mobile Nav (< 768px/1024px) -->
+        <div class="flex items-center gap-3 lg:hidden w-full">
+           <Link href="/fishs" class="text-gray-600 hover:text-blue-600 flex items-center gap-1">
+             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+             <span class="text-sm font-medium">圖鑑列表</span>
+           </Link>
+           <h1 class="text-lg font-bold text-gray-900 mx-auto pr-8">基本資料</h1>
+        </div>
+
+        <!-- Desktop Nav (>= 1024px) -->
+        <div class="hidden lg:flex items-center gap-4 w-full">
+           <!-- Logo / Home -->
+           <Link href="/fishs" class="font-bold text-gray-900 text-lg tracking-wide hover:text-blue-600 transition">
+             雅美魚類圖鑑
+           </Link>
+           
+           <!-- Breadcrumbs -->
+           <div class="flex items-center text-sm text-gray-500 gap-2">
+             <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+             <span class="font-medium text-gray-900">{{ fish.name }}</span>
+           </div>
+
+           <!-- User Menu (Right aligned) -->
+           <div class="ml-auto flex items-center gap-3">
+              <div v-if="user" class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs">田調人員</span>
+                {{ user.name }}
+              </div>
+              <Link v-if="user" href="/logout" method="post" as="button" class="text-sm text-gray-500 hover:text-red-600">
+                登出
+              </Link>
+              <Link v-else href="/login" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                登入
+              </Link>
+           </div>
+        </div>
       </div>
     </header>
 
@@ -40,8 +72,18 @@
           <section>
              <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
               <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-                <h3 class="text-xl font-semibold text-gray-900">捕獲紀錄</h3>
-                <span class="text-sm text-gray-500">{{ captureRecords.length }} 筆資料</span>
+                <div class="flex items-center gap-3">
+                  <h3 class="text-xl font-semibold text-gray-900">捕獲紀錄</h3>
+                  <span class="text-sm text-gray-500">{{ captureRecords.length }} 筆資料</span>
+                </div>
+                <!-- Desktop Action Button -->
+                <Link 
+                  v-if="user"
+                  :href="`/fish/${fish.id}/capture-records/create`" 
+                  class="hidden lg:inline-flex items-center gap-1 text-sm text-blue-600 font-medium hover:text-blue-800 hover:bg-blue-50 px-3 py-1 rounded-md transition"
+                >
+                  <span class="text-lg leading-none">+</span> 新增照片
+                </Link>
               </div>
 
               <div v-if="captureRecords.length" class="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -77,6 +119,15 @@
             <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
               <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
                 <h3 class="text-xl font-semibold text-gray-900">知識筆記</h3>
+                <!-- Desktop Action Buttons -->
+                <div v-if="user" class="hidden lg:flex items-center gap-2">
+                  <Link 
+                    :href="`/fish/${fish.id}/create`" 
+                    class="inline-flex items-center gap-1 text-sm text-teal-600 font-medium hover:text-teal-800 hover:bg-teal-50 px-3 py-1 rounded-md transition"
+                  >
+                    <span class="text-lg leading-none">+</span> 新增進階知識
+                  </Link>
+                </div>
               </div>
 
               <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
@@ -115,7 +166,7 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
 import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
@@ -137,6 +188,10 @@ const props = defineProps({
     default: () => ({}),
   },
 })
+
+// 取得當前使用者狀態 for RWD 顯示控制
+const page = usePage()
+const user = computed(() => page.props.auth?.user)
 
 // 將後端已分組的資料直接暴露為 computed
 const groupedNotes = computed(() => props.fishNotes || {})
