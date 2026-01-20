@@ -40,12 +40,12 @@ const props = defineProps({
 const formRef = ref(null)
 
 function goBack() {
-  router.visit(`/fish/${props.fish.id}/tribal-classifications`)
+  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
 }
 
 function onClassificationUpdated() {
   // 返回地方知識列表頁面
-  router.visit(`/fish/${props.fish.id}/tribal-classifications`)
+  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
 }
 
 // 整合送出到 TopNavBar 的 @submit 事件

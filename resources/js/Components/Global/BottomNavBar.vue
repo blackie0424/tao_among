@@ -56,7 +56,7 @@
     </button>
 
     <!-- 影音紀錄 (Media Manager) -->
-    <a
+    <Link
       :href="`/fish/${fishId}/media-manager`"
       :class="[
         'flex flex-1 flex-col items-center justify-end gap-1',
@@ -86,10 +86,10 @@
         </svg>
       </div>
       <p class="text-xs font-medium leading-normal tracking-[0.015em]">影音紀錄</p>
-    </a>
+    </Link>
 
     <!-- 知識筆記 (Knowledge Manager) -->
-    <a
+    <Link
       :href="`/fish/${fishId}/knowledge-manager`"
       :class="[
         'flex flex-1 flex-col items-center justify-end gap-1',
@@ -121,13 +121,13 @@
         </svg>
       </div>
       <p class="text-xs font-medium leading-normal tracking-[0.015em]">知識筆記</p>
-    </a>
+    </Link>
   </nav>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { usePage, router } from '@inertiajs/vue3'
+import { usePage, router, Link } from '@inertiajs/vue3'
 
 const props = defineProps({
   fishId: { type: [String, Number], required: true },

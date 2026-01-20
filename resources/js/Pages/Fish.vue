@@ -5,9 +5,9 @@
     <!-- 頂部導覽列 -->
     <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100">
       <div class="container mx-auto max-w-2xl px-4 h-14 flex items-center gap-2">
-        <a href="/fishs" class="text-gray-600 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100 transition">
+        <Link href="/fishs" class="text-gray-600 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100 transition">
            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        </a>
+        </Link>
         <h1 class="text-lg font-bold text-gray-900 truncate">{{ fish.name }}</h1>
       </div>
     </header>
@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
 import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'

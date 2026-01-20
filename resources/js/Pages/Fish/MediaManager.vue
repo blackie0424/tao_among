@@ -6,10 +6,10 @@
       
       <!-- 頂部返回 -->
       <div class="flex items-center gap-2 mb-4">
-        <a :href="`/fish/${fish.id}`" class="text-blue-600 font-medium flex items-center gap-1">
+        <Link :href="`/fish/${fish.id}`" class="text-blue-600 font-medium flex items-center gap-1">
            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
            {{ fish.name }}
-        </a>
+        </Link>
         <span class="text-gray-400">/</span>
         <span class="text-gray-900 font-bold">影音紀錄管理</span>
       </div>
@@ -132,7 +132,7 @@
 </template>
 
 <script setup>
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, Link } from '@inertiajs/vue3'
 import LazyImage from '@/Components/LazyImage.vue'
 
 const props = defineProps({

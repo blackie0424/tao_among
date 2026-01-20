@@ -97,7 +97,7 @@ class CaptureRecordController extends Controller
             'notes' => $validated['notes']
         ]);
 
-        return redirect()->route('fish.capture-records', $fishId)->with('success', '捕獲紀錄新增成功');
+        return redirect()->route('fish.media-manager', $fishId)->with('success', '捕獲紀錄新增成功');
     }
 
     /**
@@ -165,7 +165,7 @@ class CaptureRecordController extends Controller
         $record->update($updateData);
 
         // 重新載入捕獲紀錄頁面
-        return redirect("/fish/{$fishId}/capture-records")
+        return redirect()->route('fish.media-manager', $fishId)
                ->with('success', "資料更新成功！");
     }
 
@@ -185,6 +185,6 @@ class CaptureRecordController extends Controller
         
         Log::info("Record deleted successfully, redirecting to capture records");
 
-        return redirect()->route('fish.capture-records', $fishId)->with('success', '捕獲紀錄刪除成功');
+        return redirect()->route('fish.media-manager', $fishId)->with('success', '捕獲紀錄刪除成功');
     }
 }

@@ -119,7 +119,7 @@ class TribalClassificationController extends Controller
             ]);
         }
 
-        return redirect()->route('fish.tribal-classifications', ['id' => $fish->id])
+        return redirect()->route('fish.knowledge-manager', ['id' => $fish->id])
             ->with('success', '地方知識已成功新增');
     }
 
@@ -191,7 +191,7 @@ class TribalClassificationController extends Controller
                     'notes' => $request->notes
                 ]);
                 
-                return redirect()->route('fish.tribal-classifications', ['id' => $fishId])
+                return redirect()->route('fish.knowledge-manager', ['id' => $fishId])
                     ->with('success', '地方知識已成功更新');
             }
         }
@@ -204,7 +204,7 @@ class TribalClassificationController extends Controller
             'notes' => $request->notes
         ]);
 
-        return redirect()->route('fish.tribal-classifications', ['id' => $fishId])
+        return redirect()->route('fish.knowledge-manager', ['id' => $fishId])
             ->with('success', '地方知識已成功更新');
     }
 
@@ -220,7 +220,7 @@ class TribalClassificationController extends Controller
         $tribeName = $classification->tribe;
         $classification->delete();
 
-        return redirect()->route('fish.tribal-classifications', ['id' => $fishId])
+        return redirect()->route('fish.knowledge-manager', ['id' => $fishId])
             ->with('success', "地方知識「{$tribeName}」已成功刪除");
     }
 
