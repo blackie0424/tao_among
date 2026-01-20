@@ -11,6 +11,7 @@
               :fish-name="fish.name"
               :fish-id="fish.id"
               :audio="fish.audio_url"
+              :readonly="true"
               class="w-full max-w-2xl text-2xl mb-4"
             />
           </div>
