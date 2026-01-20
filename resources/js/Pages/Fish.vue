@@ -86,24 +86,36 @@
                 </Link>
               </div>
 
-              <div v-if="captureRecords.length" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div v-if="captureRecords.length" class="space-y-8">
                 <div 
                   v-for="record in captureRecords" 
                   :key="record.id"
-                  class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
+                  class="flex flex-col gap-3"
                 >
-                  <LazyImage
-                    :src="record.image_url"
-                    :alt="`捕獲紀錄 ${record.capture_date || ''}`"
-                    wrapperClass="w-full h-full"
-                    imgClass="w-full h-full object-cover"
-                  />
-                  <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                    <p class="text-white text-xs font-medium truncate">
-                      {{ record.tribe || '未標示部落' }}
-                    </p>
-                    <p class="text-white/80 text-[10px]">
-                      {{ record.capture_date || '日期未知' }}
+                  <!-- 16:9 圖片 -->
+                  <div class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
+                    <LazyImage
+                      :src="record.image_url"
+                      :alt="`捕獲紀錄`"
+                      wrapperClass="w-full h-full"
+                      imgClass="w-full h-full object-cover"
+                    />
+                  </div>
+                  
+                  <!-- 圖片下方資訊：部落、地點、方法 -->
+                  <div class="px-1">
+                    <div class="flex items-center flex-wrap gap-2 mb-1.5">
+                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold bg-blue-50 text-blue-700">
+                         {{ record.tribe || '未標示部落' }}
+                       </span>
+                       <span v-if="record.capture_location" class="text-gray-700 font-medium text-sm flex items-center gap-1">
+                          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                          {{ record.capture_location }}
+                       </span>
+                    </div>
+                    <p class="text-sm text-gray-600 flex items-center gap-2">
+                       <span class="font-medium text-gray-500">捕獲方法：</span>
+                       {{ record.capture_method || '未記錄' }}
                     </p>
                   </div>
                 </div>

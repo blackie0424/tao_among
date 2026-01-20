@@ -71,33 +71,50 @@
               </Link>
             </div>
             
-            <div v-if="captureRecords.length" class="grid grid-cols-2 gap-4">
-              <div 
-                 v-for="record in captureRecords" 
-                 :key="record.id" 
-                 class="bg-white rounded-lg overflow-hidden border border-gray-200 relative group"
-              >
-                 <div class="aspect-square relative bg-gray-100">
-                   <LazyImage
-                    :src="record.image_url"
-                    :alt="`捕獲紀錄`"
-                    wrapperClass="w-full h-full"
-                    imgClass="w-full h-full object-cover"
-                  />
-                  <!-- 編輯按鈕 -->
-                   <a 
-                     :href="`/fish/${fish.id}/capture-records/${record.id}/edit`"
-                     class="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm text-gray-600 hover:text-blue-600 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
-                   >
-                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                   </a>
-                 </div>
-                 <div class="p-2 text-center">
-                   <div class="text-sm font-medium text-gray-900">{{ record.tribe || '未標示' }}</div>
-                   <div class="text-xs text-gray-500">{{ formatDate(record.capture_date) }}</div>
-                 </div>
-              </div>
-            </div>
+            <div v-if="captureRecords.length" class="space-y-8">
+          <div 
+             v-for="record in captureRecords" 
+             :key="record.id" 
+             class="flex flex-col gap-3 group"
+          >
+             <!-- 16:9 圖片 -->
+             <div class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
+               <LazyImage
+                :src="record.image_url"
+                :alt="`捕獲紀錄`"
+                wrapperClass="w-full h-full"
+                imgClass="w-full h-full object-cover"
+              />
+              <!-- 編輯按鈕 -->
+               <a 
+                 :href="`/fish/${fish.id}/capture-records/${record.id}/edit`"
+                 class="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-sm text-gray-600 hover:text-blue-600 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+               >
+                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+               </a>
+             </div>
+             
+             <!-- 圖片下方資訊 -->
+             <div class="px-1">
+                <div class="flex items-center flex-wrap gap-2 mb-1.5">
+                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold bg-blue-50 text-blue-700">
+                     {{ record.tribe || '未標示' }}
+                   </span>
+                   <span v-if="record.capture_location" class="text-gray-700 font-medium text-sm flex items-center gap-1">
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                      {{ record.capture_location }}
+                   </span>
+                </div>
+                <div class="flex items-center justify-between text-sm text-gray-600">
+                    <p class="flex items-center gap-2">
+                       <span class="font-medium text-gray-500">捕獲方法：</span>
+                       {{ record.capture_method || '未記錄' }}
+                    </p>
+                    <span class="text-xs text-gray-400 font-mono">{{ formatDate(record.capture_date) }}</span>
+                </div>
+             </div>
+          </div>
+        </div>
             <div v-else class="text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg">
               尚未新增捕獲照片
             </div>
