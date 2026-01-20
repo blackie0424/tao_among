@@ -57,6 +57,10 @@ class HandleInertiaRequests extends Middleware
                 'image' => $storage->getImageFolder(),
                 'webp' => $storage->getWebpFolder(),
             ],
+            // 共享使用者資訊
+            'auth' => [
+                'user' => $request->user(),
+            ],
         ]);
     }
 }

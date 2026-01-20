@@ -6,6 +6,7 @@ use App\Http\Controllers\FishAudioController;
 use App\Http\Controllers\KnowledgeHubController;
 use App\Http\Controllers\CaptureRecordController;
 use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\FishManagementController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -64,3 +65,9 @@ Route::put('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'updateAud
 // 設定主發音（獨立路由，避免影響一般更新音訊）
 Route::put('/fish/{fish}/audio/{audio}/set-base', [FishAudioController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
 Route::delete('/fish/{fish}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
+
+// 新增聚合管理頁面路由
+Route::middleware(['auth'])->group(function () {
+    Route::get('/fish/{id}/media-manager', [FishManagementController::class, 'mediaManager'])->name('fish.media-manager');
+    Route::get('/fish/{id}/knowledge-manager', [FishManagementController::class, 'knowledgeManager'])->name('fish.knowledge-manager');
+});
