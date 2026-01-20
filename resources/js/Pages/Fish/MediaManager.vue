@@ -76,17 +76,36 @@
                  class="flex flex-col gap-3 group"
               >
                  <!-- 16:9 圖片 -->
-                 <div class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
+                 <div class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm group">
                    <LazyImage
                     :src="record.image_url"
                     :alt="`捕獲紀錄`"
                     wrapperClass="w-full h-full"
                     imgClass="w-full h-full object-cover"
                   />
+                  
+                  <!-- 首圖標示與設定按鈕 -->
+                   <div class="absolute top-2 left-2 z-10">
+                      <span 
+                        v-if="record.id === fish.display_capture_record_id" 
+                        class="px-2 py-1 bg-teal-500 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        圖鑑首圖
+                      </span>
+                      <button 
+                        v-else 
+                        @click="setMainImage(record)"
+                        class="px-2 py-1 bg-white/90 hover:bg-white text-gray-700 hover:text-blue-600 text-xs font-medium rounded shadow-sm backdrop-blur-sm lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                      >
+                        設為首圖
+                      </button>
+                   </div>
+
                   <!-- 編輯按鈕 -->
                    <a 
                      :href="`/fish/${fish.id}/capture-records/${record.id}/edit`"
-                     class="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-sm text-gray-600 hover:text-blue-600 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                     class="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-sm text-gray-600 hover:text-blue-600 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
                    >
                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                    </a>
@@ -220,6 +239,14 @@ const setMainAudio = (audio) => {
 const deleteAudio = (audio) => {
     if (confirm('確定要刪除此發音檔案嗎？此動作無法復原。')) {
         router.delete(`/fish/${props.fish.id}/audio/${audio.id}`)
+    }
+}
+
+const setMainImage = (record) => {
+    if (confirm('確定要將這張捕獲紀錄設為圖鑑首圖嗎？')) {
+        router.put(`/fish/${props.fish.id}/display-image`, {
+            capture_record_id: record.id
+        })
     }
 }
 </script>
