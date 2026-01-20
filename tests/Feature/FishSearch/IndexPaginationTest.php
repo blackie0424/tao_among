@@ -10,10 +10,10 @@ uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存�
 
 
 it('一開始載入網頁時，可以取得預設數量資料', function () {
-    $perPage = 50;
+    $perPage = config('fish_search.per_page_default');
 
     // 建立資料：包含可模糊匹配的名稱
-    Fish::factory()->count(80)->create();
+    Fish::factory()->count($perPage + 30)->create();
     // 初次載入
     $resp1 = $this->get('/fishs');
     $resp1->assertStatus(200)
