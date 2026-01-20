@@ -23,28 +23,39 @@
         </div>
         
         <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-           <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div class="flex-1">
-                 <div class="text-sm text-gray-500 mb-1">魚類名稱</div>
-                 <div class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    {{ fish.name }}
-                    <!-- 若有發音也可在此顯示簡單播放器，或略過 -->
-                 </div>
+           <div class="flex flex-col md:flex-row items-center gap-4">
+              <!-- 魚類圖片縮圖 -->
+              <div class="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                  <LazyImage
+                    :src="fish.display_image_url || fish.image_url"
+                    :alt="fish.name"
+                    wrapperClass="w-full h-full"
+                    imgClass="w-full h-full object-cover"
+                  />
               </div>
-              
-              <div class="flex flex-wrap gap-2 w-full md:w-auto">
-                 <a :href="`/fish/${fish.id}/edit`" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    修改名稱
-                 </a>
-                 <a :href="`/fish/${fish.id}/merge`" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                    合併魚類
-                 </a>
-                 <button @click="confirmDelete" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    刪除魚類
-                 </button>
+
+              <div class="flex-1 flex flex-col md:flex-row justify-between items-center w-full gap-4">
+                <div class="text-center md:text-left">
+                   <div class="text-sm text-gray-500 mb-1">魚類名稱</div>
+                   <div class="text-2xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2">
+                      {{ fish.name }}
+                   </div>
+                </div>
+                
+                <div class="flex flex-wrap gap-2 w-full md:w-auto justify-center md:justify-end">
+                   <a :href="`/fish/${fish.id}/edit`" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                      修改名稱
+                   </a>
+                   <a :href="`/fish/${fish.id}/merge`" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                      合併魚類
+                   </a>
+                   <button @click="confirmDelete" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      刪除魚類
+                   </button>
+                </div>
               </div>
            </div>
         </div>
@@ -146,6 +157,7 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3'
 import { computed } from 'vue'
+import LazyImage from '@/Components/LazyImage.vue'
 
 const props = defineProps({
   fish: Object,
