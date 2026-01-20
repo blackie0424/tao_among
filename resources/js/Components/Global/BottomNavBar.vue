@@ -85,7 +85,7 @@
           />
         </svg>
       </div>
-      <p class="text-xs font-medium leading-normal tracking-[0.015em]">影音紀錄</p>
+      <p class="text-xs font-medium leading-normal tracking-[0.015em]">捕獲與發音</p>
     </Link>
 
     <!-- 知識筆記 (Knowledge Manager) -->
@@ -120,7 +120,7 @@
           />
         </svg>
       </div>
-      <p class="text-xs font-medium leading-normal tracking-[0.015em]">知識筆記</p>
+      <p class="text-xs font-medium leading-normal tracking-[0.015em]">基本資料與知識</p>
     </Link>
   </nav>
 </template>

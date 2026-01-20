@@ -11,7 +11,7 @@
              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
              <span class="text-sm font-medium">返回</span>
            </Link>
-           <h1 class="text-lg font-bold text-gray-900 mx-auto pr-8">影音紀錄管理</h1>
+           <h1 class="text-lg font-bold text-gray-900 mx-auto pr-8">捕獲與發音管理</h1>
         </div>
 
         <!-- Desktop Nav (>= 1024px) -->
@@ -26,7 +26,7 @@
              <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
              <Link :href="`/fish/${fish.id}`" class="hover:text-blue-600 transition">{{ fish.name }}</Link>
              <span class="text-gray-300">/</span>
-             <span class="font-medium text-gray-900">影音紀錄</span>
+             <span class="font-medium text-gray-900">捕獲與發音</span>
            </div>
 
            <!-- User Menu (Right aligned) -->
@@ -65,7 +65,7 @@
                 :href="`/fish/${fish.id}/capture-records/create`" 
                 class="flex items-center gap-1 text-sm bg-blue-100 text-blue-700 px-3 py-1.5 rounded-md font-medium hover:bg-blue-200 transition"
               >
-                <span class="text-lg leading-none">+</span> 新增照片
+                <span class="text-lg leading-none">+</span> 新增捕獲紀錄
               </Link>
             </div>
             
