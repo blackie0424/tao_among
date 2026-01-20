@@ -80,10 +80,32 @@
              
              <div class="flex items-center gap-2">
                 <audio :src="audio.url" controls class="h-8 w-24 md:w-40"></audio>
-                <!-- 編輯/刪除連結，可使用下拉選單或直接連結，這裡為簡化使用編輯鈕 -->
-                <a :href="`/fish/${fish.id}/audio/${audio.id}/edit`" class="text-gray-400 hover:text-blue-600 p-2">
-                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                </a>
+                
+                <!-- 操作按鈕區 -->
+                <div class="flex items-center gap-1">
+                   <!-- 狀態/設為主發音 -->
+                   <span v-if="audio.name === fish.audio_filename" class="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">
+                      主發音
+                   </span>
+                   <button 
+                      v-else
+                      @click="setMainAudio(audio)"
+                      class="text-xs bg-blue-100 text-blue-600 hover:bg-blue-200 px-2 py-1 rounded transition-colors"
+                      title="設為主要發音"
+                   >
+                      設為主發音
+                   </button>
+
+                   <!-- 刪除 -->
+                   <button 
+                      v-if="audio.name !== fish.audio_filename"
+                      @click="deleteAudio(audio)"
+                      class="text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors"
+                      title="刪除"
+                   >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                   </button>
+                </div>
              </div>
            </div>
         </div>
@@ -110,7 +132,7 @@
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import LazyImage from '@/Components/LazyImage.vue'
 
 const props = defineProps({
@@ -124,8 +146,18 @@ const formatDate = (dateString) => {
 }
 
 const getAudioLabel = (audio) => {
-    // 若有自訂名稱顯示名稱，否則顯示預設
-    // 這裡假設後端沒有特別欄位，就顯示 ID 或 類型
     return `錄音 #${audio.id}`
+}
+
+const setMainAudio = (audio) => {
+    if (confirm('確定要將此檔案設為主要發音嗎？')) {
+        router.put(`/fish/${props.fish.id}/audio/${audio.id}/set-base`)
+    }
+}
+
+const deleteAudio = (audio) => {
+    if (confirm('確定要刪除此發音檔案嗎？此動作無法復原。')) {
+        router.delete(`/fish/${props.fish.id}/audio/${audio.id}`)
+    }
 }
 </script>

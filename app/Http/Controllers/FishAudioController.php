@@ -145,7 +145,7 @@ class FishAudioController extends BaseController
                     'new_data' => $audio->fresh()->toArray()
                 ]);
 
-                return redirect()->route('fish.audio-list', $fishId)
+                return redirect()->route('fish.media-manager', $fishId)
                     ->with('success', '發音資料已成功更新');
             }, 'audio update');
         } catch (Exception $e) {
@@ -200,7 +200,7 @@ class FishAudioController extends BaseController
                     'file_path' => $audioFilePath
                 ]);
 
-                return redirect()->route('fish.audio-list', $fishId)
+                return redirect()->route('fish.media-manager', $fishId)
                     ->with('success', '發音資料已成功刪除');
             }, 'audio deletion');
         } catch (Exception $e) {
@@ -234,11 +234,9 @@ class FishAudioController extends BaseController
                     'audio_name' => $audio->name
                 ]);
 
-                // 使用 Inertia 回傳頁面與成功訊息
-                return Inertia::render('FishAudioList', [
-                    'fish' => $fish,
-                    'success' => '魚類發音更新成功'
-                ]);
+                // 重導回 MediaManager
+                return redirect()->route('fish.media-manager', $fishId)
+                    ->with('success', '魚類發音更新成功');
             }, 'audio filename update');
         } catch (Exception $e) {
             return $this->handleControllerError($e, '更新魚類發音失敗');
