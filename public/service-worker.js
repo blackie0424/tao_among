@@ -3,7 +3,7 @@
  * 採用 Stale-While-Revalidate 策略優化使用者體驗
  */
 
-const CACHE_VERSION = 'v1.0.3'
+const CACHE_VERSION = 'v1.1.0'
 const CACHE_NAME = `tao-among-${CACHE_VERSION}`
 
 // 預快取的核心資源（僅靜態資源，不包含 HTML 頁面）
@@ -31,6 +31,14 @@ const CACHEABLE_EXTENSIONS = [
 
 // 不應該快取的路徑
 const EXCLUDE_PATHS = ['/prefix/api/', '/sanctum/', '/login', '/logout', '/register']
+
+// 允許快取的外部域名（S3/CDN 圖片）
+const EXTERNAL_CACHEABLE_ORIGINS = [
+  '.s3.amazonaws.com',
+  '.s3.ap-northeast-1.amazonaws.com',
+  '.s3.ap-southeast-1.amazonaws.com',
+  '.cloudfront.net',
+]
 
 /**
  * 安裝事件：預快取核心資源
@@ -100,6 +108,20 @@ function shouldCache(request) {
  */
 function isStaticAsset(url) {
   return CACHEABLE_EXTENSIONS.some((ext) => url.pathname.endsWith(ext))
+}
+
+/**
+ * 判斷是否為可快取的外部圖片（S3/CDN）
+ */
+function isCacheableExternalImage(url) {
+  const hostname = url.hostname.toLowerCase()
+  const isExternalOrigin = EXTERNAL_CACHEABLE_ORIGINS.some((origin) =>
+    hostname.endsWith(origin.replace(/^\./, ''))
+  )
+  if (!isExternalOrigin) return false
+  // 只快取圖片檔案
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg']
+  return imageExtensions.some((ext) => url.pathname.toLowerCase().endsWith(ext))
 }
 
 /**
@@ -198,13 +220,19 @@ self.addEventListener('fetch', (event) => {
     return // 完全不介入，讓瀏覽器處理
   }
 
-  // 非同源請求不處理
-  if (url.origin !== self.location.origin) {
+  // 非 GET 請求不處理
+  if (request.method !== 'GET') {
     return
   }
 
-  // 非 GET 請求不處理
-  if (request.method !== 'GET') {
+  // 處理可快取的外部圖片（S3/CDN）- 使用 Cache-First 策略
+  if (isCacheableExternalImage(url)) {
+    event.respondWith(cacheFirst(request))
+    return
+  }
+
+  // 非同源請求不處理（排除上面已處理的外部圖片）
+  if (url.origin !== self.location.origin) {
     return
   }
 

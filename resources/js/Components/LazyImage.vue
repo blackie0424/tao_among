@@ -81,7 +81,25 @@ const storageFolders = computed(
   () => page.props.storageFolders || { image: 'images', webp: 'webp' }
 )
 
-const loading = ref(true)
+// 全域圖片快取狀態追蹤（避免已載入的圖片再次顯示 loading）
+const imageCache = new Set()
+
+/**
+ * 檢查圖片是否已在瀏覽器快取中
+ * 使用 Image 物件的 complete 屬性判斷
+ */
+function isImageCached(src) {
+  if (!src) return false
+  // 先檢查我們自己的快取記錄
+  if (imageCache.has(src)) return true
+  // 再使用瀏覽器原生檢測
+  const img = new Image()
+  img.src = src
+  return img.complete && img.naturalWidth > 0
+}
+
+// 根據圖片是否已快取來決定初始 loading 狀態
+const loading = ref(!isImageCached(props.src))
 const error = ref(false)
 const useWebp = ref(true) // 是否嘗試使用 webp 格式
 const useDesktopFallback = ref(false) // 響應式圖片失敗時，fallback 到桌機版
@@ -193,6 +211,14 @@ const finalSrc = computed(() => {
 
 function onLoad() {
   loading.value = false
+  // 記錄已載入的圖片 URL 到快取
+  if (props.src) {
+    imageCache.add(props.src)
+    // 同時記錄轉換後的 webp URL
+    if (canConvertToWebp(props.src)) {
+      imageCache.add(toWebpUrl(props.src))
+    }
+  }
 }
 
 /**
@@ -217,11 +243,13 @@ function onError() {
   error.value = true
 }
 
-// 當 src 改變時重設狀態
+// 當 src 改變時重設狀態（但檢查是否已快取）
 watch(
   () => props.src,
-  () => {
-    loading.value = true
+  (newSrc) => {
+    // 檢查新圖片是否已在快取中
+    const cached = isImageCached(newSrc)
+    loading.value = !cached
     error.value = false
     useWebp.value = true // 重新嘗試 webp
     useDesktopFallback.value = false // 重設響應式 fallback 狀態
