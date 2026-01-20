@@ -8,7 +8,14 @@ use App\Http\Controllers\CaptureRecordController;
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\FishManagementController;
 
+use App\Http\Controllers\AuthController;
+
 use Illuminate\Support\Facades\Route;
+
+// Auth Routes
+Route::get('/login', [AuthController::class, 'create'])->name('login');
+Route::post('/login', [AuthController::class, 'store']);
+Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 
 Route::get('/', [FishController::class, 'index']);
 Route::get('/fishs', [FishController::class, 'getFishs']);
