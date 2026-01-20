@@ -123,7 +123,7 @@
           <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
                <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
-                <span>🔊</span> 發音錄音
+                <span>🔊</span> 發音列表
               </h2>
               <Link 
                 :href="`/fish/${fish.id}/createAudio`" 
@@ -140,9 +140,6 @@
                  class="bg-gray-50 rounded-lg p-3 border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3"
                >
                  <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
-                    </div>
                     <div>
                        <div class="font-medium text-sm text-gray-900">{{ getAudioLabel(audio) }}</div>
                        <div class="text-xs text-gray-500">{{ new Date(audio.created_at).toLocaleDateString() }}</div>
@@ -162,7 +159,7 @@
                           class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors whitespace-nowrap"
                           title="設為主要發音"
                        >
-                          設為主
+                          設為主要發音
                        </button>
 
                        <button 
