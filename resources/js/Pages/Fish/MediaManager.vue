@@ -106,14 +106,11 @@
        </a>
     </div>
 
-    <!-- 雖然 Sticky Bar 遮住了底部，但我們仍需 BottomNavBar 提供導航 -->
-    <BottomNavBar :fishId="fish.id" activeTab="media" />
   </div>
 </template>
 
 <script setup>
 import { Head } from '@inertiajs/vue3'
-import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 import LazyImage from '@/Components/LazyImage.vue'
 
 const props = defineProps({

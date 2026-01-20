@@ -140,15 +140,12 @@
        </a>
     </div>
 
-    <!-- BottomNavBar 依舊保留 -->
-    <BottomNavBar :fishId="fish.id" activeTab="knowledge" />
   </div>
 </template>
 
 <script setup>
 import { Head, router } from '@inertiajs/vue3'
 import { computed } from 'vue'
-import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 
 const props = defineProps({
   fish: Object,
