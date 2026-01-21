@@ -40,8 +40,8 @@
 
     <!-- 右欄：知識筆記 -->
     <template #right>
-      <section>
-        <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
+      <section v-if="user || Object.keys(groupedNotes).length">
+        <div class="rounded-xl bg-white shadow-sm border-gray-200 p-4 border">
           <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
             <h3 class="text-xl font-semibold text-gray-900">知識筆記</h3>
             <div v-if="user" class="hidden lg:flex items-center gap-2">
@@ -51,10 +51,32 @@
             </div>
           </div>
           <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
-            <!-- 知識筆記內容 -->
+            <div v-for="(items, type) in groupedNotes" :key="type">
+            <h4 class="font-medium text-gray-800 mb-2 px-1 flex items-center">
+              <span class="w-1 h-4 bg-teal-500 rounded-full mr-2"></span>
+              {{ type }}
+            </h4>
+            <ul class="space-y-3">
+              <li 
+                v-for="note in items" 
+                :key="note.id" 
+                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+              >
+                <div class="flex justify-between items-start gap-3">
+                  <div class="flex-1">
+                    <span class="inline-flex self-start items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mb-2">
+                      {{ note.locate }}
+                    </span>
+                    <div class="text-gray-800 md:text-lg whitespace-pre-line leading-relaxed">{{ note.note }}</div>
+                  </div>
+                  
+                </div>
+              </li>
+            </ul>
           </div>
-          <div v-else class="text-center py-8 text-gray-500"><p>尚未建立知識筆記</p></div>
         </div>
+          </div>
+          
       </section>
     </template>
   </FishGridLayout>
@@ -67,6 +89,7 @@ import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
 import LazyImage from '@/Components/LazyImage.vue'
+import FishKnowledgeCard from '@/Components/FishKnowledgeCard.vue'
 
 // 設定巢狀佈局
 defineOptions({
