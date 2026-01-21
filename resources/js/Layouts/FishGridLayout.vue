@@ -2,7 +2,10 @@
   <div class="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
     
     <!-- 左欄：核心識別 (Desktop Sticky) -->
-    <div class="space-y-6 lg:sticky lg:top-20">
+    <div :class="[
+      'space-y-6 lg:sticky lg:top-20',
+      hideLeftOnMobile ? 'hidden lg:block' : ''
+    ]">
       <section>
         <FishDetailLeft :fish="fish" />
       </section>
@@ -42,6 +45,10 @@ defineProps({
   showTribalClassifications: {
     type: Boolean,
     default: true
+  },
+  hideLeftOnMobile: {
+    type: Boolean,
+    default: false
   }
 })
 </script>
