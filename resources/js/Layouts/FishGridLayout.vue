@@ -9,12 +9,8 @@
       <section>
         <FishDetailLeft :fish="fish" />
       </section>
-      <section v-if="showTribalClassifications && tribalClassifications?.length">
-        <TribalClassificationSummary 
-          :classifications="tribalClassifications" 
-          :fishId="fish.id" 
-        />
-      </section>
+      <!-- 左欄額外內容插槽 - 由頁面（Fish.vue, MediaManager.vue, KnowledgeManager.vue）自行決定要顯示什麼 -->
+      <slot name="left-extra" />
     </div>
 
     <!-- 中欄：主要內容 (Desktop Scrollable) -->
@@ -33,19 +29,13 @@
 import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import FishDetailLeft from '@/Components/FishDetailLeft.vue'
-import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
 
 // 從 Inertia page props 取得資料
 const page = usePage()
 const fish = computed(() => page.props.fish)
-const tribalClassifications = computed(() => page.props.tribalClassifications || [])
 
 // Props 定義
 defineProps({
-  showTribalClassifications: {
-    type: Boolean,
-    default: true
-  },
   hideLeftOnMobile: {
     type: Boolean,
     default: false

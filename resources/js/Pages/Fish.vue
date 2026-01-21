@@ -2,6 +2,16 @@
   <Head :title="`${fish.name}的基本資料`" />
   
   <FishGridLayout>
+    <!-- 左欄額外內容：部落分類摘要 -->
+    <template #left-extra>
+      <section v-if="tribalClassifications?.length">
+        <TribalClassificationSummary 
+          :classifications="tribalClassifications" 
+          :fishId="fish.id" 
+        />
+      </section>
+    </template>
+
     <!-- 中欄：捕獲紀錄 -->
     <template #middle>
       <section>
@@ -55,6 +65,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
+import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
 import LazyImage from '@/Components/LazyImage.vue'
 
 // 設定巢狀佈局

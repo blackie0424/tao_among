@@ -1,7 +1,7 @@
 <template>
   <Head :title="`${fish.name} - 捕獲紀錄與唸法`" />
   
-  <FishGridLayout :showTribalClassifications="false" :hideLeftOnMobile="true">
+  <FishGridLayout :hideLeftOnMobile="true">
     <!-- 中欄：捕獲照片 -->
     <template #middle>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
