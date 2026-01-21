@@ -83,4 +83,3 @@ const currentStepText = computed(() => {
   return props.steps[idx] || ''
 })
 </script>
-steps: { type: Array, default: null },
