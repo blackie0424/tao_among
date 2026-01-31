@@ -1,7 +1,37 @@
 <template>
   <Head title="雅美（達悟）族魚類圖鑑" />
 
-  <div class="container mx-auto p-4 pb-20 relative">
+  <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6 relative">
+    <!-- 頂部導覽列 (仿照 FishAppLayout) -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 mb-6">
+      <div class="container mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
+        
+        <!-- Logo / Title -->
+        <Link href="/fishs" class="font-bold text-gray-900 text-lg tracking-wide hover:text-teal-600 transition flex items-center gap-2">
+          <span class="text-xl">🐟</span>
+          among no tao
+        </Link>
+
+        <!-- User Menu (Right aligned) -->
+        <div class="ml-auto flex items-center gap-3">
+          <div v-if="user" class="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <span class="hidden sm:inline bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs">田調人員</span>
+            <span class="hidden sm:inline">{{ user.name }}</span>
+          </div>
+          <Link v-if="user" href="/logout" method="post" as="button" class="text-sm text-gray-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-gray-100 transition">
+            登出
+          </Link>
+          <Link v-else href="/login" class="text-sm text-teal-600 hover:text-teal-700 font-bold px-3 py-1.5 rounded-full border border-teal-600 hover:bg-teal-50 transition">
+            登入
+          </Link>
+        </div>
+      </div>
+    </header>
+
+    <!-- 全局 Flash Message -->
+    <FlashMessage />
+
+    <div class="container mx-auto px-4 pb-20 relative">
     <!-- 資料筆數統計卡 + Filter Chips -->
     <FishSearchStatsBar
       :totalCount="totalCount"
@@ -9,6 +39,14 @@
       @remove-filter="removeFilter"
     >
       <template #actions>
+        <Link
+          v-if="user"
+          href="/fish/create"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-sm transition-colors"
+          title="新增魚類"
+        >
+          <span class="text-2xl leading-none font-light pb-1">+</span>
+        </Link>
         <SearchToggleButton @toggle="handleSearchToggle" />
       </template>
     </FishSearchStatsBar>
@@ -37,14 +75,16 @@
 
     <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
     <HomeBottomNavBar />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 
 import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue'
+import FlashMessage from '@/Components/FlashMessage.vue'
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
 import FishSearchModal from '@/Components/FishSearchModal.vue'
 import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
@@ -59,6 +99,8 @@ import {
   getCreatedIds,
   clearCreatedIds,
 } from '@/utils/fishListCache'
+
+const user = computed(() => usePage().props.auth?.user)
 
 const props = defineProps({
   // 精簡欄位列表（後端游標分頁）

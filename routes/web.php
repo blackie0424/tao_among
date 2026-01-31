@@ -21,8 +21,12 @@ Route::get('/', [FishController::class, 'index']);
 Route::get('/fishs', [FishController::class, 'getFishs']);
 Route::get('/search', [FishController::class, 'search'])->name('fish.search');
 
-Route::get('/fish/create', [FishController::class, 'create'])->name('fish.create');
-Route::post('/fish', [FishController::class, 'store'])->name('fish.store');
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/fish/create', [FishController::class, 'create'])->name('fish.create');
+    Route::post('/fish', [FishController::class, 'store'])->name('fish.store');
+});
 
 Route::get('/fish/{id}', [FishController::class, 'getFish']);
 Route::get('/fish/{id}/createAudio', [FishAudioController::class,'create'])->name('fish.audio.create');
