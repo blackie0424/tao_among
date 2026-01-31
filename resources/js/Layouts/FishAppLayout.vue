@@ -21,7 +21,7 @@
         <!-- Desktop Nav (>= 1024px) -->
         <div class="hidden lg:flex items-center gap-4 w-full">
           <!-- Logo / Home -->
-          <Link href="/fishs" class="font-bold text-gray-900 text-lg tracking-wide hover:text-blue-600 transition shrink-0">
+          <Link href="/" class="font-bold text-gray-900 text-lg tracking-wide hover:text-blue-600 transition shrink-0">
             among no tao
           </Link>
           
