@@ -4,7 +4,7 @@
   <FishAppLayout
     :pageTitle="fish.name"
     mobileBackUrl="/fishs"
-    mobileBackText="among no tao"
+    :mobileBackText="mobileBackText"
   >
     <FishGridLayout>
       <!-- 左欄額外內容：部落分類摘要 -->
@@ -117,4 +117,10 @@ const props = defineProps({
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const groupedNotes = computed(() => props.fishNotes || {})
+
+// 動態決定手機版麵包屑中間層級文字
+// 若魚名太長 (> 12 字元)，則縮減中間層級為 "..." 以爭取空間
+const mobileBackText = computed(() => {
+  return (props.fish?.name?.length || 0) > 12 ? '...' : 'among no tao'
+})
 </script>
