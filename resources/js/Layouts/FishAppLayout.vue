@@ -1,5 +1,10 @@
 <template>
-  <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6 relative pt-4">
+  <div 
+    class="min-h-screen bg-gray-50 relative pt-4"
+    :class="[
+      showBottomNav ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6'
+    ]"
+  >
     
     <!-- 頂部導覽列 -->
     <header class="sticky top-4 z-30">
@@ -137,7 +142,8 @@
     </main>
 
     <!-- 底部導覽列 (手機版) -->
-    <slot name="bottom-nav">
+    <!-- 底部導覽列 (手機版) -->
+    <slot v-if="showBottomNav" name="bottom-nav">
       <BottomNavBar :fishId="fishId" :activeTab="activeTab" />
     </slot>
   </div>
@@ -180,6 +186,10 @@ const props = defineProps({
   mobileBackText: {
     type: String,
     default: 'among no tao'
+  },
+  showBottomNav: {
+    type: Boolean,
+    default: true
   }
 })
 

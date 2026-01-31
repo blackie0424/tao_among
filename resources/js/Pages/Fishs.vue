@@ -5,6 +5,7 @@
     pageTitle="among no tao"
     mobileBackUrl="/"
     mobileBackText="首頁"
+    :showBottomNav="false"
   >
     <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
     <template #desktop-nav>
@@ -49,11 +50,6 @@
            <SearchToggleButton @toggle="handleSearchToggle" />
          </div>
       </div>
-    </template>
-
-    <!-- Bottom Nav Slot: 空白 (移除底部新增按鈕) -->
-    <template #bottom-nav>
-      <!-- empty -->
     </template>
 
     <!-- Header Extension Slot: Sticky Search Filter Bar -->
