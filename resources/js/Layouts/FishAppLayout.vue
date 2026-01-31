@@ -2,8 +2,9 @@
   <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6 relative">
     
     <!-- 頂部導覽列 -->
-    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100">
-      <div class="container mx-auto max-w-7xl px-4 h-14 flex items-center justify-between gap-4">
+    <header class="sticky top-0 z-30">
+      <div class="container mx-auto max-w-7xl bg-white/90 backdrop-blur-md shadow-sm border-x border-b border-gray-100 rounded-b-lg">
+        <div class="px-4 h-14 flex items-center justify-between gap-4">
         
         <!-- Mobile Nav (< 1024px) -->
         <div class="flex items-center gap-3 lg:hidden flex-1 min-w-0">
@@ -52,10 +53,10 @@
           </div>
         </div>
       </div>
-    </header>
-
-    <!-- Header Extension Slot (for Sticky Sub-headers) -->
+    <!-- Header Extension Slot -->
     <slot name="header-extension" />
+      </div>
+    </header>
 
     <!-- 全局 Flash Message -->
     <FlashMessage />

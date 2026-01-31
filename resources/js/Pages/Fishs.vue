@@ -49,7 +49,7 @@
 
     <!-- Header Extension Slot: Sticky Search Filter Bar -->
     <template #header-extension>
-       <div v-if="appliedFilters.length > 0" class="sticky top-14 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm transition-all duration-300">
+       <div v-if="appliedFilters.length > 0" class="border-t border-gray-100 transition-all duration-300">
          <div class="container mx-auto px-4 py-3 max-w-7xl">
             <FishSearchStatsBar
               :showTotalCount="false"
