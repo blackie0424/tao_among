@@ -1,7 +1,12 @@
 <template>
   <div class="mb-4 flex items-center justify-between">
     <div
-      class="flex flex-wrap items-center gap-x-2 gap-y-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 shadow-sm text-xl"
+      :class="[
+        'flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg transition-all text-xl',
+        variant === 'header' 
+          ? 'bg-transparent p-0 border-0' 
+          : 'bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 px-3 py-2 shadow-sm'
+      ]"
     >
       <!-- 資料筆數統計 -->
       <div v-if="showTotalCount" class="inline-flex items-center gap-2 shrink-0">
@@ -54,6 +59,10 @@ defineProps({
   showTotalCount: {
     type: Boolean,
     default: true,
+  },
+  variant: {
+    type: String,
+    default: 'default', // 'default' | 'header'
   },
 })
 

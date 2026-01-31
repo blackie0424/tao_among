@@ -54,6 +54,9 @@
       </div>
     </header>
 
+    <!-- Header Extension Slot (for Sticky Sub-headers) -->
+    <slot name="header-extension" />
+
     <!-- 全局 Flash Message -->
     <FlashMessage />
 

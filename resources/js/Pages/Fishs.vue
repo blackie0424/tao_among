@@ -47,29 +47,23 @@
       <!-- empty -->
     </template>
 
-    <div class="container mx-auto px-4 pb-20 relative">
-      <!-- 原 Filter Chips 保留，但移除統計數字與右側 Actions（已移至 Header） -->
-      <FishSearchStatsBar
-        v-if="appliedFilters.length > 0"
-        :showTotalCount="false"
-        :totalCount="totalCount"
-        :appliedFilters="appliedFilters"
-        @remove-filter="removeFilter"
-        class="mt-4"
-      >
-        <!-- 覆蓋 actions slot 為空，避免重複顯示按鈕 -->
-        <template #actions><span></span></template>
-        <!-- 隱藏預設的「資料筆數」顯示（透過 CSS 或修改元件？這裡先用 CSS class 控制顯示/隱藏太麻煩，直接覆蓋 slot 比較快，但 StatsBar 的結構是左側顯示統計，右側 actions。
-             如果我只想留 Chips... `FishSearchStatsBar` 左側是 "資料筆數 + Chips"。
-             如果我想隱藏 "資料筆數"，可能需要修改 `FishSearchStatsBar` 或接受重複顯示。
-             User said "integrate together". 
-             Header 有 "資料筆數"，Body 也有 "資料筆數" 是有點怪。
-             但 Body 的 Chips 需要依附在某個容器。
-             暫時先容許重複，因為 Chips 很重要。
-             Header 的 Stats 比較像 "Dashboard 概覽"。
-        -->
-      </FishSearchStatsBar>
+    <!-- Header Extension Slot: Sticky Search Filter Bar -->
+    <template #header-extension>
+       <div v-if="appliedFilters.length > 0" class="sticky top-14 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm transition-all duration-300">
+         <div class="container mx-auto px-4 py-3 max-w-7xl">
+            <FishSearchStatsBar
+              :showTotalCount="false"
+              variant="header"
+              :totalCount="totalCount"
+              :appliedFilters="appliedFilters"
+              @remove-filter="removeFilter"
+            />
+         </div>
+       </div>
+    </template>
 
+    <div class="container mx-auto px-4 pb-20 relative pt-6">
+      <!-- 內容區 -->
       <main ref="scrollHost">
         <!-- 統一搜尋對話框元件 -->
         <FishSearchModal
