@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6 relative">
+  <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6 relative pt-4">
     
     <!-- 頂部導覽列 -->
-    <header class="sticky top-0 z-30">
-      <div class="container mx-auto max-w-7xl bg-white/90 backdrop-blur-md shadow-sm border-x border-b border-gray-100 rounded-b-lg">
+    <header class="sticky top-4 z-30">
+      <div class="container mx-auto max-w-7xl bg-white/90 backdrop-blur-md shadow-sm border border-gray-100 rounded-2xl">
         <div class="px-4 h-14 flex items-center justify-between gap-4">
         
         <!-- Mobile Nav (< 1024px) -->
