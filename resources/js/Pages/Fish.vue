@@ -65,7 +65,10 @@
   
       <!-- 右欄：進階知識 -->
       <template #right>
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <section 
+          v-if="Object.keys(groupedNotes).length || user"
+          class="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+        >
           <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
             <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
               <span>📖</span> 進階知識
