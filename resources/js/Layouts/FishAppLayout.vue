@@ -21,10 +21,22 @@
 
         <!-- Desktop Nav (>= 1024px) -->
         <div class="hidden lg:flex items-center gap-4 w-full">
-          <!-- Logo / Home -->
-          <Link href="/" class="font-bold text-gray-900 text-lg tracking-wide hover:text-blue-600 transition shrink-0">
-            among no tao
-          </Link>
+          <!-- Desktop Navigation Links -->
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Home Link -->
+            <Link href="/" class="font-medium text-gray-500 hover:text-gray-900 transition flex items-center gap-1">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+               首頁
+            </Link>
+
+            <!-- Separator -->
+            <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            
+            <!-- App / Fish List Link -->
+            <Link href="/fishs" class="font-bold text-gray-900 text-lg tracking-wide hover:text-blue-600 transition">
+              among no tao
+            </Link>
+          </div>
           
           <!-- Desktop Nav Content (Breadcrumbs by default) -->
           <div class="flex-1 flex items-center min-w-0">
