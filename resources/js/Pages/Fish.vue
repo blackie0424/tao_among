@@ -17,9 +17,9 @@
       <section>
         <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
           <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-            <div class="flex items-center gap-2">
-              <h3 class="text-xl font-semibold text-gray-900">捕獲紀錄</h3>
-              <span class="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{{ captureRecords.length }}</span>
+            <div class="flex items-center gap-3">
+              <h3 class="text-2xl font-bold text-gray-900">捕獲紀錄</h3>
+              <span class="text-sm font-bold bg-gray-100 text-gray-800 px-3 py-1 rounded-full">{{ captureRecords.length }}</span>
             </div>
             <Link v-if="user" :href="`/fish/${fish.id}/capture-records/create`" class="hidden lg:inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium">
               <span class="text-lg leading-none">+</span> 新增照片
@@ -43,7 +43,7 @@
       <section v-if="user || Object.keys(groupedNotes).length">
         <div class="rounded-xl bg-white shadow-sm border-gray-200 p-4 border">
           <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-semibold text-gray-900">知識筆記</h3>
+            <h3 class="text-2xl font-bold text-gray-900">知識筆記</h3>
             <div v-if="user" class="hidden lg:flex items-center gap-2">
               <Link :href="`/fish/${fish.id}/create`" class="inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium">
                 <span class="text-lg leading-none">+</span> 新增進階知識
@@ -52,8 +52,8 @@
           </div>
           <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
             <div v-for="(items, type) in groupedNotes" :key="type">
-            <h4 class="font-medium text-gray-800 mb-2 px-1 flex items-center">
-              <span class="w-1 h-4 bg-teal-500 rounded-full mr-2"></span>
+            <h4 class="font-bold text-gray-900 text-lg mb-3 px-1 flex items-center">
+              <span class="w-2 h-6 bg-teal-600 rounded-full mr-3 shadow-sm"></span>
               {{ type }}
             </h4>
             <ul class="space-y-3">

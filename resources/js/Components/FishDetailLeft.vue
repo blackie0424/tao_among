@@ -18,7 +18,7 @@
          
          <!-- 左側：閱讀區 (魚名 + 發音) -->
          <div class="flex items-center gap-3">
-           <h1 class="text-3xl font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
+           <h1 class="text-2xl font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
            
            <!-- Audio Player -->
            <div v-if="fish.audio_url" class="flex-shrink-0">
@@ -30,12 +30,12 @@
          <div v-if="user" class="hidden lg:flex items-center gap-1">
             <!-- Edit Fish Button -->
             <Link :href="`/fish/${fish.id}/edit`" class="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-gray-50 transition" title="修改基本資料">
-               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
             </Link>
 
             <!-- Add Audio Button -->
             <Link :href="`/fish/${fish.id}/createAudio`" class="text-gray-400 hover:text-rose-600 p-2 rounded-full hover:bg-gray-50 transition" title="新增錄音">
-               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
             </Link>
          </div>
       </div>
