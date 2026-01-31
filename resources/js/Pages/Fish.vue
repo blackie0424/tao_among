@@ -1,85 +1,96 @@
 <template>
   <Head :title="`${fish.name}的基本資料`" />
   
-  <FishGridLayout>
-    <!-- 左欄額外內容：部落分類摘要 -->
-    <template #left-extra>
-      <section v-if="tribalClassifications?.length">
-        <TribalClassificationSummary 
-          :classifications="tribalClassifications" 
-          :fishId="fish.id" 
-        />
-      </section>
-    </template>
-
-    <!-- 中欄：捕獲紀錄 -->
-    <template #middle>
-      <section>
-        <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
-          <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-            <div class="flex items-center gap-3">
-              <h3 class="text-2xl font-bold text-gray-900">捕獲紀錄</h3>
-              <span class="text-sm font-bold bg-gray-100 text-gray-800 px-3 py-1 rounded-full">{{ captureRecords.length }}</span>
-            </div>
-            <Link v-if="user" :href="`/fish/${fish.id}/capture-records/create`" class="hidden lg:inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium">
-              <span class="text-lg leading-none">+</span> 新增照片
-            </Link>
-          </div>
-
-          <div v-if="captureRecords.length" class="space-y-8">
-            <div v-for="record in captureRecords" :key="record.id" class="flex flex-col gap-3">
-              <div class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
-                <LazyImage :src="record.image_url" :alt="`捕獲紀錄`" wrapperClass="w-full h-full" imgClass="w-full h-full object-cover"/>
+  <FishAppLayout
+    :pageTitle="fish.name"
+    mobileBackUrl="/fishs"
+    mobileBackText="among no tao"
+  >
+    <FishGridLayout>
+      <!-- 左欄額外內容：部落分類摘要 -->
+      <template #left-extra>
+        <section v-if="tribalClassifications?.length">
+          <TribalClassificationSummary 
+            :classifications="tribalClassifications" 
+            :fishId="fish.id" 
+          />
+        </section>
+      </template>
+  
+      <!-- 中欄：捕獲紀錄 -->
+      <template #middle>
+        <section>
+          <div class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <h3 class="text-2xl font-bold text-gray-900">捕獲紀錄</h3>
+                <span class="text-sm font-bold bg-gray-100 text-gray-800 px-3 py-1 rounded-full">{{ captureRecords.length }}</span>
               </div>
-            </div>
-          </div>
-          <div v-else class="text-center py-8 text-gray-500"><p>尚未新增捕獲照片</p></div>
-        </div>
-      </section>
-    </template>
-
-    <!-- 右欄：知識筆記 -->
-    <template #right>
-      <section v-if="user || Object.keys(groupedNotes).length">
-        <div class="rounded-xl bg-white shadow-sm border-gray-200 p-4 border">
-          <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-2xl font-bold text-gray-900">知識筆記</h3>
-            <div v-if="user" class="hidden lg:flex items-center gap-2">
-              <Link :href="`/fish/${fish.id}/create`" class="inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium">
-                <span class="text-lg leading-none">+</span> 新增進階知識
+              <Link v-if="user" :href="`/fish/${fish.id}/capture-records/create`" class="hidden lg:inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium">
+                <span class="text-lg leading-none">+</span> 新增照片
               </Link>
             </div>
-          </div>
-          <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
-            <div v-for="(items, type) in groupedNotes" :key="type">
-            <h4 class="font-bold text-gray-900 text-lg mb-3 px-1 flex items-center">
-              <span class="w-2 h-6 bg-teal-600 rounded-full mr-3 shadow-sm"></span>
-              {{ type }}
-            </h4>
-            <ul class="space-y-3">
-              <li 
-                v-for="note in items" 
-                :key="note.id" 
-                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
-              >
-                <div class="flex justify-between items-start gap-3">
-                  <div class="flex-1">
-                    <span class="inline-flex self-start items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mb-2">
-                      {{ note.locate }}
-                    </span>
-                    <div class="text-gray-800 md:text-lg whitespace-pre-line leading-relaxed">{{ note.note }}</div>
-                  </div>
-                  
+  
+            <div v-if="captureRecords.length" class="space-y-8">
+              <div v-for="record in captureRecords" :key="record.id" class="flex flex-col gap-3">
+                <!-- Location Tag -->
+                <div v-if="record.location" class="flex items-center text-sm text-gray-500">
+                  <span class="bg-gray-100 text-xs px-2 py-0.5 rounded mr-2" v-if="record.tribe">{{ record.tribe }}</span>
+                   {{ record.location }}
                 </div>
-              </li>
-            </ul>
+                
+                <!-- Image -->
+                 <LazyImage 
+                    :src="record.url" 
+                    :alt="`${fish.name} 捕獲紀錄`"
+                    class="w-full h-auto object-cover rounded-lg shadow-sm border border-gray-100"
+                 />
+                 
+                 <!-- Photographer -->
+                 <div class="pt-1 text-xs text-gray-400 text-right">
+                    拍攝者：{{ record.photographer || '匿名' }} · {{ record.date }}
+                 </div>
+              </div>
+            </div>
+            
+            <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
+               <p class="text-gray-500 mb-4">目前還沒有捕獲紀錄照片</p>
+               <Link v-if="user" :href="`/fish/${fish.id}/capture-records/create`" class="inline-flex px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium shadow-sm transition-colors">
+                  上傳第一張照片
+               </Link>
+            </div>
           </div>
-        </div>
-          </div>
-          
-      </section>
-    </template>
-  </FishGridLayout>
+        </section>
+      </template>
+  
+      <!-- 右欄：知識與發音 -->
+      <template #right>
+        <!-- 魚類知識卡片 -->
+        <FishKnowledgeCard 
+          :fishId="fish.id" 
+          :notes="groupedNotes['knowledge']" 
+          title="魚類知識"
+          type="knowledge"
+        />
+  
+        <!-- 傳說故事卡片 -->
+        <FishKnowledgeCard 
+          :fishId="fish.id" 
+          :notes="groupedNotes['story']" 
+          title="傳說與故事"
+          type="story"
+        />
+        
+         <!-- 食用分級卡片 -->
+         <FishKnowledgeCard 
+          :fishId="fish.id" 
+          :notes="groupedNotes['eating']" 
+          title="食用分級"
+          type="eating"
+        />
+      </template>
+    </FishGridLayout>
+  </FishAppLayout>
 </template>
 
 <script setup>
@@ -91,10 +102,10 @@ import TribalClassificationSummary from '@/Components/TribalClassificationSummar
 import LazyImage from '@/Components/LazyImage.vue'
 import FishKnowledgeCard from '@/Components/FishKnowledgeCard.vue'
 
-// 設定巢狀佈局
-defineOptions({
-  layout: FishAppLayout
-})
+// Removed persistent layout to support dynamic props
+// defineOptions({
+//   layout: FishAppLayout
+// })
 
 const props = defineProps({
   fish: Object,

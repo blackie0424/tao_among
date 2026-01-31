@@ -16,13 +16,22 @@
                 <span class="text-sm">首頁</span>
              </Link>
              
-             <!-- Separator -->
+             <!-- Separator 1 -->
              <svg class="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
              
-             <!-- Page Title (Styled like Branding) -->
-             <Link :href="mobileBackUrl" class="font-bold text-gray-900 text-lg tracking-wide hover:text-blue-600 transition truncate">
+             <!-- Intermediate Link (e.g. "among no tao" when on Detail page) -->
+             <template v-if="mobileBackUrl !== '/'">
+                <Link :href="mobileBackUrl" class="font-bold text-gray-500 hover:text-blue-600 transition shrink-0 whitespace-nowrap text-sm sm:text-base">
+                   {{ mobileBackText }}
+                </Link>
+                <!-- Separator 2 -->
+                <svg class="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+             </template>
+
+             <!-- Current Page Title -->
+             <span class="font-bold text-gray-900 text-lg tracking-wide truncate">
                {{ pageTitle }}
-             </Link>
+             </span>
           </div>
 
           <!-- Right: User Menu -->
