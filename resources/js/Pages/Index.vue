@@ -15,7 +15,7 @@
         瀏覽魚類圖鑑
       </button>
     </div>
-    <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
+    <footer class="mt-8 text-center text-gray-500">Copyright © 2026 Chungyueh</footer>
   </div>
 </template>
 

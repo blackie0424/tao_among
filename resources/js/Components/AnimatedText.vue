@@ -1,9 +1,9 @@
 <template>
-  <h1 :style="{ fontSize: `${fontSize}px` }" class="flex justify-center">
+  <h1 ref="containerRef" :style="{ fontSize: `${dynamicFontSize}px` }" class="flex justify-center transition-all duration-300">
     <span
       v-for="(char, idx) in textArr"
       :key="idx"
-      :style="{ animationDelay: `${idx * 0.08}s`, marginRight: '0.3em' }"
+      :style="{ animationDelay: `${idx * 0.08}s`, marginRight: '0.1em' }"
       class="animate-outline-fill"
     >
       {{ char }}
@@ -12,12 +12,46 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+
 const props = defineProps({
   text: String,
   fontSize: { type: Number, default: 48 },
 })
+
 const textArr = computed(() => props.text.split(''))
+const containerRef = ref(null)
+const dynamicFontSize = ref(props.fontSize)
+
+const updateFontSize = () => {
+  // 取得視窗寬度
+  const windowWidth = window.innerWidth
+  
+  // 計算基礎寬度限制 (左右預留一些邊距)
+  const availableWidth = windowWidth - 32 
+  
+  // 估算每個字元在 1px 字體大小時的寬度係數 (約 0.6) + 間距 (0.1em)
+  // 如果字數很多，係數需要更保守
+  const charFactor = 0.7 
+  const totalChars = props.text.length
+  
+  // 計算理論上的最大字體大小
+  // availableWidth = fontSize * charFactor * totalChars
+  // fontSize = availableWidth / (charFactor * totalChars)
+  const calculatedSize = availableWidth / (totalChars * charFactor)
+  
+  // 限制字體大小範圍：最小 14px，最大為傳入的 props.fontSize (48px)
+  dynamicFontSize.value = Math.min(Math.max(calculatedSize, 14), props.fontSize)
+}
+
+onMounted(() => {
+  updateFontSize()
+  window.addEventListener('resize', updateFontSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateFontSize)
+})
 </script>
 
 <style scoped>
@@ -52,18 +86,8 @@ const textArr = computed(() => props.text.split(''))
   -webkit-text-stroke: 2px #fff;
   animation: outline-fill 1s forwards;
   animation-fill-mode: forwards;
-  margin-right: 0.3em;
+  margin-right: 0.1em; /* 統一間距 */
 }
 
-/* 手持式裝置字體與間距調整，並移除粗體 */
-@media (max-width: 400px) {
-  h1 {
-    font-size: 24px !important;
-    font-weight: normal !important;
-  }
-  .animate-outline-fill {
-    margin-right: 0.15em;
-    font-weight: normal !important;
-  }
-}
+/* 移除之前的 CSS Override，完全交由 JS 控制 */
 </style>
