@@ -2,9 +2,9 @@
   <Head title="雅美（達悟）族魚類圖鑑" />
 
   <FishAppLayout
-    pageTitle="雅美（達悟）族魚類圖鑑清單"
+    pageTitle="among no tao"
     mobileBackUrl="/"
-    mobileBackText="回首頁"
+    mobileBackText="首頁"
   >
     <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
     <template #desktop-nav>
@@ -32,16 +32,22 @@
 
     <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 (Mobile也加強顯示) -->
     <template #mobile-actions>
-      <div class="flex items-center gap-3">
-         <Link
-            v-if="user"
-            href="/fish/create"
-            class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
-            title="新增魚類"
-          >
-            <span class="text-3xl leading-none font-light pb-1">+</span>
-          </Link>
-        <SearchToggleButton @toggle="handleSearchToggle" />
+      <div class="flex items-center justify-between px-2 w-full">
+         <div class="text-sm font-bold text-gray-600 flex items-center">
+           總筆數 <span class="text-teal-700 ml-1 text-base">{{ totalCount }}</span>
+         </div>
+         
+         <div class="flex items-center gap-3">
+            <Link
+               v-if="user"
+               href="/fish/create"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
+               title="新增魚類"
+             >
+               <span class="text-2xl leading-none font-light pb-0.5">+</span>
+             </Link>
+           <SearchToggleButton @toggle="handleSearchToggle" />
+         </div>
       </div>
     </template>
 
