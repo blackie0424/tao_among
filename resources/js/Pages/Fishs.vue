@@ -8,35 +8,43 @@
   >
     <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
     <template #desktop-nav>
-      <div class="flex items-center justify-between w-full px-4 border-l border-gray-200 ml-4 h-8">
-        <div class="text-sm font-medium text-gray-500">
-           資料筆數 <span class="text-gray-900 mx-1">{{ totalCount }}</span>
+      <div class="flex items-center justify-between w-full px-4 border-l border-gray-200 ml-4 h-10">
+        <div class="text-base lg:text-lg font-bold text-gray-700 flex items-center">
+           資料總筆數 <span class="text-teal-700 text-xl lg:text-2xl mx-1.5 font-extrabold">{{ totalCount }}</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
            <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
            <Link
               v-if="user"
               href="/fish/create"
-              class="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+              class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
               title="新增魚類"
             >
-              <span class="text-xl leading-none font-light pb-1">+</span>
+              <span class="mr-1 text-2xl leading-none font-normal pb-1">+</span> 新增
             </Link>
            <SearchToggleButton @toggle="handleSearchToggle" />
         </div>
       </div>
     </template>
 
-    <!-- Mobile Actions Slot: 搜尋按鈕 -->
+    <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 (Mobile也加強顯示) -->
     <template #mobile-actions>
-      <div class="flex gap-1">
+      <div class="flex items-center gap-3">
+         <Link
+            v-if="user"
+            href="/fish/create"
+            class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
+            title="新增魚類"
+          >
+            <span class="text-3xl leading-none font-light pb-1">+</span>
+          </Link>
         <SearchToggleButton @toggle="handleSearchToggle" />
       </div>
     </template>
 
-    <!-- Bottom Nav Slot: 首頁專用導覽 -->
+    <!-- Bottom Nav Slot: 空白 (移除底部新增按鈕) -->
     <template #bottom-nav>
-      <HomeBottomNavBar />
+      <!-- empty -->
     </template>
 
     <div class="container mx-auto px-4 pb-20 relative">
@@ -94,7 +102,6 @@ import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue' // 用於 bottom-nav slot
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
 import FishSearchModal from '@/Components/FishSearchModal.vue'
 import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
