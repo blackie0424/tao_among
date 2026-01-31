@@ -8,10 +8,13 @@
   >
     <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
     <template #desktop-nav>
-      <div class="flex items-center justify-between w-full px-4 border-l border-gray-200 ml-4 h-10">
+      <div class="flex items-center justify-end w-full px-4 h-10 gap-6">
         <div class="text-base lg:text-lg font-bold text-gray-700 flex items-center">
            資料總筆數 <span class="text-teal-700 text-xl lg:text-2xl mx-1.5 font-extrabold">{{ totalCount }}</span>
         </div>
+        
+        <div class="h-5 w-px bg-gray-300"></div>
+
         <div class="flex items-center gap-3">
            <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
            <Link
