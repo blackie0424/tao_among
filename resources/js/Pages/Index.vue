@@ -1,4 +1,6 @@
 <template>
+    <Head title="雅美（達悟）族魚類圖鑑網" />
+
   <div class="container mx-auto p-4">
     <div id="index" class="flex flex-col items-center justify-center min-h-[80vh] w-full">
       <AnimatedText text="nivasilan ko a among" />

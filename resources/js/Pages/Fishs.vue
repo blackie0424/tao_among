@@ -1,90 +1,100 @@
 <template>
   <Head title="雅美（達悟）族魚類圖鑑" />
 
-  <div class="min-h-screen bg-gray-50 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6 relative">
-    <!-- 頂部導覽列 (仿照 FishAppLayout) -->
-    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 mb-6">
-      <div class="container mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
-        
-        <!-- Logo / Title -->
-        <Link href="/fishs" class="font-bold text-gray-900 text-lg tracking-wide hover:text-teal-600 transition flex items-center gap-2">
-          <span class="text-xl">🐟</span>
-          among no tao
-        </Link>
-
-        <!-- User Menu (Right aligned) -->
-        <div class="ml-auto flex items-center gap-3">
-          <div v-if="user" class="text-sm font-medium text-gray-700 flex items-center gap-2">
-            <span class="hidden sm:inline bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs">田調人員</span>
-            <span class="hidden sm:inline">{{ user.name }}</span>
-          </div>
-          <Link v-if="user" href="/logout" method="post" as="button" class="text-sm text-gray-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-gray-100 transition">
-            登出
-          </Link>
-          <Link v-else href="/login" class="text-sm text-teal-600 hover:text-teal-700 font-bold px-3 py-1.5 rounded-full border border-teal-600 hover:bg-teal-50 transition">
-            登入
-          </Link>
+  <FishAppLayout
+    pageTitle="雅美（達悟）族魚類圖鑑清單"
+    mobileBackUrl="/"
+    mobileBackText="回首頁"
+  >
+    <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
+    <template #desktop-nav>
+      <div class="flex items-center justify-between w-full px-4 border-l border-gray-200 ml-4 h-8">
+        <div class="text-sm font-medium text-gray-500">
+           資料筆數 <span class="text-gray-900 mx-1">{{ totalCount }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+           <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
+           <Link
+              v-if="user"
+              href="/fish/create"
+              class="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+              title="新增魚類"
+            >
+              <span class="text-xl leading-none font-light pb-1">+</span>
+            </Link>
+           <SearchToggleButton @toggle="handleSearchToggle" />
         </div>
       </div>
-    </header>
+    </template>
 
-    <!-- 全局 Flash Message -->
-    <FlashMessage />
+    <!-- Mobile Actions Slot: 搜尋按鈕 -->
+    <template #mobile-actions>
+      <div class="flex gap-1">
+        <SearchToggleButton @toggle="handleSearchToggle" />
+      </div>
+    </template>
+
+    <!-- Bottom Nav Slot: 首頁專用導覽 -->
+    <template #bottom-nav>
+      <HomeBottomNavBar />
+    </template>
 
     <div class="container mx-auto px-4 pb-20 relative">
-    <!-- 資料筆數統計卡 + Filter Chips -->
-    <FishSearchStatsBar
-      :totalCount="totalCount"
-      :appliedFilters="appliedFilters"
-      @remove-filter="removeFilter"
-    >
-      <template #actions>
-        <Link
-          v-if="user"
-          href="/fish/create"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-sm transition-colors"
-          title="新增魚類"
-        >
-          <span class="text-2xl leading-none font-light pb-1">+</span>
-        </Link>
-        <SearchToggleButton @toggle="handleSearchToggle" />
-      </template>
-    </FishSearchStatsBar>
+      <!-- 原 Filter Chips 保留，但移除統計數字與右側 Actions（已移至 Header） -->
+      <FishSearchStatsBar
+        v-if="appliedFilters.length > 0"
+        :showTotalCount="false"
+        :totalCount="totalCount"
+        :appliedFilters="appliedFilters"
+        @remove-filter="removeFilter"
+        class="mt-4"
+      >
+        <!-- 覆蓋 actions slot 為空，避免重複顯示按鈕 -->
+        <template #actions><span></span></template>
+        <!-- 隱藏預設的「資料筆數」顯示（透過 CSS 或修改元件？這裡先用 CSS class 控制顯示/隱藏太麻煩，直接覆蓋 slot 比較快，但 StatsBar 的結構是左側顯示統計，右側 actions。
+             如果我只想留 Chips... `FishSearchStatsBar` 左側是 "資料筆數 + Chips"。
+             如果我想隱藏 "資料筆數"，可能需要修改 `FishSearchStatsBar` 或接受重複顯示。
+             User said "integrate together". 
+             Header 有 "資料筆數"，Body 也有 "資料筆數" 是有點怪。
+             但 Body 的 Chips 需要依附在某個容器。
+             暫時先容許重複，因為 Chips 很重要。
+             Header 的 Stats 比較像 "Dashboard 概覽"。
+        -->
+      </FishSearchStatsBar>
 
-    <main ref="scrollHost">
-      <!-- 統一搜尋對話框元件 -->
-      <FishSearchModal
-        v-model:show="showSearchDialog"
-        v-model:filters="currentFilters"
-        v-model:nameQuery="nameQuery"
-        :searchOptions="searchOptions"
-        @submit="submitUnifiedSearch"
-        @reset="resetUnifiedSearch"
-      />
+      <main ref="scrollHost">
+        <!-- 統一搜尋對話框元件 -->
+        <FishSearchModal
+          v-model:show="showSearchDialog"
+          v-model:filters="currentFilters"
+          v-model:nameQuery="nameQuery"
+          :searchOptions="searchOptions"
+          @submit="submitUnifiedSearch"
+          @reset="resetUnifiedSearch"
+        />
 
-      <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <li v-for="(item, index) in items" :key="item.id">
-          <FishCard :fish="item" :index="index" />
-        </li>
-      </ul>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+          <li v-for="(item, index) in items" :key="item.id">
+            <FishCard :fish="item" :index="index" />
+          </li>
+        </ul>
 
-      <FishSearchLoading :show="isLoading" />
-      <div ref="sentinel" class="h-8"></div>
-      <FishSearchCursorErrorBanner :show="showCursorError" @retry="retryFromStart" />
-    </main>
+        <FishSearchLoading :show="isLoading" />
+        <div ref="sentinel" class="h-8"></div>
+        <FishSearchCursorErrorBanner :show="showCursorError" @retry="retryFromStart" />
+      </main>
 
-    <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
-    <HomeBottomNavBar />
+      <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
     </div>
-  </div>
+  </FishAppLayout>
 </template>
 
 <script setup>
 import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 
-import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue'
-import FlashMessage from '@/Components/FlashMessage.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
+import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue' // 用於 bottom-nav slot
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
 import FishSearchModal from '@/Components/FishSearchModal.vue'
 import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
