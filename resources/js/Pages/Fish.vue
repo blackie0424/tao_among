@@ -47,9 +47,7 @@
                  />
                  
                  <!-- Photographer -->
-                 <div class="pt-1 text-xs text-gray-400 text-right">
-                    拍攝者：{{ record.photographer || '匿名' }} · {{ record.date }}
-                 </div>
+<!-- Photographer info removed -->
               </div>
             </div>
             
