@@ -42,7 +42,7 @@
                 
                 <!-- Image -->
                  <LazyImage 
-                    :src="record.url" 
+                    :src="record.image_url" 
                     :alt="`${fish.name} 捕獲紀錄`"
                     class="w-full h-auto object-cover rounded-lg shadow-sm border border-gray-100"
                  />
