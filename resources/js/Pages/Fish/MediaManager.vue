@@ -167,7 +167,7 @@ defineOptions({
     activeTab: 'media',
     breadcrumbPage: '捕獲與發音',
     mobileBackUrl: `/fish/${page.props.fish?.id}`,
-    mobileBackText: '返回',
+    mobileBackText: page.props.fish?.name || '返回',
     showBottomNav: false
   }, () => page)
 })
