@@ -108,6 +108,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException ||
                 $e instanceof \Illuminate\Validation\ValidationException ||
                 $e instanceof \Illuminate\Auth\Access\AuthorizationException ||
+                $e instanceof \Illuminate\Auth\AuthenticationException ||
                 $e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException ||
                 $e instanceof \Illuminate\Http\Client\ConnectionException) {
                 return null;
