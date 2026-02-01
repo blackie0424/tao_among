@@ -127,10 +127,17 @@
                     </span>
                     <div class="text-gray-800 md:text-lg whitespace-pre-line leading-relaxed">{{ note.note }}</div>
                   </div>
-                  <!-- 編輯 Action -->
-                  <a :href="`/fish/${fish.id}/knowledge/${note.id}/edit`" class="text-gray-400 hover:text-blue-600 p-1 flex-shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                  </a>
+                  <!-- 操作區 -->
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <!-- 編輯 Action -->
+                    <a :href="`/fish/${fish.id}/knowledge/${note.id}/edit`" class="text-gray-400 hover:text-blue-600 p-1" title="編輯">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </a>
+                    <!-- 刪除 Action -->
+                    <button @click="confirmDeleteNote(note)" class="text-gray-400 hover:text-red-600 p-1" title="刪除">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                  </div>
                 </div>
               </li>
             </ul>
@@ -177,6 +184,12 @@ const groupedNotes = computed(() => props.fishNotes || {})
 const confirmDelete = () => {
   if (confirm('確定要刪除這隻魚類資料嗎？此動作無法復原。')) {
     router.delete(`/fish/${props.fish.id}`)
+  }
+}
+
+const confirmDeleteNote = (note) => {
+  if (confirm(`確定要刪除這則進階知識嗎？\n\n「${note.note.substring(0, 50)}${note.note.length > 50 ? '...' : ''}」\n\n此動作無法復原。`)) {
+    router.delete(`/fish/${props.fish.id}/knowledge/${note.id}`)
   }
 }
 </script>
