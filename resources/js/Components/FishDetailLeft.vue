@@ -27,7 +27,7 @@
          </div>
 
          <!-- 右側：管理區 (編輯 + 新增錄音) -->
-         <div v-if="user" class="hidden lg:flex items-center gap-1">
+         <div v-if="user" class="flex items-center gap-1">
             <!-- Edit Fish Button -->
             <Link :href="`/fish/${fish.id}/edit`" class="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-gray-50 transition" title="修改基本資料">
                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
