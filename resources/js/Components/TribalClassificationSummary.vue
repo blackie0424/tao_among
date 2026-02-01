@@ -6,15 +6,15 @@
       <h3 class="text-2xl font-bold text-gray-900">地方知識</h3>
       <Link 
         v-if="user"
-        :href="`/fish/${fishId}/tribal-classifications/create`" 
+        :href="`/fish/${fishId}/knowledge-manager`" 
         class="hidden lg:inline-flex items-center gap-1 text-sm text-indigo-600 font-medium hover:text-indigo-800 hover:bg-indigo-50 px-3 py-1 rounded-md transition"
       >
-        <span class="text-lg leading-none">+</span> 新增地方知識
+        <span class="text-lg leading-none">⚙️</span> 管理地方知識
       </Link>
     </div>
 
     <!-- 無資料狀態 -->
-    <div v-if="classifications.length === 0" class="text-center py-8 text-gray-500">
+    <div v-if="classifications.length === 0 && user" class="text-center py-8 text-gray-500">
       <svg
         class="mx-auto h-12 w-12 text-gray-400 mb-4"
         fill="none"
