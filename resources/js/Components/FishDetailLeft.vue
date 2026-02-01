@@ -14,10 +14,10 @@
       </div>
 
       <!-- 魚名與發音區塊 -->
-      <div class="flex items-center justify-between p-4 bg-white border-t border-gray-100">
+      <div class="flex flex-wrap items-center gap-2 p-4 bg-white border-t border-gray-100">
          
-         <!-- 左側：閱讀區 (魚名 + 發音) -->
-         <div class="flex items-center gap-3">
+         <!-- 魚名 + 發音（綁在一起，優先佔據空間） -->
+         <div class="flex items-center gap-3 flex-grow">
            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
            
            <!-- Audio Player -->
@@ -26,8 +26,8 @@
            </div>
          </div>
 
-         <!-- 右側：管理區 (編輯 + 新增錄音) -->
-         <div v-if="user" class="flex items-center gap-1">
+         <!-- 管理區 (編輯 + 新增錄音) - 空間不足時換行 -->
+         <div v-if="user" class="flex items-center gap-1 flex-shrink-0">
             <!-- Edit Fish Button -->
             <Link :href="`/fish/${fish.id}/edit`" class="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-gray-50 transition" title="修改基本資料">
                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
