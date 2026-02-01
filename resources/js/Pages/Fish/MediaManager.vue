@@ -97,7 +97,7 @@
             <span>🔊</span> 發音列表
           </h2>
           <Link 
-            :href="`/fish/${fish.id}/createAudio`" 
+            :href="`/fish/${fish.id}/audio/create`" 
             class="flex items-center gap-1 text-sm bg-rose-100 text-rose-700 px-3 py-1.5 rounded-md font-medium hover:bg-rose-200 transition"
           >
             <span class="text-lg leading-none">+</span> 新增錄音
