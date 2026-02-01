@@ -233,9 +233,9 @@ function resetRecording() {
   timerCount.value = 5
 }
 
-// 取得 fish id（從網址 /fish/:id/createAudio 取出）
+// 取得 fish id（從網址 /fish/:id/audio/create 取出）
 function getFishIdFromUrl() {
-  const match = window.location.pathname.match(/\/fish\/(\d+)\/createAudio/)
+  const match = window.location.pathname.match(/\/fish\/(\d+)\/audio\/create/)
   return match ? match[1] : null
 }
 
