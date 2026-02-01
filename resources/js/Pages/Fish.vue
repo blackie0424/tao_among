@@ -27,7 +27,7 @@
                 <h3 class="text-2xl font-bold text-gray-900">捕獲紀錄</h3>
                 <span class="text-sm font-bold bg-gray-100 text-gray-800 px-3 py-1 rounded-full">{{ captureRecords.length }}</span>
               </div>
-              <Link v-if="user" :href="`/fish/${fish.id}/media-manager`" class="inline-flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium">
+              <Link v-if="user" :href="`/fish/${fish.id}/media-manager`" class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition">
                 <span class="text-lg leading-none">⚙️</span> 管理照片
               </Link>
             </div>
