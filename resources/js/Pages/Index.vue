@@ -11,11 +11,12 @@
       >
         安裝 App
       </button>
+
       <button @click="goFishs" class="mt-6 px-4 py-2 bg-green-600 text-white rounded">
         瀏覽魚類圖鑑
       </button>
     </div>
-    <footer class="mt-8 text-center text-gray-500">Copyright © 2026 Chungyueh</footer>
+    <AppFooter />
   </div>
 </template>
 
@@ -23,6 +24,7 @@
 import { ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import AnimatedText from '@/Components/AnimatedText.vue'
+import AppFooter from '@/Components/Global/AppFooter.vue'
 
 const headerM = '/images/header-m.png'
 const headerS = '/images/header-s.png'
