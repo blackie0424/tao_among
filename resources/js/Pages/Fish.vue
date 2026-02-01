@@ -35,9 +35,14 @@
             <div v-if="captureRecords.length" class="space-y-8">
               <div v-for="record in captureRecords" :key="record.id" class="flex flex-col gap-3">
                 <!-- Location Tag -->
-                <div v-if="record.location" class="flex items-center text-sm text-gray-500">
-                  <span class="bg-gray-100 text-xs px-2 py-0.5 rounded mr-2" v-if="record.tribe">{{ record.tribe }}</span>
+                <div v-if="record.location" class="flex items-center text-sm text-gray-900 font-medium">
+                  捕獲地點：
+                  <span class="bg-gray-100 text-xs px-2 py-0.5 rounded mr-2 ml-1" v-if="record.tribe">{{ record.tribe }}</span>
                    {{ record.location }}
+                </div>
+                <!-- 捕獲方式 -->
+                <div v-if="record.capture_method" class="flex items-center text-sm text-gray-900 font-medium">
+                  捕獲方式：{{ record.capture_method }}
                 </div>
                 
                 <!-- Image -->
