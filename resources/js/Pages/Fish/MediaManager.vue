@@ -62,6 +62,7 @@
             <!-- 圖片下方資訊 -->
             <div class="px-1">
               <div class="flex items-center flex-wrap gap-2 mb-1.5">
+                <span class="font-medium text-gray-500 text-sm">捕獲地點：</span>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold bg-blue-50 text-blue-700">
                   {{ record.tribe || '未標示' }}
                 </span>
@@ -69,12 +70,15 @@
                   {{ record.location }}
                 </span>
               </div>
-              <div class="flex items-center justify-between text-sm text-gray-600">
+              <div class="text-sm text-gray-600 space-y-1">
                 <p class="flex items-center gap-2">
                   <span class="font-medium text-gray-500">捕獲方法：</span>
                   {{ record.capture_method || '未記錄' }}
                 </p>
-                <span class="text-xs text-gray-400 font-mono">{{ formatDate(record.capture_date) }}</span>
+                <p class="flex items-center gap-2 text-xs text-gray-400">
+                  <span class="font-medium">捕獲時間：</span>
+                  {{ formatDate(record.capture_date) }}
+                </p>
               </div>
             </div>
           </div>
@@ -178,8 +182,11 @@ const user = computed(() => page.props.auth?.user)
 const fish = computed(() => props.fish)
 
 const formatDate = (dateString) => {
-  if(!dateString) return '未記錄日期';
-  return dateString;
+  if(!dateString) return '未記錄';
+  // 只取年月日 (YYYY-MM-DD)
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 const getAudioLabel = (audio) => {
