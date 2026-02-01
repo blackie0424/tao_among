@@ -165,7 +165,8 @@ defineOptions({
     activeTab: 'knowledge',
     breadcrumbPage: '基本資料與知識',
     mobileBackUrl: `/fish/${page.props.fish?.id}`,
-    mobileBackText: '返回'
+    mobileBackText: '返回',
+    showBottomNav: false
   }, () => page)
 })
 
