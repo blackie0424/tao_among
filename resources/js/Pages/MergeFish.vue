@@ -202,6 +202,7 @@
       <!-- 操作按鈕 -->
       <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4 border-t border-gray-200">
         <button
+          v-if="!previewData"
           @click="loadPreview"
           :disabled="selectedFishIds.length === 0 || isLoadingPreview"
           class="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-sm"
@@ -367,8 +368,8 @@ async function executeMerge() {
     // 標記目標魚類需要更新（因為合併後資料有變動）
     markFishStale(props.fish.id)
 
-    // 合併成功，跳轉回捕獲紀錄頁面
-    router.visit(`/fish/${props.fish.id}/capture-records`, {
+    // 合併成功，跳轉回魚類詳細頁面
+    router.visit(`/fish/${props.fish.id}`, {
       onSuccess: () => {
         alert('合併成功！')
       },
