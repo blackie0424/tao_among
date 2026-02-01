@@ -7,7 +7,7 @@
       <Link 
         v-if="user"
         :href="`/fish/${fishId}/knowledge-manager`" 
-        class="hidden lg:inline-flex items-center gap-1 text-sm text-indigo-600 font-medium hover:text-indigo-800 hover:bg-indigo-50 px-3 py-1 rounded-md transition"
+        class="inline-flex items-center gap-1 text-sm text-indigo-600 font-medium hover:text-indigo-800 hover:bg-indigo-50 px-3 py-1 rounded-md transition"
       >
         <span class="text-lg leading-none">⚙️</span> 管理地方知識
       </Link>
