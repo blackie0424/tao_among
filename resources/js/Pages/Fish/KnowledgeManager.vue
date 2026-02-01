@@ -101,7 +101,7 @@
             <span>📖</span> 進階知識
           </h2>
           <Link 
-            :href="`/fish/${fish.id}/create`" 
+            :href="`/fish/${fish.id}/knowledge/create`" 
             class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
           >
             <span class="text-lg leading-none">+</span> 新增進階知識
