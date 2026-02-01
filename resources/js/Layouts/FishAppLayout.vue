@@ -141,6 +141,8 @@
       <slot />
     </main>
 
+    <AppFooter />
+
     <!-- 底部導覽列 (手機版) -->
     <!-- 底部導覽列 (手機版) -->
     <slot v-if="showBottomNav" name="bottom-nav">
@@ -154,6 +156,7 @@ import { computed, ref } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 import FlashMessage from '@/Components/FlashMessage.vue'
+import AppFooter from '@/Components/Global/AppFooter.vue'
 
 // 從 Inertia page props 取得 fish 資料
 const page = usePage()

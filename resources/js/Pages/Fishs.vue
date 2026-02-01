@@ -91,7 +91,7 @@
         <FishSearchCursorErrorBanner :show="showCursorError" @retry="retryFromStart" />
       </main>
 
-      <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
+
     </div>
   </FishAppLayout>
 </template>
