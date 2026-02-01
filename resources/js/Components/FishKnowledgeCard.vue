@@ -9,6 +9,7 @@
 
       <!-- 三點選單 -->
       <OverflowMenu
+        v-if="!readonly"
         :apiUrl="`/fish/${fishId}/knowledge/${note.id}`"
         :fishId="fishId.toString()"
         :editUrl="`/fish/${fishId}/knowledge/${note.id}/edit`"
@@ -43,6 +44,10 @@ const props = defineProps({
   fishId: {
     type: [Number, String],
     required: true,
+  },
+  readonly: {
+    type: Boolean,
+    default: false,
   },
 })
 

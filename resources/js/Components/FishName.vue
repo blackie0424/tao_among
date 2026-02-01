@@ -3,6 +3,7 @@
     <div class="flex justify-between w-full mb-4">
       <div class="text text-xl text-secondary">ngaran no among</div>
       <OverflowMenu
+        v-if="!readonly"
         :apiUrl="`/fish/${fishId}`"
         :redirectUrl="`/fishs`"
         :fishId="fishId"
@@ -29,5 +30,9 @@ const props = defineProps({
   fishName: String,
   fishId: [String, Number],
   audio: String,
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
 })
 </script>

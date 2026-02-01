@@ -46,12 +46,12 @@ function onStatusChange(status) {
 }
 
 function goBack() {
-  router.visit(`/fish/${props.fish.id}/knowledge-list`)
+  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
 }
 
 function onNoteUpdated() {
   // 返回進階知識列表頁面
-  router.visit(`/fish/${props.fish.id}/knowledge-list`)
+  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
 }
 
 // 整合送出到 TopNavBar 的 @submit 事件

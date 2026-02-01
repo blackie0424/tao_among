@@ -1,10 +1,15 @@
 <template>
   <div class="mb-4 flex items-center justify-between">
     <div
-      class="flex flex-wrap items-center gap-x-2 gap-y-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 shadow-sm text-xl"
+      :class="[
+        'flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg transition-all text-xl',
+        variant === 'header' 
+          ? 'bg-transparent p-0 border-0' 
+          : 'bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 px-3 py-2 shadow-sm'
+      ]"
     >
       <!-- 資料筆數統計 -->
-      <div class="inline-flex items-center gap-2 shrink-0">
+      <div v-if="showTotalCount" class="inline-flex items-center gap-2 shrink-0">
         <span class="text-amber-700 dark:text-amber-300">資料筆數</span>
         <span class="text-amber-900 dark:text-amber-200 font-semibold">{{ totalCount }}</span>
       </div>
@@ -12,7 +17,7 @@
       <!-- 已套用的搜尋條件 chips（與資料筆數同列，空間不足時自動換行） -->
       <div
         v-if="appliedFilters.length"
-        class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1 ml-2"
+        :class="['flex flex-row flex-wrap items-center gap-x-2 gap-y-1', showTotalCount ? 'ml-2' : '']"
       >
         <span
           v-for="f in appliedFilters"
@@ -50,6 +55,14 @@ defineProps({
   appliedFilters: {
     type: Array,
     default: () => [],
+  },
+  showTotalCount: {
+    type: Boolean,
+    default: true,
+  },
+  variant: {
+    type: String,
+    default: 'default', // 'default' | 'header'
   },
 })
 

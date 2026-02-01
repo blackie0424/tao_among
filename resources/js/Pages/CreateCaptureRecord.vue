@@ -81,12 +81,12 @@ function goBack() {
     formRef.value.prevStep()
     return
   }
-  router.visit(`/fish/${props.fish.id}/capture-records`)
+  router.visit(`/fish/${props.fish.id}/media-manager`)
 }
 
 function onRecordSubmitted() {
   // 返回捕獲紀錄列表頁面
-  router.visit(`/fish/${props.fish.id}/capture-records`)
+  router.visit(`/fish/${props.fish.id}/media-manager`)
 }
 
 // 整合送出到 TopNavBar 的 @submit 事件

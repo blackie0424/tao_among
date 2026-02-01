@@ -1,5 +1,6 @@
 <template>
   <nav
+    v-if="user"
     class="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e7eff3] bg-slate-50 px-4 pb-3 pt-2 flex gap-2"
   >
     <!-- 新增魚類功能 -->
@@ -58,4 +59,9 @@
 <script setup>
 // 這個元件專門用於首頁的底部導航
 // 包含三個主要功能：搜尋、比較、新增魚類
+import { computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
+
+const page = usePage()
+const user = computed(() => page.props.auth?.user)
 </script>

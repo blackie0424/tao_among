@@ -1,50 +1,106 @@
 <template>
   <Head title="雅美（達悟）族魚類圖鑑" />
 
-  <div class="container mx-auto p-4 pb-20 relative">
-    <!-- 資料筆數統計卡 + Filter Chips -->
-    <FishSearchStatsBar
-      :totalCount="totalCount"
-      :appliedFilters="appliedFilters"
-      @remove-filter="removeFilter"
-    >
-      <template #actions>
-        <SearchToggleButton @toggle="handleSearchToggle" />
-      </template>
-    </FishSearchStatsBar>
+  <FishAppLayout
+    pageTitle="among no tao"
+    mobileBackUrl="/"
+    mobileBackText="首頁"
+    :showBottomNav="false"
+  >
+    <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
+    <template #desktop-nav>
+      <div class="flex items-center justify-end w-full px-4 h-10 gap-6">
+        <div class="text-base lg:text-lg font-bold text-gray-700 flex items-center">
+           資料總筆數 <span class="text-teal-700 text-xl lg:text-2xl mx-1.5 font-extrabold">{{ totalCount }}</span>
+        </div>
+        
+        <div class="h-5 w-px bg-gray-300"></div>
 
-    <main ref="scrollHost">
-      <!-- 統一搜尋對話框元件 -->
-      <FishSearchModal
-        v-model:show="showSearchDialog"
-        v-model:filters="currentFilters"
-        v-model:nameQuery="nameQuery"
-        :searchOptions="searchOptions"
-        @submit="submitUnifiedSearch"
-        @reset="resetUnifiedSearch"
-      />
+        <div class="flex items-center gap-3">
+           <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
+           <Link
+              v-if="user"
+              href="/fish/create"
+              class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
+              title="新增魚類"
+            >
+              <span class="mr-1 text-2xl leading-none font-normal pb-1">+</span> 新增
+            </Link>
+           <SearchToggleButton @toggle="handleSearchToggle" />
+        </div>
+      </div>
+    </template>
 
-      <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <li v-for="(item, index) in items" :key="item.id">
-          <FishCard :fish="item" :index="index" />
-        </li>
-      </ul>
+    <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 (Mobile也加強顯示) -->
+    <template #mobile-actions>
+      <div class="flex items-center justify-between px-2 w-full">
+         <div class="text-sm font-bold text-gray-600 flex items-center">
+           總筆數 <span class="text-teal-700 ml-1 text-base">{{ totalCount }}</span>
+         </div>
+         
+         <div class="flex items-center gap-3">
+            <Link
+               v-if="user"
+               href="/fish/create"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
+               title="新增魚類"
+             >
+               <span class="text-2xl leading-none font-light pb-0.5">+</span>
+             </Link>
+           <SearchToggleButton @toggle="handleSearchToggle" />
+         </div>
+      </div>
+    </template>
 
-      <FishSearchLoading :show="isLoading" />
-      <div ref="sentinel" class="h-8"></div>
-      <FishSearchCursorErrorBanner :show="showCursorError" @retry="retryFromStart" />
-    </main>
+    <!-- Header Extension Slot: Sticky Search Filter Bar -->
+    <template #header-extension>
+       <div v-if="appliedFilters.length > 0" class="border-t border-gray-100 transition-all duration-300">
+         <div class="container mx-auto px-4 py-3 max-w-7xl">
+            <FishSearchStatsBar
+              :showTotalCount="false"
+              variant="header"
+              :totalCount="totalCount"
+              :appliedFilters="appliedFilters"
+              @remove-filter="removeFilter"
+            />
+         </div>
+       </div>
+    </template>
 
-    <footer class="mt-8 text-center text-gray-500">Copyright © 2025 Chungyueh</footer>
-    <HomeBottomNavBar />
-  </div>
+    <div class="container mx-auto px-4 pb-20 relative pt-6">
+      <!-- 內容區 -->
+      <main ref="scrollHost">
+        <!-- 統一搜尋對話框元件 -->
+        <FishSearchModal
+          v-model:show="showSearchDialog"
+          v-model:filters="currentFilters"
+          v-model:nameQuery="nameQuery"
+          :searchOptions="searchOptions"
+          @submit="submitUnifiedSearch"
+          @reset="resetUnifiedSearch"
+        />
+
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+          <li v-for="(item, index) in items" :key="item.id">
+            <FishCard :fish="item" :index="index" />
+          </li>
+        </ul>
+
+        <FishSearchLoading :show="isLoading" />
+        <div ref="sentinel" class="h-8"></div>
+        <FishSearchCursorErrorBanner :show="showCursorError" @retry="retryFromStart" />
+      </main>
+
+
+    </div>
+  </FishAppLayout>
 </template>
 
 <script setup>
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 
-import HomeBottomNavBar from '@/Components/Global/HomeBottomNavBar.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
 import FishSearchModal from '@/Components/FishSearchModal.vue'
 import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
@@ -59,6 +115,8 @@ import {
   getCreatedIds,
   clearCreatedIds,
 } from '@/utils/fishListCache'
+
+const user = computed(() => usePage().props.auth?.user)
 
 const props = defineProps({
   // 精簡欄位列表（後端游標分頁）

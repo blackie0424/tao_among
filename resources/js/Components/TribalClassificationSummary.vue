@@ -3,11 +3,18 @@
   <div class="rounded-xl bg-white shadow-md border border-gray-200 p-4 mb-6 md:mb-10">
     <!-- 標題區塊：淺底與下邊框，視覺分區 -->
     <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-      <h3 class="text-xl font-semibold text-gray-900">地方知識</h3>
+      <h3 class="text-2xl font-bold text-gray-900">地方知識</h3>
+      <Link 
+        v-if="user"
+        :href="`/fish/${fishId}/knowledge-manager`" 
+        class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
+      >
+        <span class="text-lg leading-none">⚙️</span> 管理地方知識
+      </Link>
     </div>
 
     <!-- 無資料狀態 -->
-    <div v-if="classifications.length === 0" class="text-center py-8 text-gray-500">
+    <div v-if="classifications.length === 0 && user" class="text-center py-8 text-gray-500">
       <svg
         class="mx-auto h-12 w-12 text-gray-400 mb-4"
         fill="none"
@@ -30,17 +37,17 @@
         <thead>
           <tr>
             <th
-              class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-3 py-2 text-left text-sm font-bold text-gray-700 uppercase tracking-wider"
             >
               部落
             </th>
             <th
-              class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-3 py-2 text-left text-sm font-bold text-gray-700 uppercase tracking-wider"
             >
               飲食分類
             </th>
             <th
-              class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-3 py-2 text-left text-sm font-bold text-gray-700 uppercase tracking-wider"
             >
               處理方式
             </th>
@@ -55,10 +62,10 @@
                 {{ classification.tribe }}
               </span>
             </td>
-            <td class="px-3 py-2 align-top text-sm md:text-base text-gray-900">
+            <td class="px-3 py-2 align-top text-base md:text-lg text-gray-900">
               {{ classification.food_category || '未分類' }}
             </td>
-            <td class="px-3 py-2 align-top text-sm md:text-base text-gray-900">
+            <td class="px-3 py-2 align-top text-base md:text-lg text-gray-900">
               {{ classification.processing_method || '未記錄' }}
             </td>
           </tr>
@@ -69,6 +76,9 @@
 </template>
 
 <script setup>
+import { usePage, Link } from '@inertiajs/vue3'
+import { computed } from 'vue'
+
 const props = defineProps({
   classifications: {
     type: Array,
@@ -79,4 +89,7 @@ const props = defineProps({
     required: true,
   },
 })
+
+const page = usePage()
+const user = computed(() => page.props.auth?.user)
 </script>

@@ -13,7 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(FishSeeder::class);
-
+        $this->call([
+            AdminUserSeeder::class,
+            FieldResearcherSeeder::class,
+            // FishSeeder::class, // 測試用，正式環境註解掉
+        ]);
     }
 }

@@ -2,35 +2,57 @@
 <template>
   <div class="w-full flex flex-col items-center">
     <!-- 手機使用較小底距，桌面維持較大空間以保持排版 -->
-    <div class="pb-6 md:pb-20">
-      <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div class="flex flex-col md:flex-row items-center gap-4">
-          <!-- 魚類圖片 -->
-          <div class="w-full">
-            <FishName
-              :fish-name="fish.name"
-              :fish-id="fish.id"
-              :audio="fish.audio_url"
-              class="w-full max-w-2xl text-2xl mb-4"
-            />
-          </div>
-        </div>
+    <div class="w-full relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <!-- 圖片區域：移除個別圓角，由外層容器控制 -->
+      <div class="relative aspect-[4/3] bg-gray-100">
+        <LazyImage
+          :src="fish.display_image_url || fish.image_url"
+          :alt="fish.name"
+          wrapperClass="w-full h-full"
+          imgClass="w-full h-full object-cover"
+        />
       </div>
-      <LazyImage
-        :src="fish.display_image_url || fish.image_url"
-        :alt="fish.name"
-        wrapperClass="fish-image-wrapper"
-        imgClass="fish-image"
-      />
+
+      <!-- 魚名與發音區塊 -->
+      <div class="flex flex-wrap items-center gap-2 p-4 bg-white border-t border-gray-100">
+         
+         <!-- 魚名 + 發音（綁在一起，優先佔據空間） -->
+         <div class="flex items-center gap-3 flex-grow">
+           <h1 class="text-2xl font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
+           
+           <!-- Audio Player -->
+           <div v-if="fish.audio_url" class="flex-shrink-0">
+               <Volume :audioUrl="fish.audio_url" />
+           </div>
+         </div>
+
+         <!-- 管理區 (編輯 + 新增錄音) - 空間不足時換行 -->
+         <div v-if="user" class="flex items-center gap-1 flex-shrink-0">
+            <!-- Edit Fish Button -->
+            <Link :href="`/fish/${fish.id}/edit`" class="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-gray-50 transition" title="修改基本資料">
+               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            </Link>
+
+            <!-- Add Audio Button -->
+            <Link :href="`/fish/${fish.id}/audio/create`" class="text-gray-400 hover:text-rose-600 p-2 rounded-full hover:bg-gray-50 transition" title="新增錄音">
+               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+            </Link>
+         </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import FishName from '@/Components/FishName.vue'
+import Volume from '@/Components/Volume.vue'
 import LazyImage from '@/Components/LazyImage.vue'
+import { usePage, Link } from '@inertiajs/vue3'
+import { computed } from 'vue'
 
 defineProps({
   fish: Object,
 })
+
+const page = usePage()
+const user = computed(() => page.props.auth?.user)
 </script>

@@ -104,7 +104,7 @@ class FishNoteController extends BaseController
                     'new_data' => $note->fresh()->toArray()
                 ]);
 
-                return redirect()->route('fish.knowledge-list', $fishId)
+                return redirect()->route('fish.knowledge-manager', $fishId)
                     ->with('success', '進階知識已成功更新');
             }, 'knowledge update');
         } catch (Exception $e) {
@@ -137,7 +137,7 @@ class FishNoteController extends BaseController
                     'deleted_data' => $noteData
                 ]);
 
-                return redirect()->route('fish.knowledge-list', $fishId)
+                return redirect()->route('fish.knowledge-manager', $fishId)
                     ->with('success', '進階知識已成功刪除');
             }, 'knowledge deletion');
         } catch (Exception $e) {
@@ -234,6 +234,8 @@ class FishNoteController extends BaseController
                     'id' => $fishWithImage->id,
                     'name' => $fishWithImage->name,
                     'image' => $fishWithImage->image,
+                    'image_url' => $fishWithImage->image_url,
+                    'display_image_url' => $fishWithImage->display_image_url,
                 ],
                 'noteTypes' => $this->getNoteTypes(),
                 'tribes' => $this->getTribes()
@@ -267,7 +269,7 @@ class FishNoteController extends BaseController
                     'note_data' => $note->toArray()
                 ]);
 
-                return redirect()->route('fish.knowledge-list', $fishId)
+                return redirect()->route('fish.knowledge-manager', $fishId)
                     ->with('success', '進階知識已成功新增');
             }, 'knowledge creation');
         } catch (Exception $e) {

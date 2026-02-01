@@ -1,70 +1,27 @@
 <template>
   <nav
-    class="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e7eff3] bg-slate-50 px-4 pt-2 flex gap-2"
+    v-if="user"
+    class="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e7eff3] bg-slate-50 px-4 pt-2 flex gap-2 lg:hidden"
     style="padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem)"
     role="navigation"
     aria-label="底部工具列"
   >
-    <a
+    <!-- 基本資料 (回頂端/圖鑑) -->
+    <button
       class="flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-[#0e171b]"
-      href="/fishs"
-    >
-      <div class="text-[#0e171b] flex h-8 items-center justify-center">
-        <!-- Home Icon -->
-        <svg
-          data-icon-name="fish"
-          data-style="flat-line"
-          icon_origin_id="19639"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-          data-name="Flat Line"
-          id="fish"
-          class="icon flat-line"
-          width="24"
-          height="24"
-        >
-          <path
-            style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2"
-            d="M14.5,7A9.93,9.93,0,0,0,8.1,9.74,4.83,4.83,0,0,0,6.77,8.55,3.65,3.65,0,0,0,3,8.51,4.14,4.14,0,0,0,5.08,12,4.14,4.14,0,0,0,3,15.49a3.65,3.65,0,0,0,3.77,0A4.83,4.83,0,0,0,8.1,14.26,9.93,9.93,0,0,0,14.5,17c5,0,6.5-5,6.5-5S19.5,7,14.5,7Z"
-            id="secondary"
-          ></path>
-          <path
-            style="
-              fill: none;
-              stroke: rgb(0, 0, 0);
-              stroke-linecap: round;
-              stroke-linejoin: round;
-              stroke-width: 2;
-            "
-            d="M14.5,7A9.93,9.93,0,0,0,8.1,9.74,4.83,4.83,0,0,0,6.77,8.55,3.65,3.65,0,0,0,3,8.51,4.14,4.14,0,0,0,5.08,12,4.14,4.14,0,0,0,3,15.49a3.65,3.65,0,0,0,3.77,0A4.83,4.83,0,0,0,8.1,14.26,9.93,9.93,0,0,0,14.5,17c5,0,6.5-5,6.5-5S19.5,7,14.5,7Z"
-            id="primary"
-          ></path>
-        </svg>
-      </div>
-      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">圖鑑</p>
-    </a>
-
-    <!-- 魚類基本資料連結 -->
-    <a
-      v-if="fishBasicInfo"
-      :class="[
-        'flex flex-1 flex-col items-center justify-end gap-1',
-        currentPage === 'fishBasicInfo' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
-      ]"
-      :href="fishBasicInfo"
+      @click="handleBasicInfoClick"
     >
       <div
         :class="[
           'flex h-8 items-center justify-center',
-          currentPage === 'fishBasicInfo' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+          activeTab === 'basic' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
         ]"
       >
-        <!-- Fish Info Icon -->
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
           <circle
             :style="{
-              fill: currentPage === 'fishBasicInfo' ? 'rgb(30, 85, 246)' : 'none',
-              stroke: 'rgb(0, 0, 0)',
+              fill: activeTab === 'basic' ? 'rgb(30, 85, 246)' : 'none',
+              stroke: 'currentColor',
               'stroke-linecap': 'round',
               'stroke-linejoin': 'round',
               'stroke-width': '2',
@@ -76,7 +33,7 @@
           <path
             :style="{
               fill: 'none',
-              stroke: currentPage === 'fishBasicInfo' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+              stroke: activeTab === 'basic' ? 'white' : 'currentColor',
               'stroke-linecap': 'round',
               'stroke-linejoin': 'round',
               'stroke-width': '2',
@@ -85,8 +42,8 @@
           ></path>
           <circle
             :style="{
-              fill: currentPage === 'fishBasicInfo' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
-              stroke: currentPage === 'fishBasicInfo' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+              fill: activeTab === 'basic' ? 'white' : 'currentColor',
+              stroke: activeTab === 'basic' ? 'white' : 'currentColor',
               'stroke-width': '2',
             }"
             cx="12"
@@ -95,141 +52,96 @@
           ></circle>
         </svg>
       </div>
-      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">基本資料</p>
-    </a>
+      <p class="text-xs font-medium leading-normal tracking-[0.015em]">基本資料</p>
+    </button>
 
-    <!-- 捕獲紀錄連結 -->
-    <a
-      v-if="captureRecords"
+    <!-- 影音紀錄 (Media Manager) -->
+    <Link
+      :href="`/fish/${fishId}/media-manager`"
       :class="[
         'flex flex-1 flex-col items-center justify-end gap-1',
-        currentPage === 'captureRecords' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+        activeTab === 'media' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
       ]"
-      :href="captureRecords"
     >
       <div
         :class="[
           'flex h-8 items-center justify-center',
-          currentPage === 'captureRecords' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+          activeTab === 'media' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
         ]"
       >
-        <!-- Camera Icon -->
+        <!-- Camera/Mic Icon -->
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
           <path
-            v-if="currentPage === 'captureRecords'"
-            style="fill: rgb(30, 85, 246); stroke-width: 2"
-            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-          ></path>
-          <path
-            style="
-              fill: none;
-              stroke: rgb(0, 0, 0);
-              stroke-linecap: round;
-              stroke-linejoin: round;
-              stroke-width: 2;
-            "
-            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-          ></path>
-          <circle
-            style="
-              fill: none;
-              stroke: rgb(0, 0, 0);
-              stroke-linecap: round;
-              stroke-linejoin: round;
-              stroke-width: 2;
-            "
-            cx="12"
-            cy="13"
-            r="3"
-          ></circle>
+            v-if="activeTab === 'media'"
+            fill="rgb(30, 85, 246)"
+            d="M4 4h10l2 2v2h4v12H4V4zm2 2v10h12V8h-2l-2-2H6z"
+          />
+           <path
+            v-else
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            d="M4 4h10l2 2v2h4v12H4V4zm2 2v10h12V8h-2l-2-2H6z"
+          />
         </svg>
       </div>
-      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">捕獲紀錄</p>
-    </a>
+      <p class="text-xs font-medium leading-normal tracking-[0.015em]">捕獲與發音</p>
+    </Link>
 
-    <!-- 知識管理連結 -->
-    <a
-      v-if="knowledge"
+    <!-- 知識筆記 (Knowledge Manager) -->
+    <Link
+      :href="`/fish/${fishId}/knowledge-manager`"
       :class="[
         'flex flex-1 flex-col items-center justify-end gap-1',
-        currentPage === 'knowledge' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+        activeTab === 'knowledge' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
       ]"
-      :href="knowledge"
     >
       <div
         :class="[
           'flex h-8 items-center justify-center',
-          currentPage === 'knowledge' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
+          activeTab === 'knowledge' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
         ]"
       >
-        <!-- Knowledge/Book Icon -->
+        <!-- Book Icon -->
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-          <path
-            v-if="currentPage === 'knowledge'"
-            style="fill: rgb(30, 85, 246); stroke-width: 2"
+           <path
+            v-if="activeTab === 'knowledge'"
+            fill="rgb(30, 85, 246)"
             d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          ></path>
+          />
           <path
-            style="
-              fill: none;
-              stroke: rgb(0, 0, 0);
-              stroke-linecap: round;
-              stroke-linejoin: round;
-              stroke-width: 2;
-            "
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          ></path>
+             v-else
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+          />
         </svg>
       </div>
-      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">知識管理</p>
-    </a>
-
-    <!-- 發音列表連結 -->
-    <a
-      v-if="audioList"
-      :class="[
-        'flex flex-1 flex-col items-center justify-end gap-1',
-        currentPage === 'audioList' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
-      ]"
-      :href="audioList"
-    >
-      <div
-        :class="[
-          'flex h-8 items-center justify-center',
-          currentPage === 'audioList' ? 'text-[#0e171b]' : 'text-[#4d7f99]',
-        ]"
-      >
-        <!-- Volume/Audio Icon -->
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-          <path
-            v-if="currentPage === 'audioList'"
-            style="fill: rgb(30, 85, 246); stroke-width: 2"
-            d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"
-          ></path>
-          <path
-            style="
-              fill: none;
-              stroke: rgb(0, 0, 0);
-              stroke-linecap: round;
-              stroke-linejoin: round;
-              stroke-width: 2;
-            "
-            d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"
-          ></path>
-        </svg>
-      </div>
-      <p class="text-[#0e171b] text-xs font-medium leading-normal tracking-[0.015em]">發音列表</p>
-    </a>
+      <p class="text-xs font-medium leading-normal tracking-[0.015em]">基本資料與知識</p>
+    </Link>
   </nav>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { usePage, router, Link } from '@inertiajs/vue3'
+
 const props = defineProps({
-  fishBasicInfo: { type: String, default: null },
-  tribalKnowledge: { type: String, default: null },
-  captureRecords: { type: String, default: null },
-  knowledge: { type: String, default: null },
-  audioList: { type: String, default: null },
-  currentPage: { type: String, default: null }, // 'fishBasicInfo', 'tribalKnowledge', 'captureRecords', 'knowledgeList', 'audioList' 等
+  fishId: { type: [String, Number], required: true },
+  activeTab: { type: String, default: 'basic' }, // 'basic', 'media', 'knowledge'
 })
+
+const page = usePage()
+const user = computed(() => page.props.auth?.user)
+
+const handleBasicInfoClick = () => {
+  if (props.activeTab === 'basic') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } else {
+    router.visit(`/fish/${props.fishId}`)
+  }
+}
 </script>

@@ -1,6 +1,6 @@
 <template>
   <button
-    class="fixed top-4 right-4 z-50 bg-white/90 dark:bg-gray-800/80 rounded-full shadow p-2 hover:bg-blue-100 dark:hover:bg-blue-900 transition border border-gray-300 dark:border-gray-700"
+    class="inline-flex items-center justify-center bg-white/90 dark:bg-gray-800/80 rounded-full shadow p-2 hover:bg-blue-100 dark:hover:bg-blue-900 transition border border-gray-300 dark:border-gray-700"
     @click="emitToggle"
     aria-label="展開搜尋篩選"
   >
