@@ -436,7 +436,7 @@ const fetchPage = (opts = {}) => {
         url.searchParams.delete('perPage')
         const qs = url.searchParams.toString()
         const clean = url.pathname + (qs ? `?${qs}` : '') + (url.hash || '')
-        window.history.replaceState(null, '', clean)
+        window.history.replaceState(window.history.state, '', clean)
       } catch (e) {
         // 忽略 URL API 在部分環境不可用的情況
       }
@@ -510,7 +510,7 @@ onMounted(async () => {
       url.searchParams.delete('perPage')
       const qs = url.searchParams.toString()
       const clean = url.pathname + (qs ? `?${qs}` : '') + (url.hash || '')
-      window.history.replaceState(null, '', clean)
+      window.history.replaceState(window.history.state, '', clean)
       // 強制以目前篩選重新發送首批請求（忽略伺服器端因游標導致的部分資料）
       performSearch()
     } else if (!items.value.length) {
