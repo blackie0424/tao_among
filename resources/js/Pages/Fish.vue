@@ -32,28 +32,45 @@
               </Link>
             </div>
   
-            <div v-if="captureRecords.length" class="space-y-8">
-              <div v-for="record in captureRecords" :key="record.id" class="flex flex-col gap-3">
-                <!-- Location Tag -->
-                <div v-if="record.location" class="flex items-center text-sm text-gray-900 font-medium">
-                  捕獲地點：
-                  <span class="bg-gray-100 text-xs px-2 py-0.5 rounded mr-2 ml-1" v-if="record.tribe">{{ record.tribe }}</span>
-                   {{ record.location }}
+            <div v-if="captureRecords.length" class="space-y-10">
+              <div v-for="record in captureRecords" :key="record.id" class="flex flex-col gap-4 pb-8 border-b border-gray-100 last:border-b-0 last:pb-0">
+                <!-- 捕獲時間 -->
+                <div v-if="record.capture_date" class="flex items-center text-base text-gray-900 font-medium">
+                  <span class="text-gray-600 mr-2">📅</span>
+                  捕獲時間：{{ formatDate(record.capture_date) }}
                 </div>
+                
+                <!-- 捕獲地點 -->
+                <div v-if="record.location" class="flex flex-wrap items-center text-base text-gray-900 font-medium gap-1">
+                  <span class="text-gray-600 mr-1">📍</span>
+                  捕獲地點：
+                  <span class="bg-gray-100 text-sm px-2 py-0.5 rounded" v-if="record.tribe">{{ record.tribe }}</span>
+                  <span class="break-all">{{ record.location }}</span>
+                </div>
+                
                 <!-- 捕獲方式 -->
-                <div v-if="record.capture_method" class="flex items-center text-sm text-gray-900 font-medium">
+                <div v-if="record.capture_method" class="flex items-center text-base text-gray-900 font-medium">
+                  <span class="text-gray-600 mr-2">🎣</span>
                   捕獲方式：{{ record.capture_method }}
                 </div>
                 
                 <!-- Image -->
-                 <LazyImage 
-                    :src="record.image_url" 
-                    :alt="`${fish.name} 捕獲紀錄`"
-                    class="w-full h-auto object-cover rounded-lg shadow-sm border border-gray-100"
-                 />
-                 
-                 <!-- Photographer -->
-<!-- Photographer info removed -->
+                <LazyImage 
+                  :src="record.image_url" 
+                  :alt="`${fish.name} 捕獲紀錄`"
+                  class="w-full h-auto object-cover rounded-lg shadow-sm border border-gray-100"
+                />
+                
+                <!-- 捕獲說明 -->
+                <div v-if="record.notes" class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                  <div class="flex items-start gap-2">
+                    <span class="text-amber-600 text-lg leading-none mt-0.5">📝</span>
+                    <div>
+                      <span class="text-base font-medium text-amber-800 block mb-1">捕獲說明</span>
+                      <p class="text-base text-gray-800 leading-relaxed whitespace-pre-line break-words">{{ record.notes }}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -146,4 +163,14 @@ const groupedNotes = computed(() => props.fishNotes || {})
 const mobileBackText = computed(() => {
   return (props.fish?.name?.length || 0) > 12 ? '...' : 'among no tao'
 })
+
+// 格式化捕獲日期為易讀格式
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}/${month}/${day}`
+}
 </script>
