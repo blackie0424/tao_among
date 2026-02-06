@@ -303,6 +303,7 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { markFishStale } from '@/utils/fishListCache'
 import LazyImage from './LazyImage.vue'
 import { useFormValidation, validationRules } from '../composables/useFormValidation.js'
 
@@ -555,6 +556,8 @@ function submitForm() {
   router.post(updateUrl, formData, {
     onSuccess: () => {
       retryAttempts.value = 0
+      // 標記魚類資料需要更新（清除快取）
+      markFishStale(props.fishId)
       emit('submitted')
     },
     onError: (errorResponse) => {

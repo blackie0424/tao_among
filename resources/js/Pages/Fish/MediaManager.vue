@@ -156,6 +156,7 @@
 <script setup>
 import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
+import { markFishStale } from '@/utils/fishListCache'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import LazyImage from '@/Components/LazyImage.vue'
@@ -195,13 +196,23 @@ const getAudioLabel = (audio) => {
 
 const setMainAudio = (audio) => {
   if (confirm('確定要將此檔案設為主要發音嗎？')) {
-    router.put(`/fish/${props.fish.id}/audio/${audio.id}/set-base`)
+    router.put(`/fish/${props.fish.id}/audio/${audio.id}/set-base`, {}, {
+      onSuccess: () => {
+        // 標記魚類資料需要更新（清除快取）
+        markFishStale(props.fish.id)
+      }
+    })
   }
 }
 
 const deleteAudio = (audio) => {
   if (confirm('確定要刪除此發音檔案嗎？此動作無法復原。')) {
-    router.delete(`/fish/${props.fish.id}/audio/${audio.id}`)
+    router.delete(`/fish/${props.fish.id}/audio/${audio.id}`, {
+      onSuccess: () => {
+        // 標記魚類資料需要更新（清除快取）
+        markFishStale(props.fish.id)
+      }
+    })
   }
 }
 
