@@ -70,6 +70,7 @@ import TopNavBar from '@/Components/Global/TopNavBar.vue'
 import LazyImage from '../Components/LazyImage.vue'
 
 import { router } from '@inertiajs/vue3'
+import { markFishStale } from '@/utils/fishListCache'
 
 const props = defineProps({
   fish: Object,
@@ -275,6 +276,9 @@ async function handleNext() {
       body: audioBlob.value,
     })
     if (!putRes.ok) throw new Error('音訊上傳失敗')
+
+    // 標記魚類資料需要更新（清除快取）
+    markFishStale(fishId)
 
     // 上傳成功後導回特定魚類資訊頁
     router.visit(`/fish/${fishId}`)
