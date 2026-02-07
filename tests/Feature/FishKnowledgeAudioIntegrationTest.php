@@ -22,11 +22,11 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
             // Start from fish detail page (simulated)
             // Navigate to knowledge list
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('FishKnowledgeList')
+                $page->component('Fish/KnowledgeManager')
                     ->where('fish.id', $fish->id)
                     ->has('groupedNotes')
             );
@@ -36,7 +36,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('EditFishNote')
+                $page->component('Fish/EditKnowledge')
                     ->where('fish.id', $fish->id)
                     ->where('note.id', $note->id)
             );
@@ -52,11 +52,11 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // Navigate to audio list
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('FishAudioList')
+                $page->component('Fish/MediaManager')
                     ->where('fish.id', $fish->id)
                     ->has('fish.audios')
             );
@@ -66,7 +66,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('EditFishAudio')
+                $page->component('Fish/EditAudio')
                     ->where('fish.id', $fish->id)
                     ->where('audio.id', $audio->id)
             );
@@ -84,7 +84,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // 1. View knowledge list
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
             $response->assertStatus(200);
 
             // 2. Edit knowledge
@@ -125,7 +125,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // 1. View audio list
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
             $response->assertStatus(200);
 
             // 2. Edit audio
@@ -245,11 +245,11 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $this->assertDatabaseHas('fish_audios', ['id' => $audio->id]);
 
             // But accessing through deleted fish should fail
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -263,8 +263,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
             // Both management pages should show fish information
-            $knowledgeResponse = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
-            $audioResponse = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $knowledgeResponse = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+            $audioResponse = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
 
             $knowledgeResponse->assertInertia(
                 fn ($page) =>
@@ -355,7 +355,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             $startTime = microtime(true);
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
             $endTime = microtime(true);
 
             $response->assertStatus(200);
@@ -382,7 +382,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             $startTime = microtime(true);
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
             $endTime = microtime(true);
 
             $response->assertStatus(200);
@@ -411,7 +411,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $audio2 = FishAudio::factory()->create(['fish_id' => $fish2->id, 'name' => 'Fish 2 audio']);
 
             // Fish 1 should only see its own knowledge and audio
-            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/knowledge-manager");
             $response->assertInertia(function ($page) {
                 $groupedNotes = $page->toArray()['props']['groupedNotes'];
                 $allNotes = collect($groupedNotes)->flatMap(fn ($group) => $group['notes']);
@@ -419,7 +419,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
                 return $page;
             });
 
-            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/media-manager");
             $response->assertInertia(
                 fn ($page) =>
                 $page->where('fish.audios.0.name', 'Fish 1 audio')
@@ -427,7 +427,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             );
 
             // Fish 2 should only see its own knowledge and audio
-            $response = $this->actingAs($user)->get("/fish/{$fish2->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish2->id}/knowledge-manager");
             $response->assertInertia(function ($page) {
                 $groupedNotes = $page->toArray()['props']['groupedNotes'];
                 $allNotes = collect($groupedNotes)->flatMap(fn ($group) => $group['notes']);
@@ -435,7 +435,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
                 return $page;
             });
 
-            $response = $this->actingAs($user)->get("/fish/{$fish2->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish2->id}/media-manager");
             $response->assertInertia(
                 fn ($page) =>
                 $page->where('fish.audios.0.name', 'Fish 2 audio')

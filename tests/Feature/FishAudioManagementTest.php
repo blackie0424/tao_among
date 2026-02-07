@@ -27,12 +27,12 @@ describe('Fish Audio Management', function () {
                 'locate' => 'audio2.mp3'
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('FishAudioList')
+                $page->component('Fish/MediaManager')
                     ->has('fish')
                     ->where('fish.id', $fish->id)
                     ->where('fish.name', 'Test Fish')
@@ -42,7 +42,7 @@ describe('Fish Audio Management', function () {
 
         it('redirects with error for non-existent fish', function () {
             $user = User::factory()->create();
-            $response = $this->actingAs($user)->get('/fish/999/audio-list');
+            $response = $this->actingAs($user)->get('/fish/999/media-manager');
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -51,12 +51,12 @@ describe('Fish Audio Management', function () {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('FishAudioList')
+                $page->component('Fish/MediaManager')
                     ->has('fish')
                     ->where('fish.id', $fish->id)
                     ->has('fish.audios', 0)
@@ -72,7 +72,7 @@ describe('Fish Audio Management', function () {
                 'locate' => 'test-audio.mp3'
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -99,7 +99,7 @@ describe('Fish Audio Management', function () {
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('EditFishAudio')
+                $page->component('Fish/EditAudio')
                     ->has('fish')
                     ->has('audio')
                     ->where('fish.id', $fish->id)
@@ -344,7 +344,7 @@ describe('Fish Audio Management', function () {
                 'name' => 'test-audio.mp3'
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -363,7 +363,7 @@ describe('Fish Audio Management', function () {
                 'locate' => '' // Empty file location instead of null
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -390,7 +390,7 @@ describe('Fish Audio Management', function () {
             ]);
 
             // Accessing audio list should redirect with error since fish is deleted
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });

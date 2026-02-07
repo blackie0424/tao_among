@@ -26,12 +26,12 @@ describe('Fish Knowledge Management', function () {
                 'locate' => 'Eastern coast'
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('FishKnowledgeList')
+                $page->component('Fish/KnowledgeManager')
                     ->has('fish')
                     ->where('fish.id', $fish->id)
                     ->where('fish.name', 'Test Fish')
@@ -41,7 +41,7 @@ describe('Fish Knowledge Management', function () {
 
         it('redirects with error for non-existent fish', function () {
             $user = User::factory()->create();
-            $response = $this->actingAs($user)->get('/fish/999/knowledge-list');
+            $response = $this->actingAs($user)->get('/fish/999/knowledge-manager');
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -67,7 +67,7 @@ describe('Fish Knowledge Management', function () {
                 'note_type' => '生態習性'
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -102,7 +102,7 @@ describe('Fish Knowledge Management', function () {
             ]);
             $note->save();
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -136,7 +136,7 @@ describe('Fish Knowledge Management', function () {
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
-                $page->component('EditFishNote')
+                $page->component('Fish/EditKnowledge')
                     ->has('fish')
                     ->has('note')
                     ->where('fish.id', $fish->id)
@@ -346,7 +346,7 @@ describe('Fish Knowledge Management', function () {
                 'created_at' => now()->subDay()
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) use ($oldNote, $newNote) {
@@ -382,7 +382,7 @@ describe('Fish Knowledge Management', function () {
                 'note_type' => '營養價值'
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -415,7 +415,7 @@ describe('Fish Knowledge Management', function () {
             ]);
             $note->save();
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
