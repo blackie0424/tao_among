@@ -3,6 +3,7 @@
 use App\Models\Fish;
 use App\Models\FishNote;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 
 uses(RefreshDatabase::class);
 
@@ -10,6 +11,7 @@ describe('Fish Knowledge Management', function () {
     
     describe('Knowledge List Page', function () {
         it('can display knowledge list page for existing fish', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create(['name' => 'Test Fish']);
             $note1 = FishNote::factory()->create([
                 'fish_id' => $fish->id,
@@ -24,7 +26,7 @@ describe('Fish Knowledge Management', function () {
                 'locate' => 'Eastern coast'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -38,12 +40,14 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('redirects with error for non-existent fish', function () {
-            $response = $this->get('/fish/999/knowledge-list');
+            $user = User::factory()->create();
+            $response = $this->actingAs($user)->get('/fish/999/knowledge-list');
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('groups notes by type correctly', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             // Create notes with different types
@@ -63,7 +67,7 @@ describe('Fish Knowledge Management', function () {
                 'note_type' => '生態習性'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -86,6 +90,7 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('handles notes without type correctly', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             // Create note with empty string instead of null to avoid database constraint
@@ -97,7 +102,7 @@ describe('Fish Knowledge Management', function () {
             ]);
             $note->save();
 
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -117,6 +122,7 @@ describe('Fish Knowledge Management', function () {
 
     describe('Knowledge Edit Page', function () {
         it('can display edit knowledge page', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create(['name' => 'Test Fish']);
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
@@ -125,7 +131,7 @@ describe('Fish Knowledge Management', function () {
                 'locate' => 'Taiwan'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -141,25 +147,28 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('redirects with error for non-existent fish', function () {
+            $user = User::factory()->create();
             $note = FishNote::factory()->create();
-            $response = $this->get("/fish/999/knowledge/{$note->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/999/knowledge/{$note->id}/edit");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('redirects with error for non-existent note', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
-            $response = $this->get("/fish/{$fish->id}/knowledge/999/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge/999/edit");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('redirects with error when note does not belong to fish', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create();
             $fish2 = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish2->id]);
 
-            $response = $this->get("/fish/{$fish1->id}/knowledge/{$note->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/knowledge/{$note->id}/edit");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -167,6 +176,7 @@ describe('Fish Knowledge Management', function () {
 
     describe('Knowledge Update', function () {
         it('can update knowledge successfully', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
@@ -175,13 +185,13 @@ describe('Fish Knowledge Management', function () {
                 'locate' => 'Original location'
             ]);
 
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'Updated knowledge',
                 'note_type' => '食用方式',
                 'locate' => 'Updated location'
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
 
             $this->assertDatabaseHas('fish_notes', [
                 'id' => $note->id,
@@ -193,10 +203,11 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('validates required fields when updating knowledge', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish->id]);
 
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => '', // Empty note should fail validation
                 'note_type' => '生態習性'
             ]);
@@ -207,6 +218,7 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('can update knowledge with partial data', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
@@ -215,12 +227,12 @@ describe('Fish Knowledge Management', function () {
                 'locate' => 'Original location'
             ]);
 
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'Updated knowledge only'
                 // Not updating note_type or locate
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
 
             $this->assertDatabaseHas('fish_notes', [
                 'id' => $note->id,
@@ -231,9 +243,10 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('redirects with error when updating non-existent knowledge', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
 
-            $response = $this->put("/fish/{$fish->id}/knowledge/999", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/999", [
                 'note' => 'Should not update',
                 'note_type' => '生態習性'
             ]);
@@ -243,11 +256,12 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('redirects with error when knowledge does not belong to fish', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create();
             $fish2 = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish2->id]);
 
-            $response = $this->put("/fish/{$fish1->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish1->id}/knowledge/{$note->id}", [
                 'note' => 'Should not update',
                 'note_type' => '生態習性'
             ]);
@@ -259,15 +273,16 @@ describe('Fish Knowledge Management', function () {
 
     describe('Knowledge Delete', function () {
         it('can delete knowledge successfully', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'To be deleted'
             ]);
 
-            $response = $this->delete("/fish/{$fish->id}/knowledge/{$note->id}");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/knowledge/{$note->id}");
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
 
             $this->assertSoftDeleted('fish_notes', [
                 'id' => $note->id,
@@ -276,30 +291,33 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('redirects with error when deleting non-existent knowledge', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
 
-            $response = $this->delete("/fish/{$fish->id}/knowledge/999");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/knowledge/999");
 
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('redirects with error when knowledge does not belong to fish', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create();
             $fish2 = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish2->id]);
 
-            $response = $this->delete("/fish/{$fish1->id}/knowledge/{$note->id}");
+            $response = $this->actingAs($user)->delete("/fish/{$fish1->id}/knowledge/{$note->id}");
 
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('does not hard delete knowledge', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish->id]);
 
-            $this->delete("/fish/{$fish->id}/knowledge/{$note->id}");
+            $this->actingAs($user)->delete("/fish/{$fish->id}/knowledge/{$note->id}");
 
             // Should still exist in database but with deleted_at timestamp
             $deletedNote = FishNote::withTrashed()->find($note->id);
@@ -310,6 +328,7 @@ describe('Fish Knowledge Management', function () {
 
     describe('Data Grouping and Sorting', function () {
         it('sorts notes within categories by creation time', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             // Create notes with specific timestamps
@@ -327,7 +346,7 @@ describe('Fish Knowledge Management', function () {
                 'created_at' => now()->subDay()
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) use ($oldNote, $newNote) {
@@ -347,6 +366,7 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('sorts categories alphabetically', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             FishNote::factory()->create([
@@ -362,7 +382,7 @@ describe('Fish Knowledge Management', function () {
                 'note_type' => '營養價值'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -378,6 +398,7 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('handles mixed categorized and uncategorized notes', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             FishNote::factory()->create([
@@ -394,7 +415,7 @@ describe('Fish Knowledge Management', function () {
             ]);
             $note->save();
 
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -421,11 +442,12 @@ describe('Fish Knowledge Management', function () {
 
     describe('Error Handling', function () {
         it('handles database errors gracefully during update', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish->id]);
 
             // Simulate database error by using invalid data type
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => str_repeat('a', 10000), // Assuming note field has length limit
                 'note_type' => '生態習性'
             ]);
@@ -435,6 +457,7 @@ describe('Fish Knowledge Management', function () {
         });
 
         it('maintains data integrity during concurrent updates', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
@@ -442,18 +465,18 @@ describe('Fish Knowledge Management', function () {
             ]);
 
             // First update
-            $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'First update',
                 'note_type' => '生態習性'
             ]);
 
             // Second update should work on the updated record
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'Second update',
                 'note_type' => '食用方式'
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
 
             $this->assertDatabaseHas('fish_notes', [
                 'id' => $note->id,
