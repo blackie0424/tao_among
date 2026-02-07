@@ -5,6 +5,7 @@ use App\Models\FishAudio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use App\Models\User;
 
 uses(RefreshDatabase::class);
 
@@ -12,6 +13,8 @@ describe('Fish Audio Management', function () {
     
     describe('Audio List Page', function () {
         it('can display audio list page for existing fish', function () {
+            $user = User::factory()->create();
+
             $fish = Fish::factory()->create(['name' => 'Test Fish']);
             $audio1 = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -24,7 +27,7 @@ describe('Fish Audio Management', function () {
                 'locate' => 'audio2.mp3'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -38,15 +41,17 @@ describe('Fish Audio Management', function () {
         });
 
         it('redirects with error for non-existent fish', function () {
-            $response = $this->get('/fish/999/audio-list');
+            $user = User::factory()->create();
+            $response = $this->actingAs($user)->get('/fish/999/audio-list');
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('displays empty list when fish has no audio', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
 
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -59,6 +64,7 @@ describe('Fish Audio Management', function () {
         });
 
         it('includes audio URLs in response', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -66,7 +72,7 @@ describe('Fish Audio Management', function () {
                 'locate' => 'test-audio.mp3'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -80,6 +86,7 @@ describe('Fish Audio Management', function () {
 
     describe('Audio Edit Page', function () {
         it('can display edit audio page', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create(['name' => 'Test Fish']);
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -87,7 +94,7 @@ describe('Fish Audio Management', function () {
                 'locate' => 'original.mp3'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -102,25 +109,28 @@ describe('Fish Audio Management', function () {
         });
 
         it('redirects with error for non-existent fish', function () {
+            $user = User::factory()->create();
             $audio = FishAudio::factory()->create();
-            $response = $this->get("/fish/999/audio/{$audio->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/999/audio/{$audio->id}/edit");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('redirects with error for non-existent audio', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
-            $response = $this->get("/fish/{$fish->id}/audio/999/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio/999/edit");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('redirects with error when audio does not belong to fish', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create();
             $fish2 = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish2->id]);
 
-            $response = $this->get("/fish/{$fish1->id}/audio/{$audio->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/audio/{$audio->id}/edit");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -128,6 +138,7 @@ describe('Fish Audio Management', function () {
 
     describe('Audio Update', function () {
         it('can update audio name successfully', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -135,11 +146,11 @@ describe('Fish Audio Management', function () {
                 'locate' => 'original.mp3'
             ]);
 
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'Updated name'
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             $this->assertDatabaseHas('fish_audios', [
                 'id' => $audio->id,
@@ -150,6 +161,7 @@ describe('Fish Audio Management', function () {
         });
 
         it('can update audio file', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -157,12 +169,12 @@ describe('Fish Audio Management', function () {
                 'locate' => 'original.mp3'
             ]);
 
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'Test Audio',
                 'audio_filename' => 'new-audio.mp3'
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             $this->assertDatabaseHas('fish_audios', [
                 'id' => $audio->id,
@@ -172,10 +184,11 @@ describe('Fish Audio Management', function () {
         });
 
         it('validates required name field', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => '' // Empty name should fail validation
             ]);
 
@@ -183,10 +196,11 @@ describe('Fish Audio Management', function () {
         });
 
         it('validates name field length', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => str_repeat('a', 256) // Assuming max length is 255
             ]);
 
@@ -194,9 +208,10 @@ describe('Fish Audio Management', function () {
         });
 
         it('redirects with error when updating non-existent audio', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
 
-            $response = $this->put("/fish/{$fish->id}/audio/999", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/999", [
                 'name' => 'Should not update'
             ]);
 
@@ -205,11 +220,12 @@ describe('Fish Audio Management', function () {
         });
 
         it('redirects with error when audio does not belong to fish', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create();
             $fish2 = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish2->id]);
 
-            $response = $this->put("/fish/{$fish1->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish1->id}/audio/{$audio->id}", [
                 'name' => 'Should not update'
             ]);
 
@@ -218,6 +234,7 @@ describe('Fish Audio Management', function () {
         });
 
         it('handles optional audio filename update', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -226,11 +243,11 @@ describe('Fish Audio Management', function () {
             ]);
 
             // Update without audio_filename
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'Updated name only'
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             $this->assertDatabaseHas('fish_audios', [
                 'id' => $audio->id,
@@ -242,15 +259,16 @@ describe('Fish Audio Management', function () {
 
     describe('Audio Delete', function () {
         it('can delete audio successfully', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
                 'name' => 'To be deleted'
             ]);
 
-            $response = $this->delete("/fish/{$fish->id}/audio/{$audio->id}");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/audio/{$audio->id}");
 
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             $this->assertSoftDeleted('fish_audios', [
                 'id' => $audio->id,
@@ -259,30 +277,33 @@ describe('Fish Audio Management', function () {
         });
 
         it('redirects with error when deleting non-existent audio', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
 
-            $response = $this->delete("/fish/{$fish->id}/audio/999");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/audio/999");
 
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('redirects with error when audio does not belong to fish', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create();
             $fish2 = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish2->id]);
 
-            $response = $this->delete("/fish/{$fish1->id}/audio/{$audio->id}");
+            $response = $this->actingAs($user)->delete("/fish/{$fish1->id}/audio/{$audio->id}");
 
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('does not hard delete audio', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
-            $this->delete("/fish/{$fish->id}/audio/{$audio->id}");
+            $this->actingAs($user)->delete("/fish/{$fish->id}/audio/{$audio->id}");
 
             // Should still exist in database but with deleted_at timestamp
             $deletedAudio = FishAudio::withTrashed()->find($audio->id);
@@ -291,6 +312,7 @@ describe('Fish Audio Management', function () {
         });
 
         it('handles audio file cleanup on delete', function () {
+            $user = User::factory()->create();
             Storage::fake('public');
             
             $fish = Fish::factory()->create();
@@ -302,9 +324,9 @@ describe('Fish Audio Management', function () {
             // Create a fake file
             Storage::disk('public')->put('audio/test-audio.mp3', 'fake audio content');
             
-            $response = $this->delete("/fish/{$fish->id}/audio/{$audio->id}");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/audio/{$audio->id}");
 
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             // Audio record should be soft deleted
             $this->assertSoftDeleted('fish_audios', [
@@ -315,13 +337,14 @@ describe('Fish Audio Management', function () {
 
     describe('Audio URL Generation', function () {
         it('generates correct audio URLs', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
                 'name' => 'test-audio.mp3'
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
@@ -333,13 +356,14 @@ describe('Fish Audio Management', function () {
         });
 
         it('handles missing audio files gracefully', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
                 'locate' => '' // Empty file location instead of null
             ]);
 
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
 
             $response->assertStatus(200);
             $response->assertInertia(
@@ -352,6 +376,7 @@ describe('Fish Audio Management', function () {
 
     describe('CRUD Operations Integration', function () {
         it('maintains referential integrity when fish is deleted', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
@@ -365,12 +390,13 @@ describe('Fish Audio Management', function () {
             ]);
 
             // Accessing audio list should redirect with error since fish is deleted
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
 
         it('handles concurrent audio operations', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -378,11 +404,11 @@ describe('Fish Audio Management', function () {
             ]);
 
             // Simulate concurrent updates
-            $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'First update'
             ]);
 
-            $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'Second update'
             ]);
 
@@ -393,22 +419,23 @@ describe('Fish Audio Management', function () {
         });
 
         it('validates audio operations with proper fish ownership', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create();
             $fish2 = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish1->id]);
 
             // Try to access audio through wrong fish
-            $response = $this->get("/fish/{$fish2->id}/audio/{$audio->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish2->id}/audio/{$audio->id}/edit");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
 
-            $response = $this->put("/fish/{$fish2->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish2->id}/audio/{$audio->id}", [
                 'name' => 'Should not work'
             ]);
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
 
-            $response = $this->delete("/fish/{$fish2->id}/audio/{$audio->id}");
+            $response = $this->actingAs($user)->delete("/fish/{$fish2->id}/audio/{$audio->id}");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -416,12 +443,13 @@ describe('Fish Audio Management', function () {
 
     describe('Error Handling and Edge Cases', function () {
         it('handles database connection errors gracefully', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
             // This test would require mocking database failures
             // For now, we'll test with invalid data that might cause database errors
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => null // This should be caught by validation before hitting database
             ]);
 
@@ -429,12 +457,13 @@ describe('Fish Audio Management', function () {
         });
 
         it('handles large audio file names', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
             $longFilename = str_repeat('a', 500) . '.mp3';
             
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'Test Audio',
                 'audio_filename' => $longFilename
             ]);
@@ -444,6 +473,7 @@ describe('Fish Audio Management', function () {
         });
 
         it('maintains data consistency during failed operations', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -452,7 +482,7 @@ describe('Fish Audio Management', function () {
             ]);
 
             // Attempt invalid update
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => '' // Invalid name
             ]);
 
