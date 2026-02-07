@@ -4,6 +4,7 @@ use App\Models\Fish;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Illuminate\Support\Facades\Http;
+use App\Models\User;
 
 uses(RefreshDatabase::class);
 
@@ -81,12 +82,13 @@ it('returns 404 for non-existent fish detail', function () {
 });
 
 it('creates a new fish and returns capture prompt props', function () {
+    $user = User::factory()->create();
     $fishData = [
         'name' => 'Test Fish',
         'image' => 'test-fish-123.jpg',
     ];
 
-    $response = $this->post('/fish', $fishData);
+    $response = $this->actingAs($user)->post('/fish', $fishData);
 
     $response->assertStatus(200)
         ->assertInertia(
@@ -104,12 +106,13 @@ it('creates a new fish and returns capture prompt props', function () {
 });
 
 it('creates fish without audio_filename and still returns capture prompt', function () {
+    $user = User::factory()->create();
     $fishData = [
         'name' => 'Another Fish',
         'image' => 'another-fish-456.jpg',
     ];
 
-    $response = $this->post('/fish', $fishData);
+    $response = $this->actingAs($user)->post('/fish', $fishData);
 
     $response->assertStatus(200)
         ->assertInertia(
@@ -121,22 +124,24 @@ it('creates fish without audio_filename and still returns capture prompt', funct
 });
 
 it('fails to create fish without required name', function () {
+    $user = User::factory()->create();
     $fishData = [
         'image' => 'test-fish.jpg',
     ];
 
-    $response = $this->post('/fish', $fishData);
+    $response = $this->actingAs($user)->post('/fish', $fishData);
 
     $response->assertStatus(302); // Redirect back with errors
     $response->assertSessionHasErrors('name');
 });
 
 it('fails to create fish without required image', function () {
+    $user =User::factory()->create();
     $fishData = [
         'name' => 'Test Fish',
     ];
 
-    $response = $this->post('/fish', $fishData);
+    $response = $this->actingAs($user)->post('/fish', $fishData);
 
     $response->assertStatus(302); // Redirect back with errors
     $response->assertSessionHasErrors('image');
