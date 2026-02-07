@@ -4,6 +4,7 @@ use App\Models\Fish;
 use App\Models\FishNote;
 use App\Models\FishAudio;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 
 uses(RefreshDatabase::class);
 
@@ -11,6 +12,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
     
     describe('Complete Navigation Flow', function () {
         it('can navigate from fish detail to knowledge list and back', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create(['name' => 'Integration Test Fish']);
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
@@ -20,7 +22,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
             // Start from fish detail page (simulated)
             // Navigate to knowledge list
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
@@ -30,7 +32,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             );
 
             // Navigate to edit knowledge
-            $response = $this->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
@@ -41,6 +43,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
         });
 
         it('can navigate from fish detail to audio list and back', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create(['name' => 'Integration Test Fish']);
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -49,7 +52,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // Navigate to audio list
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
@@ -59,7 +62,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             );
 
             // Navigate to edit audio
-            $response = $this->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
             $response->assertStatus(200);
             $response->assertInertia(
                 fn ($page) =>
@@ -72,6 +75,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
     describe('Complete CRUD Operations Flow', function () {
         it('can perform complete knowledge management workflow', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
@@ -80,19 +84,19 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // 1. View knowledge list
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
             $response->assertStatus(200);
 
             // 2. Edit knowledge
-            $response = $this->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
             $response->assertStatus(200);
 
             // 3. Update knowledge
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'Updated knowledge',
                 'note_type' => '營養價值'
             ]);
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
 
             // 4. Verify update in database
             $this->assertDatabaseHas('fish_notes', [
@@ -102,8 +106,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // 5. Delete knowledge
-            $response = $this->delete("/fish/{$fish->id}/knowledge/{$note->id}");
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/knowledge/{$note->id}");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
 
             // 6. Verify soft delete
             $this->assertSoftDeleted('fish_notes', [
@@ -112,6 +116,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
         });
 
         it('can perform complete audio management workflow', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $audio = FishAudio::factory()->create([
                 'fish_id' => $fish->id,
@@ -120,19 +125,19 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // 1. View audio list
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
             $response->assertStatus(200);
 
             // 2. Edit audio
-            $response = $this->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
             $response->assertStatus(200);
 
             // 3. Update audio
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'Updated pronunciation',
                 'audio_filename' => 'updated.mp3'
             ]);
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             // 4. Verify update in database
             $this->assertDatabaseHas('fish_audios', [
@@ -142,8 +147,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // 5. Delete audio
-            $response = $this->delete("/fish/{$fish->id}/audio/{$audio->id}");
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/audio/{$audio->id}");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             // 6. Verify soft delete
             $this->assertSoftDeleted('fish_audios', [
@@ -154,6 +159,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
     describe('Data Consistency and Integrity', function () {
         it('maintains data consistency across knowledge operations', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             // Create multiple notes
@@ -169,7 +175,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // Update one note
-            $this->put("/fish/{$fish->id}/knowledge/{$note1->id}", [
+            $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note1->id}", [
                 'note' => 'Updated first knowledge',
                 'note_type' => '營養價值'
             ]);
@@ -190,6 +196,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
         });
 
         it('maintains data consistency across audio operations', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             // Create multiple audio files
@@ -205,7 +212,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             // Update one audio
-            $this->put("/fish/{$fish->id}/audio/{$audio1->id}", [
+            $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio1->id}", [
                 'name' => 'Updated first pronunciation'
             ]);
 
@@ -225,6 +232,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
         });
 
         it('handles fish deletion impact on knowledge and audio', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish->id]);
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
@@ -237,11 +245,11 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $this->assertDatabaseHas('fish_audios', ['id' => $audio->id]);
 
             // But accessing through deleted fish should fail
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
 
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -249,13 +257,14 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
     describe('User Experience Flow', function () {
         it('provides consistent user experience across management pages', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create(['name' => 'UX Test Fish']);
             $note = FishNote::factory()->create(['fish_id' => $fish->id]);
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
             // Both management pages should show fish information
-            $knowledgeResponse = $this->get("/fish/{$fish->id}/knowledge-list");
-            $audioResponse = $this->get("/fish/{$fish->id}/audio-list");
+            $knowledgeResponse = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
+            $audioResponse = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
 
             $knowledgeResponse->assertInertia(
                 fn ($page) =>
@@ -268,8 +277,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             );
 
             // Both edit pages should show fish information
-            $editKnowledgeResponse = $this->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
-            $editAudioResponse = $this->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
+            $editKnowledgeResponse = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
+            $editAudioResponse = $this->actingAs($user)->get("/fish/{$fish->id}/audio/{$audio->id}/edit");
 
             $editKnowledgeResponse->assertInertia(
                 fn ($page) =>
@@ -283,12 +292,13 @@ describe('Fish Knowledge and Audio Management Integration', function () {
         });
 
         it('handles validation errors consistently across forms', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish->id]);
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
             // Test knowledge validation
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => '', // Invalid empty note
                 'note_type' => '生態習性'
             ]);
@@ -296,44 +306,46 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $response->assertJsonValidationErrors(['note']);
 
             // Test audio validation
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => '' // Invalid empty name
             ]);
             $response->assertSessionHasErrors(['name']);
         });
 
         it('provides proper success feedback after operations', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create(['fish_id' => $fish->id]);
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
 
             // Test knowledge update success
-            $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'Updated knowledge',
                 'note_type' => '生態習性'
             ]);
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
             $response->assertSessionHas('success');
 
             // Test audio update success
-            $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
+            $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'name' => 'Updated audio'
             ]);
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
             // Test knowledge delete success
-            $response = $this->delete("/fish/{$fish->id}/knowledge/{$note->id}");
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/knowledge/{$note->id}");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
             $response->assertSessionHas('success');
 
             // Test audio delete success
-            $response = $this->delete("/fish/{$fish->id}/audio/{$audio->id}");
-            $response->assertRedirect("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->delete("/fish/{$fish->id}/audio/{$audio->id}");
+            $response->assertRedirect("/fish/{$fish->id}/media-manager");
         });
     });
 
     describe('Performance and Scalability', function () {
         it('handles multiple knowledge entries efficiently', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             // Create many knowledge entries
@@ -343,7 +355,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             $startTime = microtime(true);
-            $response = $this->get("/fish/{$fish->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
             $endTime = microtime(true);
 
             $response->assertStatus(200);
@@ -361,6 +373,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
         });
 
         it('handles multiple audio entries efficiently', function () {
+            $user = User::factory()->create();
             $fish = Fish::factory()->create();
             
             // Create many audio entries
@@ -369,7 +382,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             ]);
 
             $startTime = microtime(true);
-            $response = $this->get("/fish/{$fish->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/audio-list");
             $endTime = microtime(true);
 
             $response->assertStatus(200);
@@ -387,6 +400,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
     describe('Cross-Feature Integration', function () {
         it('maintains proper relationships between fish, knowledge, and audio', function () {
+            $user = User::factory()->create();
             $fish1 = Fish::factory()->create(['name' => 'Fish One']);
             $fish2 = Fish::factory()->create(['name' => 'Fish Two']);
 
@@ -397,7 +411,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $audio2 = FishAudio::factory()->create(['fish_id' => $fish2->id, 'name' => 'Fish 2 audio']);
 
             // Fish 1 should only see its own knowledge and audio
-            $response = $this->get("/fish/{$fish1->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/knowledge-list");
             $response->assertInertia(function ($page) {
                 $groupedNotes = $page->toArray()['props']['groupedNotes'];
                 $allNotes = collect($groupedNotes)->flatMap(fn ($group) => $group['notes']);
@@ -405,7 +419,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
                 return $page;
             });
 
-            $response = $this->get("/fish/{$fish1->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish1->id}/audio-list");
             $response->assertInertia(
                 fn ($page) =>
                 $page->where('fish.audios.0.name', 'Fish 1 audio')
@@ -413,7 +427,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             );
 
             // Fish 2 should only see its own knowledge and audio
-            $response = $this->get("/fish/{$fish2->id}/knowledge-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish2->id}/knowledge-list");
             $response->assertInertia(function ($page) {
                 $groupedNotes = $page->toArray()['props']['groupedNotes'];
                 $allNotes = collect($groupedNotes)->flatMap(fn ($group) => $group['notes']);
@@ -421,7 +435,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
                 return $page;
             });
 
-            $response = $this->get("/fish/{$fish2->id}/audio-list");
+            $response = $this->actingAs($user)->get("/fish/{$fish2->id}/audio-list");
             $response->assertInertia(
                 fn ($page) =>
                 $page->where('fish.audios.0.name', 'Fish 2 audio')
