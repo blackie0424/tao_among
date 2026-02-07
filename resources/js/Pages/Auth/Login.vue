@@ -61,6 +61,14 @@
 
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue'
+
+// 從 URL query 取得 redirect 參數
+const redirectUrl = computed(() => {
+  if (typeof window === 'undefined') return '/fishs'
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get('redirect') || '/fishs'
+})
 
 const form = useForm({
   email: '',
@@ -68,6 +76,6 @@ const form = useForm({
 })
 
 const submit = () => {
-  form.post('/login')
+  form.post(`/login?redirect=${encodeURIComponent(redirectUrl.value)}`)
 }
 </script>

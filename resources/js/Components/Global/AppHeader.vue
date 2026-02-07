@@ -32,7 +32,7 @@
             <Link v-if="user" href="/logout" method="post" as="button" class="text-sm text-gray-500 hover:text-red-600">
               登出
             </Link>
-            <Link v-else href="/login" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <Link v-else :href="loginUrl" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
               登入
             </Link>
          </div>
@@ -48,4 +48,11 @@ import { computed } from 'vue'
 // 直接在元件內取得 User 狀態，減少父層傳遞 props 的負擔
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+
+// 計算登入 URL，包含當前頁面作為 redirect 參數
+const loginUrl = computed(() => {
+  if (typeof window === 'undefined') return '/login'
+  const currentUrl = window.location.pathname + window.location.search
+  return `/login?redirect=${encodeURIComponent(currentUrl)}`
+})
 </script>

@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <meta name="description" content="蘭嶼達悟族傳統魚類資料庫" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#1976d2">

@@ -49,15 +49,14 @@
              >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
              </button>
-             
-             <!-- Guest: Login Link -->
-             <Link 
-                v-else 
-                href="/login" 
-                class="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-blue-600"
-             >
-                登入
-             </Link>
+                          <!-- Guest: Login Link -->
+              <Link 
+                 v-else 
+                 :href="loginUrl" 
+                 class="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-blue-600"
+              >
+                 登入
+              </Link>
 
              <!-- Mobile User Dropdown -->
              <div v-if="showMobileUserMenu && user" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down">
@@ -122,7 +121,7 @@
             <Link v-if="user" href="/logout" method="post" as="button" class="text-sm text-gray-500 hover:text-red-600">
               登出
             </Link>
-            <Link v-else href="/login" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <Link v-else :href="loginUrl" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
               登入
             </Link>
           </div>
@@ -162,6 +161,13 @@ import AppFooter from '@/Components/Global/AppFooter.vue'
 const page = usePage()
 const fish = computed(() => page.props.fish)
 const user = computed(() => page.props.auth?.user)
+
+// 計算登入 URL，包含當前頁面作為 redirect 參數
+const loginUrl = computed(() => {
+  if (typeof window === 'undefined') return '/login'
+  const currentUrl = window.location.pathname + window.location.search
+  return `/login?redirect=${encodeURIComponent(currentUrl)}`
+})
 
 // Mobile User Menu State
 const showMobileUserMenu = ref(false)
