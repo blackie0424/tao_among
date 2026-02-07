@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Fish;
+use App\Models\User;
 use App\Models\CaptureRecord;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -10,12 +11,13 @@ uses(RefreshDatabase::class);
 describe('Capture Record Inertia Endpoints', function () {
     
     it('can view capture records page', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create(['name' => 'Test Fish']);
         $captureRecords = CaptureRecord::factory()->count(3)->create([
             'fish_id' => $fish->id
         ]);
 
-        $response = $this->get("/fish/{$fish->id}/capture-records");
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records");
 
         $response->assertStatus(200)
             ->assertInertia(
@@ -30,15 +32,17 @@ describe('Capture Record Inertia Endpoints', function () {
     });
 
     it('returns 404 for non-existent fish on capture records page', function () {
-        $response = $this->get('/fish/99999/capture-records');
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->get('/fish/99999/capture-records');
 
         $response->assertStatus(404);
     });
 
     it('can view create capture record page', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create(['name' => 'Test Fish']);
 
-        $response = $this->get("/fish/{$fish->id}/capture-records/create");
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/create");
 
         $response->assertStatus(200)
             ->assertInertia(
@@ -52,6 +56,7 @@ describe('Capture Record Inertia Endpoints', function () {
     });
 
     it('can store a capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         
         $data = [
@@ -63,9 +68,9 @@ describe('Capture Record Inertia Endpoints', function () {
             'notes' => 'Test capture notes'
         ];
 
-        $response = $this->post("/fish/{$fish->id}/capture-records", $data);
+        $response = $this->actingAs($user)->post("/fish/{$fish->id}/capture-records", $data);
 
-        $response->assertRedirect("/fish/{$fish->id}/capture-records")
+        $response->assertRedirect("/fish/{$fish->id}/media-manager")
             ->assertSessionHas('success', '捕獲紀錄新增成功');
 
         $this->assertDatabaseHas('capture_records', [
@@ -83,6 +88,7 @@ describe('Capture Record Inertia Endpoints', function () {
     });
 
     it('validates required fields when storing capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         
         $data = [
@@ -91,13 +97,14 @@ describe('Capture Record Inertia Endpoints', function () {
             // Missing required fields: image_filename, capture_method, capture_date
         ];
 
-        $response = $this->post("/fish/{$fish->id}/capture-records", $data);
+        $response = $this->actingAs($user)->post("/fish/{$fish->id}/capture-records", $data);
 
         $response->assertStatus(302)
             ->assertSessionHasErrors(['image_filename', 'capture_method', 'capture_date']);
     });
 
     it('validates tribe field when storing capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         
         $data = [
@@ -108,13 +115,14 @@ describe('Capture Record Inertia Endpoints', function () {
             'capture_date' => '2024-01-15'
         ];
 
-        $response = $this->post("/fish/{$fish->id}/capture-records", $data);
+        $response = $this->actingAs($user)->post("/fish/{$fish->id}/capture-records", $data);
 
         $response->assertStatus(302)
             ->assertSessionHasErrors(['tribe']);
     });
 
     it('validates future date when storing capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         
         $futureDate = now()->addDays(1)->format('Y-m-d');
@@ -127,13 +135,14 @@ describe('Capture Record Inertia Endpoints', function () {
             'capture_date' => $futureDate
         ];
 
-        $response = $this->post("/fish/{$fish->id}/capture-records", $data);
+        $response = $this->actingAs($user)->post("/fish/{$fish->id}/capture-records", $data);
 
         $response->assertStatus(302)
             ->assertSessionHasErrors(['capture_date']);
     });
 
     it('can view edit capture record page', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create(['name' => 'Test Fish']);
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish->id,
@@ -141,7 +150,7 @@ describe('Capture Record Inertia Endpoints', function () {
             'location' => 'Original Location'
         ]);
 
-        $response = $this->get("/fish/{$fish->id}/capture-records/{$captureRecord->id}/edit");
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/{$captureRecord->id}/edit");
 
         $response->assertStatus(200)
             ->assertInertia(
@@ -158,26 +167,29 @@ describe('Capture Record Inertia Endpoints', function () {
     });
 
     it('returns 404 for non-existent capture record on edit page', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
 
-        $response = $this->get("/fish/{$fish->id}/capture-records/99999/edit");
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/99999/edit");
 
         $response->assertStatus(404);
     });
 
     it('returns 404 for capture record not belonging to fish on edit page', function () {
+        $user = User::factory()->create();
         $fish1 = Fish::factory()->create();
         $fish2 = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish2->id
         ]);
 
-        $response = $this->get("/fish/{$fish1->id}/capture-records/{$captureRecord->id}/edit");
+        $response = $this->actingAs($user)->get("/fish/{$fish1->id}/capture-records/{$captureRecord->id}/edit");
 
         $response->assertStatus(404);
     });
 
     it('can update a capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish->id,
@@ -193,9 +205,9 @@ describe('Capture Record Inertia Endpoints', function () {
             'notes' => 'Updated notes'
         ];
 
-        $response = $this->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
+        $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}/capture-records");
+        $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,
@@ -211,6 +223,7 @@ describe('Capture Record Inertia Endpoints', function () {
     });
 
     it('can update capture record with new image', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish->id,
@@ -226,9 +239,9 @@ describe('Capture Record Inertia Endpoints', function () {
             'notes' => 'Updated with new image'
         ];
 
-        $response = $this->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
+        $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}/capture-records");
+        $response->assertRedirect("/fish/{$fish->id}/media-manager");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,
@@ -237,6 +250,7 @@ describe('Capture Record Inertia Endpoints', function () {
     });
 
     it('validates fields when updating capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish->id
@@ -249,21 +263,22 @@ describe('Capture Record Inertia Endpoints', function () {
             'capture_date' => 'invalid-date'
         ];
 
-        $response = $this->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
+        $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
         $response->assertStatus(302)
             ->assertSessionHasErrors(['tribe', 'location', 'capture_method', 'capture_date']);
     });
 
     it('can delete a capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish->id
         ]);
 
-        $response = $this->delete("/fish/{$fish->id}/capture-records/{$captureRecord->id}");
+        $response = $this->actingAs($user)->delete("/fish/{$fish->id}/capture-records/{$captureRecord->id}");
 
-        $response->assertRedirect("/fish/{$fish->id}/capture-records")
+        $response->assertRedirect("/fish/{$fish->id}/media-manager")
             ->assertSessionHas('success', '捕獲紀錄刪除成功');
 
         $this->assertSoftDeleted('capture_records', [
@@ -272,47 +287,50 @@ describe('Capture Record Inertia Endpoints', function () {
     });
 
     it('returns 404 when deleting non-existent capture record', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
 
-        $response = $this->delete("/fish/{$fish->id}/capture-records/99999");
+        $response = $this->actingAs($user)->delete("/fish/{$fish->id}/capture-records/99999");
 
         $response->assertStatus(404);
     });
 
     it('returns 404 when deleting capture record not belonging to fish', function () {
+        $user = User::factory()->create();
         $fish1 = Fish::factory()->create();
         $fish2 = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish2->id
         ]);
 
-        $response = $this->delete("/fish/{$fish1->id}/capture-records/{$captureRecord->id}");
+        $response = $this->actingAs($user)->delete("/fish/{$fish1->id}/capture-records/{$captureRecord->id}");
 
         $response->assertStatus(404);
     });
 
     it('includes tribes options in all pages', function () {
+        $user = User::factory()->create();
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
 
         $expectedTribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
 
         // Test capture records index page
-        $response = $this->get("/fish/{$fish->id}/capture-records");
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records");
         $response->assertInertia(
             fn (Assert $page) => $page
             ->where('tribes', $expectedTribes)
         );
 
         // Test create page
-        $response = $this->get("/fish/{$fish->id}/capture-records/create");
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/create");
         $response->assertInertia(
             fn (Assert $page) => $page
             ->where('tribes', $expectedTribes)
         );
 
         // Test edit page
-        $response = $this->get("/fish/{$fish->id}/capture-records/{$captureRecord->id}/edit");
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/{$captureRecord->id}/edit");
         $response->assertInertia(
             fn (Assert $page) => $page
             ->where('tribes', $expectedTribes)
