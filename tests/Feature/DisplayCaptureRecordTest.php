@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Fish;
+use App\Models\User;
 use App\Models\CaptureRecord;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -135,7 +136,8 @@ describe('圖鑑主圖 API 端點', function () {
     });
     
     it('可以透過 API 設定圖鑑主圖', function () {
-        $response = $this->put("/fish/{$this->fish->id}/display-image", [
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->put("/fish/{$this->fish->id}/display-image", [
             'capture_record_id' => $this->record->id,
         ]);
         
@@ -153,7 +155,8 @@ describe('圖鑑主圖 API 端點', function () {
             'tribe' => 'ivalino',
         ]);
         
-        $response = $this->put("/fish/{$this->fish->id}/display-image", [
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->put("/fish/{$this->fish->id}/display-image", [
             'capture_record_id' => $otherRecord->id,
         ]);
         
@@ -162,13 +165,15 @@ describe('圖鑑主圖 API 端點', function () {
     });
     
     it('capture_record_id 為必填欄位', function () {
-        $response = $this->put("/fish/{$this->fish->id}/display-image", []);
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->put("/fish/{$this->fish->id}/display-image", []);
         
         $response->assertSessionHasErrors('capture_record_id');
     });
     
     it('capture_record_id 必須存在於資料庫', function () {
-        $response = $this->put("/fish/{$this->fish->id}/display-image", [
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->put("/fish/{$this->fish->id}/display-image", [
             'capture_record_id' => 99999, // 不存在的 ID
         ]);
         
