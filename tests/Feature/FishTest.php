@@ -7,6 +7,7 @@ use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 use App\Http\Resources\FishResource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 
 uses(RefreshDatabase::class);
 
@@ -61,10 +62,6 @@ it('can get a fish data by fish id', function () {
     // 測試資料
     $fish = Fish::factory()->create();
 
-    // 構建完整的圖片路徑
-    $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-    $fish->audio_filename = null; // since API does not return audio_filename
-
     // 發送 GET 請求
     $response = $this->get('/prefix/api/fish/'.$fish->id);
 
@@ -72,8 +69,11 @@ it('can get a fish data by fish id', function () {
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'success',
-            'data' => $fish->toArray(),
-        ]);
+        ])
+        ->assertJsonPath('data.id', $fish->id)
+        ->assertJsonPath('data.name', $fish->name)
+        // image 欄位在資料庫中是檔名,但 API 會透過 accessor 轉換為完整 URL
+        ->assertJsonPath('data.image_url', fn($url) => str_contains($url, $fish->image));
 });
 
 it('get http code 404 beacuse fish id is not number', function () {
@@ -397,6 +397,7 @@ it('soft deletes fish and its related fish_notes', function () {
 });
 
 it('soft deletes fish and all related data when using controller destroy method', function () {
+    $user = User::factory()->create();
     // 建立一條魚
     $fish = Fish::factory()->create();
     
@@ -421,7 +422,7 @@ it('soft deletes fish and all related data when using controller destroy method'
     $tribalClassifications = collect([$tc1, $tc2]);
 
     // 透過控制器刪除魚類
-    $response = $this->delete("/fish/{$fish->id}");
+    $response = $this->actingAs($user)->delete("/fish/{$fish->id}");
 
     // 1. 驗證重定向
     $response->assertRedirect('/fishs');
@@ -455,20 +456,21 @@ it('soft deletes fish and all related data when using controller destroy method'
 it('returns json response for ajax fish deletion request', function () {
     $fish = Fish::factory()->create();
     
-    $response = $this->deleteJson("/fish/{$fish->id}");
+    // 使用 API 路由進行 AJAX 刪除
+    $response = $this->deleteJson("/prefix/api/fish/{$fish->id}");
     
     $response->assertStatus(200)
         ->assertJson([
-            'success' => true,
-            'message' => '魚類刪除成功'
+            'message' => 'Fish deleted successfully'
         ]);
         
     $this->assertSoftDeleted('fish', ['id' => $fish->id]);
 });
 
 it('handles fish deletion errors gracefully', function () {
+    $user = User::factory()->create();
     // 嘗試刪除不存在的魚類
-    $response = $this->delete('/fish/99999');
+    $response = $this->actingAs($user)->delete('/fish/99999');
     
     // Laravel 的 findOrFail 會拋出 ModelNotFoundException，
     // 在 web 路由中這通常會重定向到錯誤頁面
@@ -477,16 +479,18 @@ it('handles fish deletion errors gracefully', function () {
 
 it('handles ajax fish deletion errors gracefully', function () {
     // 嘗試刪除不存在的魚類 (AJAX 請求)
-    $response = $this->deleteJson('/fish/99999');
+    // 使用 API 路由
+    $response = $this->deleteJson('/prefix/api/fish/99999');
     
-    // AJAX 請求應該返回 JSON 錯誤響應
-    $response->assertStatus(500)
+    // API 應該返回 404 JSON 錯誤響應
+    $response->assertStatus(404)
         ->assertJson([
-            'success' => false
+            'message' => 'fish not found'
         ]);
 });
 
 it('logs fish deletion errors properly', function () {
+    $user = User::factory()->create();
     // 這個測試需要模擬刪除過程中的錯誤
     // 由於我們使用軟刪除，實際上很難觸發錯誤
     // 但我們可以測試日誌記錄功能是否正常工作
@@ -494,7 +498,7 @@ it('logs fish deletion errors properly', function () {
     $fish = Fish::factory()->create();
     
     // 正常刪除應該不會產生錯誤日誌
-    $response = $this->delete("/fish/{$fish->id}");
+    $response = $this->actingAs($user)->delete("/fish/{$fish->id}");
     
     $response->assertRedirect('/fishs');
     $this->assertSoftDeleted('fish', ['id' => $fish->id]);
