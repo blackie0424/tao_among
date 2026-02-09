@@ -67,7 +67,7 @@ class FishNoteController extends BaseController
                 'note_id' => $noteId
             ]);
 
-            return Inertia::render('EditFishNote', [
+            return Inertia::render('Fish/EditKnowledge', [
                 'fish' => $this->fishService->assignImageUrls([$fish])[0],
                 'note' => $note,
                 'noteTypes' => $this->getNoteTypes(),

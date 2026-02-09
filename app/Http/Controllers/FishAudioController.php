@@ -79,7 +79,7 @@ class FishAudioController extends BaseController
                 'audio_id' => $audioId
             ]);
 
-            return Inertia::render('EditFishAudio', [
+            return Inertia::render('Fish/EditAudio', [
                 'fish' => $this->assignFishImage($fish),
                 'audio' => $audio
             ]);
