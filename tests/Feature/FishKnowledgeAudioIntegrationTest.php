@@ -28,7 +28,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
                 fn ($page) =>
                 $page->component('Fish/KnowledgeManager')
                     ->where('fish.id', $fish->id)
-                    ->has('groupedNotes')
+                    ->has('fishNotes')
             );
 
             // Navigate to edit knowledge
@@ -365,8 +365,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
             // Should properly group all notes
             $response->assertInertia(function ($page) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
-                $habitatGroup = collect($groupedNotes)->firstWhere('name', '生態習性');
+                $fishNotes = $page->toArray()['props']['fishNotes'];
+                $habitatGroup = collect($fishNotes)->firstWhere('name', '生態習性');
                 expect(count($habitatGroup['notes']))->toBe(50);
                 return $page;
             });
@@ -413,8 +413,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             // Fish 1 should only see its own knowledge and audio
             $response = $this->actingAs($user)->get("/fish/{$fish1->id}/knowledge-manager");
             $response->assertInertia(function ($page) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
-                $allNotes = collect($groupedNotes)->flatMap(fn ($group) => $group['notes']);
+                $fishNotes = $page->toArray()['props']['fishNotes'];
+                $allNotes = collect($fishNotes)->flatMap(fn ($group) => $group['notes']);
                 expect($allNotes->pluck('note')->toArray())->toBe(['Fish 1 knowledge']);
                 return $page;
             });
@@ -429,8 +429,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             // Fish 2 should only see its own knowledge and audio
             $response = $this->actingAs($user)->get("/fish/{$fish2->id}/knowledge-manager");
             $response->assertInertia(function ($page) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
-                $allNotes = collect($groupedNotes)->flatMap(fn ($group) => $group['notes']);
+                $fishNotes = $page->toArray()['props']['fishNotes'];
+                $allNotes = collect($fishNotes)->flatMap(fn ($group) => $group['notes']);
                 expect($allNotes->pluck('note')->toArray())->toBe(['Fish 2 knowledge']);
                 return $page;
             });

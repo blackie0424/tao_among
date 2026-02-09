@@ -35,7 +35,7 @@ describe('Fish Knowledge Management', function () {
                     ->has('fish')
                     ->where('fish.id', $fish->id)
                     ->where('fish.name', 'Test Fish')
-                    ->has('groupedNotes')
+                    ->has('fishNotes')
             );
         });
 
@@ -71,14 +71,14 @@ describe('Fish Knowledge Management', function () {
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
+                $fishNotes = $page->toArray()['props']['fishNotes'];
                 
                 // Should have 2 groups
-                expect(count($groupedNotes))->toBe(2);
+                expect(count($fishNotes))->toBe(2);
                 
                 // Find the groups by name
-                $habitatGroup = collect($groupedNotes)->firstWhere('name', '生態習性');
-                $cookingGroup = collect($groupedNotes)->firstWhere('name', '食用方式');
+                $habitatGroup = collect($fishNotes)->firstWhere('name', '生態習性');
+                $cookingGroup = collect($fishNotes)->firstWhere('name', '食用方式');
                 
                 expect($habitatGroup)->not->toBeNull();
                 expect($cookingGroup)->not->toBeNull();
@@ -106,12 +106,12 @@ describe('Fish Knowledge Management', function () {
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
+                $fishNotes = $page->toArray()['props']['fishNotes'];
                 
                 // Should have 1 group for uncategorized notes
-                expect(count($groupedNotes))->toBe(1);
+                expect(count($fishNotes))->toBe(1);
                 
-                $uncategorizedGroup = collect($groupedNotes)->firstWhere('name', '未分類');
+                $uncategorizedGroup = collect($fishNotes)->firstWhere('name', '未分類');
                 expect($uncategorizedGroup)->not->toBeNull();
                 expect(count($uncategorizedGroup['notes']))->toBe(1);
                 
@@ -350,10 +350,10 @@ describe('Fish Knowledge Management', function () {
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) use ($oldNote, $newNote) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
+                $fishNotes = $page->toArray()['props']['fishNotes'];
                 
                 // Find the habitat group
-                $habitatGroup = collect($groupedNotes)->firstWhere('name', '生態習性');
+                $habitatGroup = collect($fishNotes)->firstWhere('name', '生態習性');
                 expect($habitatGroup)->not->toBeNull();
                 expect(count($habitatGroup['notes']))->toBe(2);
                 
@@ -386,10 +386,10 @@ describe('Fish Knowledge Management', function () {
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
+                $fishNotes = $page->toArray()['props']['fishNotes'];
                 
                 // Extract category names from the grouped notes
-                $categoryNames = collect($groupedNotes)->pluck('name')->toArray();
+                $categoryNames = collect($fishNotes)->pluck('name')->toArray();
                 
                 // Should be sorted according to the predefined order in controller
                 expect($categoryNames)->toBe(['生態習性', '營養價值', '烹飪方法']);
@@ -419,14 +419,14 @@ describe('Fish Knowledge Management', function () {
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $groupedNotes = $page->toArray()['props']['groupedNotes'];
+                $fishNotes = $page->toArray()['props']['fishNotes'];
                 
                 // Should have 2 groups
-                expect(count($groupedNotes))->toBe(2);
+                expect(count($fishNotes))->toBe(2);
                 
                 // Find the groups by name
-                $categorizedGroup = collect($groupedNotes)->firstWhere('name', '生態習性');
-                $uncategorizedGroup = collect($groupedNotes)->firstWhere('name', '未分類');
+                $categorizedGroup = collect($fishNotes)->firstWhere('name', '生態習性');
+                $uncategorizedGroup = collect($fishNotes)->firstWhere('name', '未分類');
                 
                 expect($categorizedGroup)->not->toBeNull();
                 expect($uncategorizedGroup)->not->toBeNull();
