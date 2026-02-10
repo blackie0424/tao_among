@@ -463,14 +463,29 @@ const retryFromStart = () => {
 // 監聽滾動觸底（IntersectionObserver）
 const sentinel = ref(null)
 let observer
+let rafId = null  // 用於追蹤 requestAnimationFrame ID
+
 const initObserver = () => {
   if (!sentinel.value) return
   observer = new IntersectionObserver((entries) => {
     entries.forEach((e) => {
       if (e.isIntersecting && pageInfo.value.hasMore && !isLoading.value) {
-        fetchPage({ last_id: pageInfo.value.nextCursor })
+        // 取消之前排程的請求，避免重複觸發
+        if (rafId) {
+          cancelAnimationFrame(rafId)
+        }
+        
+        // 使用 requestAnimationFrame 確保在最佳時機執行
+        // 這樣可以與瀏覽器的渲染循環同步，避免掉幀
+        rafId = requestAnimationFrame(() => {
+          fetchPage({ last_id: pageInfo.value.nextCursor })
+          rafId = null
+        })
       }
     })
+  }, {
+    // 提前 200px 開始載入，改善使用者體驗
+    rootMargin: '200px'
   })
   observer.observe(sentinel.value)
 }

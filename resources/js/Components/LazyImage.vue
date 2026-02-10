@@ -27,6 +27,7 @@
         :src="responsiveUrls.original"
         :alt="alt"
         :loading="imgLoading"
+        decoding="async"
         :class="[
           'object-contain transition-opacity duration-300',
           imgClass,
@@ -43,6 +44,7 @@
       :src="finalSrc"
       :alt="alt"
       :loading="imgLoading"
+      decoding="async"
       :class="[
         'object-contain transition-opacity duration-300',
         imgClass,
