@@ -86,7 +86,9 @@ class FishController extends Controller
 
     public function create()
     {
-        return Inertia::render('CreateFish');
+        return Inertia::render('CreateFish', [
+            'captureMethods' => config('fish_options.capture_methods'),
+        ]);
     }
 
     public function edit($id)
@@ -160,7 +162,7 @@ class FishController extends Controller
                 'image_path' => $request->validated()['image'],
                 'tribe' => 'iraraley', // 使用第一個有效的部落
                 'location' => '待補充',
-                'capture_method' => 'mamasil',
+                'capture_method' => $request->capture_method,
                 'capture_date' => now(),
                 'notes' => '首次建立時自動產生，請至捕獲紀錄頁面補充資訊'
             ]);
