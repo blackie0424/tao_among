@@ -338,7 +338,12 @@ class ApiFishController extends Controller
                 $q->where('id', '!=', $excludeId);
             })
             ->with([
-                'captureRecords:id,fish_id,image_path',
+                'captureRecords' => function ($query) {
+                    // 載入完整捕獲紀錄資料，限制最多 10 筆
+                    $query->select('id', 'fish_id', 'image_path', 'location', 'capture_method', 'capture_date', 'tribe', 'notes')
+                          ->orderByDesc('capture_date')
+                          ->limit(10);
+                },
                 'tribalClassifications' => function ($query) {
                     // 只載入 iraraley 和 imorod 兩個部落的分類
                     $query->whereIn('tribe', ['iraraley', 'imorod'])
@@ -356,13 +361,28 @@ class ApiFishController extends Controller
                     ];
                 })->toArray();
 
+                // 組裝捕獲紀錄資訊
+                $captureRecords = $fish->captureRecords->map(function ($record) {
+                    return [
+                        'id' => $record->id,
+                        'image_url' => $record->image_url,
+                        'location' => $record->location,
+                        'capture_method' => $record->capture_method,
+                        'capture_date' => $record->capture_date?->format('Y-m-d'),
+                        'tribe' => $record->tribe,
+                        'notes' => $record->notes,
+                    ];
+                })->toArray();
+
                 return [
                     'id' => $fish->id,
                     'name' => $fish->name,
                     'image_url' => $fish->image_url,
                     'display_image_url' => $fish->display_image_url,
                     'tribal_classifications' => $tribalClassifications,
-                    'audio_url' => $fish->audio_url, // 使用 Model Accessor
+                    'audio_url' => $fish->audio_url,
+                    'capture_records' => $captureRecords,
+                    'capture_records_count' => count($captureRecords),
                 ];
             });
 

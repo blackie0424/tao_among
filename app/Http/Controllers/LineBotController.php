@@ -11,6 +11,7 @@ use LINE\Parser\EventRequestParser;
 use LINE\Parser\Exception\InvalidSignatureException;
 use LINE\Webhook\Model\MessageEvent;
 use LINE\Webhook\Model\TextMessageContent;
+use LINE\Webhook\Model\PostbackEvent;
 
 class LineBotController extends Controller
 {
@@ -56,6 +57,8 @@ class LineBotController extends Controller
                     if ($message instanceof TextMessageContent) {
                         $this->handleTextMessage($event, $event->getReplyToken());
                     }
+                } elseif ($event instanceof PostbackEvent) {
+                    $this->handlePostback($event, $event->getReplyToken());
                 }
             }
 
@@ -131,6 +134,68 @@ class LineBotController extends Controller
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '查詢時發生錯誤，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 處理 Postback 事件
+     */
+    protected function handlePostback($event, string $replyToken): void
+    {
+        try {
+            // 解析 postback data
+            $data = $event->getPostback()->getData();
+            parse_str($data, $params);
+
+            Log::info('LINE Bot received postback', ['data' => $data, 'params' => $params]);
+
+            // 處理查看捕獲紀錄請求
+            if ($params['action'] === 'view_captures') {
+                $fishId = $params['fish_id'];
+                $fishName = $params['fish_name'] ?? '';
+
+                // 重新查詢該魚類的完整資料（利用現有的 search API）
+                $request = Request::create('/prefix/api/fishs/search', 'GET', ['q' => $fishName]);
+                $response = $this->apiFishController->search($request);
+                $data = $response->getData(true);
+
+                if (!empty($data['data'])) {
+                    // 找到對應的魚類資料
+                    $fish = collect($data['data'])->firstWhere('id', (int)$fishId);
+
+                    if ($fish && !empty($fish['capture_records'])) {
+                        // 建立捕獲紀錄輪播訊息
+                        $message = $this->lineBotService->buildCaptureRecordsCarousel(
+                            $fish['capture_records'],
+                            $fish['name']
+                        );
+
+                        // 回覆訊息
+                        $this->lineBotService->replyMessage($replyToken, [$message]);
+                    } else {
+                        // 沒有捕獲紀錄
+                        $this->lineBotService->replyMessage($replyToken, [
+                            new \LINE\Clients\MessagingApi\Model\TextMessage([
+                                'type' => 'text',
+                                'text' => '目前沒有捕獲紀錄。',
+                            ]),
+                        ]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handle postback failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // 回覆錯誤訊息
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '處理請求時發生錯誤，請稍後再試。',
                 ]),
             ]);
         }

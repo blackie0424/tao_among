@@ -133,6 +133,28 @@ class LineBotService
             ],
         ];
 
+        // 如果有捕獲紀錄，加入「查看捕獲紀錄」按鈕
+        if (!empty($fish['capture_records_count']) && $fish['capture_records_count'] > 0) {
+            $bubbleData['footer'] = [
+                'type' => 'box',
+                'layout' => 'vertical',
+                'spacing' => 'sm',
+                'contents' => [
+                    [
+                        'type' => 'button',
+                        'style' => 'link',
+                        'height' => 'sm',
+                        'action' => [
+                            'type' => 'postback',
+                            'label' => "📸 查看捕獲紀錄({$fish['capture_records_count']})",
+                            'data' => "action=view_captures&fish_id={$fish['id']}&fish_name={$fish['name']}",
+                            'displayText' => "查看 {$fish['name']} 的捕獲紀錄",
+                        ],
+                    ],
+                ],
+            ];
+        }
+
         $bubble = FlexBubble::fromAssocArray($bubbleData);
 
         return new FlexMessage([
@@ -206,6 +228,99 @@ class LineBotService
                 'text' => $text,
             ]),
         ];
+    }
+
+    /**
+     * 建立捕獲紀錄輪播訊息
+     */
+    public function buildCaptureRecordsCarousel(array $captureRecords, string $fishName): FlexMessage
+    {
+        $bubbles = [];
+        
+        foreach ($captureRecords as $record) {
+            // 準備顯示內容
+            $bodyContents = [
+                [
+                    'type' => 'text',
+                    'text' => $fishName,
+                    'weight' => 'bold',
+                    'size' => 'lg',
+                    'wrap' => true,
+                ],
+                [
+                    'type' => 'text',
+                    'text' => '捕獲紀錄',
+                    'size' => 'xs',
+                    'color' => '#999999',
+                    'margin' => 'sm',
+                ],
+            ];
+
+            // 加入各項資訊
+            if (!empty($record['location'])) {
+                $bodyContents[] = [
+                    'type' => 'text',
+                    'text' => '📍 ' . $record['location'],
+                    'size' => 'sm',
+                    'wrap' => true,
+                    'margin' => 'md',
+                ];
+            }
+
+            if (!empty($record['capture_method'])) {
+                $bodyContents[] = [
+                    'type' => 'text',
+                    'text' => '🎣 ' . $record['capture_method'],
+                    'size' => 'sm',
+                    'wrap' => true,
+                    'margin' => 'sm',
+                ];
+            }
+
+            if (!empty($record['capture_date'])) {
+                $bodyContents[] = [
+                    'type' => 'text',
+                    'text' => '📅 ' . $record['capture_date'],
+                    'size' => 'sm',
+                    'margin' => 'sm',
+                ];
+            }
+
+            if (!empty($record['tribe'])) {
+                $bodyContents[] = [
+                    'type' => 'text',
+                    'text' => '🏘️ ' . $record['tribe'],
+                    'size' => 'sm',
+                    'margin' => 'sm',
+                ];
+            }
+
+            // 建立單張捕獲紀錄卡片
+            $bubbles[] = [
+                'type' => 'bubble',
+                'hero' => [
+                    'type' => 'image',
+                    'url' => $record['image_url'],
+                    'size' => 'full',
+                    'aspectRatio' => '20:13',
+                    'aspectMode' => 'cover',
+                ],
+                'body' => [
+                    'type' => 'box',
+                    'layout' => 'vertical',
+                    'contents' => $bodyContents,
+                ],
+            ];
+        }
+
+        return new FlexMessage([
+            'type' => 'flex',
+            'altText' => "{$fishName} 的捕獲紀錄",
+            'contents' => [
+                'type' => 'carousel',
+                'contents' => $bubbles,
+            ],
+        ]);
     }
 
     /**
