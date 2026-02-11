@@ -344,10 +344,6 @@ class ApiFishController extends Controller
                     $query->whereIn('tribe', ['iraraley', 'imorod'])
                           ->select('id', 'fish_id', 'tribe', 'food_category');
                 },
-                'audios' => function ($query) {
-                    // 只取最新一筆音檔
-                    $query->orderByDesc('id')->limit(1);
-                }
             ])
             ->limit(20)
             ->get()
@@ -360,23 +356,13 @@ class ApiFishController extends Controller
                     ];
                 })->toArray();
 
-                // 取得音檔 URL（透過 model accessor）
-                $audioUrl = null;
-                if ($fish->audios->isNotEmpty()) {
-                    $audio = $fish->audios->first();
-                    if ($audio && $audio->name) {
-                        $audioUrl = app(\App\Contracts\StorageServiceInterface::class)
-                            ->getUrl('audios', $audio->name);
-                    }
-                }
-
                 return [
                     'id' => $fish->id,
                     'name' => $fish->name,
                     'image_url' => $fish->image_url,
                     'display_image_url' => $fish->display_image_url,
                     'tribal_classifications' => $tribalClassifications,
-                    'audio_url' => $audioUrl,
+                    'audio_url' => $fish->audio_url, // 使用 Model Accessor
                 ];
             });
 
