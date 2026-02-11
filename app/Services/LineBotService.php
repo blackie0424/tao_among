@@ -67,60 +67,73 @@ class LineBotService
      */
     public function buildFishCard(array $fish): FlexMessage
     {
-        // 準備部落分類標籤
-        $tribeTexts = [];
+        // 準備部落分類標籤（永遠顯示 iraraley 和 imorod 兩個部落）
+        $tribeLabels = [
+            'iraraley' => 'Iraraley',
+            'imorod' => 'Imorod',
+        ];
+        
+        // 將現有的部落分類資料建立 mapping
+        $tribalData = [];
         if (!empty($fish['tribal_classifications'])) {
             foreach ($fish['tribal_classifications'] as $tc) {
-                $tribeText = $tc['tribe'] ?? '';
-                if (!empty($tc['food_category'])) {
-                    $tribeText .= ' - ' . $tc['food_category'];
-                }
-                if ($tribeText) {
-                    $tribeTexts[] = new FlexText([
-                        'type' => 'text',
-                        'text' => $tribeText,
-                        'size' => 'sm',
-                        'color' => '#999999',
-                        'wrap' => true,
-                        'margin' => 'sm',
-                    ]);
-                }
+                $tribalData[$tc['tribe']] = $tc['food_category'] ?? '';
             }
         }
+        
+        // 建立顯示文字（確保兩個部落都會顯示）
+        $tribeTexts = [];
+        foreach ($tribeLabels as $tribeKey => $tribeName) {
+            // 如果有資料就顯示，沒有就顯示「尚未紀錄」
+            $foodCategory = $tribalData[$tribeKey] ?? '尚未紀錄';
+            
+            // 顯示格式：部落名稱 - 食用分類
+            $displayText = $tribeName . ' - ' . $foodCategory;
+            
+            $tribeTexts[] = [
+                'type' => 'text',
+                'text' => $displayText,
+                'size' => 'sm',
+                'color' => '#666666',
+                'wrap' => true,
+                'margin' => 'sm',
+            ];
+        }
 
-        // 建立卡片內容
+        // 建立卡片內容（使用陣列格式）
         $bodyContents = [
-            new FlexText([
+            [
                 'type' => 'text',
                 'text' => $fish['name'],
                 'weight' => 'bold',
                 'size' => 'xl',
                 'wrap' => true,
-            ]),
+            ],
         ];
 
-        // 加入部落分類
-        if (!empty($tribeTexts)) {
-            foreach ($tribeTexts as $tribeText) {
-                $bodyContents[] = $tribeText;
-            }
+        // 加入部落分類（永遠都會有兩行）
+        foreach ($tribeTexts as $tribeText) {
+            $bodyContents[] = $tribeText;
         }
 
-        $bubble = new FlexBubble([
+        // 建立 Flex Bubble 的資料結構
+        $bubbleData = [
             'type' => 'bubble',
-            'hero' => new FlexImage([
+            'hero' => [
                 'type' => 'image',
                 'url' => $fish['display_image_url'] ?? $fish['image_url'],
                 'size' => 'full',
                 'aspectRatio' => '20:13',
                 'aspectMode' => 'cover',
-            ]),
-            'body' => new FlexBox([
+            ],
+            'body' => [
                 'type' => 'box',
                 'layout' => 'vertical',
                 'contents' => $bodyContents,
-            ]),
-        ]);
+            ],
+        ];
+
+        $bubble = FlexBubble::fromAssocArray($bubbleData);
 
         return new FlexMessage([
             'type' => 'flex',
@@ -146,7 +159,18 @@ class LineBotService
         }
 
         if ($count === 1) {
-            return [$this->buildFishCard($fishes[0])];
+            $messages = [$this->buildFishCard($fishes[0])];
+            
+            // 如果有音檔，加入音檔訊息
+            if (!empty($fishes[0]['audio_url'])) {
+                $messages[] = new \LINE\Clients\MessagingApi\Model\AudioMessage([
+                    'type' => 'audio',
+                    'originalContentUrl' => $fishes[0]['audio_url'],
+                    'duration' => 5000, // 預設 5 秒，實際長度需要從資料庫取得
+                ]);
+            }
+            
+            return $messages;
         }
 
         if ($count <= 10) {

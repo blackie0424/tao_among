@@ -337,14 +337,46 @@ class ApiFishController extends Controller
             ->when($excludeId, function ($q) use ($excludeId) {
                 $q->where('id', '!=', $excludeId);
             })
-            ->with('captureRecords:id,fish_id,image_path')
+            ->with([
+                'captureRecords:id,fish_id,image_path',
+                'tribalClassifications' => function ($query) {
+                    // 只載入 iraraley 和 imorod 兩個部落的分類
+                    $query->whereIn('tribe', ['iraraley', 'imorod'])
+                          ->select('id', 'fish_id', 'tribe', 'food_category');
+                },
+                'audios' => function ($query) {
+                    // 只取最新一筆音檔
+                    $query->orderByDesc('id')->limit(1);
+                }
+            ])
             ->limit(20)
             ->get()
             ->map(function ($fish) {
+                // 組裝部落分類資訊
+                $tribalClassifications = $fish->tribalClassifications->map(function ($tc) {
+                    return [
+                        'tribe' => $tc->tribe,
+                        'food_category' => $tc->food_category,
+                    ];
+                })->toArray();
+
+                // 取得音檔 URL（透過 model accessor）
+                $audioUrl = null;
+                if ($fish->audios->isNotEmpty()) {
+                    $audio = $fish->audios->first();
+                    if ($audio && $audio->name) {
+                        $audioUrl = app(\App\Contracts\StorageServiceInterface::class)
+                            ->getUrl('audios', $audio->name);
+                    }
+                }
+
                 return [
                     'id' => $fish->id,
                     'name' => $fish->name,
                     'image_url' => $fish->image_url,
+                    'display_image_url' => $fish->display_image_url,
+                    'tribal_classifications' => $tribalClassifications,
+                    'audio_url' => $audioUrl,
                 ];
             });
 
