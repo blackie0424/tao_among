@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApiFishController;
+use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\TribalClassificationController;
@@ -18,6 +19,9 @@ Route::get('/user', function (Request $request) {
 Route::get('/health-check', function () {
     return response()->json(['status' => 'ok'], 200);
 });
+
+// LINE Bot Webhook
+Route::post('/line/webhook', [LineBotController::class, 'webhook']);
 
 // 將 fish 相關 API 路由指向 ApiFishController
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
