@@ -295,6 +295,17 @@ class LineBotService
                 ];
             }
 
+            if (!empty($record['notes'])) {
+                $bodyContents[] = [
+                    'type' => 'text',
+                    'text' => '📝 ' . $record['notes'],
+                    'size' => 'xs',
+                    'wrap' => true,
+                    'color' => '#666666',
+                    'margin' => 'md',
+                ];
+            }
+
             // 建立單張捕獲紀錄卡片
             $bubbles[] = [
                 'type' => 'bubble',

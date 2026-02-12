@@ -361,11 +361,17 @@ class ApiFishController extends Controller
                     ];
                 })->toArray();
 
-                // 組裝捕獲紀錄資訊
+                // 組裝捕獲紀錄資訊（確保圖片不使用 WebP，LINE 可能不支援）
                 $captureRecords = $fish->captureRecords->map(function ($record) {
+                    // 直接取得不含 WebP 的圖片 URL
+                    $storage = app(\App\Contracts\StorageServiceInterface::class);
+                    $imageUrl = $record->image_path 
+                        ? $storage->getUrl('images', $record->image_path, false) // 明確設定 hasWebp = false
+                        : null;
+                    
                     return [
                         'id' => $record->id,
-                        'image_url' => $record->image_url,
+                        'image_url' => $imageUrl,
                         'location' => $record->location,
                         'capture_method' => $record->capture_method,
                         'capture_date' => $record->capture_date?->format('Y-m-d'),
