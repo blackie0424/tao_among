@@ -257,10 +257,19 @@ class LineBotService
             ];
 
             // 加入各項資訊
+            if (!empty($record['tribe'])) {
+                $bodyContents[] = [
+                    'type' => 'text',
+                    'text' => '🏘️部落:' . $record['tribe'],
+                    'size' => 'sm',
+                    'margin' => 'sm',
+                ];
+            }
+
             if (!empty($record['location'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '📍 ' . $record['location'],
+                    'text' => '📍地點:' . $record['location'],
                     'size' => 'sm',
                     'wrap' => true,
                     'margin' => 'md',
@@ -270,7 +279,7 @@ class LineBotService
             if (!empty($record['capture_method'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '🎣 ' . $record['capture_method'],
+                    'text' => '🎣捕獲方式:' . $record['capture_method'],
                     'size' => 'sm',
                     'wrap' => true,
                     'margin' => 'sm',
@@ -280,16 +289,7 @@ class LineBotService
             if (!empty($record['capture_date'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '📅 ' . $record['capture_date'],
-                    'size' => 'sm',
-                    'margin' => 'sm',
-                ];
-            }
-
-            if (!empty($record['tribe'])) {
-                $bodyContents[] = [
-                    'type' => 'text',
-                    'text' => '🏘️ ' . $record['tribe'],
+                    'text' => '📅捕獲日期:' . $record['capture_date'],
                     'size' => 'sm',
                     'margin' => 'sm',
                 ];
@@ -298,7 +298,7 @@ class LineBotService
             if (!empty($record['notes'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '📝 ' . $record['notes'],
+                    'text' => '📝備註:' . $record['notes'],
                     'size' => 'xs',
                     'wrap' => true,
                     'color' => '#666666',
