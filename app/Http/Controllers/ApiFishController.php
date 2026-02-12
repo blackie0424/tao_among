@@ -397,4 +397,72 @@ class ApiFishController extends Controller
             'data' => $fishes,
         ]);
     }
+
+    /**
+     * 隨機取得一筆名稱為「我不知道」的魚類資料
+     */
+    public function randomUnknownFish(): JsonResponse
+    {
+        $fish = Fish::where('name', '我不知道')
+            ->with([
+                'captureRecords' => function ($query) {
+                    $query->select('id', 'fish_id', 'image_path', 'location', 'capture_method', 'capture_date', 'tribe', 'notes')
+                          ->orderByDesc('capture_date')
+                          ->limit(10);
+                },
+                'tribalClassifications' => function ($query) {
+                    $query->whereIn('tribe', ['iraraley', 'imorod'])
+                          ->select('id', 'fish_id', 'tribe', 'food_category');
+                },
+            ])
+            ->inRandomOrder()
+            ->first();
+
+        if (!$fish) {
+            return response()->json([
+                'message' => 'No unknown fish found',
+                'data' => null,
+            ], 404);
+        }
+
+        // 組裝部落分類資訊
+        $tribalClassifications = $fish->tribalClassifications->map(function ($tc) {
+            return [
+                'tribe' => $tc->tribe,
+                'food_category' => $tc->food_category,
+            ];
+        })->toArray();
+
+        // 組裝捕獲紀錄資訊
+        $captureRecords = $fish->captureRecords->map(function ($record) {
+            $storage = app(\App\Contracts\StorageServiceInterface::class);
+            $imageUrl = $record->image_path 
+                ? $storage->getUrl('images', $record->image_path, false)
+                : null;
+            
+            return [
+                'id' => $record->id,
+                'image_url' => $imageUrl,
+                'location' => $record->location,
+                'capture_method' => $record->capture_method,
+                'capture_date' => $record->capture_date?->format('Y-m-d'),
+                'tribe' => $record->tribe,
+                'notes' => $record->notes,
+            ];
+        })->toArray();
+
+        return response()->json([
+            'message' => 'success',
+            'data' => [
+                'id' => $fish->id,
+                'name' => $fish->name,
+                'image_url' => $fish->image_url,
+                'display_image_url' => $fish->display_image_url,
+                'tribal_classifications' => $tribalClassifications,
+                'audio_url' => $fish->audio_url,
+                'capture_records' => $captureRecords,
+                'capture_records_count' => count($captureRecords),
+            ],
+        ]);
+    }
 }

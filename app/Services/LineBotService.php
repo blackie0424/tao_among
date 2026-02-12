@@ -335,6 +335,40 @@ class LineBotService
     }
 
     /**
+     * 建立魚類卡片（帶 Quick Reply 按鈕）
+     */
+    public function buildFishCardWithQuickReply(array $fish): FlexMessage
+    {
+        $card = $this->buildFishCard($fish);
+        
+        // 加入 Quick Reply 選項
+        $card->setQuickReply([
+            'items' => [
+                [
+                    'type' => 'action',
+                    'action' => [
+                        'type' => 'postback',
+                        'label' => '✏️ 修改名稱',
+                        'data' => "action=start_rename&fish_id={$fish['id']}",
+                        'displayText' => '修改名稱',
+                    ],
+                ],
+                [
+                    'type' => 'action',
+                    'action' => [
+                        'type' => 'postback',
+                        'label' => '🔄 換一隻',
+                        'data' => 'action=random_unknown_fish',
+                        'displayText' => '換一隻',
+                    ],
+                ],
+            ],
+        ]);
+        
+        return $card;
+    }
+
+    /**
      * 建立使用說明訊息
      */
     public function buildHelpMessage(): TextMessage

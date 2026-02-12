@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\LineBotService;
 use App\Http\Controllers\ApiFishController;
+use App\Models\Fish;
 use Illuminate\Support\Facades\Log;
 use LINE\Parser\EventRequestParser;
 use LINE\Parser\Exception\InvalidSignatureException;
@@ -86,12 +87,26 @@ class LineBotController extends Controller
     {
         $message = $event->getMessage();
         $text = trim($message->getText());
+        $userId = $event->getSource()->getUserId();
 
         // 空白訊息，回傳使用說明
         if (empty($text)) {
             $this->lineBotService->replyMessage($replyToken, [
                 $this->lineBotService->buildHelpMessage(),
             ]);
+            return;
+        }
+
+        // 檢查是否正在修改名稱
+        $renamingFishId = \Cache::get("line_user_{$userId}_renaming_fish");
+        if ($renamingFishId) {
+            $this->handleRenameFish($userId, $renamingFishId, $text, $replyToken);
+            return;
+        }
+
+        // 檢查是否為「隨機命名」關鍵字
+        if (in_array(strtolower($text), ['隨機命名', 'random', '隨機'])) {
+            $this->handleRandomUnknownFish($replyToken);
             return;
         }
 
@@ -140,6 +155,94 @@ class LineBotController extends Controller
     }
 
     /**
+     * 處理「隨機命名」請求
+     */
+    protected function handleRandomUnknownFish(string $replyToken): void
+    {
+        try {
+            // 查詢隨機的「我不知道」魚類
+            $request = Request::create('/prefix/api/fishs/random-unknown', 'GET');
+            $response = $this->apiFishController->randomUnknownFish();
+            $data = $response->getData(true);
+
+            if (empty($data['data'])) {
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '目前沒有待命名的魚類。',
+                    ]),
+                ]);
+                return;
+            }
+
+            $fish = $data['data'];
+
+            // 建立帶 Quick Reply 的魚類卡片
+            $card = $this->lineBotService->buildFishCardWithQuickReply($fish);
+
+            // 回覆訊息
+            $this->lineBotService->replyMessage($replyToken, [$card]);
+
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handle random unknown fish failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '查詢時發生錯誤，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 處理修改魚類名稱
+     */
+    protected function handleRenameFish(string $userId, int $fishId, string $newName, string $replyToken): void
+    {
+        try {
+            // 直接更新資料庫（不透過 HTTP Request）
+            $fish = Fish::find($fishId);
+            
+            if (!$fish) {
+                throw new \Exception('Fish not found');
+            }
+
+            $fish->update(['name' => $newName]);
+
+            // 清除狀態
+            \Cache::forget("line_user_{$userId}_renaming_fish");
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "✅ 已將魚類名稱更新為：{$newName}",
+                ]),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('LINE Bot rename fish failed', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'newName' => $newName,
+                'error' => $e->getMessage(),
+            ]);
+
+            // 清除狀態
+            \Cache::forget("line_user_{$userId}_renaming_fish");
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 更新名稱時發生錯誤，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
      * 處理 Postback 事件
      */
     protected function handlePostback($event, string $replyToken): void
@@ -148,8 +251,31 @@ class LineBotController extends Controller
             // 解析 postback data
             $data = $event->getPostback()->getData();
             parse_str($data, $params);
+            $userId = $event->getSource()->getUserId();
 
             Log::info('LINE Bot received postback', ['data' => $data, 'params' => $params]);
+
+            // 處理隨機魚類請求
+            if ($params['action'] === 'random_unknown_fish') {
+                $this->handleRandomUnknownFish($replyToken);
+                return;
+            }
+
+            // 處理開始修改名稱
+            if ($params['action'] === 'start_rename') {
+                $fishId = $params['fish_id'];
+                
+                // 儲存狀態到 Cache（5 分鐘過期）
+                \Cache::put("line_user_{$userId}_renaming_fish", $fishId, now()->addMinutes(5));
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入新的魚類名稱：',
+                    ]),
+                ]);
+                return;
+            }
 
             // 處理查看捕獲紀錄請求
             if ($params['action'] === 'view_captures') {
