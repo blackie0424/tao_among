@@ -181,14 +181,18 @@ class LineBotService
         }
 
         if ($count === 1) {
-            $messages = [$this->buildFishCard($fishes[0])];
+            // 使用帶 Quick Reply 的卡片
+            $messages = [$this->buildFishCardWithQuickReply($fishes[0])];
             
             // 如果有音檔，加入音檔訊息
             if (!empty($fishes[0]['audio_url'])) {
+                // 使用資料庫儲存的實際長度，若無則預設 5 秒
+                $duration = $fishes[0]['audio_duration'] ?? 5000;
+                
                 $messages[] = new \LINE\Clients\MessagingApi\Model\AudioMessage([
                     'type' => 'audio',
                     'originalContentUrl' => $fishes[0]['audio_url'],
-                    'duration' => 5000, // 預設 5 秒，實際長度需要從資料庫取得
+                    'duration' => $duration,
                 ]);
             }
             
@@ -341,29 +345,51 @@ class LineBotService
     {
         $card = $this->buildFishCard($fish);
         
-        // 加入 Quick Reply 選項
-        $card->setQuickReply([
-            'items' => [
-                [
-                    'type' => 'action',
-                    'action' => [
-                        'type' => 'postback',
-                        'label' => '✏️ 修改名稱',
-                        'data' => "action=start_rename&fish_id={$fish['id']}",
-                        'displayText' => '修改名稱',
-                    ],
+        $quickReplyItems = [];
+        
+        // Random 模式：顯示「修改名稱」（當名稱是「我不知道」時）
+        if ($fish['name'] === '我不知道') {
+            $quickReplyItems[] = [
+                'type' => 'action',
+                'action' => [
+                    'type' => 'postback',
+                    'label' => '✏️ 修改名稱',
+                    'data' => "action=start_rename&fish_id={$fish['id']}",
+                    'displayText' => '修改名稱',
                 ],
-                [
-                    'type' => 'action',
-                    'action' => [
-                        'type' => 'postback',
-                        'label' => '🔄 換一隻',
-                        'data' => 'action=random_unknown_fish',
-                        'displayText' => '換一隻',
-                    ],
+            ];
+        }
+        
+        // 沒有音檔就顯示「新增發音」
+        if (empty($fish['audio_url'])) {
+            $quickReplyItems[] = [
+                'type' => 'action',
+                'action' => [
+                    'type' => 'postback',
+                    'label' => '🎤 新增發音',
+                    'data' => "action=start_add_audio&fish_id={$fish['id']}",
+                    'displayText' => '新增發音',
                 ],
-            ],
-        ]);
+            ];
+        }
+        
+        // Random 模式：顯示「換一隻」
+        if ($fish['name'] === '我不知道') {
+            $quickReplyItems[] = [
+                'type' => 'action',
+                'action' => [
+                    'type' => 'postback',
+                    'label' => '🔄 換一隻',
+                    'data' => 'action=random_unknown_fish',
+                    'displayText' => '換一隻',
+                ],
+            ];
+        }
+        
+        // 加入 Quick Reply（如果有按鈕的話）
+        if (!empty($quickReplyItems)) {
+            $card->setQuickReply(['items' => $quickReplyItems]);
+        }
         
         return $card;
     }
@@ -377,5 +403,83 @@ class LineBotService
             'type' => 'text',
             'text' => "歡迎使用魚類資料查詢機器人！\n\n使用方式：\n直接輸入魚類名稱即可查詢相關資料。\n\n範例：\n• 黑鯛\n• 石斑\n• 紅目",
         ]);
+    }
+
+    /**
+     * 下載 LINE 訊息內容（例如語音檔）
+     *
+     * 注意：LINE API 回傳的可能是 SplFileObject 或字串
+     * 我們需要確保正確讀取 binary 資料，避免編碼問題導致音檔損壞
+     */
+    public function getMessageContent(string $messageId): string
+    {
+        try {
+            $httpClient = new \GuzzleHttp\Client();
+            $config = new \LINE\Clients\MessagingApi\Configuration();
+            $config->setAccessToken(config('line.channel_access_token'));
+            
+            $blobClient = new \LINE\Clients\MessagingApi\Api\MessagingApiBlobApi($httpClient, $config);
+            
+            Log::info('LINE Bot downloading message content', [
+                'messageId' => $messageId,
+            ]);
+            
+            $content = $blobClient->getMessageContent($messageId);
+            
+            // 處理不同的回傳類型
+            if ($content instanceof \SplFileObject) {
+                // 如果是 SplFileObject，讀取全部內容
+                $content->rewind();
+                $binaryData = '';
+                while (!$content->eof()) {
+                    $binaryData .= $content->fread(8192); // 每次讀取 8KB
+                }
+                $content = $binaryData;
+            } elseif (is_resource($content)) {
+                // 如果是 resource，讀取全部內容
+                rewind($content);
+                $content = stream_get_contents($content);
+            }
+            // 如果已經是字串，直接使用
+            
+            Log::info('LINE Bot message content downloaded successfully', [
+                'messageId' => $messageId,
+                'size' => strlen($content),
+                'first_bytes' => bin2hex(substr($content, 0, 16)),
+            ]);
+            
+            return $content;
+            
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            Log::error('LINE Bot failed to download message content - HTTP error', [
+                'messageId' => $messageId,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'exception_class' => get_class($e),
+                'response_body' => $e->hasResponse() ? $e->getResponse()->getBody()->getContents() : null,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            throw new \Exception(
+                'Failed to download message content from LINE API: ' . $e->getMessage(),
+                $e->getCode(),
+                $e
+            );
+            
+        } catch (\Exception $e) {
+            Log::error('LINE Bot failed to download message content - unexpected error', [
+                'messageId' => $messageId,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'exception_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            throw new \Exception(
+                'Failed to download message content: ' . $e->getMessage(),
+                $e->getCode(),
+                $e
+            );
+        }
     }
 }

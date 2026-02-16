@@ -26,7 +26,7 @@ class Fish extends Model
 
     protected $fillable = ['name', 'image', 'audio_filename', 'display_capture_record_id'];
 
-    protected $appends = ['image_url','audio_url', 'display_image_url'];
+    protected $appends = ['image_url','audio_url', 'audio_duration', 'display_image_url'];
 
     protected static function booted()
     {
@@ -134,6 +134,35 @@ class Fish extends Model
                 }
                 
                 return app(StorageServiceInterface::class)->getUrl('audios', $attributes['audio_filename'], null);
+            }
+        );
+    }
+
+    /**
+     * 取得主要音檔的時長（毫秒）
+     * 呼叫方式: $fish->audio_duration
+     *
+     * 從 fish_audios 表中查找與 audio_filename 相符的記錄，取得其 duration
+     * 如果找不到，回傳 null
+     */
+    protected function audioDuration(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, $attributes) {
+                // 檢查 audio_filename 是否存在
+                if (!isset($attributes['audio_filename']) || $attributes['audio_filename'] === null) {
+                    return null;
+                }
+                
+                // 如果 audios 關聯已經預載，從中查找
+                if ($this->relationLoaded('audios')) {
+                    $audio = $this->audios->firstWhere('locate', $attributes['audio_filename']);
+                    return $audio ? $audio->duration : null;
+                }
+                
+                // 否則執行單次查詢
+                $audio = $this->audios()->where('locate', $attributes['audio_filename'])->first();
+                return $audio ? $audio->duration : null;
             }
         );
     }

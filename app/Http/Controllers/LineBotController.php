@@ -7,11 +7,13 @@ use Illuminate\Http\JsonResponse;
 use App\Services\LineBotService;
 use App\Http\Controllers\ApiFishController;
 use App\Models\Fish;
+use App\Models\FishAudio;
 use Illuminate\Support\Facades\Log;
 use LINE\Parser\EventRequestParser;
 use LINE\Parser\Exception\InvalidSignatureException;
 use LINE\Webhook\Model\MessageEvent;
 use LINE\Webhook\Model\TextMessageContent;
+use LINE\Webhook\Model\AudioMessageContent;
 use LINE\Webhook\Model\PostbackEvent;
 
 class LineBotController extends Controller
@@ -57,6 +59,8 @@ class LineBotController extends Controller
                     
                     if ($message instanceof TextMessageContent) {
                         $this->handleTextMessage($event, $event->getReplyToken());
+                    } elseif ($message instanceof AudioMessageContent) {
+                        $this->handleAudioMessage($event, $event->getReplyToken());
                     }
                 } elseif ($event instanceof PostbackEvent) {
                     $this->handlePostback($event, $event->getReplyToken());
@@ -215,12 +219,45 @@ class LineBotController extends Controller
             // 清除狀態
             \Cache::forget("line_user_{$userId}_renaming_fish");
 
-            $this->lineBotService->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
+            // 檢查是否有音檔
+            if (empty($fish->audio_filename)) {
+                // 沒有音檔，詢問是否要新增
+                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "✅ 已將魚類名稱更新為：{$newName}\n\n是否要新增發音？",
+                ]);
+                
+                $message->setQuickReply([
+                    'items' => [
+                        [
+                            'type' => 'action',
+                            'action' => [
+                                'type' => 'postback',
+                                'label' => '🎤 新增發音',
+                                'data' => "action=start_add_audio&fish_id={$fishId}",
+                                'displayText' => '新增發音',
+                            ],
+                        ],
+                        [
+                            'type' => 'action',
+                            'action' => [
+                                'type' => 'postback',
+                                'label' => '❌ 不用了',
+                                'data' => 'action=skip',
+                                'displayText' => '不用了',
+                            ],
+                        ],
+                    ],
+                ]);
+            } else {
+                // 已有音檔
+                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => "✅ 已將魚類名稱更新為：{$newName}",
-                ]),
-            ]);
+                ]);
+            }
+
+            $this->lineBotService->replyMessage($replyToken, [$message]);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot rename fish failed', [
@@ -243,6 +280,352 @@ class LineBotController extends Controller
     }
 
     /**
+     * 處理語音訊息
+     */
+    protected function handleAudioMessage(MessageEvent $event, string $replyToken): void
+    {
+        $userId = $event->getSource()->getUserId();
+        $messageId = $event->getMessage()->getId();
+        
+        Log::info('LINE Bot received audio message', [
+            'userId' => $userId,
+            'messageId' => $messageId,
+        ]);
+        
+        // 檢查是否正在新增發音
+        $fishId = \Cache::get("line_user_{$userId}_adding_audio");
+        
+        if (!$fishId) {
+            // 沒有在新增發音狀態，提示用戶
+            Log::warning('LINE Bot audio received without active state', [
+                'userId' => $userId,
+            ]);
+            
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '請先點擊「🎤 新增發音」按鈕',
+                ]),
+            ]);
+            return;
+        }
+        
+        try {
+            // 檢查時長（LINE 提供的是毫秒，容許 5.1 秒以內）
+            $duration = $event->getMessage()->getDuration();
+            
+            Log::info('LINE Bot audio duration check', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'duration' => $duration,
+            ]);
+            
+            if ($duration > 5100) { // 5100ms = 5.1秒，給予 100ms 容差
+                // 清除使用者狀態
+                \Cache::forget("line_user_{$userId}_adding_audio");
+                
+                Log::warning('LINE Bot audio duration exceeded', [
+                    'userId' => $userId,
+                    'fishId' => $fishId,
+                    'duration' => $duration,
+                    'max_allowed' => 5100,
+                ]);
+                
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '❌ 錄音超過 5 秒，請重新錄製',
+                    ]),
+                ]);
+                return;
+            }
+            
+            Log::info('LINE Bot downloading audio content', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'messageId' => $messageId,
+            ]);
+            
+            // 下載語音內容
+            try {
+                $audioBlob = $this->lineBotService->getMessageContent($messageId);
+            } catch (\Exception $e) {
+                // 清除使用者狀態
+                \Cache::forget("line_user_{$userId}_adding_audio");
+                
+                Log::error('LINE Bot failed to download audio from LINE API', [
+                    'userId' => $userId,
+                    'fishId' => $fishId,
+                    'messageId' => $messageId,
+                    'error' => $e->getMessage(),
+                    'error_code' => $e->getCode(),
+                    'exception_class' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '❌ 無法下載音檔，請稍後再試',
+                    ]),
+                ]);
+                return;
+            }
+            
+            // 記錄音檔的詳細資訊
+            Log::info('LINE Bot audio details', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'messageId' => $messageId,
+                'size' => strlen($audioBlob),
+                'duration' => $duration,
+                'first_bytes' => bin2hex(substr($audioBlob, 0, 16)), // 記錄前 16 bytes
+            ]);
+            
+            // 驗證音檔
+            if (!$this->validateAudioBlob($audioBlob)) {
+                // 清除使用者狀態
+                \Cache::forget("line_user_{$userId}_adding_audio");
+                
+                Log::warning('LINE Bot audio validation failed', [
+                    'userId' => $userId,
+                    'fishId' => $fishId,
+                    'messageId' => $messageId,
+                ]);
+                
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '❌ 音檔格式不正確，請重新錄製',
+                    ]),
+                ]);
+                return;
+            }
+            
+            // 儲存音檔（傳遞實際 duration）
+            $this->saveFishAudio($userId, $fishId, $audioBlob, $duration, $replyToken);
+            
+        } catch (\Exception $e) {
+            // 清除使用者狀態
+            \Cache::forget("line_user_{$userId}_adding_audio");
+            
+            Log::error('LINE Bot handle audio message failed', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'messageId' => $messageId,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'exception_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 處理音檔時發生錯誤，請稍後再試',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 驗證音檔格式和完整性
+     *
+     * @param string $audioBlob 音檔二進位資料
+     * @return bool 驗證是否通過
+     */
+    protected function validateAudioBlob(string $audioBlob): bool
+    {
+        // 檢查檔案大小（至少 100 bytes）
+        $size = strlen($audioBlob);
+        if ($size < 100) {
+            Log::error('Audio blob too small', ['size' => $size]);
+            return false;
+        }
+        
+        Log::info('Audio blob size validation passed', ['size' => $size]);
+        
+        // 檢查 M4A 檔案簽名（magic bytes）
+        // M4A 檔案通常在前 32 bytes 內包含 "ftyp" 標記
+        $header = substr($audioBlob, 0, min(32, $size));
+        $hasFtypSignature = strpos($header, 'ftyp') !== false;
+        
+        if (!$hasFtypSignature) {
+            Log::warning('Audio blob missing M4A signature', [
+                'header_hex' => bin2hex($header),
+                'header_length' => strlen($header),
+            ]);
+            // 不拒絕，因為有些 M4A 格式可能略有不同
+            // 但記錄警告以便追蹤
+        } else {
+            Log::info('Audio blob M4A signature found', [
+                'ftyp_position' => strpos($header, 'ftyp'),
+            ]);
+        }
+        
+        // 驗證通過
+        Log::info('Audio blob validation passed', [
+            'size' => $size,
+            'has_ftyp' => $hasFtypSignature,
+        ]);
+        
+        return true;
+    }
+
+    /**
+     * 儲存魚類發音檔案（使用 LINE 專用的上傳服務）
+     */
+    protected function saveFishAudio(string $userId, int $fishId, string $audioBlob, int $duration, string $replyToken): void
+    {
+        try {
+            // 使用 LINE 專用的上傳服務
+            $lineUploadService = app(\App\Services\LineUploadService::class);
+            
+            Log::info('LINE Bot saving audio', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'blobSize' => strlen($audioBlob),
+                'duration' => $duration,
+            ]);
+            
+            // 上傳音檔到 S3（LINE 專用流程）
+            try {
+                $filename = $lineUploadService->uploadLineAudio($audioBlob);
+            } catch (\Exception $e) {
+                // 清除使用者狀態
+                \Cache::forget("line_user_{$userId}_adding_audio");
+                
+                Log::error('LINE Bot failed to upload audio to S3', [
+                    'userId' => $userId,
+                    'fishId' => $fishId,
+                    'blobSize' => strlen($audioBlob),
+                    'duration' => $duration,
+                    'error' => $e->getMessage(),
+                    'error_code' => $e->getCode(),
+                    'exception_class' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                
+                throw new \Exception('Failed to upload audio to S3: ' . $e->getMessage(), 0, $e);
+            }
+            
+            // 更新 Fish 的 audio_filename
+            try {
+                $fish = Fish::find($fishId);
+                
+                if (!$fish) {
+                    // 清除使用者狀態
+                    \Cache::forget("line_user_{$userId}_adding_audio");
+                    
+                    Log::error('LINE Bot fish not found when saving audio', [
+                        'userId' => $userId,
+                        'fishId' => $fishId,
+                        'filename' => $filename,
+                    ]);
+                    
+                    // 嘗試刪除已上傳的音檔（避免孤兒檔案）
+                    try {
+                        $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
+                        \Storage::disk('s3')->delete($audioFolder . '/' . $filename);
+                        Log::info('LINE Bot deleted orphaned audio file', [
+                            'filename' => $filename,
+                        ]);
+                    } catch (\Exception $deleteException) {
+                        Log::error('LINE Bot failed to delete orphaned audio file', [
+                            'filename' => $filename,
+                            'error' => $deleteException->getMessage(),
+                        ]);
+                    }
+                    
+                    throw new \Exception('Fish not found with ID: ' . $fishId);
+                }
+                
+                // 更新 fish 表的主要音檔檔名
+                $fish->update([
+                    'audio_filename' => $filename,
+                ]);
+                
+                // 在 fish_audios 表中創建詳細記錄
+                FishAudio::create([
+                    'fish_id' => $fishId,
+                    'name' => $fish->name, // 使用魚類名稱作為音檔名稱
+                    'locate' => $filename,
+                    'duration' => $duration, // 儲存實際長度（毫秒）
+                ]);
+                
+            } catch (\Exception $e) {
+                // 清除使用者狀態
+                \Cache::forget("line_user_{$userId}_adding_audio");
+                
+                Log::error('LINE Bot failed to update database', [
+                    'userId' => $userId,
+                    'fishId' => $fishId,
+                    'filename' => $filename,
+                    'duration' => $duration,
+                    'error' => $e->getMessage(),
+                    'error_code' => $e->getCode(),
+                    'exception_class' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                
+                // 嘗試刪除已上傳的音檔（避免孤兒檔案）
+                try {
+                    $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
+                    \Storage::disk('s3')->delete($audioFolder . '/' . $filename);
+                    Log::info('LINE Bot deleted orphaned audio file after database failure', [
+                        'filename' => $filename,
+                    ]);
+                } catch (\Exception $deleteException) {
+                    Log::error('LINE Bot failed to delete orphaned audio file after database failure', [
+                        'filename' => $filename,
+                        'error' => $deleteException->getMessage(),
+                    ]);
+                }
+                
+                throw new \Exception('Failed to update database: ' . $e->getMessage(), 0, $e);
+            }
+            
+            // 清除狀態
+            \Cache::forget("line_user_{$userId}_adding_audio");
+            
+            Log::info('LINE Bot audio saved successfully', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'filename' => $filename,
+                'duration' => $duration,
+            ]);
+            
+            // 回覆成功訊息
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "✅ 發音檔已成功新增！\n💡 不滿意可再次錄製覆蓋",
+                ]),
+            ]);
+            
+        } catch (\Exception $e) {
+            // 確保使用者狀態被清除
+            \Cache::forget("line_user_{$userId}_adding_audio");
+            
+            Log::error('LINE Bot save fish audio failed', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'exception_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 儲存音檔時發生錯誤，請稍後再試',
+                ]),
+            ]);
+        }
+    }
+
+    /**
      * 處理 Postback 事件
      */
     protected function handlePostback($event, string $replyToken): void
@@ -258,6 +641,22 @@ class LineBotController extends Controller
             // 處理隨機魚類請求
             if ($params['action'] === 'random_unknown_fish') {
                 $this->handleRandomUnknownFish($replyToken);
+                return;
+            }
+
+            // 處理開始新增發音
+            if ($params['action'] === 'start_add_audio') {
+                $fishId = $params['fish_id'];
+                
+                // 儲存狀態到 Cache（5 分鐘過期）
+                \Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "請錄製魚類發音（限 5 秒）\n💡 不滿意可再次錄製覆蓋",
+                    ]),
+                ]);
                 return;
             }
 
