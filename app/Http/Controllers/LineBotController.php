@@ -548,8 +548,8 @@ class LineBotController extends Controller
                 // 在 fish_audios 表中創建詳細記錄
                 FishAudio::create([
                     'fish_id' => $fishId,
-                    'name' => $fish->name, // 使用魚類名稱作為音檔名稱
-                    'locate' => $filename,
+                    'name' => $filename, // 檔案名稱（UUID.m4a）
+                    'locate' => 'iraraley', // 地區名稱（預設 iraraley）
                     'duration' => $duration, // 儲存實際長度（毫秒）
                 ]);
                 
