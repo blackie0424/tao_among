@@ -130,6 +130,40 @@ class ApiFishController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/prefix/api/capture-records",
+     *     summary="取得所有捕獲紀錄",
+     *     tags={"Capture Record"},
+     *     @OA\Response(response=200, description="成功")
+     * )
+     */
+    public function getAllCaptureRecords(): JsonResponse
+    {
+        $records = \App\Models\CaptureRecord::with('fish:id,name,has_webp')
+            ->orderBy('capture_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $data = $records->map(function ($record) {
+            return [
+                'capture_id' => $record->id,
+                'fish_id' => $record->fish_id,
+                'tribe' => $record->tribe,
+                'location' => $record->location,
+                'capture_method' => $record->capture_method,
+                'notes' => $record->notes,
+                'image_url' => $record->image_url,
+                'fish_name' => $record->fish ? $record->fish->name : null,
+            ];
+        });
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * @OA\Get(
      *     path="/prefix/api/fish/{id}/notes",
      *     summary="取得指定魚類的筆記（可用 since 篩選）",
      *     tags={"Fish"},
