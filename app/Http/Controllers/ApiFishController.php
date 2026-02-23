@@ -144,10 +144,16 @@ class ApiFishController extends Controller
             ->get();
 
         $data = $records->map(function ($record) {
-            $arr = $record->toArray();
-            $arr['fish_name'] = $record->fish ? $record->fish->name : null;
-            unset($arr['fish']);
-            return $arr;
+            return [
+                'capture_id' => $record->id,
+                'fish_id' => $record->fish_id,
+                'tribe' => $record->tribe,
+                'location' => $record->location,
+                'capture_method' => $record->capture_method,
+                'notes' => $record->notes,
+                'image_url' => $record->image_url,
+                'fish_name' => $record->fish ? $record->fish->name : null,
+            ];
         });
 
         return response()->json([
