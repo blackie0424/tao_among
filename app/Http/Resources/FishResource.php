@@ -35,6 +35,7 @@ class FishResource extends JsonResource
             });
 
         return [
+            'fish_id' => $this->id,
             'name' => $this->name,
             'image_url' => $this->image_url,
             'audio_url' => $this->audio_url,
