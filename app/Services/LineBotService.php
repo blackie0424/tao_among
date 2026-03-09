@@ -118,31 +118,23 @@ class LineBotService
             ];
 
         $bodyContents = [
-            // 魚名與發音按鈕並排：名字占大部分，按鈕靠右
+            // 魚名（完整一行）
             [
-                'type'    => 'box',
-                'layout'  => 'horizontal',
-                'contents' => [
-                    [
-                        'type'   => 'text',
-                        'text'   => $fish['name'],
-                        'weight' => 'bold',
-                        'size'   => 'xl',
-                        'wrap'   => true,
-                        'color'  => '#1a1a2e',
-                        'flex'   => 5,
-                        'gravity' => 'center',
-                    ],
-                    [
-                        'type'   => 'button',
-                        'style'  => $hasAudio ? 'primary' : 'secondary',
-                        'height' => 'sm',
-                        'flex'   => 3,
-                        'color'  => $hasAudio ? '#2c6b8a' : '#aaaaaa',
-                        'action' => $audioAction,
-                    ],
-                ],
-                'alignItems' => 'center',
+                'type'   => 'text',
+                'text'   => $fish['name'],
+                'weight' => 'bold',
+                'size'   => 'xl',
+                'wrap'   => true,
+                'color'  => '#1a1a2e',
+            ],
+            // 發音按鈕（魚名下方）
+            [
+                'type'   => 'button',
+                'style'  => $hasAudio ? 'primary' : 'secondary',
+                'height' => 'sm',
+                'margin' => 'sm',
+                'color'  => $hasAudio ? '#2c6b8a' : '#aaaaaa',
+                'action' => $audioAction,
             ],
             [
                 'type'   => 'separator',
