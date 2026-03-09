@@ -65,19 +65,23 @@ class LineBotService
     /**
      * 建立單筆魚類卡片訊息 (Flex Message)
      *
-     * 顯示內容：
-     * - 魚名（標題）
-     * - Iraraley 部落：食用分類 + 魚鱗處理方式
-     * - Imowrod 部落：食用分類 + 魚鱗處理方式
-     * - 其他部落田調資料（若有）
-     * - Footer：捕獲紀錄按鈕 + 發音按鈕
+     * @param array       $fish          魚類資料
+     * @param array|null  $contextTribes 要顯示的指定部落（null = 顯示兩個預設部落）
+     *                                    例： ['iraraley']、['imowrod']、['iraraley','imowrod']
      */
-    public function buildFishCard(array $fish): FlexMessage
+    public function buildFishCard(array $fish, ?array $contextTribes = null): FlexMessage
     {
+        // 決定要渲染哪些「指定部落」區塊
+        // - null / 空陣列 → 顯示 iraraley + imowrod 兩個
+        // - ['iraraley'] → 只顯示 Iraraley
+        // - ['imowrod']  → 只顯示 Imowrod
+        $primaryTribes = (!empty($contextTribes))
+            ? $contextTribes
+            : ['iraraley', 'imowrod'];
+
         // 建立部落資料 mapping（以 tribe 為 key）
         $tribalData = [];
         $otherTribeData = [];
-        $primaryTribes = ['iraraley', 'imowrod'];
 
         if (!empty($fish['tribal_classifications'])) {
             foreach ($fish['tribal_classifications'] as $tc) {
@@ -151,6 +155,11 @@ class LineBotService
         ];
 
         foreach ($primaryTribeConfig as $tribeKey => $config) {
+            // 只渲染 $primaryTribes 指定的部落區塊
+            if (!in_array($tribeKey, $primaryTribes)) {
+                continue;
+            }
+
             $data            = $tribalData[$tribeKey] ?? [];
             $foodCategory    = !empty($data['food_category']) ? $data['food_category'] : '尚未紀錄';
             $processingMethod = !empty($data['processing_method']) ? $data['processing_method'] : '尚未紀錄';
@@ -325,22 +334,9 @@ class LineBotService
         }
 
         if ($count === 1) {
-            // 使用帶 Quick Reply 的卡片
-            $messages = [$this->buildFishCardWithQuickReply($fishes[0])];
-            
-            // 如果有音檔，加入音檔訊息
-            if (!empty($fishes[0]['audio_url'])) {
-                // 使用資料庫儲存的實際長度，若無則預設 5 秒
-                $duration = $fishes[0]['audio_duration'] ?? 5000;
-                
-                $messages[] = new \LINE\Clients\MessagingApi\Model\AudioMessage([
-                    'type' => 'audio',
-                    'originalContentUrl' => $fishes[0]['audio_url'],
-                    'duration' => $duration,
-                ]);
-            }
-            
-            return $messages;
+            // 單一結果：使用帶 Quick Reply 的卡片
+            // （發音已整合在卡片內的「🔊 播放發音」按鈕，不再自動附加音檔）
+            return [$this->buildFishCardWithQuickReply($fishes[0])];
         }
 
         if ($count <= 10) {
@@ -541,12 +537,13 @@ class LineBotService
     /**
      * 建立分頁瀏覽輪播訊息（供圖文選單使用）
      *
-     * @param array  $fishes        最多 10 筆魚類資料
-     * @param bool   $hasMore       是否還有下一頁
-     * @param string $nextPageData  下一頁的 postback data（e.g. action=browse_next&type=food_category&value=oyod&page=2）
-     * @param string $title         本次瀏覽標題（用於 altText）
+     * @param array       $fishes         最多 10 筆魚類資料
+     * @param bool        $hasMore        是否還有下一頁
+     * @param string      $nextPageData   下一頁的 postback data
+     * @param string      $title          本次瀏覽標題（用於 altText）
+     * @param array|null  $contextTribes  要顯示的指定部落（null = 顯示兩個預設部落）
      */
-    public function buildFishBrowseCarousel(array $fishes, bool $hasMore, string $nextPageData, string $title): array
+    public function buildFishBrowseCarousel(array $fishes, bool $hasMore, string $nextPageData, string $title, ?array $contextTribes = null): array
     {
         if (empty($fishes)) {
             return [
@@ -557,10 +554,10 @@ class LineBotService
             ];
         }
 
-        // 建立各張魚類卡片（使用 buildFishCard）
+        // 建立各張魚類卡片（使用 buildFishCard，傳入部落 context）
         $bubbles = [];
         foreach ($fishes as $fish) {
-            $bubbles[] = $this->buildFishCard($fish)->getContents();
+            $bubbles[] = $this->buildFishCard($fish, $contextTribes)->getContents();
         }
 
         $carouselMessage = new FlexMessage([

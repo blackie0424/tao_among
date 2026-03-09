@@ -889,11 +889,16 @@ class LineBotController extends Controller
             $nextPage = $page + 1;
             $nextPageData = "action=browse_next&type={$filterType}&value={$filterValue}&page={$nextPage}";
 
+            // 部落篩選：卡片只顯示該部落的資料區塊
+            // 食用分類篩選：顯示兩個預設部落（iraraley + imowrod）
+            $contextTribes = ($filterType === 'tribe') ? [$filterValue] : null;
+
             $messages = $this->lineBotService->buildFishBrowseCarousel(
                 $fishes,
                 $hasMore,
                 $nextPageData,
-                $title
+                $title,
+                $contextTribes
             );
 
             $this->lineBotService->replyMessage($replyToken, $messages);
