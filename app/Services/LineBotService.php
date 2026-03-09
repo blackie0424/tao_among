@@ -395,6 +395,60 @@ class LineBotService
     }
 
     /**
+     * 建立分頁瀏覽輪播訊息（供圖文選單使用）
+     *
+     * @param array  $fishes        最多 10 筆魚類資料
+     * @param bool   $hasMore       是否還有下一頁
+     * @param string $nextPageData  下一頁的 postback data（e.g. action=browse_next&type=food_category&value=oyod&page=2）
+     * @param string $title         本次瀏覽標題（用於 altText）
+     */
+    public function buildFishBrowseCarousel(array $fishes, bool $hasMore, string $nextPageData, string $title): array
+    {
+        if (empty($fishes)) {
+            return [
+                new TextMessage([
+                    'type' => 'text',
+                    'text' => '目前沒有符合條件的魚類資料。',
+                ]),
+            ];
+        }
+
+        // 建立各張魚類卡片（使用 buildFishCard）
+        $bubbles = [];
+        foreach ($fishes as $fish) {
+            $bubbles[] = $this->buildFishCard($fish)->getContents();
+        }
+
+        $carouselMessage = new FlexMessage([
+            'type' => 'flex',
+            'altText' => $title . '（共 ' . count($fishes) . ' 筆）',
+            'contents' => [
+                'type' => 'carousel',
+                'contents' => $bubbles,
+            ],
+        ]);
+
+        // 如果有下一頁，加入 Quick Reply「下一頁」按鈕
+        if ($hasMore) {
+            $carouselMessage->setQuickReply([
+                'items' => [
+                    [
+                        'type' => 'action',
+                        'action' => [
+                            'type' => 'postback',
+                            'label' => '下一頁 →',
+                            'data' => $nextPageData,
+                            'displayText' => '繼續瀏覽下一頁',
+                        ],
+                    ],
+                ],
+            ]);
+        }
+
+        return [$carouselMessage];
+    }
+
+    /**
      * 建立使用說明訊息
      */
     public function buildHelpMessage(): TextMessage

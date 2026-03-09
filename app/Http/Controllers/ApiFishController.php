@@ -465,4 +465,124 @@ class ApiFishController extends Controller
             ],
         ]);
     }
+
+    /**
+     * 依篩選條件取得魚類資料（供 LINE 圖文選單使用）
+     * 支援 food_category 篩選或 tribe 篩選，每頁 10 筆
+     */
+    public function getFishesByFilter(Request $request): JsonResponse
+    {
+        $filterType = $request->query('filter_type'); // 'food_category' or 'tribe'
+        $filterValue = $request->query('filter_value');
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = 10;
+
+        if (!$filterType || !$filterValue) {
+            return response()->json([
+                'message' => 'filter_type and filter_value are required',
+                'data' => [],
+            ], 400);
+        }
+
+        $query = Fish::with([
+            'tribalClassifications' => function ($q) {
+                $q->select('id', 'fish_id', 'tribe', 'food_category');
+            },
+            'displayCaptureRecord',
+        ]);
+
+        if ($filterType === 'food_category') {
+            // 透過 tribalClassifications 關聯篩選 food_category
+            $query->whereHas('tribalClassifications', function ($q) use ($filterValue) {
+                $q->where('food_category', strtolower($filterValue));
+            });
+        } elseif ($filterType === 'tribe') {
+            // 透過 tribalClassifications 關聯篩選 tribe
+            $query->whereHas('tribalClassifications', function ($q) use ($filterValue) {
+                $q->where('tribe', strtolower($filterValue));
+            });
+        } else {
+            return response()->json([
+                'message' => 'Invalid filter_type. Use food_category or tribe.',
+                'data' => [],
+            ], 400);
+        }
+
+        $total = $query->count();
+        $fishes = $query->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get()
+            ->map(function ($fish) {
+                $tribalClassifications = $fish->tribalClassifications->map(function ($tc) {
+                    return [
+                        'tribe' => $tc->tribe,
+                        'food_category' => $tc->food_category,
+                    ];
+                })->toArray();
+
+                return [
+                    'id' => $fish->id,
+                    'name' => $fish->name,
+                    'image_url' => $fish->image_url,
+                    'display_image_url' => $fish->display_image_url,
+                    'tribal_classifications' => $tribalClassifications,
+                    'audio_url' => $fish->audio_url,
+                    'audio_duration' => $fish->audio_duration,
+                    'capture_records_count' => $fish->captureRecords()->count(),
+                ];
+            });
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $fishes,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'has_more' => ($page * $perPage) < $total,
+        ]);
+    }
+
+    /**
+     * 隨機取得多筆魚類資料（供 LINE 圖文選單「隨機瀏覽」使用）
+     */
+    public function getRandomFishes(Request $request): JsonResponse
+    {
+        $limit = min(10, max(1, (int) $request->query('limit', 10)));
+
+        $fishes = Fish::with([
+            'tribalClassifications' => function ($q) {
+                $q->select('id', 'fish_id', 'tribe', 'food_category');
+            },
+            'displayCaptureRecord',
+        ])
+            ->inRandomOrder()
+            ->take($limit)
+            ->get()
+            ->map(function ($fish) {
+                $tribalClassifications = $fish->tribalClassifications->map(function ($tc) {
+                    return [
+                        'tribe' => $tc->tribe,
+                        'food_category' => $tc->food_category,
+                    ];
+                })->toArray();
+
+                return [
+                    'id' => $fish->id,
+                    'name' => $fish->name,
+                    'image_url' => $fish->image_url,
+                    'display_image_url' => $fish->display_image_url,
+                    'tribal_classifications' => $tribalClassifications,
+                    'audio_url' => $fish->audio_url,
+                    'audio_duration' => $fish->audio_duration,
+                    'capture_records_count' => $fish->captureRecords()->count(),
+                ];
+            });
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $fishes,
+            'total' => $fishes->count(),
+            'has_more' => false,
+        ]);
+    }
 }

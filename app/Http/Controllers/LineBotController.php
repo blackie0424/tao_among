@@ -638,14 +638,82 @@ class LineBotController extends Controller
 
             Log::info('LINE Bot received postback', ['data' => $data, 'params' => $params]);
 
+            $action = $params['action'] ?? '';
+
+            // ==========================================
+            // 圖文選單功能（Rich Menu）
+            // ==========================================
+
+            // A: 瀏覽 oyod 類魚（food_category 篩選）
+            if ($action === 'browse_oyod') {
+                $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚');
+                return;
+            }
+
+            // B: 瀏覽 rahet 類魚（food_category 篩選）
+            if ($action === 'browse_rahet') {
+                $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚');
+                return;
+            }
+
+            // C: 瀏覽 iraraley 部落（tribe 篩選）
+            if ($action === 'browse_iraraley') {
+                $this->handleBrowseByFilter($replyToken, 'tribe', 'iraraley', 1, 'Iraraley 部落');
+                return;
+            }
+
+            // D: 瀏覽 imowrod 部落（tribe 篩選）
+            if ($action === 'browse_imowrod') {
+                $this->handleBrowseByFilter($replyToken, 'tribe', 'imowrod', 1, 'Imowrod 部落');
+                return;
+            }
+
+            // E: 隨機瀏覽魚類
+            if ($action === 'random_browse') {
+                $this->handleRandomBrowse($replyToken);
+                return;
+            }
+
+            // F: 提供線索（隨機「我不知道」魚）
+            if ($action === 'provide_clue') {
+                $this->handleRandomUnknownFish($replyToken);
+                return;
+            }
+
+            // 分頁：下一頁瀏覽（由 Quick Reply 觸發）
+            if ($action === 'browse_next') {
+                $type = $params['type'] ?? '';
+                $value = $params['value'] ?? '';
+                $page = max(1, (int) ($params['page'] ?? 1));
+
+                if ($type === 'food_category' || $type === 'tribe') {
+                    $titleMap = [
+                        'food_category:oyod' => 'Oyod 類魚',
+                        'food_category:rahet' => 'Rahet 類魚',
+                        'tribe:iraraley' => 'Iraraley 部落',
+                        'tribe:imowrod' => 'Imowrod 部落',
+                    ];
+                    $title = $titleMap["{$type}:{$value}"] ?? '魚類瀏覽';
+                    $this->handleBrowseByFilter($replyToken, $type, $value, $page, $title);
+                } else {
+                    // 隨機瀏覽的下一頁
+                    $this->handleRandomBrowse($replyToken);
+                }
+                return;
+            }
+
+            // ==========================================
+            // 原有功能
+            // ==========================================
+
             // 處理隨機魚類請求
-            if ($params['action'] === 'random_unknown_fish') {
+            if ($action === 'random_unknown_fish') {
                 $this->handleRandomUnknownFish($replyToken);
                 return;
             }
 
             // 處理開始新增發音
-            if ($params['action'] === 'start_add_audio') {
+            if ($action === 'start_add_audio') {
                 $fishId = $params['fish_id'];
                 
                 // 儲存狀態到 Cache（5 分鐘過期）
@@ -661,7 +729,7 @@ class LineBotController extends Controller
             }
 
             // 處理開始修改名稱
-            if ($params['action'] === 'start_rename') {
+            if ($action === 'start_rename') {
                 $fishId = $params['fish_id'];
                 
                 // 儲存狀態到 Cache（5 分鐘過期）
@@ -677,7 +745,7 @@ class LineBotController extends Controller
             }
 
             // 處理查看捕獲紀錄請求
-            if ($params['action'] === 'view_captures') {
+            if ($action === 'view_captures') {
                 $fishId = $params['fish_id'];
                 $fishName = $params['fish_name'] ?? '';
 
@@ -710,6 +778,12 @@ class LineBotController extends Controller
                     }
                 }
             }
+
+            // 忽略 skip
+            if ($action === 'skip') {
+                return;
+            }
+
         } catch (\Exception $e) {
             Log::error('LINE Bot handle postback failed', [
                 'error' => $e->getMessage(),
@@ -721,6 +795,111 @@ class LineBotController extends Controller
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '處理請求時發生錯誤，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 處理圖文選單「依篩選條件瀏覽」（food_category 或 tribe）
+     */
+    protected function handleBrowseByFilter(
+        string $replyToken,
+        string $filterType,
+        string $filterValue,
+        int $page,
+        string $title
+    ): void {
+        try {
+            $request = Request::create('/prefix/api/fishs/filter', 'GET', [
+                'filter_type' => $filterType,
+                'filter_value' => $filterValue,
+                'page' => $page,
+            ]);
+
+            $response = $this->apiFishController->getFishesByFilter($request);
+            $data = $response->getData(true);
+
+            $fishes = $data['data'] ?? [];
+            $hasMore = $data['has_more'] ?? false;
+
+            // 組裝「下一頁」postback data
+            $nextPage = $page + 1;
+            $nextPageData = "action=browse_next&type={$filterType}&value={$filterValue}&page={$nextPage}";
+
+            $messages = $this->lineBotService->buildFishBrowseCarousel(
+                $fishes,
+                $hasMore,
+                $nextPageData,
+                $title
+            );
+
+            $this->lineBotService->replyMessage($replyToken, $messages);
+
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handleBrowseByFilter failed', [
+                'filterType' => $filterType,
+                'filterValue' => $filterValue,
+                'page' => $page,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '載入魚類資料時發生錯誤，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 處理圖文選單「隨機瀏覽」
+     */
+    protected function handleRandomBrowse(string $replyToken): void
+    {
+        try {
+            $request = Request::create('/prefix/api/fishs/random', 'GET', ['limit' => 10]);
+            $response = $this->apiFishController->getRandomFishes($request);
+            $data = $response->getData(true);
+
+            $fishes = $data['data'] ?? [];
+
+            $messages = $this->lineBotService->buildFishBrowseCarousel(
+                $fishes,
+                false, // 隨機瀏覽沒有「下一頁」概念，每次都重新隨機
+                'action=random_browse',
+                '隨機瀏覽'
+            );
+
+            // 額外加入 Quick Reply「再隨機一次」按鈕
+            if (!empty($messages)) {
+                $messages[0]->setQuickReply([
+                    'items' => [
+                        [
+                            'type' => 'action',
+                            'action' => [
+                                'type' => 'postback',
+                                'label' => '🔄 再隨機一次',
+                                'data' => 'action=random_browse',
+                                'displayText' => '再隨機一次',
+                            ],
+                        ],
+                    ],
+                ]);
+            }
+
+            $this->lineBotService->replyMessage($replyToken, $messages);
+
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handleRandomBrowse failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '載入隨機魚類時發生錯誤，請稍後再試。',
                 ]),
             ]);
         }

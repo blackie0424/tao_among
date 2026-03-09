@@ -27,6 +27,8 @@ Route::post('/line/webhook', [LineBotController::class, 'webhook']);
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
 Route::get('/fishs/search', [ApiFishController::class, 'search']);
 Route::get('/fishs/random-unknown', [ApiFishController::class, 'randomUnknownFish']);
+Route::get('/fishs/filter', [ApiFishController::class, 'getFishesByFilter']);
+Route::get('/fishs/random', [ApiFishController::class, 'getRandomFishes']);
 Route::post('/fish', [ApiFishController::class, 'store']);
 Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
 Route::get('/fish/{id}/compact', [ApiFishController::class, 'getCompactFishById'])->whereNumber('id');
