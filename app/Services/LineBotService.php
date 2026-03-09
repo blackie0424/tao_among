@@ -488,7 +488,6 @@ class LineBotService
         $quickReplyItems = [];
         
         // Random 模式：顯示「修改名稱」（當名稱是「我不知道」時）
-        if ($fish['name'] === '我不知道') {
             $quickReplyItems[] = [
                 'type' => 'action',
                 'action' => [
@@ -498,20 +497,17 @@ class LineBotService
                     'displayText' => '修改名稱',
                 ],
             ];
-        }
         
-        // 沒有音檔就顯示「新增發音」
-        if (empty($fish['audio_url'])) {
-            $quickReplyItems[] = [
-                'type' => 'action',
-                'action' => [
-                    'type' => 'postback',
-                    'label' => '🎤 新增發音',
-                    'data' => "action=start_add_audio&fish_id={$fish['id']}",
-                    'displayText' => '新增發音',
-                ],
-            ];
-        }
+        // 「提供發音」按鈕（無論有無音檔都顯示，田調工具盡量蒐集）
+        $quickReplyItems[] = [
+            'type' => 'action',
+            'action' => [
+                'type' => 'postback',
+                'label' => '🎤 提供發音',
+                'data' => "action=start_add_audio&fish_id={$fish['id']}",
+                'displayText' => '提供發音',
+            ],
+        ];
         
         // Random 模式：顯示「換一隻」
         if ($fish['name'] === '我不知道') {

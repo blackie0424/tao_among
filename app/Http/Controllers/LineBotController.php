@@ -321,9 +321,7 @@ class LineBotController extends Controller
             ]);
             
             if ($duration > 5100) { // 5100ms = 5.1秒，給予 100ms 容差
-                // 清除使用者狀態
-                \Cache::forget("line_user_{$userId}_adding_audio");
-                
+                // 保留狀態，讓使用者可以直接重錄
                 Log::warning('LINE Bot audio duration exceeded', [
                     'userId' => $userId,
                     'fishId' => $fishId,
@@ -331,12 +329,24 @@ class LineBotController extends Controller
                     'max_allowed' => 5100,
                 ]);
                 
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '❌ 錄音超過 5 秒，請重新錄製',
-                    ]),
+                $retryMessage = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 錄音超過 5 秒，請重新錄製（限 5 秒以內）',
                 ]);
+                $retryMessage->setQuickReply([
+                    'items' => [
+                        [
+                            'type'   => 'action',
+                            'action' => [
+                                'type'        => 'postback',
+                                'label'       => '🔄 重新錄製',
+                                'data'        => "action=retry_audio&fish_id={$fishId}",
+                                'displayText' => '重新錄製',
+                            ],
+                        ],
+                    ],
+                ]);
+                $this->lineBotService->replyMessage($replyToken, [$retryMessage]);
                 return;
             }
             
@@ -350,9 +360,7 @@ class LineBotController extends Controller
             try {
                 $audioBlob = $this->lineBotService->getMessageContent($messageId);
             } catch (\Exception $e) {
-                // 清除使用者狀態
-                \Cache::forget("line_user_{$userId}_adding_audio");
-                
+                // 保留狀態，讓使用者可以重試
                 Log::error('LINE Bot failed to download audio from LINE API', [
                     'userId' => $userId,
                     'fishId' => $fishId,
@@ -363,12 +371,24 @@ class LineBotController extends Controller
                     'trace' => $e->getTraceAsString(),
                 ]);
                 
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '❌ 無法下載音檔，請稍後再試',
-                    ]),
+                $retryMessage = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 無法下載音檔，請稍後再試',
                 ]);
+                $retryMessage->setQuickReply([
+                    'items' => [
+                        [
+                            'type'   => 'action',
+                            'action' => [
+                                'type'        => 'postback',
+                                'label'       => '🔄 重新錄製',
+                                'data'        => "action=retry_audio&fish_id={$fishId}",
+                                'displayText' => '重新錄製',
+                            ],
+                        ],
+                    ],
+                ]);
+                $this->lineBotService->replyMessage($replyToken, [$retryMessage]);
                 return;
             }
             
@@ -384,21 +404,31 @@ class LineBotController extends Controller
             
             // 驗證音檔
             if (!$this->validateAudioBlob($audioBlob)) {
-                // 清除使用者狀態
-                \Cache::forget("line_user_{$userId}_adding_audio");
-                
+                // 保留狀態，讓使用者可以重錄
                 Log::warning('LINE Bot audio validation failed', [
                     'userId' => $userId,
                     'fishId' => $fishId,
                     'messageId' => $messageId,
                 ]);
                 
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '❌ 音檔格式不正確，請重新錄製',
-                    ]),
+                $retryMessage = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 音檔格式不正確，請重新錄製',
                 ]);
+                $retryMessage->setQuickReply([
+                    'items' => [
+                        [
+                            'type'   => 'action',
+                            'action' => [
+                                'type'        => 'postback',
+                                'label'       => '🔄 重新錄製',
+                                'data'        => "action=retry_audio&fish_id={$fishId}",
+                                'displayText' => '重新錄製',
+                            ],
+                        ],
+                    ],
+                ]);
+                $this->lineBotService->replyMessage($replyToken, [$retryMessage]);
                 return;
             }
             
@@ -546,11 +576,13 @@ class LineBotController extends Controller
                 ]);
                 
                 // 在 fish_audios 表中創建詳細記錄
+                // locate 從 Cache 讀取使用者選擇的部落（由 select_tribe_for_audio postback 設定）
+                $tribe = \Cache::get("line_user_{$userId}_audio_tribe", 'unknown');
                 FishAudio::create([
-                    'fish_id' => $fishId,
-                    'name' => $filename, // 檔案名稱（UUID.m4a）
-                    'locate' => 'iraraley', // 地區名稱（預設 iraraley）
-                    'duration' => $duration, // 儲存實際長度（毫秒）
+                    'fish_id'  => $fishId,
+                    'name'     => $filename, // 檔案名稱（UUID.m4a）
+                    'locate'   => $tribe,    // 使用者選擇的部落
+                    'duration' => $duration, // 實際錄音長度（毫秒）
                 ]);
                 
             } catch (\Exception $e) {
@@ -585,8 +617,9 @@ class LineBotController extends Controller
                 throw new \Exception('Failed to update database: ' . $e->getMessage(), 0, $e);
             }
             
-            // 清除狀態
+            // 清除狀態（含部落選擇）
             \Cache::forget("line_user_{$userId}_adding_audio");
+            \Cache::forget("line_user_{$userId}_audio_tribe");
             
             Log::info('LINE Bot audio saved successfully', [
                 'userId' => $userId,
@@ -774,17 +807,103 @@ class LineBotController extends Controller
                 return;
             }
 
-            // 處理開始新增發音
+            // 處理開始新增發音：第一步選部落
             if ($action === 'start_add_audio') {
-                $fishId = $params['fish_id'];
-                
-                // 儲存狀態到 Cache（5 分鐘過期）
-                \Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
+                $fishId = $params['fish_id'] ?? null;
+
+                if (!$fishId) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 無法取得魚類資料，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                // 暫存 fishId 到 Cache 供後續步驟使用（5 分鐘過期）
+                \Cache::put("line_user_{$userId}_pending_audio_fish", $fishId, now()->addMinutes(5));
+
+                // 從設定檔讀取六個部落，組成 Quick Reply 按鈕
+                $tribes = config('fish_options.tribes', []);
+                $tribeItems = array_map(fn ($tribe) => [
+                    'type'   => 'action',
+                    'action' => [
+                        'type'        => 'postback',
+                        'label'       => ucfirst($tribe),
+                        'data'        => "action=select_tribe_for_audio&fish_id={$fishId}&tribe={$tribe}",
+                        'displayText' => "選擇部落：" . ucfirst($tribe),
+                    ],
+                ], $tribes);
+
+                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "🎤 提供發音\n\n請先選擇你來自哪個部落：",
+                ]);
+                $message->setQuickReply(['items' => $tribeItems]);
+
+                $this->lineBotService->replyMessage($replyToken, [$message]);
+                return;
+            }
+
+            // 處理部落選擇後進入錄音：第二步錄音
+            if ($action === 'select_tribe_for_audio') {
+                $fishId = $params['fish_id'] ?? \Cache::get("line_user_{$userId}_pending_audio_fish");
+                $tribe  = $params['tribe'] ?? null;
+
+                // 驗證部落是否合法
+                $validTribes = config('fish_options.tribes', []);
+                if (!$fishId || !$tribe || !in_array($tribe, $validTribes)) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 部落資料無效，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                // 儲存部落選擇與錄音狀態到 Cache（5 分鐘過期）
+                \Cache::put("line_user_{$userId}_audio_tribe",   $tribe,  now()->addMinutes(5));
+                \Cache::put("line_user_{$userId}_adding_audio",  $fishId, now()->addMinutes(5));
+                // 清除暫存的 pending fishId
+                \Cache::forget("line_user_{$userId}_pending_audio_fish");
 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
-                        'text' => "請錄製魚類發音（限 5 秒）\n💡 不滿意可再次錄製覆蓋",
+                        'text' => "✅ 已選擇部落：" . ucfirst($tribe) . "\n\n🎤 請錄製魚類發音（限 5 秒以內）\n💡 不滿意可再次錄製覆蓋",
+                    ]),
+                ]);
+                return;
+            }
+
+            // 處理重新錄製（錄音失敗後的重試）
+            if ($action === 'retry_audio') {
+                $fishId = $params['fish_id'] ?? null;
+
+                if (!$fishId) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 無法取得魚類資料，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                // 更新（或建立）Cache TTL，再給 5 分鐘
+                \Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
+                // 若有部落選擇，也延長 TTL
+                $existingTribe = \Cache::get("line_user_{$userId}_audio_tribe");
+                if ($existingTribe) {
+                    \Cache::put("line_user_{$userId}_audio_tribe", $existingTribe, now()->addMinutes(5));
+                }
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "🎤 請重新錄製（限 5 秒以內）\n💡 不滿意可再次錄製覆蓋",
                     ]),
                 ]);
                 return;

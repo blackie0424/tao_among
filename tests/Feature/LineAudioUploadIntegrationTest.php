@@ -167,10 +167,10 @@ class LineAudioUploadIntegrationTest extends TestCase
             $fish->audio_filename
         );
         
-        // 7.2 驗證 FishAudio 記錄已創建
+        // 7.2 驗證 FishAudio 記錄已創建（locate 改存部落名，name 才是 UUID 檔名）
         $this->assertDatabaseHas('fish_audios', [
-            'fish_id' => $fish->id,
-            'locate' => $fish->audio_filename,
+            'fish_id'  => $fish->id,
+            'name'     => $fish->audio_filename,
             'duration' => $duration,
         ]);
         
@@ -364,8 +364,12 @@ class LineAudioUploadIntegrationTest extends TestCase
                 ]);
             }
             
-            // 驗證使用者狀態已清除
-            $this->assertNull(Cache::get("line_user_{$userId}_adding_audio"));
+            // 驗證使用者狀態：成功時清除，失敗（超時）時保留供重試
+            if ($shouldAccept) {
+                $this->assertNull(Cache::get("line_user_{$userId}_adding_audio"), "Success: cache should be cleared");
+            } else {
+                $this->assertNotNull(Cache::get("line_user_{$userId}_adding_audio"), "Failure: cache should be kept for retry");
+            }
         }
     }
 
@@ -667,9 +671,9 @@ class LineAudioUploadIntegrationTest extends TestCase
         
         // 建立舊的 FishAudio 記錄（使用較早的時間戳記）
         $oldAudio = FishAudio::create([
-            'fish_id' => $fish->id,
-            'name' => $fish->name,
-            'locate' => 'old-audio-file.m4a',
+            'fish_id'  => $fish->id,
+            'name'     => $fish->audio_filename, // name 才是 UUID 檔名
+            'locate'   => 'iraraley',            // locate 存部落名
             'duration' => 2000,
         ]);
         
@@ -716,7 +720,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             ->orderBy('created_at', 'desc')
             ->first();
         
-        $this->assertEquals($fish->audio_filename, $latestAudio->locate);
+        // 驗證最新 FishAudio 記錄的 name（UUID 檔名）與 duration 正確
+        $this->assertEquals($fish->audio_filename, $latestAudio->name);
         $this->assertEquals($duration, $latestAudio->duration);
         $this->assertNotEquals($oldAudio->id, $latestAudio->id, '最新的記錄應該是新創建的');
         
@@ -781,10 +786,10 @@ class LineAudioUploadIntegrationTest extends TestCase
             // 驗證 audio_filename 已設定
             $this->assertNotNull($fishes[$i]->audio_filename);
             
-            // 驗證 FishAudio 記錄存在
+            // 驗證 FishAudio 記錄存在（name 欄位才是 UUID 檔名）
             $this->assertDatabaseHas('fish_audios', [
                 'fish_id' => $fishes[$i]->id,
-                'locate' => $fishes[$i]->audio_filename,
+                'name'    => $fishes[$i]->audio_filename,
             ]);
             
             // 驗證音檔已上傳

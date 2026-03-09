@@ -156,12 +156,13 @@ class Fish extends Model
                 
                 // 如果 audios 關聯已經預載，從中查找
                 if ($this->relationLoaded('audios')) {
-                    $audio = $this->audios->firstWhere('locate', $attributes['audio_filename']);
+                    // name 欄位才是 UUID 檔名（locate 是部落/地區名稱）
+                    $audio = $this->audios->firstWhere('name', $attributes['audio_filename']);
                     return $audio ? $audio->duration : null;
                 }
                 
                 // 否則執行單次查詢
-                $audio = $this->audios()->where('locate', $attributes['audio_filename'])->first();
+                $audio = $this->audios()->where('name', $attributes['audio_filename'])->first();
                 return $audio ? $audio->duration : null;
             }
         );
