@@ -345,19 +345,20 @@ class ApiFishController extends Controller
                           ->limit(10);
                 },
                 'tribalClassifications' => function ($query) {
-                    // 只載入 iraraley 和 imorod 兩個部落的分類
-                    $query->whereIn('tribe', ['iraraley', 'imorod'])
-                          ->select('id', 'fish_id', 'tribe', 'food_category');
+                    // 載入所有部落的分類資料（卡片需顯示 iraraley/imowrod 指定部落及其他田調）
+                    $query->select('id', 'fish_id', 'tribe', 'food_category', 'processing_method', 'notes');
                 },
             ])
             ->limit(20)
             ->get()
             ->map(function ($fish) {
-                // 組裝部落分類資訊
+                // 組裝部落分類資訊（含處理方式與備註）
                 $tribalClassifications = $fish->tribalClassifications->map(function ($tc) {
                     return [
                         'tribe' => $tc->tribe,
                         'food_category' => $tc->food_category,
+                        'processing_method' => $tc->processing_method,
+                        'notes' => $tc->notes,
                     ];
                 })->toArray();
 
@@ -411,8 +412,7 @@ class ApiFishController extends Controller
                           ->limit(10);
                 },
                 'tribalClassifications' => function ($query) {
-                    $query->whereIn('tribe', ['iraraley', 'imorod'])
-                          ->select('id', 'fish_id', 'tribe', 'food_category');
+                    $query->select('id', 'fish_id', 'tribe', 'food_category', 'processing_method', 'notes');
                 },
             ])
             ->inRandomOrder()
@@ -430,6 +430,8 @@ class ApiFishController extends Controller
             return [
                 'tribe' => $tc->tribe,
                 'food_category' => $tc->food_category,
+                'processing_method' => $tc->processing_method,
+                'notes' => $tc->notes,
             ];
         })->toArray();
 
@@ -486,7 +488,7 @@ class ApiFishController extends Controller
 
         $query = Fish::with([
             'tribalClassifications' => function ($q) {
-                $q->select('id', 'fish_id', 'tribe', 'food_category');
+                $q->select('id', 'fish_id', 'tribe', 'food_category', 'processing_method', 'notes');
             },
             'displayCaptureRecord',
         ]);
@@ -517,6 +519,8 @@ class ApiFishController extends Controller
                     return [
                         'tribe' => $tc->tribe,
                         'food_category' => $tc->food_category,
+                        'processing_method' => $tc->processing_method,
+                        'notes' => $tc->notes,
                     ];
                 })->toArray();
 

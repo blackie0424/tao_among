@@ -64,102 +64,254 @@ class LineBotService
 
     /**
      * 建立單筆魚類卡片訊息 (Flex Message)
+     *
+     * 顯示內容：
+     * - 魚名（標題）
+     * - Iraraley 部落：食用分類 + 魚鱗處理方式
+     * - Imowrod 部落：食用分類 + 魚鱗處理方式
+     * - 其他部落田調資料（若有）
+     * - Footer：捕獲紀錄按鈕 + 發音按鈕
      */
     public function buildFishCard(array $fish): FlexMessage
     {
-        // 準備部落分類標籤（永遠顯示 iraraley 和 imorod 兩個部落）
-        $tribeLabels = [
-            'iraraley' => 'Iraraley',
-            'imorod' => 'Imorod',
-        ];
-        
-        // 將現有的部落分類資料建立 mapping
+        // 建立部落資料 mapping（以 tribe 為 key）
         $tribalData = [];
+        $otherTribeData = [];
+        $primaryTribes = ['iraraley', 'imowrod'];
+
         if (!empty($fish['tribal_classifications'])) {
             foreach ($fish['tribal_classifications'] as $tc) {
-                $tribalData[$tc['tribe']] = $tc['food_category'] ?? '';
+                $tribe = $tc['tribe'] ?? '';
+                $entry = [
+                    'food_category'     => $tc['food_category'] ?? null,
+                    'processing_method' => $tc['processing_method'] ?? null,
+                    'notes'             => $tc['notes'] ?? null,
+                ];
+
+                if (in_array($tribe, $primaryTribes)) {
+                    $tribalData[$tribe] = $entry;
+                } else {
+                    // 其他部落——只有在「有任何非空值」時才記錄
+                    if (!empty($entry['food_category']) || !empty($entry['processing_method']) || !empty($entry['notes'])) {
+                        $otherTribeData[$tribe] = $entry;
+                    }
+                }
             }
         }
-        
-        // 建立顯示文字（確保兩個部落都會顯示）
-        $tribeTexts = [];
-        foreach ($tribeLabels as $tribeKey => $tribeName) {
-            // 如果有資料就顯示，沒有就顯示「尚未紀錄」
-            $foodCategory = $tribalData[$tribeKey] ?? '尚未紀錄';
-            
-            // 顯示格式：部落名稱 - 食用分類
-            $displayText = $tribeName . ' - ' . $foodCategory;
-            
-            $tribeTexts[] = [
-                'type' => 'text',
-                'text' => $displayText,
-                'size' => 'sm',
-                'color' => '#666666',
-                'wrap' => true,
-                'margin' => 'sm',
+
+        // ==========================================
+        // Body：魚名 + 發音按鈕（並排）
+        // ==========================================
+        $hasAudio = !empty($fish['audio_url']);
+
+        $audioAction = $hasAudio
+            ? [
+                'type'        => 'postback',
+                'label'       => '🔊 播放發音',
+                'data'        => "action=play_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
+                'displayText' => "播放 {$fish['name']} 的發音",
+            ]
+            : [
+                'type'  => 'postback',
+                'label' => '🔇 尚無發音',
+                'data'  => "action=no_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
             ];
-        }
 
-        // 建立卡片內容（使用陣列格式）
         $bodyContents = [
+            // 魚名與發音按鈕並排：名字占大部分，按鈕靠右
             [
-                'type' => 'text',
-                'text' => $fish['name'],
-                'weight' => 'bold',
-                'size' => 'xl',
-                'wrap' => true,
-            ],
-        ];
-
-        // 加入部落分類（永遠都會有兩行）
-        foreach ($tribeTexts as $tribeText) {
-            $bodyContents[] = $tribeText;
-        }
-
-        // 建立 Flex Bubble 的資料結構
-        $bubbleData = [
-            'type' => 'bubble',
-            'hero' => [
-                'type' => 'image',
-                'url' => $fish['display_image_url'] ?? $fish['image_url'],
-                'size' => 'full',
-                'aspectRatio' => '20:13',
-                'aspectMode' => 'cover',
-            ],
-            'body' => [
-                'type' => 'box',
-                'layout' => 'vertical',
-                'contents' => $bodyContents,
-            ],
-        ];
-
-        // 如果有捕獲紀錄，加入「查看捕獲紀錄」按鈕
-        if (!empty($fish['capture_records_count']) && $fish['capture_records_count'] > 0) {
-            $bubbleData['footer'] = [
-                'type' => 'box',
-                'layout' => 'vertical',
-                'spacing' => 'sm',
+                'type'    => 'box',
+                'layout'  => 'horizontal',
                 'contents' => [
                     [
-                        'type' => 'button',
-                        'style' => 'link',
+                        'type'   => 'text',
+                        'text'   => $fish['name'],
+                        'weight' => 'bold',
+                        'size'   => 'xl',
+                        'wrap'   => true,
+                        'color'  => '#1a1a2e',
+                        'flex'   => 5,
+                        'gravity' => 'center',
+                    ],
+                    [
+                        'type'   => 'button',
+                        'style'  => $hasAudio ? 'primary' : 'secondary',
                         'height' => 'sm',
-                        'action' => [
-                            'type' => 'postback',
-                            'label' => "📸 查看捕獲紀錄({$fish['capture_records_count']})",
-                            'data' => "action=view_captures&fish_id={$fish['id']}&fish_name={$fish['name']}",
-                            'displayText' => "查看 {$fish['name']} 的捕獲紀錄",
+                        'flex'   => 3,
+                        'color'  => $hasAudio ? '#2c6b8a' : '#aaaaaa',
+                        'action' => $audioAction,
+                    ],
+                ],
+                'alignItems' => 'center',
+            ],
+            [
+                'type'   => 'separator',
+                'margin' => 'md',
+            ],
+        ];
+
+        // ==========================================
+        // Body：指定兩部落區塊（Iraraley / Imowrod）
+        // ==========================================
+        $primaryTribeConfig = [
+            'iraraley' => ['label' => '🏘️ Iraraley', 'color' => '#2c6b8a'],
+            'imowrod'  => ['label' => '🏡 Imowrod',  'color' => '#2c7a66'],
+        ];
+
+        foreach ($primaryTribeConfig as $tribeKey => $config) {
+            $data            = $tribalData[$tribeKey] ?? [];
+            $foodCategory    = !empty($data['food_category']) ? $data['food_category'] : '尚未紀錄';
+            $processingMethod = !empty($data['processing_method']) ? $data['processing_method'] : '尚未紀錄';
+
+            $bodyContents[] = [
+                'type'    => 'box',
+                'layout'  => 'vertical',
+                'margin'  => 'md',
+                'contents' => [
+                    // 部落名稱標題
+                    [
+                        'type'   => 'text',
+                        'text'   => $config['label'],
+                        'size'   => 'sm',
+                        'weight' => 'bold',
+                        'color'  => $config['color'],
+                    ],
+                    // 食用分類行
+                    [
+                        'type'    => 'box',
+                        'layout'  => 'horizontal',
+                        'margin'  => 'xs',
+                        'contents' => [
+                            [
+                                'type'  => 'text',
+                                'text'  => '食用分類',
+                                'size'  => 'xs',
+                                'color' => '#888888',
+                                'flex'  => 3,
+                            ],
+                            [
+                                'type'  => 'text',
+                                'text'  => $foodCategory,
+                                'size'  => 'xs',
+                                'color' => '#333333',
+                                'flex'  => 5,
+                                'wrap'  => true,
+                            ],
+                        ],
+                    ],
+                    // 魚鱗處理行
+                    [
+                        'type'    => 'box',
+                        'layout'  => 'horizontal',
+                        'margin'  => 'xs',
+                        'contents' => [
+                            [
+                                'type'  => 'text',
+                                'text'  => '魚鱗處理',
+                                'size'  => 'xs',
+                                'color' => '#888888',
+                                'flex'  => 3,
+                            ],
+                            [
+                                'type'  => 'text',
+                                'text'  => $processingMethod,
+                                'size'  => 'xs',
+                                'color' => '#333333',
+                                'flex'  => 5,
+                                'wrap'  => true,
+                            ],
                         ],
                     ],
                 ],
             ];
         }
 
+        // ==========================================
+        // Body：其他部落田調資料（僅有資料時才顯示）
+        // ==========================================
+        if (!empty($otherTribeData)) {
+            $bodyContents[] = [
+                'type'   => 'separator',
+                'margin' => 'md',
+            ];
+            $bodyContents[] = [
+                'type'   => 'text',
+                'text'   => '🔍 其他部落田調',
+                'size'   => 'xs',
+                'weight' => 'bold',
+                'color'  => '#777777',
+                'margin' => 'md',
+            ];
+
+            foreach ($otherTribeData as $tribe => $data) {
+                $parts = [];
+                if (!empty($data['food_category']))     $parts[] = $data['food_category'];
+                if (!empty($data['processing_method'])) $parts[] = $data['processing_method'];
+                if (!empty($data['notes']))             $parts[] = $data['notes'];
+
+                $bodyContents[] = [
+                    'type'  => 'text',
+                    'text'  => ucfirst($tribe) . '：' . implode(' / ', $parts),
+                    'size'  => 'xs',
+                    'color' => '#999999',
+                    'wrap'  => true,
+                    'margin' => 'xs',
+                ];
+            }
+        }
+
+        // ==========================================
+        // Footer：捕獲紀錄按鈕 + 發音按鈕
+        // ==========================================
+        $footerContents = [];
+
+        // 捕獲紀錄按鈕（有紀錄才顯示）
+        $captureCount = $fish['capture_records_count'] ?? 0;
+        if ($captureCount > 0) {
+            $footerContents[] = [
+                'type'   => 'button',
+                'style'  => 'secondary',
+                'height' => 'sm',
+                'action' => [
+                    'type'        => 'postback',
+                    'label'       => "📸 查看捕獲紀錄（{$captureCount} 筆）",
+                    'data'        => "action=view_captures&fish_id={$fish['id']}&fish_name={$fish['name']}",
+                    'displayText' => "查看 {$fish['name']} 的捕獲紀錄",
+                ],
+            ];
+        }
+
+        // ==========================================
+        // 組裝完整 Bubble
+        // ==========================================
+        $bubbleData = [
+            'type' => 'bubble',
+            'hero' => [
+                'type'        => 'image',
+                'url'         => $fish['display_image_url'] ?? $fish['image_url'],
+                'size'        => 'full',
+                'aspectRatio' => '20:13',
+                'aspectMode'  => 'cover',
+            ],
+            'body' => [
+                'type'     => 'box',
+                'layout'   => 'vertical',
+                'contents' => $bodyContents,
+                'spacing'  => 'none',
+            ],
+            'footer' => [
+                'type'     => 'box',
+                'layout'   => 'vertical',
+                'spacing'  => 'sm',
+                'contents' => $footerContents,
+            ],
+        ];
+
         $bubble = FlexBubble::fromAssocArray($bubbleData);
 
         return new FlexMessage([
-            'type' => 'flex',
-            'altText' => $fish['name'],
+            'type'     => 'flex',
+            'altText'  => $fish['name'],
             'contents' => $bubble,
         ]);
     }

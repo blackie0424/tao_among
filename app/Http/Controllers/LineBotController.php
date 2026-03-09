@@ -680,6 +680,68 @@ class LineBotController extends Controller
                 return;
             }
 
+            // 🔊 播放發音
+            if ($action === 'play_audio') {
+                $fishId   = (int) ($params['fish_id'] ?? 0);
+                $fishName = $params['fish_name'] ?? '這條魚';
+                $fish     = Fish::find($fishId);
+
+                if ($fish && !empty($fish->audio_url)) {
+                    $duration = $fish->audio_duration ?? 3000;
+
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => "🔊 這是「{$fishName}」的發音：",
+                        ]),
+                        new \LINE\Clients\MessagingApi\Model\AudioMessage([
+                            'type'               => 'audio',
+                            'originalContentUrl' => $fish->audio_url,
+                            'duration'           => $duration,
+                        ]),
+                    ]);
+                } else {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => "🔇 找不到「{$fishName}」的發音檔案。",
+                        ]),
+                    ]);
+                }
+                return;
+            }
+
+            // 🔇 尚無發音
+            if ($action === 'no_audio') {
+                $fishName = $params['fish_name'] ?? '此魚';
+                $fishId   = (int) ($params['fish_id'] ?? 0);
+
+                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "🔇「{$fishName}」目前尚無發音紀錄。",
+                ]);
+
+                // 提示可以新增發音
+                if ($fishId) {
+                    $message->setQuickReply([
+                        'items' => [
+                            [
+                                'type'   => 'action',
+                                'action' => [
+                                    'type'        => 'postback',
+                                    'label'       => '🎤 新增發音',
+                                    'data'        => "action=start_add_audio&fish_id={$fishId}",
+                                    'displayText' => '新增發音',
+                                ],
+                            ],
+                        ],
+                    ]);
+                }
+
+                $this->lineBotService->replyMessage($replyToken, [$message]);
+                return;
+            }
+
             // 分頁：下一頁瀏覽（由 Quick Reply 觸發）
             if ($action === 'browse_next') {
                 $type = $params['type'] ?? '';
