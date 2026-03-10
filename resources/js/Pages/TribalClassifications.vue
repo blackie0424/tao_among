@@ -93,13 +93,12 @@
           </div>
         </div>
 
-        <!-- 新增地方知識 FAB 按鈕（僅在未完成時顯示） -->
+        <!-- 管理地方知識 FAB 按鈕 -->
         <FabButton
-          v-if="!isAllTribesRecorded"
           bgClass="bg-green-600"
           hoverClass="hover:bg-green-700"
           textClass="text-white"
-          label="新增地方知識"
+          label="管理地方知識"
           icon="＋"
           :to="`/fish/${fish.id}/tribal-classifications/create`"
           position="right-bottom"

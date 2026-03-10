@@ -9,14 +9,6 @@
           >
             {{ classification.tribe }}
           </span>
-
-          <!-- 三點選單 -->
-          <OverflowMenu
-            :apiUrl="`/fish/${fishId}/tribal-classifications/${classification.id}`"
-            :fishId="classification.fish_id.toString()"
-            :editUrl="`/fish/${fishId}/tribal-classifications/${classification.id}/edit`"
-            @deleted="$emit('deleted')"
-          />
         </div>
 
         <!-- 分類資訊 -->
@@ -56,8 +48,6 @@
 </template>
 
 <script setup>
-import OverflowMenu from './OverflowMenu.vue'
-
 const props = defineProps({
   classification: Object,
   fishId: Number,

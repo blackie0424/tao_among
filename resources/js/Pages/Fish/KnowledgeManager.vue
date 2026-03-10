@@ -61,7 +61,7 @@
             :href="`/fish/${fish.id}/tribal-classifications/create`" 
             class="flex items-center gap-1 text-sm bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-md font-medium hover:bg-indigo-200 transition"
           >
-            <span class="text-lg leading-none">+</span> 新增地方知識
+            <span class="text-lg leading-none">+</span> 管理地方知識
           </Link>
         </div>
         
@@ -76,9 +76,6 @@
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                   {{ item.tribe }}
                 </span>
-                <a :href="`/fish/${fish.id}/tribal-classifications/${item.id}/edit`" class="text-gray-400 hover:text-blue-600 p-1">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                </a>
               </div>
               <div class="text-sm text-gray-700 space-y-1">
                 <p><span class="font-medium text-gray-500">分類：</span> {{ item.food_category || '無' }}</p>
