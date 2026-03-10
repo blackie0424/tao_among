@@ -36,7 +36,7 @@ class LineHelpCommand extends Command
                 'command' => 'php artisan line:setup-rich-menu',
                 'description' => '建立 LINE 預設圖文選單。',
                 'options' => [
-                    '--image=/path/to/img.jpg' => '指定圖文選單圖片路徑 (預設為 storage/app/rich_menu.jpg)',
+                    '--image=/path/to/img.jpg' => '指定圖文選單圖片路徑 (預設為 public/images/line/rich_menu.jpg)',
                     '--dry-run' => '測試執行，僅顯示設定的 payload，不會實際發送至 LINE API'
                 ]
             ],

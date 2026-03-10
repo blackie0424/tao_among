@@ -60,7 +60,7 @@ class SetupRichMenuCommand extends Command
             $this->info("✅ 建立圖文選單成功，ID: {$richMenuId}");
 
             // 步驟 3：上傳圖文選單圖片
-            $imagePath = $this->option('image') ?? storage_path('app/rich_menu.jpg');
+            $imagePath = $this->option('image') ?? public_path('images/line/rich_menu.jpg');
             if (!file_exists($imagePath)) {
                 $this->warn("⚠️  找不到圖片檔案：{$imagePath}");
                 $this->warn('   請執行：php artisan line:setup-rich-menu --image=/path/to/your/image.jpg');
