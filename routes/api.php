@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApiFishController;
+use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\TribalClassificationController;
@@ -19,16 +20,23 @@ Route::get('/health-check', function () {
     return response()->json(['status' => 'ok'], 200);
 });
 
+// LINE Bot Webhook
+Route::post('/line/webhook', [LineBotController::class, 'webhook']);
+
 // 將 fish 相關 API 路由指向 ApiFishController
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
 Route::get('/capture-records', [ApiFishController::class, 'getAllCaptureRecords']);
 Route::get('/fishs/search', [ApiFishController::class, 'search']);
+Route::get('/fishs/random-unknown', [ApiFishController::class, 'randomUnknownFish']);
+Route::get('/fishs/filter', [ApiFishController::class, 'getFishesByFilter']);
+Route::get('/fishs/random', [ApiFishController::class, 'getRandomFishes']);
 Route::post('/fish', [ApiFishController::class, 'store']);
 Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
 Route::get('/fish/{id}/compact', [ApiFishController::class, 'getCompactFishById'])->whereNumber('id');
 Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
 Route::put('/fish/{id}', [ApiFishController::class, 'update'])->whereNumber('id');
 Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotes'])->whereNumber('id');
+
 
 // 其他 API
 Route::post('/upload', [UploadController::class, 'uploadImage']);

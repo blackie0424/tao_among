@@ -30,7 +30,7 @@ class FishManagementController extends Controller
     public function knowledgeManager($id)
     {
         $details = $this->fishService->getFishDetails((int) $id);
-        // FishService 的 getFishDetails 已包含 fishNotes 與 tribalClassifications
+        $details['tribes'] = config('fish_options.tribes');
         return Inertia::render('Fish/KnowledgeManager', $details);
     }
 }

@@ -441,8 +441,8 @@ class UploadController extends Controller
 
             $this->fishAudio->create([
                 'fish_id' => $fishId,
-                'name' => $uniqueName,
-                'locate' => "iraraley",
+                'name' => $uniqueName, // 檔案名稱（UUID.m4a）
+                'locate' => 'iraraley', // 地區名稱（預設 iraraley）
             ]);
 
             $fish->audio_filename = $uniqueName;

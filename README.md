@@ -122,19 +122,54 @@ CI / 合併規則
 - 魚類資料 CRUD（建立、查詢、更新、刪除）
 - 魚類筆記管理
 - 圖片上傳
+- **LINE Bot 整合**（語音和圖片上傳）
 - 完整 API 驗證（含自訂 Request 驗證）
 - Pest 驗證測試案例
 - 支援 Vercel 雲端部署
+
+## LINE Bot 功能
+
+本專案整合 LINE Messaging API，支援透過 LINE Bot 上傳語音和圖片：
+
+### 語音上傳特殊處理
+
+LINE Bot 的語音上傳與 Web 版本有重要差異：
+
+- **Web 版本**：前端直接上傳到 S3（使用 presigned URL）
+- **LINE 版本**：後端從 LINE API 下載後上傳到 S3
+
+**關鍵技術要點**：
+
+- LINE 語音使用 M4A 格式（MPEG-4 Audio，AAC 編碼）
+- 上傳時**必須**設定 `ContentType: 'audio/mp4'`
+- 若未設定，S3 會使用預設的 `application/octet-stream`，導致瀏覽器無法播放
+- 系統會驗證音檔時長（最長 5.1 秒）和格式
+
+詳細說明請參考：[LINE Audio Upload Guide](.kiro/specs/line-audio-upload-fix/LINE_AUDIO_UPLOAD_GUIDE.md)
+
+### 相關服務
+
+- `LineUploadService`：處理 LINE 媒體檔案上傳到 S3
+- `LineBotService`：與 LINE Messaging API 互動
+- `LineBotController`：處理 LINE webhook 事件
 
 ## 專案結構簡介
 
 - `app/Http/Controllers/`：控制器（如 FishController，負責 API 邏輯）
 - `app/Models/`：Eloquent ORM 資料模型
 - `app/Http/Requests/`：表單驗證（如 CreateFishRequest、UpdateFishRequest）
+- `app/Services/`：服務層
+  - `LineUploadService`：LINE 媒體檔案上傳（音檔、圖片）
+  - `LineBotService`：LINE Messaging API 整合
+  - `UploadService`：Web 版本的檔案上傳
+  - `FishService`：魚類資料業務邏輯
 - `routes/api.php`：API 路由設定
+- `routes/web.php`：Web 路由設定
 - `tests/Feature/`：功能測試（Pest 語法）
 - `resources/views/`：Blade 前端模板
+- `resources/js/`：Vue 3 前端應用
 - `public/`：靜態資源與入口
+- `.kiro/specs/`：功能規格文件
 - 其他：設定檔、資料庫 migration、CI/CD 等
 
 ## API 範例
@@ -160,3 +195,41 @@ CI / 合併規則
 ```sh
 ./vendor/bin/pest
 ```
+
+## 常見問題排解
+
+### LINE Bot 音檔無聲音
+
+**症狀**：透過 LINE 上傳的語音在 Web 介面無法播放
+
+**可能原因**：
+
+1. S3 檔案的 Content-Type 設定不正確
+2. 音檔在上傳過程中損壞
+3. 瀏覽器不支援 M4A 格式
+
+**解決方法**：
+
+1. 檢查 S3 檔案 metadata：
+   ```bash
+   aws s3api head-object --bucket YOUR_BUCKET --key audio/YOUR_FILE.m4a
+   ```
+2. 確認 ContentType 為 `audio/mp4` 或 `audio/m4a`
+3. 查看應用程式日誌：
+   ```bash
+   tail -f storage/logs/laravel.log | grep "LINE Upload"
+   ```
+4. 參考詳細指南：`.kiro/specs/line-audio-upload-fix/LINE_AUDIO_UPLOAD_GUIDE.md`
+
+### 上傳失敗
+
+**症狀**：LINE Bot 回覆錯誤訊息
+
+**檢查項目**：
+
+- AWS 憑證設定（`.env` 檔案）
+- S3 bucket 權限（IAM policy）
+- 網路連線狀態
+- 應用程式日誌
+
+詳細的測試和除錯步驟請參考：`.kiro/specs/line-audio-upload-fix/manual-testing-guide.md`

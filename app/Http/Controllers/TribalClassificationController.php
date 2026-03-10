@@ -47,7 +47,7 @@ class TribalClassificationController extends Controller
     }
 
     /**
-     * Show the form for creating a new tribal classification.
+     * Show the form for creating/managing tribal classifications.
      */
     public function createPage($fishId)
     {
@@ -57,70 +57,89 @@ class TribalClassificationController extends Controller
         $fishWithImage = $this->assignFishImage($fish);
         
         // 定義部落和分類選項
-        $allTribes = config('fish_options.tribes');
+        $tribes = config('fish_options.tribes');
         $foodCategories = config('fish_options.food_categories');
         $processingMethods = config('fish_options.processing_methods');
         
-        // 取得已記錄的部落
-        $usedTribes = $fish->tribalClassifications->pluck('tribe')->toArray();
-        
-        // 過濾出尚未記錄的部落
-        $availableTribes = array_values(array_diff($allTribes, $usedTribes));
-        
         return Inertia::render('CreateTribalClassification', [
             'fish' => $fishWithImage,
-            'tribes' => $availableTribes,
-            'usedTribes' => $usedTribes,
+            'tribes' => $tribes,
             'foodCategories' => $foodCategories,
-            'processingMethods' => $processingMethods
+            'processingMethods' => $processingMethods,
+            'classifications' => $fish->tribalClassifications
         ]);
     }
 
     /**
-     * Store a newly created tribal classification (from Inertia form).
+     * Store or update multiple tribal classifications at once (batch mode).
      */
-    public function storePage(TribalClassificationRequest $request, $fishId)
+    public function storePage(Request $request, $fishId)
     {
         $fish = Fish::findOrFail($fishId);
         
-        // 檢查是否已存在相同部落的分類（不包含軟刪除）
-        $existingClassification = TribalClassification::where('fish_id', $fish->id)
-            ->where('tribe', $request->tribe)
-            ->first();
-            
-        if ($existingClassification) {
-            return redirect()->back()
-                ->withErrors(['tribe' => '此魚類已有該部落的地方知識記錄，請直接編輯現有記錄或選擇其他部落。'])
-                ->withInput();
-        }
-        
-        // 檢查是否有軟刪除的記錄，若有則恢復並更新
-        $trashedClassification = TribalClassification::onlyTrashed()
-            ->where('fish_id', $fish->id)
-            ->where('tribe', $request->tribe)
-            ->first();
-            
-        if ($trashedClassification) {
-            // 恢復軟刪除的記錄並更新資料
-            $trashedClassification->restore();
-            $trashedClassification->update([
-                'food_category' => $request->food_category ?? '',
-                'processing_method' => $request->processing_method ?? '',
-                'notes' => $request->notes
-            ]);
-        } else {
-            // 建立新記錄
-            TribalClassification::create([
-                'fish_id' => $fish->id,
-                'tribe' => $request->tribe,
-                'food_category' => $request->food_category ?? '',
-                'processing_method' => $request->processing_method ?? '',
-                'notes' => $request->notes
-            ]);
+        $request->validate([
+            'classifications' => 'required|array',
+            'classifications.*.tribe' => 'required|string|in:' . implode(',', config('fish_options.tribes')),
+            'classifications.*.food_category' => 'nullable|string',
+            'classifications.*.processing_method' => 'nullable|string',
+            'classifications.*.notes' => 'nullable|string|max:65535',
+        ]);
+
+        foreach ($request->classifications as $data) {
+            $tribe = $data['tribe'];
+            $foodCategory = $data['food_category'] ?? '';
+            $processingMethod = $data['processing_method'] ?? '';
+            $notes = $data['notes'] ?? null;
+
+            // Check if all fields are empty (meaning user wants to clear this tribe's data)
+            $isEmptyData = empty($foodCategory) && empty($processingMethod) && empty($notes);
+
+            $existingClassification = TribalClassification::where('fish_id', $fish->id)
+                ->where('tribe', $tribe)
+                ->first();
+
+            $trashedClassification = TribalClassification::onlyTrashed()
+                ->where('fish_id', $fish->id)
+                ->where('tribe', $tribe)
+                ->first();
+
+            if ($isEmptyData) {
+                // If it exists, soft delete it
+                if ($existingClassification) {
+                    $existingClassification->delete();
+                }
+                // If it doesn't exist, do nothing
+            } else {
+                if ($existingClassification) {
+                    // Update existing
+                    $existingClassification->update([
+                        'food_category' => $foodCategory,
+                        'processing_method' => $processingMethod,
+                        'notes' => $notes
+                    ]);
+                } elseif ($trashedClassification) {
+                    // Restore and update
+                    $trashedClassification->restore();
+                    $trashedClassification->update([
+                        'food_category' => $foodCategory,
+                        'processing_method' => $processingMethod,
+                        'notes' => $notes
+                    ]);
+                } else {
+                    // Create new
+                    TribalClassification::create([
+                        'fish_id' => $fish->id,
+                        'tribe' => $tribe,
+                        'food_category' => $foodCategory,
+                        'processing_method' => $processingMethod,
+                        'notes' => $notes
+                    ]);
+                }
+            }
         }
 
         return redirect()->route('fish.knowledge-manager', ['id' => $fish->id])
-            ->with('success', '地方知識已成功新增');
+            ->with('success', '地方知識已成功儲存/更新');
     }
 
     /**
@@ -128,10 +147,11 @@ class TribalClassificationController extends Controller
      */
     public function editPage($fishId, $classificationId)
     {
-        $fish = Fish::findOrFail($fishId);
+        // 編輯頁面目前也是顯示整個矩陣，因為可以直接一次修改所有部落
+        $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
         $classification = TribalClassification::where('fish_id', $fishId)
             ->where('id', $classificationId)
-            ->firstOrFail();
+            ->firstOrFail(); // 若有需要可以拿來 hightlight，目前只要確保記錄存在
         
         // 使用 Trait 處理圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
@@ -146,66 +166,18 @@ class TribalClassificationController extends Controller
             'classification' => $classification,
             'tribes' => $tribes,
             'foodCategories' => $foodCategories,
-            'processingMethods' => $processingMethods
+            'processingMethods' => $processingMethods,
+            'classifications' => $fish->tribalClassifications
         ]);
     }
 
     /**
      * Update a tribal classification (from Inertia form).
      */
-    public function updatePage(TribalClassificationRequest $request, $fishId, $classificationId)
+    public function updatePage(Request $request, $fishId, $classificationId)
     {
-        $classification = TribalClassification::where('fish_id', $fishId)
-            ->where('id', $classificationId)
-            ->firstOrFail();
-        
-        // 如果要更改部落，需要特殊處理
-        if ($request->tribe !== $classification->tribe) {
-            // 檢查是否已存在相同部落的分類（不包含軟刪除）
-            $existingClassification = TribalClassification::where('fish_id', $fishId)
-                ->where('tribe', $request->tribe)
-                ->where('id', '!=', $classificationId)
-                ->first();
-                
-            if ($existingClassification) {
-                return redirect()->back()
-                    ->withErrors(['tribe' => '此魚類已有該部落的地方知識記錄，請選擇其他部落。'])
-                    ->withInput();
-            }
-            
-            // 檢查是否有軟刪除的記錄
-            $trashedClassification = TribalClassification::onlyTrashed()
-                ->where('fish_id', $fishId)
-                ->where('tribe', $request->tribe)
-                ->first();
-                
-            if ($trashedClassification) {
-                // 先軟刪除目前的記錄
-                $classification->delete();
-                
-                // 恢復軟刪除的記錄並更新資料
-                $trashedClassification->restore();
-                $trashedClassification->update([
-                    'food_category' => $request->food_category ?? '',
-                    'processing_method' => $request->processing_method ?? '',
-                    'notes' => $request->notes
-                ]);
-                
-                return redirect()->route('fish.knowledge-manager', ['id' => $fishId])
-                    ->with('success', '地方知識已成功更新');
-            }
-        }
-            
-        // 沒有部落變更或沒有軟刪除記錄，直接更新
-        $classification->update([
-            'tribe' => $request->tribe,
-            'food_category' => $request->food_category ?? '',
-            'processing_method' => $request->processing_method ?? '',
-            'notes' => $request->notes
-        ]);
-
-        return redirect()->route('fish.knowledge-manager', ['id' => $fishId])
-            ->with('success', '地方知識已成功更新');
+        // PUT 請求送進來，但我們一樣使用 Batch 更新邏輯
+        return $this->storePage($request, $fishId);
     }
 
     /**

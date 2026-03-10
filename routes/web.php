@@ -65,9 +65,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'indexPage'])->name('fish.tribal-classifications');
     Route::get('/fish/{id}/tribal-classifications/create', [TribalClassificationController::class, 'createPage'])->name('fish.tribal-classifications.create');
     Route::post('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'storePage'])->name('fish.tribal-classifications.store');
-    Route::get('/fish/{id}/tribal-classifications/{classification_id}/edit', [TribalClassificationController::class, 'editPage'])->name('fish.tribal-classifications.edit');
-    Route::put('/fish/{id}/tribal-classifications/{classification_id}', [TribalClassificationController::class, 'updatePage'])->name('fish.tribal-classifications.update');
-    Route::delete('/fish/{id}/tribal-classifications/{classification_id}', [TribalClassificationController::class, 'destroyPage'])->name('fish.tribal-classifications.destroy');
 
     // -------------------------------------------------
     // 進階知識管理

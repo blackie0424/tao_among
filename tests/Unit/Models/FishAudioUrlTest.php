@@ -140,3 +140,60 @@ it('toArray() 在 logging 情境下不會失敗', function () {
     expect($logData)->toHaveKey('魚類完整資料');
     expect($logData['魚類完整資料'])->toHaveKey('audio_url');
 });
+
+// 測試情境 G：驗證 audio_url 包含正確的路徑和檔案名稱
+it('audio_url 包含正確的資料夾路徑和檔案名稱', function () {
+    // 建立魚類，包含 audio_filename
+    $audioFilename = 'test-audio-12345.m4a';
+    $fish = Fish::create([
+        'name' => '測試魚類',
+        'image' => 'test-image.jpg',
+        'audio_filename' => $audioFilename,
+    ]);
+
+    // 重新查詢
+    $fish = Fish::find($fish->id);
+
+    // 取得 audio_url
+    $audioUrl = $fish->audio_url;
+
+    // 驗證：URL 不為 null
+    expect($audioUrl)->not->toBeNull();
+
+    // 驗證：URL 包含檔案名稱
+    expect($audioUrl)->toContain($audioFilename);
+
+    // 驗證：URL 包含音檔資料夾路徑
+    // 根據 StorageServiceInterface，音檔應該在 'audio' 或 'audios' 資料夾
+    $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
+    expect($audioUrl)->toContain($audioFolder);
+
+    // 驗證：URL 是有效的 URL 格式
+    expect(filter_var($audioUrl, FILTER_VALIDATE_URL))->not->toBeFalse();
+});
+
+// 測試情境 H：驗證 audio_url 的 URL 格式正確性
+it('audio_url 回傳的 URL 格式正確且可解析', function () {
+    // 建立魚類，包含 audio_filename
+    $fish = Fish::create([
+        'name' => '測試魚類',
+        'image' => 'test-image.jpg',
+        'audio_filename' => 'valid-audio.m4a',
+    ]);
+
+    $audioUrl = $fish->audio_url;
+
+    // 驗證：URL 格式正確
+    expect($audioUrl)->toBeString();
+    expect(filter_var($audioUrl, FILTER_VALIDATE_URL))->not->toBeFalse();
+
+    // 驗證：URL 可以被解析
+    $parsedUrl = parse_url($audioUrl);
+    expect($parsedUrl)->toBeArray();
+    expect($parsedUrl)->toHaveKey('scheme'); // http 或 https
+    expect($parsedUrl)->toHaveKey('host');   // 主機名稱
+    expect($parsedUrl)->toHaveKey('path');   // 路徑
+
+    // 驗證：路徑包含檔案名稱
+    expect($parsedUrl['path'])->toContain('valid-audio.m4a');
+});
