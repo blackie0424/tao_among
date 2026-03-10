@@ -15,14 +15,14 @@
         <div class="flex items-center justify-between w-full lg:hidden h-14">
           <!-- Mobile Links (Breadcrumb Style) to match Desktop -->
           <div class="flex items-center gap-1 shrink-0 overflow-hidden">
-             <!-- Home Link -->
-             <Link href="/" class="font-medium text-gray-500 hover:text-gray-900 transition flex items-center gap-1 shrink-0">
+             <!-- Home Link (Hide if depth goes to 4, which means breadcrumbPage exists) -->
+             <Link v-if="!breadcrumbPage" href="/" class="font-medium text-gray-500 hover:text-gray-900 transition flex items-center gap-1 shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span class="text-sm">首頁</span>
              </Link>
              
              <!-- Separator 1 -->
-             <svg class="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+             <svg v-if="!breadcrumbPage" class="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
              
              <!-- Intermediate Link (e.g. "among no tao" when on Detail page) -->
              <template v-if="mobileBackUrl !== '/'">
