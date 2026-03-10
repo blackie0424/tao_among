@@ -39,6 +39,7 @@ class FishController extends Controller
     public function getFish($id, Request $request)
     {
         $details = $this->fishService->getFishDetails((int) $id);
+        $details['tribes'] = config('fish_options.tribes');
 
         return Inertia::render('Fish', $details);
     }

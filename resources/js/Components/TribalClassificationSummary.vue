@@ -13,26 +13,8 @@
       </Link>
     </div>
 
-    <!-- 無資料狀態 -->
-    <div v-if="classifications.length === 0 && user" class="text-center py-8 text-gray-500">
-      <svg
-        class="mx-auto h-12 w-12 text-gray-400 mb-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
-      <p class="text-base md:text-lg">尚未新增任何部落分類資料</p>
-    </div>
-
-    <!-- 比較檢視（預設顯示） -->
-    <div v-else class="overflow-x-auto">
+    <!-- 比較檢視（統一顯示所有部落，無資料則顯示未紀錄） -->
+    <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead>
           <tr>
@@ -54,19 +36,19 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-100">
-          <tr v-for="classification in classifications" :key="classification.id">
+          <tr v-for="item in mappedClassifications" :key="item.tribe">
             <td class="px-3 py-2 align-top">
               <span
                 class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
               >
-                {{ classification.tribe }}
+                {{ item.tribe }}
               </span>
             </td>
-            <td class="px-3 py-2 align-top text-base md:text-lg text-gray-900">
-              {{ classification.food_category || '未分類' }}
+            <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.hasData ? 'text-gray-900' : 'text-gray-400'">
+              {{ item.food_category || '尚未紀錄' }}
             </td>
-            <td class="px-3 py-2 align-top text-base md:text-lg text-gray-900">
-              {{ classification.processing_method || '未記錄' }}
+            <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.hasData ? 'text-gray-900' : 'text-gray-400'">
+              {{ item.processing_method || '尚未紀錄' }}
             </td>
           </tr>
         </tbody>
@@ -88,8 +70,33 @@ const props = defineProps({
     type: [String, Number],
     required: true,
   },
+  tribes: {
+    type: Array,
+    default: () => [],
+  }
 })
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+
+const mappedClassifications = computed(() => {
+  // 防呆：如果父層尚未傳遞 tribes 或 tribes 為空，回退到原本的邏輯
+  if (!props.tribes || props.tribes.length === 0) {
+    return props.classifications.map(c => ({
+      ...c,
+      hasData: true
+    }))
+  }
+
+  // 映射所有 tribes，並標示有沒有現存資料
+  return props.tribes.map(tribe => {
+    const existing = props.classifications.find(c => c.tribe === tribe)
+    return {
+      tribe: tribe,
+      food_category: existing?.food_category || null,
+      processing_method: existing?.processing_method || null,
+      hasData: !!existing
+    }
+  })
+})
 </script>

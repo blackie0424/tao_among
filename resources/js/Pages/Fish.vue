@@ -10,9 +10,10 @@
     <FishGridLayout>
       <!-- 左欄額外內容：部落分類摘要 -->
       <template #left-extra>
-        <section v-if="tribalClassifications?.length || user">
+        <section>
           <TribalClassificationSummary 
             :classifications="tribalClassifications" 
+            :tribes="tribes"
             :fishId="fish.id" 
           />
         </section>
@@ -176,6 +177,7 @@ const props = defineProps({
   tribalClassifications: { type: Array, default: () => [] },
   captureRecords: { type: Array, default: () => [] },
   fishNotes: { type: Object, default: () => ({}) },
+  tribes: { type: Array, default: () => [] },
 })
 
 const page = usePage()
