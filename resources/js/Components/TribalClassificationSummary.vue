@@ -6,7 +6,7 @@
       <h3 class="text-2xl font-bold text-gray-900">地方知識</h3>
       <Link 
         v-if="user"
-        :href="`/fish/${fishId}/knowledge-manager`" 
+        :href="`/fish/${fishId}/tribal-classifications/create`" 
         class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
       >
         <span class="text-lg leading-none">⚙️</span> 管理地方知識
