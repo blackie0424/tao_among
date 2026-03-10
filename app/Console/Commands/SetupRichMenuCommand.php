@@ -65,10 +65,11 @@ class SetupRichMenuCommand extends Command
                 $this->warn("⚠️  找不到圖片檔案：{$imagePath}");
                 $this->warn('   請執行：php artisan line:setup-rich-menu --image=/path/to/your/image.jpg');
                 $this->warn('   或手動上傳圖片到 LINE Developers Console');
-            } else {
-                $this->uploadRichMenuImage($richMenuId, $imagePath);
-                $this->info('✅ 圖片上傳成功');
-            }
+                return Command::FAILURE;
+            } 
+            
+            $this->uploadRichMenuImage($richMenuId, $imagePath);
+            $this->info('✅ 圖片上傳成功');
 
             // 步驟 4：設定為預設圖文選單
             $this->setDefaultRichMenu($richMenuId);
