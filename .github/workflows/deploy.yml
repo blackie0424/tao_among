@@ -72,6 +72,9 @@ jobs:
             echo "🚀 開始部署後端邏輯..."
             cd $PROJECT_PATH
 
+            # 清除本地可能產生的異動 (防止檔案衝突)
+            git reset --hard HEAD
+            
             # 拉取最新程式碼 (不包含已被 ignore 的 public/build，所以不會衝突)
             git pull origin main
 
