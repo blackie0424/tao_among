@@ -293,6 +293,10 @@ class LineBotService
                 'size'        => 'full',
                 'aspectRatio' => '20:13',
                 'aspectMode'  => 'cover',
+                'action'      => [
+                    'type' => 'uri',
+                    'uri'  => $fish['display_image_url'] ?? $fish['image_url'],
+                ],
             ],
             'body' => [
                 'type'     => 'box',
@@ -459,6 +463,10 @@ class LineBotService
                     'size' => 'full',
                     'aspectRatio' => '20:13',
                     'aspectMode' => 'cover',
+                    'action' => [
+                        'type' => 'uri',
+                        'uri'  => $record['image_url'],
+                    ],
                 ],
                 'body' => [
                     'type' => 'box',
