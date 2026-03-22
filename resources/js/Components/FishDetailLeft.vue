@@ -3,13 +3,13 @@
   <div class="w-full flex flex-col items-center">
     <!-- 手機使用較小底距，桌面維持較大空間以保持排版 -->
     <div class="w-full relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <!-- 圖片區域：移除個別圓角，由外層容器控制 -->
-      <div class="relative aspect-[4/3] bg-gray-100">
+      <!-- 圖片區域：移除個別圓角，由外層容器控制。調整為響應式高度以適應全寬版面 -->
+      <div class="relative w-full h-64 sm:h-80 md:h-96 lg:h-[450px] xl:h-[550px] bg-gray-100">
         <LazyImage
           :src="fish.display_image_url || fish.image_url"
           :alt="fish.name"
           wrapperClass="w-full h-full"
-          imgClass="w-full h-full object-cover"
+          imgClass="w-full h-full object-cover object-center"
         />
       </div>
 

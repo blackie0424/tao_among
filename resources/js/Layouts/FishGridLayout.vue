@@ -1,25 +1,27 @@
 <template>
-  <div class="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
+  <div class="space-y-8 md:space-y-10 w-full">
     
-    <!-- 左欄：核心識別 (Desktop Sticky) -->
+    <!-- 頂部：核心識別 -->
     <div :class="[
-      'space-y-6 lg:sticky lg:top-20',
+      'w-full',
       hideLeftOnMobile ? 'hidden lg:block' : ''
     ]">
       <section>
         <FishDetailLeft :fish="fish" />
       </section>
-      <!-- 左欄額外內容插槽 - 由頁面（Fish.vue, MediaManager.vue, KnowledgeManager.vue）自行決定要顯示什麼 -->
-      <slot name="left-extra" />
+      <!-- 左欄額外內容插槽 - 由頁面自行決定要顯示什麼 -->
+      <div v-if="$slots['left-extra']" class="mt-6">
+        <slot name="left-extra" />
+      </div>
     </div>
 
-    <!-- 中欄：主要內容 (Desktop Scrollable) -->
-    <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:px-2 scrollbar-hide">
+    <!-- 中部：主要內容 -->
+    <div v-if="$slots['middle']" class="w-full">
       <slot name="middle" />
     </div>
 
-    <!-- 右欄：次要內容 (Desktop Scrollable) -->
-    <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pl-2 scrollbar-hide">
+    <!-- 底部：次要內容 -->
+    <div v-if="$slots['right']" class="w-full">
       <slot name="right" />
     </div>
   </div>
