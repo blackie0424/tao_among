@@ -1,7 +1,7 @@
 <template>
   <Head :title="`${fish.name} - 捕獲紀錄與唸法`" />
   
-  <FishGridLayout :hideLeftOnMobile="true">
+  <FishGridLayout :hideTopOnMobile="true">
     <!-- 中欄：捕獲照片 -->
     <template #middle>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -89,8 +89,8 @@
       </section>
     </template>
 
-    <!-- 右欄：發音錄音 -->
-    <template #right>
+    <!-- 底部：發音錄音 -->
+    <template #bottom>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">

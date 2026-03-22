@@ -1,7 +1,7 @@
 <template>
   <Head :title="`${fish.name} - 基本資料與地方知識`" />
   
-  <FishGridLayout :hideLeftOnMobile="true">
+  <FishGridLayout :hideTopOnMobile="true">
     <!-- 中欄：基本管理 & 地方知識 -->
     <template #middle>
       <!-- 區塊 S: 基本資料管理 (Mobile: Full Card; Desktop: Actions Only) -->
@@ -88,8 +88,8 @@
       </section>
     </template>
 
-    <!-- 右欄：進階知識 -->
-    <template #right>
+    <!-- 底部：進階知識 -->
+    <template #bottom>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">

@@ -9,7 +9,7 @@
   >
     <FishGridLayout>
       <!-- 頂部額外內容：地方知識摘要 -->
-      <template #left-extra>
+      <template #top-extra>
         <section>
           <TribalClassificationSummary 
             :classifications="tribalClassifications"
@@ -109,8 +109,8 @@
         </section>
       </template>
   
-      <!-- 右欄：進階知識 -->
-      <template #right>
+      <!-- 底部：進階知識 -->
+      <template #bottom>
         <section 
           v-if="Object.keys(groupedNotes).length || user"
           class="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
