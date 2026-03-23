@@ -9,7 +9,7 @@
           :src="fish.display_image_url || fish.image_url"
           :alt="fish.name"
           wrapperClass="w-full h-full"
-          imgClass="w-full h-full object-cover object-center"
+          imgClass="w-full h-full object-contain object-center"
         />
       </div>
 

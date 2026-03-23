@@ -52,14 +52,14 @@
         </h3>
       </div>
 
-      <div class="space-y-4">
-        <div v-for="(item, index) in validClassifications" :key="index" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-           <div class="flex items-center mb-2">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="(item, index) in validClassifications" :key="index" class="bg-gray-50 rounded-lg p-4 border border-gray-200 h-full flex flex-col">
+           <div class="flex items-center mb-2 shrink-0">
              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 {{ item.tribe }}
              </span>
            </div>
-           <p class="text-gray-800 text-sm md:text-base whitespace-pre-line leading-relaxed">
+           <p class="text-gray-800 text-sm md:text-base whitespace-pre-line leading-relaxed flex-grow">
               {{ item.notes }}
            </p>
         </div>
