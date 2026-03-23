@@ -1,13 +1,13 @@
 <template>
   <Head :title="`${fish.name} - 捕獲紀錄與唸法`" />
   
-  <FishGridLayout :hideTopOnMobile="true">
+  <FishGridLayout :hideTopOnMobile="true" :hideTop="true">
     <!-- 中欄：捕獲照片 -->
     <template #middle>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
-            <span>📸</span> 捕獲照片
+            <span>📸</span> {{ fish.name }} 的捕獲紀錄
           </h2>
           <Link 
             :href="`/fish/${fish.id}/capture-records/create`" 
@@ -17,7 +17,7 @@
           </Link>
         </div>
         
-        <div v-if="captureRecords.length" class="space-y-8">
+        <div v-if="captureRecords.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <div 
             v-for="record in captureRecords" 
             :key="record.id" 

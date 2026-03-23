@@ -2,7 +2,7 @@
   <div class="space-y-8 md:space-y-10 w-full">
     
     <!-- 頂部：核心識別 -->
-    <div :class="[
+    <div v-if="!hideTop" :class="[
       'w-full',
       hideTopOnMobile ? 'hidden lg:block' : ''
     ]">
@@ -39,6 +39,10 @@ const fish = computed(() => page.props.fish)
 // Props 定義
 defineProps({
   hideTopOnMobile: {
+    type: Boolean,
+    default: false
+  },
+  hideTop: {
     type: Boolean,
     default: false
   }
