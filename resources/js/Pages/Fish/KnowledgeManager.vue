@@ -1,7 +1,7 @@
 <template>
   <Head :title="`${fish.name} - 基本資料與地方知識`" />
   
-  <FishGridLayout :hideLeftOnMobile="true">
+  <FishGridLayout :hideTopOnMobile="true">
     <!-- 中欄：基本管理 & 地方知識 -->
     <template #middle>
       <!-- 區塊 S: 基本資料管理 (Mobile: Full Card; Desktop: Actions Only) -->
@@ -65,31 +65,34 @@
           </Link>
         </div>
         
-        <div class="space-y-3">
-          <div>
-            <div 
-              v-for="item in mappedClassifications" 
-              :key="item.tribe"
-              class="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-3 last:mb-0"
-              :class="item.hasData ? '' : 'opacity-70'"
-            >
-              <div class="flex justify-between items-start mb-2 block">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {{ item.tribe }}
-                </span>
-              </div>
-              <div class="text-sm space-y-1" :class="item.hasData ? 'text-gray-700' : 'text-gray-400'">
-                <p><span class="font-medium" :class="item.hasData ? 'text-gray-500' : 'text-gray-400'">分類：</span> {{ item.food_category || '尚未紀錄' }}</p>
-                <p><span class="font-medium" :class="item.hasData ? 'text-gray-500' : 'text-gray-400'">處理：</span> {{ item.processing_method || '尚未紀錄' }}</p>
-              </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div 
+            v-for="item in mappedClassifications" 
+            :key="item.tribe"
+            class="bg-gray-50 rounded-lg p-4 border border-gray-200 h-full flex flex-col"
+            :class="item.hasData ? '' : 'opacity-70'"
+          >
+            <div class="flex justify-between items-start mb-3 block shrink-0">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {{ item.tribe }}
+              </span>
+            </div>
+            <div class="text-sm space-y-1 mb-3 shrink-0" :class="item.hasData ? 'text-gray-700' : 'text-gray-400'">
+              <p><span class="font-medium" :class="item.hasData ? 'text-gray-500' : 'text-gray-400'">分類：</span> {{ item.food_category || '尚未紀錄' }}</p>
+              <p><span class="font-medium" :class="item.hasData ? 'text-gray-500' : 'text-gray-400'">處理：</span> {{ item.processing_method || '尚未紀錄' }}</p>
+            </div>
+            <!-- 顯示田調紀錄 (notes) -->
+            <div v-if="item.notes" class="text-sm text-gray-800 whitespace-pre-line leading-relaxed flex-grow border-t border-gray-200 pt-3 mt-3">
+              <span class="font-medium text-gray-500 block mb-1">田調紀錄：</span>
+              {{ item.notes }}
             </div>
           </div>
         </div>
       </section>
     </template>
 
-    <!-- 右欄：進階知識 -->
-    <template #right>
+    <!-- 底部：進階知識 -->
+    <template #bottom>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
@@ -192,6 +195,7 @@ const mappedClassifications = computed(() => {
       tribe: tribe,
       food_category: existing?.food_category || null,
       processing_method: existing?.processing_method || null,
+      notes: existing?.notes || null,
       hasData: !!existing
     }
   })

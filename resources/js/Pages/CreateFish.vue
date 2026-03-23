@@ -16,6 +16,8 @@
       <FishNameForm
         v-if="step === 2"
         :uploadedFileName="uploadedFileName"
+        :tribes="props.tribes"
+        :capture_methods="props.capture_methods"
         @submitted="onFishSubmitted"
         ref="nameFormRef"
       />
@@ -30,6 +32,11 @@ import { router } from '@inertiajs/vue3'
 import TopNavBar from '@/Components/Global/TopNavBar.vue'
 import FishImageUploader from '@/Components/FishImageUploader.vue'
 import FishNameForm from '@/Components/FishNameForm.vue'
+
+const props = defineProps({
+  tribes: Array,
+  capture_methods: [Array, Object]
+})
 
 const step = ref(1)
 const uploadedFileName = ref('')

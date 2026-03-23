@@ -2,7 +2,7 @@
   <div 
     class="min-h-screen bg-gray-50 relative pt-4"
     :class="[
-      showBottomNav ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6'
+      (user && fishId) ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6'
     ]"
   >
     
@@ -142,11 +142,11 @@
 
     <AppFooter />
 
-    <!-- 底部導覽列 (手機版) -->
-    <!-- 底部導覽列 (手機版) -->
-    <slot v-if="showBottomNav" name="bottom-nav">
-      <BottomNavBar :fishId="fishId" :activeTab="activeTab" />
-    </slot>
+    <!-- 桌面版懸浮管理選單 -->
+    <AdminFloatingMenu v-if="user && fishId" :fishId="fishId" />
+
+    <!-- 手機版底部管理選單 (常駐) -->
+    <BottomNavBar v-if="user && fishId" :fishId="fishId" />
   </div>
 </template>
 
@@ -156,6 +156,7 @@ import { Link, usePage } from '@inertiajs/vue3'
 import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 import FlashMessage from '@/Components/FlashMessage.vue'
 import AppFooter from '@/Components/Global/AppFooter.vue'
+import AdminFloatingMenu from '@/Components/Global/AdminFloatingMenu.vue'
 
 // 從 Inertia page props 取得 fish 資料
 const page = usePage()

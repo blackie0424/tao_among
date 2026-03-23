@@ -5,14 +5,14 @@
     :pageTitle="fish.name"
     mobileBackUrl="/fishs"
     :mobileBackText="mobileBackText"
-    :showBottomNav="false"
+    :showBottomNav="!!user"
   >
     <FishGridLayout>
-      <!-- 左欄額外內容：部落分類摘要 -->
-      <template #left-extra>
+      <!-- 頂部額外內容：地方知識摘要 -->
+      <template #top-extra>
         <section>
           <TribalClassificationSummary 
-            :classifications="tribalClassifications" 
+            :classifications="tribalClassifications"
             :tribes="tribes"
             :fishId="fish.id" 
           />
@@ -28,12 +28,9 @@
                 <h3 class="text-2xl font-bold text-gray-900">捕獲紀錄</h3>
                 <span class="text-sm font-bold bg-gray-100 text-gray-800 px-3 py-1 rounded-full">{{ captureRecords.length }}</span>
               </div>
-              <Link v-if="user" :href="`/fish/${fish.id}/media-manager`" class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition">
-                <span class="text-lg leading-none">⚙️</span> 管理照片
-              </Link>
             </div>
   
-            <div v-if="captureRecords.length" class="space-y-6">
+            <div v-if="captureRecords.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div 
                 v-for="(record, index) in captureRecords" 
                 :key="record.id" 
@@ -101,16 +98,13 @@
             
             <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
                <p class="text-gray-500 mb-4">目前還沒有捕獲紀錄照片</p>
-               <Link v-if="user" :href="`/fish/${fish.id}/media-manager`" class="inline-flex px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium shadow-sm transition-colors">
-                  管理照片
-               </Link>
             </div>
           </div>
         </section>
       </template>
   
-      <!-- 右欄：進階知識 -->
-      <template #right>
+      <!-- 底部：進階知識 -->
+      <template #bottom>
         <section 
           v-if="Object.keys(groupedNotes).length || user"
           class="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
@@ -119,39 +113,31 @@
             <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
               <span>📖</span> 進階知識
             </h2>
-            <Link 
-              v-if="user"
-              :href="`/fish/${fish.id}/knowledge-manager`" 
-              class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
-            >
-              <span class="text-lg leading-none">⚙️</span> 管理進階知識
-            </Link>
           </div>
 
-          <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
-            <div v-for="(items, type) in groupedNotes" :key="type">
-              <h4 class="font-medium text-gray-800 mb-2 px-1 flex items-center">
-                <span class="w-1 h-4 bg-teal-500 rounded-full mr-2"></span>
+          <div v-if="Object.keys(groupedNotesByTypeAndLocate).length" class="space-y-8">
+            <div v-for="(locates, type) in groupedNotesByTypeAndLocate" :key="type">
+              <h4 class="text-lg font-bold text-gray-800 mb-4 px-1 flex items-center border-b pb-2">
+                <span class="w-1.5 h-5 bg-teal-500 rounded-full mr-2"></span>
                 {{ type }}
               </h4>
-              <ul class="space-y-3">
-                <li 
-                  v-for="note in items" 
-                  :key="note.id" 
-                  class="bg-gray-50 rounded-lg p-4 border border-gray-200"
-                >
-                  <div>
-                    <span v-if="note.locate" class="inline-flex self-start items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mb-2">
-                      {{ note.locate }}
-                    </span>
-                    <div class="text-gray-800 md:text-lg whitespace-pre-line leading-relaxed">{{ note.note }}</div>
-                  </div>
-                </li>
-              </ul>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 針對每個部落標籤建一個區塊 -->
+                <div v-for="(notes, locate) in locates" :key="locate" class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mb-3">
+                    {{ locate }}
+                  </span>
+                  <ul class="space-y-4">
+                    <li v-for="note in notes" :key="note.id">
+                      <div class="text-gray-800 md:text-lg whitespace-pre-line leading-relaxed">{{ note.note }}</div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
           <div v-else class="text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg">
-            尚未建立知識筆記
+            目前沒有進階地方知識的紀錄
           </div>
         </section>
       </template>
@@ -183,6 +169,22 @@ const props = defineProps({
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const groupedNotes = computed(() => props.fishNotes || {})
+
+// 將進階知識依據分類標籤 (note_type) 及部落標籤 (locate) 進行二次統整
+const groupedNotesByTypeAndLocate = computed(() => {
+  const result = {};
+  for (const [type, notes] of Object.entries(props.fishNotes || {})) {
+    result[type] = {};
+    for (const note of notes) {
+      const locate = note.locate || '未分類部落';
+      if (!result[type][locate]) {
+        result[type][locate] = [];
+      }
+      result[type][locate].push(note);
+    }
+  }
+  return result;
+});
 
 // 動態決定手機版麵包屑中間層級文字
 // 若魚名太長 (> 12 字元)，則縮減中間層級為 "..." 以爭取空間

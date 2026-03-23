@@ -1,13 +1,13 @@
 <template>
   <Head :title="`${fish.name} - 捕獲紀錄與唸法`" />
   
-  <FishGridLayout :hideLeftOnMobile="true">
+  <FishGridLayout :hideTopOnMobile="true" :hideTop="true">
     <!-- 中欄：捕獲照片 -->
     <template #middle>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
-            <span>📸</span> 捕獲照片
+            <span>📸</span> {{ fish.name }} 的捕獲紀錄
           </h2>
           <Link 
             :href="`/fish/${fish.id}/capture-records/create`" 
@@ -17,14 +17,17 @@
           </Link>
         </div>
         
-        <div v-if="captureRecords.length" class="space-y-8">
+        <div v-if="captureRecords.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <div 
             v-for="record in captureRecords" 
             :key="record.id" 
             class="flex flex-col gap-3 group"
           >
             <!-- 16:9 圖片 -->
-            <div class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm group">
+            <div 
+              class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm group cursor-pointer"
+              @click="selectedImage = record.image_url"
+            >
               <LazyImage
                 :src="record.image_url"
                 :alt="`捕獲紀錄`"
@@ -43,7 +46,7 @@
                 </span>
                 <button 
                   v-else 
-                  @click="setMainImage(record)"
+                  @click.stop="setMainImage(record)"
                   class="px-2 py-1 bg-white/90 hover:bg-white text-gray-700 hover:text-blue-600 text-xs font-medium rounded shadow-sm backdrop-blur-sm lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center gap-1"
                 >
                   設為首圖
@@ -54,6 +57,7 @@
               <a 
                 :href="`/fish/${fish.id}/capture-records/${record.id}/edit`"
                 class="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-sm text-gray-600 hover:text-blue-600 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+                @click.stop
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
               </a>
@@ -89,8 +93,8 @@
       </section>
     </template>
 
-    <!-- 右欄：發音錄音 -->
-    <template #right>
+    <!-- 底部：發音錄音 -->
+    <template #bottom>
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
@@ -151,11 +155,43 @@
       </section>
     </template>
   </FishGridLayout>
+
+  <!-- 圖片放大檢視 (Lightbox) -->
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div 
+        v-if="selectedImage" 
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+        @click="selectedImage = null"
+      >
+        <button 
+          @click="selectedImage = null" 
+          class="absolute top-4 right-4 text-white hover:text-gray-300 p-2 z-[110]"
+        >
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+        <img 
+          :src="selectedImage" 
+          class="max-h-[90vh] max-w-full object-contain rounded-lg shadow-2xl"
+          @click.stop
+        />
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
 import { Head, router, Link, usePage } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { markFishStale } from '@/utils/fishListCache'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
@@ -181,6 +217,7 @@ const props = defineProps({
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const fish = computed(() => props.fish)
+const selectedImage = ref(null)
 
 const formatDate = (dateString) => {
   if(!dateString) return '未記錄';

@@ -1,26 +1,28 @@
 <template>
-  <div class="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
+  <div class="space-y-8 md:space-y-10 w-full">
     
-    <!-- 左欄：核心識別 (Desktop Sticky) -->
-    <div :class="[
-      'space-y-6 lg:sticky lg:top-20',
-      hideLeftOnMobile ? 'hidden lg:block' : ''
+    <!-- 頂部：核心識別 -->
+    <div v-if="!hideTop" :class="[
+      'w-full',
+      hideTopOnMobile ? 'hidden lg:block' : ''
     ]">
       <section>
-        <FishDetailLeft :fish="fish" />
+        <FishDetailTop :fish="fish" />
       </section>
-      <!-- 左欄額外內容插槽 - 由頁面（Fish.vue, MediaManager.vue, KnowledgeManager.vue）自行決定要顯示什麼 -->
-      <slot name="left-extra" />
+      <!-- 頂部額外內容插槽 - 由頁面自行決定要顯示什麼 -->
+      <div v-if="$slots['top-extra']" class="mt-6">
+        <slot name="top-extra" />
+      </div>
     </div>
 
-    <!-- 中欄：主要內容 (Desktop Scrollable) -->
-    <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:px-2 scrollbar-hide">
+    <!-- 中部：主要內容 -->
+    <div v-if="$slots['middle']" class="w-full">
       <slot name="middle" />
     </div>
 
-    <!-- 右欄：次要內容 (Desktop Scrollable) -->
-    <div class="space-y-6 mt-6 lg:mt-0 lg:h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pl-2 scrollbar-hide">
-      <slot name="right" />
+    <!-- 底部：次要內容 -->
+    <div v-if="$slots['bottom']" class="w-full">
+      <slot name="bottom" />
     </div>
   </div>
 </template>
@@ -28,7 +30,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import FishDetailLeft from '@/Components/FishDetailLeft.vue'
+import FishDetailTop from '@/Components/FishDetailTop.vue'
 
 // 從 Inertia page props 取得資料
 const page = usePage()
@@ -36,7 +38,11 @@ const fish = computed(() => page.props.fish)
 
 // Props 定義
 defineProps({
-  hideLeftOnMobile: {
+  hideTopOnMobile: {
+    type: Boolean,
+    default: false
+  },
+  hideTop: {
     type: Boolean,
     default: false
   }
