@@ -87,7 +87,10 @@ class FishController extends Controller
 
     public function create()
     {
-        return Inertia::render('CreateFish');
+        return Inertia::render('CreateFish', [
+            'tribes' => config('fish_options.tribes'),
+            'capture_methods' => config('fish_options.capture_methods'),
+        ]);
     }
 
     public function edit($id)
@@ -159,11 +162,11 @@ class FishController extends Controller
             $captureRecord = CaptureRecord::create([
                 'fish_id' => $fish->id,
                 'image_path' => $request->validated()['image'],
-                'tribe' => 'iraraley', // 使用第一個有效的部落
-                'location' => '待補充',
-                'capture_method' => 'mamasil',
-                'capture_date' => now(),
-                'notes' => '首次建立時自動產生，請至捕獲紀錄頁面補充資訊'
+                'tribe' => $request->input('tribe', 'iraraley'),
+                'location' => $request->input('location', '待補充'),
+                'capture_method' => $request->input('capture_method', 'mamasil'),
+                'capture_date' => $request->input('capture_date', now()),
+                'notes' => $request->input('notes', null)
             ]);
             
             // 自動設定為圖鑑主圖

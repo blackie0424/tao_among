@@ -17,6 +17,11 @@ class CreateFishRequest extends FormRequest
             'name' => ['required', 'string'],
             'image' => ['required', 'string'],
             'audio_filename' => ['nullable', 'string', 'max:255'],
+            'tribe' => ['nullable', 'string'],
+            'location' => ['nullable', 'string'],
+            'capture_method' => ['nullable', 'string'],
+            'capture_date' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string'],
         ];
     }
 }
