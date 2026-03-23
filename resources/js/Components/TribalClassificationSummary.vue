@@ -6,13 +6,6 @@
         <h3 class="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
           地方知識
         </h3>
-        <Link 
-          v-if="user"
-          :href="`/fish/${fishId}/tribal-classifications/create`" 
-          class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
-        >
-          <span class="text-lg leading-none">⚙️</span> 管理知識
-        </Link>
       </div>
 
       <!-- 比較檢視（統一顯示所有部落，無資料則顯示未紀錄） -->

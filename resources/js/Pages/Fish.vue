@@ -5,7 +5,7 @@
     :pageTitle="fish.name"
     mobileBackUrl="/fishs"
     :mobileBackText="mobileBackText"
-    :showBottomNav="false"
+    :showBottomNav="!!user"
   >
     <FishGridLayout>
       <!-- 頂部額外內容：地方知識摘要 -->
@@ -28,9 +28,6 @@
                 <h3 class="text-2xl font-bold text-gray-900">捕獲紀錄</h3>
                 <span class="text-sm font-bold bg-gray-100 text-gray-800 px-3 py-1 rounded-full">{{ captureRecords.length }}</span>
               </div>
-              <Link v-if="user" :href="`/fish/${fish.id}/media-manager`" class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition">
-                <span class="text-lg leading-none">⚙️</span> 管理照片
-              </Link>
             </div>
   
             <div v-if="captureRecords.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -101,9 +98,6 @@
             
             <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
                <p class="text-gray-500 mb-4">目前還沒有捕獲紀錄照片</p>
-               <Link v-if="user" :href="`/fish/${fish.id}/media-manager`" class="inline-flex px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium shadow-sm transition-colors">
-                  管理照片
-               </Link>
             </div>
           </div>
         </section>
@@ -119,13 +113,6 @@
             <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
               <span>📖</span> 進階知識
             </h2>
-            <Link 
-              v-if="user"
-              :href="`/fish/${fish.id}/knowledge-manager`" 
-              class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
-            >
-              <span class="text-lg leading-none">⚙️</span> 管理進階知識
-            </Link>
           </div>
 
           <div v-if="Object.keys(groupedNotesByTypeAndLocate).length" class="space-y-8">
