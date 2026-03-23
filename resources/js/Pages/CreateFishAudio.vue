@@ -4,7 +4,7 @@
       :goBack="goBack"
       :submitNote="handleNext"
       :submitting="submitting"
-      title="建立魚類錄音"
+      :title="`新增${fish.name}的發音`"
       :showSubmit="!!audioBlob"
       :submitLabel="submitting ? '送出中...' : '下一步'"
       :showLoading="submitting"
