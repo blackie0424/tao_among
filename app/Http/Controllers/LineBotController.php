@@ -721,8 +721,7 @@ class LineBotController extends Controller
             // B: 瀏覽魚類（圖文選單 → 顯示六個部落選單）
             if ($action === 'browse_fish') {
                 $tribes = config('fish_options.tribes', []);
-                $tribeItems = array_map(fn ($tribe) => [
-                    'type'   => 'action',
+                $tribeButtons = array_map(fn ($tribe) => [
                     'action' => [
                         'type'        => 'postback',
                         'label'       => ucfirst($tribe),
@@ -731,11 +730,7 @@ class LineBotController extends Controller
                     ],
                 ], $tribes);
 
-                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "🔍 瀏覽魚類\n\n請選擇要瀏覽的部落：",
-                ]);
-                $message->setQuickReply(['items' => $tribeItems]);
+                $message = $this->createButtonsFlexMessage("🔍 瀏覽魚類\n\n請選擇要瀏覽的部落：", $tribeButtons);
 
                 $this->lineBotService->replyMessage($replyToken, [$message]);
                 return;
@@ -815,25 +810,22 @@ class LineBotController extends Controller
                 $fishName = $params['fish_name'] ?? '此魚';
                 $fishId   = (int) ($params['fish_id'] ?? 0);
 
-                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "🔇「{$fishName}」目前尚無發音紀錄。",
-                ]);
-
                 // 提示可以新增發音
                 if ($fishId) {
-                    $message->setQuickReply([
-                        'items' => [
-                            [
-                                'type'   => 'action',
-                                'action' => [
-                                    'type'        => 'postback',
-                                    'label'       => '🎤 新增發音',
-                                    'data'        => "action=start_add_audio&fish_id={$fishId}",
-                                    'displayText' => '新增發音',
-                                ],
+                    $message = $this->createButtonsFlexMessage("🔇「{$fishName}」目前尚無發音紀錄。", [
+                        [
+                            'action' => [
+                                'type'        => 'postback',
+                                'label'       => '🎤 新增發音',
+                                'data'        => "action=start_add_audio&fish_id={$fishId}",
+                                'displayText' => '新增發音',
                             ],
                         ],
+                    ]);
+                } else {
+                    $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "🔇「{$fishName}」目前尚無發音紀錄。",
                     ]);
                 }
 
@@ -890,10 +882,9 @@ class LineBotController extends Controller
                 // 暫存 fishId 到 Cache 供後續步驟使用（5 分鐘過期）
                 \Cache::put("line_user_{$userId}_pending_audio_fish", $fishId, now()->addMinutes(5));
 
-                // 從設定檔讀取六個部落，組成 Quick Reply 按鈕
+                // 從設定檔讀取六個部落，組成 按鈕
                 $tribes = config('fish_options.tribes', []);
-                $tribeItems = array_map(fn ($tribe) => [
-                    'type'   => 'action',
+                $tribeButtons = array_map(fn ($tribe) => [
                     'action' => [
                         'type'        => 'postback',
                         'label'       => ucfirst($tribe),
@@ -902,11 +893,7 @@ class LineBotController extends Controller
                     ],
                 ], $tribes);
 
-                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "🎤 提供發音\n\n請先選擇你來自哪個部落：",
-                ]);
-                $message->setQuickReply(['items' => $tribeItems]);
+                $message = $this->createButtonsFlexMessage("🎤 提供發音\n\n請先選擇你來自哪個部落：", $tribeButtons);
 
                 $this->lineBotService->replyMessage($replyToken, [$message]);
                 return;
@@ -1043,8 +1030,7 @@ class LineBotController extends Controller
                 \Cache::put("line_user_{$userId}_capture_step", 'await_tribe', now()->addMinutes(15));
 
                 $tribes = config('fish_options.tribes', []);
-                $tribeItems = array_map(fn ($tribe) => [
-                    'type'   => 'action',
+                $tribeButtons = array_map(fn ($tribe) => [
                     'action' => [
                         'type'        => 'postback',
                         'label'       => ucfirst($tribe),
@@ -1053,13 +1039,9 @@ class LineBotController extends Controller
                     ],
                 ], $tribes);
 
-                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "📋 填寫捕獲紀錄\n\n請選擇部落：",
-                ]);
-                $message->setQuickReply(['items' => $tribeItems]);
+                $tribeSelectMsg = $this->createButtonsFlexMessage("📋 填寫捕獲紀錄\n\n請選擇部落：", $tribeButtons);
 
-                $this->lineBotService->replyMessage($replyToken, [$message]);
+                $this->lineBotService->replyMessage($replyToken, [$tribeSelectMsg]);
                 return;
             }
 
@@ -1085,7 +1067,7 @@ class LineBotController extends Controller
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
-                        'text' => "✅ 部落：" . ucfirst($tribe) . "\n\n📍 請輸入捕獲地點：",
+                        'text' => "✅ 部落：" . ucfirst($tribe) . "，請輸入捕獲地點：",
                     ]),
                 ]);
                 return;
@@ -1110,24 +1092,18 @@ class LineBotController extends Controller
                 \Cache::put("line_user_{$userId}_capture_method", $method, now()->addMinutes(15));
                 \Cache::put("line_user_{$userId}_capture_step", 'await_notes', now()->addMinutes(15));
 
-                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "✅ 捕獲方式：" . config('fish_options.capture_methods')[$method] . "\n\n📝 請輸入備註（可輸入「跳過」留空）：",
-                ]);
-                $message->setQuickReply([
-                    'items' => [
-                        [
-                            'type'   => 'action',
-                            'action' => [
-                                'type'        => 'message',
-                                'label'       => '跳過',
-                                'text'        => '跳過',
-                            ],
+                $methodLabel = config('fish_options.capture_methods')[$method];
+                $askNotesMsg = $this->createButtonsFlexMessage("✅ 捕獲方式：{$methodLabel}\n\n請輸入備註（可跳過）：", [
+                    [
+                        'action' => [
+                            'type'  => 'message',
+                            'label' => '跳過',
+                            'text'  => '跳過',
                         ],
                     ],
                 ]);
 
-                $this->lineBotService->replyMessage($replyToken, [$message]);
+                $this->lineBotService->replyMessage($replyToken, [$askNotesMsg]);
                 return;
             }
 
@@ -1281,19 +1257,12 @@ class LineBotController extends Controller
 
         // 若已經上傳過圖片（await_name），提示使用者直接輸入名稱，並附上「我不知道」按鈕
         if ($state === 'await_name') {
-            $alreadyMsg = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                'type' => 'text',
-                'text' => '📸 已收到照片！請輸入魚類名稱，或點選下方按鈕：',
-            ]);
-            $alreadyMsg->setQuickReply([
-                'items' => [
-                    [
-                        'type'   => 'action',
-                        'action' => [
-                            'type'  => 'message',
-                            'label' => '我不知道',
-                            'text'  => '我不知道',
-                        ],
+            $alreadyMsg = $this->createButtonsFlexMessage('請輸入魚類名稱：', [
+                [
+                    'action' => [
+                        'type'  => 'message',
+                        'label' => '我不知道',
+                        'text'  => '我不知道',
                     ],
                 ],
             ]);
@@ -1316,24 +1285,17 @@ class LineBotController extends Controller
             \Cache::put("line_user_{$userId}_fish_image", $filename, now()->addMinutes(15));
             \Cache::put("line_user_{$userId}_creating_fish", 'await_name', now()->addMinutes(15));
 
-            $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                'type' => 'text',
-                'text' => "✅ 照片上傳成功！\n\n請輸入魚類名稱，或點選下方「我不知道」按鈕：",
-            ]);
-            $message->setQuickReply([
-                'items' => [
-                    [
-                        'type'   => 'action',
-                        'action' => [
-                            'type'  => 'message',
-                            'label' => '我不知道',
-                            'text'  => '我不知道',
-                        ],
+            $askNameMsg = $this->createButtonsFlexMessage("✅ 照片上傳成功！\n\n請輸入魚類名稱：", [
+                [
+                    'action' => [
+                        'type'  => 'message',
+                        'label' => '我不知道',
+                        'text'  => '我不知道',
                     ],
                 ],
             ]);
 
-            $this->lineBotService->replyMessage($replyToken, [$message]);
+            $this->lineBotService->replyMessage($replyToken, [$askNameMsg]);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot handleImageMessage failed', [
@@ -1386,34 +1348,26 @@ class LineBotController extends Controller
                 'name'   => $fishName,
             ]);
 
-            $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                'type' => 'text',
-                'text' => "✅ 魚類「{$fishName}」建立成功！\n\n是否要填寫捕獲紀錄？",
-            ]);
-            $message->setQuickReply([
-                'items' => [
-                    [
-                        'type'   => 'action',
-                        'action' => [
-                            'type'        => 'postback',
-                            'label'       => '✅ 填寫記錄',
-                            'data'        => "action=start_capture_for_new_fish&fish_id={$fish->id}",
-                            'displayText' => '填寫捕獲紀錄',
-                        ],
+            $askCaptureMsg = $this->createButtonsFlexMessage("✅ 「{$fishName}」建立成功！\n\n是否填寫捕獲紀錄？", [
+                [
+                    'action' => [
+                        'type'        => 'postback',
+                        'label'       => '✅ 填寫',
+                        'data'        => "action=start_capture_for_new_fish&fish_id={$fish->id}",
+                        'displayText' => '填寫捕獲紀錄',
                     ],
-                    [
-                        'type'   => 'action',
-                        'action' => [
-                            'type'        => 'postback',
-                            'label'       => '⏭ 跳過',
-                            'data'        => 'action=skip',
-                            'displayText' => '跳過',
-                        ],
+                ],
+                [
+                    'action' => [
+                        'type'        => 'postback',
+                        'label'       => '跳過',
+                        'data'        => 'action=skip',
+                        'displayText' => '跳過',
                     ],
                 ],
             ]);
 
-            $this->lineBotService->replyMessage($replyToken, [$message]);
+            $this->lineBotService->replyMessage($replyToken, [$askCaptureMsg]);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot handleCreateFishName failed', [
@@ -1457,23 +1411,18 @@ class LineBotController extends Controller
         \Cache::put("line_user_{$userId}_capture_step", 'await_method', now()->addMinutes(15));
 
         $methods = config('fish_options.capture_methods', []);
-        $methodItems = array_map(fn ($key, $label) => [
-            'type'   => 'action',
+        $methodButtons = array_map(fn ($key, $label) => [
             'action' => [
                 'type'        => 'postback',
-                'label'       => $label,
+                'label'       => mb_substr($label, 0, 40),
                 'data'        => "action=select_capture_method_for_new_fish&method={$key}",
                 'displayText' => "捕獲方式：{$label}",
             ],
         ], array_keys($methods), array_values($methods));
 
-        $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-            'type' => 'text',
-            'text' => "✅ 地點：{$location}\n\n🎣 請選擇捕獲方式：",
-        ]);
-        $message->setQuickReply(['items' => $methodItems]);
+        $methodSelectMsg = $this->createButtonsFlexMessage("✅ 地點：{$location}\n\n請選擇捕獲方式：", $methodButtons);
 
-        $this->lineBotService->replyMessage($replyToken, [$message]);
+        $this->lineBotService->replyMessage($replyToken, [$methodSelectMsg]);
     }
 
     /**
@@ -1563,5 +1512,59 @@ class LineBotController extends Controller
         \Cache::forget("line_user_{$userId}_capture_tribe");
         \Cache::forget("line_user_{$userId}_capture_location");
         \Cache::forget("line_user_{$userId}_capture_method");
+    }
+
+    /**
+     * 建立帶有按鈕的 Flex Message（替代 Quick Reply，確保按鈕在對話泡泡中不被擋住）
+     */
+    protected function createButtonsFlexMessage(string $text, array $buttons): \LINE\Clients\MessagingApi\Model\FlexMessage
+    {
+        $contents = [
+            [
+                'type' => 'text',
+                'text' => $text,
+                'wrap' => true,
+                'size' => 'md',
+            ]
+        ];
+
+        $footerContents = [];
+        foreach ($buttons as $btn) {
+            $footerContents[] = [
+                'type' => 'button',
+                'style' => 'secondary',
+                'height' => 'sm',
+                'action' => $btn['action'],
+                'margin' => 'sm',
+            ];
+        }
+
+        $bubble = [
+            'type' => 'bubble',
+            'body' => [
+                'type' => 'box',
+                'layout' => 'vertical',
+                'contents' => $contents,
+            ],
+        ];
+
+        if (!empty($footerContents)) {
+            $bubble['footer'] = [
+                'type' => 'box',
+                'layout' => 'vertical',
+                'spacing' => 'sm',
+                'contents' => $footerContents,
+            ];
+        }
+
+        // 以第一行文字作為 altText
+        $altLines = explode("\n", str_replace("\r", '', $text));
+        $altText = !empty($altLines[0]) ? mb_substr($altLines[0], 0, 100) : '系統訊息';
+
+        return new \LINE\Clients\MessagingApi\Model\FlexMessage([
+            'type' => 'flex',
+            'altText' => $altText,
+            'contents' => $bubble,
+        ]);
     }
 }
