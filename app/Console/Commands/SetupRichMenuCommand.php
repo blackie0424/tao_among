@@ -12,13 +12,13 @@ class SetupRichMenuCommand extends Command
      * The name and signature of the console command.
      */
     protected $signature = 'line:setup-rich-menu
-                            {--image= : 圖文選單圖片路徑（預設使用 public/images/line/rich_menu.png）}
+                            {--image= : 圖文選單圖片路徑（預設使用 storage/app/rich_menu.jpg）}
                             {--dry-run : 只顯示設定內容，不實際建立}';
 
     /**
      * The console command description.
      */
-    protected $description = '建立 LINE 圖文選單（Rich Menu），定義 3 個功能區塊並設為預設';
+    protected $description = '建立 LINE 圖文選單（Rich Menu），定義 6 個功能區塊並設為預設';
 
     protected Client $httpClient;
     protected string $accessToken;
@@ -60,13 +60,13 @@ class SetupRichMenuCommand extends Command
             $this->info("✅ 建立圖文選單成功，ID: {$richMenuId}");
 
             // 步驟 3：上傳圖文選單圖片
-            $imagePath = $this->option('image') ?? public_path('images/line/rich_menu.png');
+            $imagePath = $this->option('image') ?? public_path('images/line/rich_menu.jpg');
             if (!file_exists($imagePath)) {
                 $this->warn("⚠️  找不到圖片檔案：{$imagePath}");
                 $this->warn('   請執行：php artisan line:setup-rich-menu --image=/path/to/your/image.jpg');
                 $this->warn('   或手動上傳圖片到 LINE Developers Console');
                 return Command::FAILURE;
-            } 
+            }
             
             $this->uploadRichMenuImage($richMenuId, $imagePath);
             $this->info('✅ 圖片上傳成功');
@@ -92,54 +92,56 @@ class SetupRichMenuCommand extends Command
     /**
      * 定義圖文選單資料結構
      *
-     * 版面：1200px × 810px，3 欄 × 1 列
-     * A(新增魚類) | B(瀏覽魚類) | C(提供線索)
+     * 版面：1200px × 405px
+     *
+     * 左 (A)：瀏覽資料 (Iraraley) (600x405)
+     * 右1 (B)：新增魚類 (300x405)
+     * 右2 (C)：提供線索 (300x405)
      */
     protected function buildRichMenuData(): array
     {
         return [
-            'size'        => [
-                'width'  => 1200,
-                'height' => 810,
+            'size' => [
+                'width' => 1200,
+                'height' => 405,
             ],
-            'selected'    => true,
-            'name'        => '魚類資料管理',
-            'chatBarText' => '魚類功能選單 🐟',
-            'areas'       => [
-                // A: 左 - 新增魚類
+            'selected' => true,
+            'name' => '魚類資料與回報',
+            'chatBarText' => '選單 🐟',
+            'areas' => [
+                // A: 左 - 新增魚類（已交換）
                 [
-                    'bounds' => ['x' => 0, 'y' => 0, 'width' => 400, 'height' => 810],
+                    'bounds' => ['x' => 0, 'y' => 0, 'width' => 600, 'height' => 405],
                     'action' => [
-                        'type'        => 'postback',
-                        'label'       => '新增魚類',
-                        'data'        => 'action=start_create_fish',
-                        'displayText' => '🐟 新增魚類',
+                        'type' => 'postback',
+                        'label' => '新增魚類',
+                        'data' => 'action=start_create_fish',
+                        'displayText' => '新增魚類 ➕',
                     ],
                 ],
-                // B: 中 - 瀏覽魚類
+                // B: 右1 - 瀏覽資料（已交換）
                 [
-                    'bounds' => ['x' => 400, 'y' => 0, 'width' => 400, 'height' => 810],
+                    'bounds' => ['x' => 600, 'y' => 0, 'width' => 300, 'height' => 405],
                     'action' => [
-                        'type'        => 'postback',
-                        'label'       => '瀏覽魚類',
-                        'data'        => 'action=browse_fish',
-                        'displayText' => '🔍 瀏覽魚類',
+                        'type' => 'postback',
+                        'label' => '瀏覽資料',
+                        'data' => 'action=browse_tribes_menu',
+                        'displayText' => '瀏覽資料 📖',
                     ],
                 ],
-                // C: 右 - 提供線索
+                // C: 右2 - 提供線索（維持不變）
                 [
-                    'bounds' => ['x' => 800, 'y' => 0, 'width' => 400, 'height' => 810],
+                    'bounds' => ['x' => 900, 'y' => 0, 'width' => 300, 'height' => 405],
                     'action' => [
-                        'type'        => 'postback',
-                        'label'       => '提供線索',
-                        'data'        => 'action=provide_clue',
-                        'displayText' => '💡 提供線索',
+                        'type' => 'postback',
+                        'label' => '提供線索',
+                        'data' => 'action=provide_clue',
+                        'displayText' => '提供線索 💡',
                     ],
                 ],
             ],
         ];
     }
-
 
     /**
      * 刪除現有的預設圖文選單
