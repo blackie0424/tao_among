@@ -1279,14 +1279,25 @@ class LineBotController extends Controller
             return;
         }
 
-        // 若已經上傳過圖片（await_name），提示使用者直接輸入名稱
+        // 若已經上傳過圖片（await_name），提示使用者直接輸入名稱，並附上「我不知道」按鈕
         if ($state === 'await_name') {
-            $this->lineBotService->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '📸 已有照片，請直接輸入魚類名稱（或點選「我不知道」）：',
-                ]),
+            $alreadyMsg = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => '📸 已收到照片！請輸入魚類名稱，或點選下方按鈕：',
             ]);
+            $alreadyMsg->setQuickReply([
+                'items' => [
+                    [
+                        'type'   => 'action',
+                        'action' => [
+                            'type'  => 'message',
+                            'label' => '我不知道',
+                            'text'  => '我不知道',
+                        ],
+                    ],
+                ],
+            ]);
+            $this->lineBotService->replyMessage($replyToken, [$alreadyMsg]);
             return;
         }
 
@@ -1307,7 +1318,7 @@ class LineBotController extends Controller
 
             $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
                 'type' => 'text',
-                'text' => "✅ 照片上傳成功！\n\n請輸入這條魚的名稱：",
+                'text' => "✅ 照片上傳成功！\n\n請輸入魚類名稱，或點選下方「我不知道」按鈕：",
             ]);
             $message->setQuickReply([
                 'items' => [
@@ -1362,8 +1373,8 @@ class LineBotController extends Controller
 
         try {
             $fish = Fish::create([
-                'name'           => $fishName,
-                'image_filename' => $imageFilename,
+                'name'  => $fishName,
+                'image' => $imageFilename,
             ]);
 
             \Cache::forget("line_user_{$userId}_creating_fish");
