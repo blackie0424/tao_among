@@ -14,7 +14,9 @@ use LINE\Parser\Exception\InvalidSignatureException;
 use LINE\Webhook\Model\MessageEvent;
 use LINE\Webhook\Model\TextMessageContent;
 use LINE\Webhook\Model\AudioMessageContent;
+use LINE\Webhook\Model\ImageMessageContent;
 use LINE\Webhook\Model\PostbackEvent;
+use App\Models\CaptureRecord;
 
 class LineBotController extends Controller
 {
@@ -61,6 +63,8 @@ class LineBotController extends Controller
                         $this->handleTextMessage($event, $event->getReplyToken());
                     } elseif ($message instanceof AudioMessageContent) {
                         $this->handleAudioMessage($event, $event->getReplyToken());
+                    } elseif ($message instanceof ImageMessageContent) {
+                        $this->handleImageMessage($event, $event->getReplyToken());
                     }
                 } elseif ($event instanceof PostbackEvent) {
                     $this->handlePostback($event, $event->getReplyToken());
@@ -105,6 +109,25 @@ class LineBotController extends Controller
         $renamingFishId = \Cache::get("line_user_{$userId}_renaming_fish");
         if ($renamingFishId) {
             $this->handleRenameFish($userId, $renamingFishId, $text, $replyToken);
+            return;
+        }
+
+        // 檢查是否在新增魚類流程：等待名稱輸入
+        $creatingFishState = \Cache::get("line_user_{$userId}_creating_fish");
+        if ($creatingFishState === 'await_name') {
+            $this->handleCreateFishName($userId, $text, $replyToken);
+            return;
+        }
+
+        // 檢查是否在捕獲紀錄流程：等待地點輸入
+        if (\Cache::get("line_user_{$userId}_capture_step") === 'await_location') {
+            $this->handleCaptureLocation($userId, $text, $replyToken);
+            return;
+        }
+
+        // 檢查是否在捕獲紀錄流程：等待備註輸入
+        if (\Cache::get("line_user_{$userId}_capture_step") === 'await_notes') {
+            $this->handleCaptureNotes($userId, $text, $replyToken);
             return;
         }
 
@@ -673,11 +696,54 @@ class LineBotController extends Controller
 
             $action = $params['action'] ?? '';
 
-            // ==========================================
-            // 圖文選單功能（Rich Menu）
-            // ==========================================
+            // A: 新增魚類（圖文選單 → 提示上傳照片）
+            if ($action === 'start_create_fish') {
+                // 清除舊的狀態（防止殘留）
+                \Cache::forget("line_user_{$userId}_creating_fish");
+                \Cache::forget("line_user_{$userId}_fish_image");
+                \Cache::forget("line_user_{$userId}_capture_step");
+                \Cache::forget("line_user_{$userId}_capture_fish_id");
+                \Cache::forget("line_user_{$userId}_capture_tribe");
+                \Cache::forget("line_user_{$userId}_capture_method");
 
-            // A: 瀏覽 oyod 類魚（food_category 篩選）
+                // 設定狀態：等待圖片上傳
+                \Cache::put("line_user_{$userId}_creating_fish", 'await_image', now()->addMinutes(15));
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "📷 請上傳魚類照片\n\n請傳送一張魚類照片，若傳送多張，系統將以第一張為主。",
+                    ]),
+                ]);
+                return;
+            }
+
+            // B: 瀏覽魚類（圖文選單 → 顯示六個部落選單）
+            if ($action === 'browse_fish') {
+                $tribes = config('fish_options.tribes', []);
+                $tribeItems = array_map(fn ($tribe) => [
+                    'type'   => 'action',
+                    'action' => [
+                        'type'        => 'postback',
+                        'label'       => ucfirst($tribe),
+                        'data'        => "action=browse_{$tribe}",
+                        'displayText' => '瀏覽 ' . ucfirst($tribe) . ' 部落',
+                    ],
+                ], $tribes);
+
+                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "🔍 瀏覽魚類\n\n請選擇要瀏覽的部落：",
+                ]);
+                $message->setQuickReply(['items' => $tribeItems]);
+
+                $this->lineBotService->replyMessage($replyToken, [$message]);
+                return;
+            }
+
+            // (以下維持各部落直接瀏覽的 postback，供 browse_fish 選完後觸發)
+
+            // 瀏覽 oyod 類魚（food_category 篩選）
             if ($action === 'browse_oyod') {
                 $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚');
                 return;
@@ -960,6 +1026,111 @@ class LineBotController extends Controller
                 }
             }
 
+            // 開始建立捕獲紀錄（新增魚類流程的延伸）
+            if ($action === 'start_capture_for_new_fish') {
+                $fishId = $params['fish_id'] ?? null;
+                if (!$fishId) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 無法取得魚類資料，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                \Cache::put("line_user_{$userId}_capture_fish_id", $fishId, now()->addMinutes(15));
+                \Cache::put("line_user_{$userId}_capture_step", 'await_tribe', now()->addMinutes(15));
+
+                $tribes = config('fish_options.tribes', []);
+                $tribeItems = array_map(fn ($tribe) => [
+                    'type'   => 'action',
+                    'action' => [
+                        'type'        => 'postback',
+                        'label'       => ucfirst($tribe),
+                        'data'        => "action=select_tribe_for_capture&tribe={$tribe}",
+                        'displayText' => '選擇部落：' . ucfirst($tribe),
+                    ],
+                ], $tribes);
+
+                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "📋 填寫捕獲紀錄\n\n請選擇部落：",
+                ]);
+                $message->setQuickReply(['items' => $tribeItems]);
+
+                $this->lineBotService->replyMessage($replyToken, [$message]);
+                return;
+            }
+
+            // 捕獲紀錄步驟一：選擇部落 → 詢問地點
+            if ($action === 'select_tribe_for_capture') {
+                $tribe  = $params['tribe'] ?? null;
+                $fishId = \Cache::get("line_user_{$userId}_capture_fish_id");
+
+                $validTribes = config('fish_options.tribes', []);
+                if (!$tribe || !$fishId || !in_array($tribe, $validTribes)) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 資料無效，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                \Cache::put("line_user_{$userId}_capture_tribe", $tribe, now()->addMinutes(15));
+                \Cache::put("line_user_{$userId}_capture_step", 'await_location', now()->addMinutes(15));
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "✅ 部落：" . ucfirst($tribe) . "\n\n📍 請輸入捕獲地點：",
+                    ]),
+                ]);
+                return;
+            }
+
+            // 捕獲紀錄步驟三：選好捕獲方式 → 詢問備註
+            if ($action === 'select_capture_method_for_new_fish') {
+                $method = $params['method'] ?? null;
+                $fishId = \Cache::get("line_user_{$userId}_capture_fish_id");
+                $validMethods = array_keys(config('fish_options.capture_methods', []));
+
+                if (!$method || !$fishId || !in_array($method, $validMethods)) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 捕獲方式無效，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                \Cache::put("line_user_{$userId}_capture_method", $method, now()->addMinutes(15));
+                \Cache::put("line_user_{$userId}_capture_step", 'await_notes', now()->addMinutes(15));
+
+                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "✅ 捕獲方式：" . config('fish_options.capture_methods')[$method] . "\n\n📝 請輸入備註（可輸入「跳過」留空）：",
+                ]);
+                $message->setQuickReply([
+                    'items' => [
+                        [
+                            'type'   => 'action',
+                            'action' => [
+                                'type'        => 'message',
+                                'label'       => '跳過',
+                                'text'        => '跳過',
+                            ],
+                        ],
+                    ],
+                ]);
+
+                $this->lineBotService->replyMessage($replyToken, [$message]);
+                return;
+            }
+
             // 忽略 skip
             if ($action === 'skip') {
                 return;
@@ -1089,5 +1260,297 @@ class LineBotController extends Controller
                 ]),
             ]);
         }
+    }
+    // ==========================================
+    // 新增魚類流程（圖文選單 A）
+    // ==========================================
+
+    /**
+     * 處理圖片訊息（新增魚類流程：接收使用者上傳的魚類照片）
+     * 若收到多張圖片，只處理第一張（後續圖片因 state 已是 await_name 會被提示跳過）
+     */
+    protected function handleImageMessage($event, string $replyToken): void
+    {
+        $userId = $event->getSource()->getUserId();
+        $state  = \Cache::get("line_user_{$userId}_creating_fish");
+
+        // 若不在新增魚類流程中，忽略此圖片
+        if (!$state) {
+            return;
+        }
+
+        // 若已經上傳過圖片（await_name），提示使用者直接輸入名稱
+        if ($state === 'await_name') {
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '📸 已有照片，請直接輸入魚類名稱（或點選「我不知道」）：',
+                ]),
+            ]);
+            return;
+        }
+
+        if ($state !== 'await_image') {
+            return;
+        }
+
+        $messageId = $event->getMessage()->getId();
+
+        try {
+            $imageBlob = $this->lineBotService->getMessageContent($messageId);
+
+            $lineUploadService = app(\App\Services\LineUploadService::class);
+            $filename = $lineUploadService->uploadLineImage($imageBlob);
+
+            \Cache::put("line_user_{$userId}_fish_image", $filename, now()->addMinutes(15));
+            \Cache::put("line_user_{$userId}_creating_fish", 'await_name', now()->addMinutes(15));
+
+            $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => "✅ 照片上傳成功！\n\n請輸入這條魚的名稱：",
+            ]);
+            $message->setQuickReply([
+                'items' => [
+                    [
+                        'type'   => 'action',
+                        'action' => [
+                            'type'  => 'message',
+                            'label' => '我不知道',
+                            'text'  => '我不知道',
+                        ],
+                    ],
+                ],
+            ]);
+
+            $this->lineBotService->replyMessage($replyToken, [$message]);
+
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handleImageMessage failed', [
+                'userId'    => $userId,
+                'messageId' => $messageId,
+                'error'     => $e->getMessage(),
+            ]);
+
+            \Cache::forget("line_user_{$userId}_creating_fish");
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 照片上傳失敗，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 處理建立魚類名稱（新增魚類流程步驟二）
+     */
+    protected function handleCreateFishName(string $userId, string $fishName, string $replyToken): void
+    {
+        $imageFilename = \Cache::get("line_user_{$userId}_fish_image");
+
+        if (!$imageFilename) {
+            \Cache::forget("line_user_{$userId}_creating_fish");
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 找不到已上傳的照片，請重新操作。',
+                ]),
+            ]);
+            return;
+        }
+
+        try {
+            $fish = Fish::create([
+                'name'           => $fishName,
+                'image_filename' => $imageFilename,
+            ]);
+
+            \Cache::forget("line_user_{$userId}_creating_fish");
+            \Cache::forget("line_user_{$userId}_fish_image");
+
+            Log::info('LINE Bot created fish via line', [
+                'userId' => $userId,
+                'fishId' => $fish->id,
+                'name'   => $fishName,
+            ]);
+
+            $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => "✅ 魚類「{$fishName}」建立成功！\n\n是否要填寫捕獲紀錄？",
+            ]);
+            $message->setQuickReply([
+                'items' => [
+                    [
+                        'type'   => 'action',
+                        'action' => [
+                            'type'        => 'postback',
+                            'label'       => '✅ 填寫記錄',
+                            'data'        => "action=start_capture_for_new_fish&fish_id={$fish->id}",
+                            'displayText' => '填寫捕獲紀錄',
+                        ],
+                    ],
+                    [
+                        'type'   => 'action',
+                        'action' => [
+                            'type'        => 'postback',
+                            'label'       => '⏭ 跳過',
+                            'data'        => 'action=skip',
+                            'displayText' => '跳過',
+                        ],
+                    ],
+                ],
+            ]);
+
+            $this->lineBotService->replyMessage($replyToken, [$message]);
+
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handleCreateFishName failed', [
+                'userId'   => $userId,
+                'fishName' => $fishName,
+                'error'    => $e->getMessage(),
+            ]);
+
+            \Cache::forget("line_user_{$userId}_creating_fish");
+            \Cache::forget("line_user_{$userId}_fish_image");
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 建立魚類時發生錯誤，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 處理捕獲地點輸入（捕獲紀錄步驟二）
+     */
+    protected function handleCaptureLocation(string $userId, string $location, string $replyToken): void
+    {
+        $fishId = \Cache::get("line_user_{$userId}_capture_fish_id");
+        $tribe  = \Cache::get("line_user_{$userId}_capture_tribe");
+
+        if (!$fishId || !$tribe) {
+            $this->clearCaptureCache($userId);
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 紀錄逾時，請重新操作。',
+                ]),
+            ]);
+            return;
+        }
+
+        \Cache::put("line_user_{$userId}_capture_location", $location, now()->addMinutes(15));
+        \Cache::put("line_user_{$userId}_capture_step", 'await_method', now()->addMinutes(15));
+
+        $methods = config('fish_options.capture_methods', []);
+        $methodItems = array_map(fn ($key, $label) => [
+            'type'   => 'action',
+            'action' => [
+                'type'        => 'postback',
+                'label'       => $label,
+                'data'        => "action=select_capture_method_for_new_fish&method={$key}",
+                'displayText' => "捕獲方式：{$label}",
+            ],
+        ], array_keys($methods), array_values($methods));
+
+        $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+            'type' => 'text',
+            'text' => "✅ 地點：{$location}\n\n🎣 請選擇捕獲方式：",
+        ]);
+        $message->setQuickReply(['items' => $methodItems]);
+
+        $this->lineBotService->replyMessage($replyToken, [$message]);
+    }
+
+    /**
+     * 處理捕獲備註輸入（捕獲紀錄最後一步，建立 CaptureRecord）
+     * 使用者可輸入「跳過」留空備註
+     */
+    protected function handleCaptureNotes(string $userId, string $notes, string $replyToken): void
+    {
+        $fishId   = \Cache::get("line_user_{$userId}_capture_fish_id");
+        $tribe    = \Cache::get("line_user_{$userId}_capture_tribe");
+        $location = \Cache::get("line_user_{$userId}_capture_location");
+        $method   = \Cache::get("line_user_{$userId}_capture_method");
+
+        if (!$fishId || !$tribe || !$location || !$method) {
+            $this->clearCaptureCache($userId);
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 紀錄逾時，請重新操作。',
+                ]),
+            ]);
+            return;
+        }
+
+        try {
+            $notesValue = in_array(trim($notes), ['跳過', 'skip', '略']) ? '' : $notes;
+
+            CaptureRecord::create([
+                'fish_id'        => $fishId,
+                'image_path'     => '',
+                'tribe'          => $tribe,
+                'location'       => $location,
+                'capture_method' => $method,
+                'capture_date'   => now()->toDateString(),
+                'notes'          => $notesValue,
+            ]);
+
+            $this->clearCaptureCache($userId);
+
+            Log::info('LINE Bot created capture record', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'tribe'  => $tribe,
+            ]);
+
+            $methodLabel = config('fish_options.capture_methods')[$method] ?? $method;
+            $summary = "✅ 捕獲紀錄已儲存！\n\n🏘️ 部落：" . ucfirst($tribe)
+                . "\n📍 地點：{$location}"
+                . "\n🎣 方式：{$methodLabel}"
+                . "\n📅 日期：" . now()->toDateString();
+            if ($notesValue) {
+                $summary .= "\n📝 備註：{$notesValue}";
+            }
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => $summary,
+                ]),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handleCaptureNotes failed', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'error'  => $e->getMessage(),
+            ]);
+
+            $this->clearCaptureCache($userId);
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 儲存捕獲紀錄失敗，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * 清除捕獲紀錄流程相關 Cache
+     */
+    protected function clearCaptureCache(string $userId): void
+    {
+        \Cache::forget("line_user_{$userId}_capture_step");
+        \Cache::forget("line_user_{$userId}_capture_fish_id");
+        \Cache::forget("line_user_{$userId}_capture_tribe");
+        \Cache::forget("line_user_{$userId}_capture_location");
+        \Cache::forget("line_user_{$userId}_capture_method");
     }
 }
