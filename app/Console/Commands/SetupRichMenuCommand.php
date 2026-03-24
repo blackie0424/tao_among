@@ -66,7 +66,7 @@ class SetupRichMenuCommand extends Command
                 $this->warn('   請執行：php artisan line:setup-rich-menu --image=/path/to/your/image.jpg');
                 $this->warn('   或手動上傳圖片到 LINE Developers Console');
                 return Command::FAILURE;
-            } 
+            }
             
             $this->uploadRichMenuImage($richMenuId, $imagePath);
             $this->info('✅ 圖片上傳成功');
@@ -91,80 +91,52 @@ class SetupRichMenuCommand extends Command
 
     /**
      * 定義圖文選單資料結構
-     * 
-     * 版面：1200px × 810px，3 欄 × 2 列
-     * A(oyod) | B(rahet)   | C(iraraley)
-     * D(imowrod) | E(random) | F(clue)
+     *
+     * 版面：1200px × 405px
+     *
+     * 左 (A)：瀏覽資料 (Iraraley) (600x405)
+     * 右1 (B)：新增魚類 (300x405)
+     * 右2 (C)：提供線索 (300x405)
      */
     protected function buildRichMenuData(): array
     {
         return [
             'size' => [
                 'width' => 1200,
-                'height' => 810,
+                'height' => 405,
             ],
             'selected' => true,
-            'name' => '魚類資料瀏覽',
-            'chatBarText' => '瀏覽魚類資料 🐟',
+            'name' => '魚類資料與回報',
+            'chatBarText' => '選單 🐟',
             'areas' => [
-                // A: 左上 - Oyod 類魚（food_category 篩選）
+                // A: 左 - 新增魚類（已交換）
                 [
-                    'bounds' => ['x' => 0, 'y' => 0, 'width' => 400, 'height' => 405],
+                    'bounds' => ['x' => 0, 'y' => 0, 'width' => 600, 'height' => 405],
                     'action' => [
                         'type' => 'postback',
-                        'label' => 'Oyod 類魚',
-                        'data' => 'action=browse_oyod',
-                        'displayText' => '瀏覽 Oyod 類魚 🐟',
+                        'label' => '新增魚類',
+                        'data' => 'action=start_create_fish',
+                        'displayText' => '新增魚類 ➕',
                     ],
                 ],
-                // B: 中上 - Rahet 類魚（food_category 篩選）
+                // B: 右1 - 瀏覽資料（已交換）
                 [
-                    'bounds' => ['x' => 400, 'y' => 0, 'width' => 400, 'height' => 405],
+                    'bounds' => ['x' => 600, 'y' => 0, 'width' => 300, 'height' => 405],
                     'action' => [
                         'type' => 'postback',
-                        'label' => 'Rahet 類魚',
-                        'data' => 'action=browse_rahet',
-                        'displayText' => '瀏覽 Rahet 類魚 🐠',
+                        'label' => '瀏覽資料',
+                        'data' => 'action=browse_tribes_menu',
+                        'displayText' => '瀏覽資料 📖',
                     ],
                 ],
-                // C: 右上 - Iraraley 部落（tribe 篩選）
+                // C: 右2 - 提供線索（維持不變）
                 [
-                    'bounds' => ['x' => 800, 'y' => 0, 'width' => 400, 'height' => 405],
-                    'action' => [
-                        'type' => 'postback',
-                        'label' => 'Iraraley 部落',
-                        'data' => 'action=browse_iraraley',
-                        'displayText' => '瀏覽 Iraraley 部落魚類 🏘️',
-                    ],
-                ],
-                // D: 左下 - Imowrod 部落（tribe 篩選）
-                [
-                    'bounds' => ['x' => 0, 'y' => 405, 'width' => 400, 'height' => 405],
-                    'action' => [
-                        'type' => 'postback',
-                        'label' => 'Imowrod 部落',
-                        'data' => 'action=browse_imowrod',
-                        'displayText' => '瀏覽 Imowrod 部落魚類 🏡',
-                    ],
-                ],
-                // E: 中下 - 隨機瀏覽
-                [
-                    'bounds' => ['x' => 400, 'y' => 405, 'width' => 400, 'height' => 405],
-                    'action' => [
-                        'type' => 'postback',
-                        'label' => '隨機瀏覽',
-                        'data' => 'action=random_browse',
-                        'displayText' => '隨機探索魚類 🎲',
-                    ],
-                ],
-                // F: 右下 - 提供線索（隨機「我不知道」魚）
-                [
-                    'bounds' => ['x' => 800, 'y' => 405, 'width' => 400, 'height' => 405],
+                    'bounds' => ['x' => 900, 'y' => 0, 'width' => 300, 'height' => 405],
                     'action' => [
                         'type' => 'postback',
                         'label' => '提供線索',
                         'data' => 'action=provide_clue',
-                        'displayText' => '協助命名未知魚類 💡',
+                        'displayText' => '提供線索 💡',
                     ],
                 ],
             ],
