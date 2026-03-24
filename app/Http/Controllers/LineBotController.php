@@ -750,16 +750,13 @@ class LineBotController extends Controller
                 return;
             }
 
-            // C: 瀏覽 iraraley 部落（tribe 篩選）
-            if ($action === 'browse_iraraley') {
-                $this->handleBrowseByFilter($replyToken, 'tribe', 'iraraley', 1, 'Iraraley 部落');
-                return;
-            }
-
-            // D: 瀏覽 imowrod 部落（tribe 篩選）
-            if ($action === 'browse_imowrod') {
-                $this->handleBrowseByFilter($replyToken, 'tribe', 'imowrod', 1, 'Imowrod 部落');
-                return;
+            // C: 瀏覽指定部落（tribe 篩選）
+            $tribes = config('fish_options.tribes', []);
+            foreach ($tribes as $tribe) {
+                if ($action === "browse_{$tribe}") {
+                    $this->handleBrowseByFilter($replyToken, 'tribe', $tribe, 1, ucfirst($tribe) . ' 部落');
+                    return;
+                }
             }
 
             // E: 隨機瀏覽魚類
@@ -843,10 +840,14 @@ class LineBotController extends Controller
                     $titleMap = [
                         'food_category:oyod' => 'Oyod 類魚',
                         'food_category:rahet' => 'Rahet 類魚',
-                        'tribe:iraraley' => 'Iraraley 部落',
-                        'tribe:imowrod' => 'Imowrod 部落',
                     ];
-                    $title = $titleMap["{$type}:{$value}"] ?? '魚類瀏覽';
+                    
+                    if ($type === 'tribe') {
+                        $title = ucfirst($value) . ' 部落';
+                    } else {
+                        $title = $titleMap["{$type}:{$value}"] ?? '魚類瀏覽';
+                    }
+                    
                     $this->handleBrowseByFilter($replyToken, $type, $value, $page, $title);
                 } else {
                     // 隨機瀏覽的下一頁

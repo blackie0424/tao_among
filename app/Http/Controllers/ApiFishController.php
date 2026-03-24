@@ -533,10 +533,8 @@ class ApiFishController extends Controller
                 $q->where('food_category', strtolower($filterValue));
             });
         } elseif ($filterType === 'tribe') {
-            // 透過 tribalClassifications 關聯篩選 tribe
-            $query->whereHas('tribalClassifications', function ($q) use ($filterValue) {
-                $q->where('tribe', strtolower($filterValue));
-            });
+            // 根據需求，瀏覽特定部落時不進行過濾，回傳所有魚類
+            // 並將依靠 LineBotService 動態生成該部落的區塊，沒有該部落資料者將會顯示「尚未紀錄」
         } else {
             return response()->json([
                 'message' => 'Invalid filter_type. Use food_category or tribe.',

@@ -96,8 +96,11 @@ class LineBotService
                     $tribalData[$tribe] = $entry;
                 } else {
                     // 其他部落——只有在「有任何非空值」時才記錄
-                    if (!empty($entry['food_category']) || !empty($entry['processing_method']) || !empty($entry['notes'])) {
-                        $otherTribeData[$tribe] = $entry;
+                    // 如果有 contextTribes 代表指定部落瀏覽，則隱藏其他部落
+                    if (empty($contextTribes)) {
+                        if (!empty($entry['food_category']) || !empty($entry['processing_method']) || !empty($entry['notes'])) {
+                            $otherTribeData[$tribe] = $entry;
+                        }
                     }
                 }
             }
@@ -147,22 +150,23 @@ class LineBotService
         ];
 
         // ==========================================
-        // Body：指定兩部落區塊（Iraraley / Imowrod）
+        // Body：指定部落區塊
         // ==========================================
-        $primaryTribeConfig = [
-            'iraraley' => ['label' => '🏘️ Iraraley', 'color' => '#2c6b8a'],
-            'imowrod'  => ['label' => '🏡 Imowrod',  'color' => '#2c7a66'],
+        $tribeColors = [
+            'iraraley'   => '#2c6b8a',
+            'imowrod'    => '#2c7a66',
+            'ivalino'    => '#8a2c3b',
+            'iranmeilek' => '#6b8a2c',
+            'iratay'     => '#8a6b2c',
+            'yayo'       => '#5e2c8a',
         ];
 
-        foreach ($primaryTribeConfig as $tribeKey => $config) {
-            // 只渲染 $primaryTribes 指定的部落區塊
-            if (!in_array($tribeKey, $primaryTribes)) {
-                continue;
-            }
-
+        foreach ($primaryTribes as $tribeKey) {
             $data            = $tribalData[$tribeKey] ?? [];
             $foodCategory    = !empty($data['food_category']) ? $data['food_category'] : '尚未紀錄';
             $processingMethod = !empty($data['processing_method']) ? $data['processing_method'] : '尚未紀錄';
+            $color           = $tribeColors[$tribeKey] ?? '#333333';
+            $label           = '🏘️ ' . ucfirst($tribeKey);
 
             $bodyContents[] = [
                 'type'    => 'box',
@@ -172,10 +176,10 @@ class LineBotService
                     // 部落名稱標題
                     [
                         'type'   => 'text',
-                        'text'   => $config['label'],
+                        'text'   => $label,
                         'size'   => 'sm',
                         'weight' => 'bold',
-                        'color'  => $config['color'],
+                        'color'  => $color,
                     ],
                     // 食用分類行
                     [
