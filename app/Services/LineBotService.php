@@ -251,9 +251,15 @@ class LineBotService
 
             foreach ($otherTribeData as $tribe => $data) {
                 $parts = [];
-                if (!empty($data['food_category']))     $parts[] = $data['food_category'];
-                if (!empty($data['processing_method'])) $parts[] = $data['processing_method'];
-                if (!empty($data['notes']))             $parts[] = $data['notes'];
+                if (!empty($data['food_category'])) {
+                    $parts[] = $data['food_category'];
+                }
+                if (!empty($data['processing_method'])) {
+                    $parts[] = $data['processing_method'];
+                }
+                if (!empty($data['notes'])) {
+                    $parts[] = $data['notes'];
+                }
 
                 $bodyContents[] = [
                     'type'  => 'text',
@@ -501,15 +507,15 @@ class LineBotService
         $quickReplyItems = [];
         
         // Random 模式：顯示「修改名稱」（當名稱是「我不知道」時）
-            $quickReplyItems[] = [
-                'type' => 'action',
-                'action' => [
-                    'type' => 'postback',
-                    'label' => '✏️ 修改名稱',
-                    'data' => "action=start_rename&fish_id={$fish['id']}",
-                    'displayText' => '修改名稱',
-                ],
-            ];
+        $quickReplyItems[] = [
+            'type' => 'action',
+            'action' => [
+                'type' => 'postback',
+                'label' => '✏️ 修改名稱',
+                'data' => "action=start_rename&fish_id={$fish['id']}",
+                'displayText' => '修改名稱',
+            ],
+        ];
         
         // 「提供發音」按鈕（無論有無音檔都顯示，田調工具盡量蒐集）
         $quickReplyItems[] = [
@@ -551,7 +557,7 @@ class LineBotService
      *   body    → 該部落魚類筆數
      *   footer  → [瀏覽魚類] 按鈕（postback: browse_tribe_data&tribe=xxx）
      */
-    public function buildBrowseTribesCarousel(int $totalCount): array
+    public function buildBrowseTribesCarousel(): array
     {
         $tribes = config('fish_options.tribes', []);
 
@@ -564,23 +570,14 @@ class LineBotService
             'yayo'       => '#5e2c8a',
         ];
 
-        // 一次查詢取得各部落的魚類筆數（依 tribal_classifications.tribe 分群）
-        $countsByTribe = Fish::join('tribal_classifications', 'fish.id', '=', 'tribal_classifications.fish_id')
-            ->whereNull('fish.deleted_at')
-            ->selectRaw('tribal_classifications.tribe, COUNT(DISTINCT fish.id) as count')
-            ->groupBy('tribal_classifications.tribe')
-            ->pluck('count', 'tribe')
-            ->toArray();
-
         $bubbles = [];
         foreach ($tribes as $tribe) {
-            $color      = $tribeColors[$tribe] ?? '#444444';
-            $label      = ucfirst($tribe);
-            $fishCount  = $countsByTribe[$tribe] ?? 0;
+            $color = $tribeColors[$tribe] ?? '#444444';
+            $label = ucfirst($tribe);
 
             $bubbles[] = [
                 'type' => 'bubble',
-                'size' => 'micro',   // 較小的泡泡，適合橫排 6 個
+                'size' => 'micro',
                 'header' => [
                     'type'            => 'box',
                     'layout'          => 'vertical',
@@ -593,20 +590,6 @@ class LineBotService
                             'color'  => '#ffffff',
                             'size'   => 'md',
                             'weight' => 'bold',
-                            'wrap'   => true,
-                        ],
-                    ],
-                ],
-                'body' => [
-                    'type'       => 'box',
-                    'layout'     => 'vertical',
-                    'paddingAll' => 'md',
-                    'contents'   => [
-                        [
-                            'type'   => 'text',
-                            'text'   => '🐟 ' . $fishCount . ' 筆魚類',
-                            'size'   => 'sm',
-                            'color'  => '#555555',
                             'wrap'   => true,
                         ],
                     ],
@@ -635,7 +618,7 @@ class LineBotService
 
         $carousel = new FlexMessage([
             'type'    => 'flex',
-            'altText' => "📖 魚類圖鑑共 {$totalCount} 筆，請選擇部落",
+            'altText' => "📖 請選擇部落",
             'contents' => [
                 'type'     => 'carousel',
                 'contents' => $bubbles,

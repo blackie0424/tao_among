@@ -885,8 +885,7 @@ class LineBotController extends Controller
                 \Cache::forget("line_user_{$userId}_create_fish_state");
                 \Cache::forget("line_user_{$userId}_create_fish_image");
 
-                $totalCount = Fish::count();
-                $messages   = $this->lineBotService->buildBrowseTribesCarousel($totalCount);
+                $messages = $this->lineBotService->buildBrowseTribesCarousel();
 
                 $this->lineBotService->replyMessage($replyToken, $messages);
                 return;

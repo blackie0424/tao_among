@@ -10,23 +10,45 @@
     <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
     <template #desktop-nav>
       <div class="flex items-center justify-end w-full px-4 h-10 gap-6">
-        <div class="text-base lg:text-lg font-bold text-gray-700 flex items-center">
-           資料總筆數 <span class="text-teal-700 text-xl lg:text-2xl mx-1.5 font-extrabold">{{ totalCount }}</span>
+        <div
+          class="text-base lg:text-lg font-bold text-gray-700 flex items-center flex-wrap gap-x-1"
+        >
+          <template v-if="tribeStats">
+            系統收錄
+            <span class="text-teal-700 text-xl lg:text-2xl mx-1 font-extrabold">{{
+              totalCount
+            }}</span>
+            筆，{{ tribeStats.tribe }} 部落分類
+            <span class="text-teal-700 text-xl lg:text-2xl mx-1 font-extrabold">{{
+              tribeStats.foodCategoryCount
+            }}</span>
+            筆、處理方式
+            <span class="text-teal-700 text-xl lg:text-2xl mx-1 font-extrabold">{{
+              tribeStats.processingMethodCount
+            }}</span>
+            筆有紀錄
+          </template>
+          <template v-else>
+            資料總筆數
+            <span class="text-teal-700 text-xl lg:text-2xl mx-1.5 font-extrabold">{{
+              totalCount
+            }}</span>
+          </template>
         </div>
-        
+
         <div class="h-5 w-px bg-gray-300"></div>
 
         <div class="flex items-center gap-3">
-           <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
-           <Link
-              v-if="user"
-              href="/fish/create"
-              class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
-              title="新增魚類"
-            >
-              <span class="mr-1 text-2xl leading-none font-normal pb-1">+</span> 新增
-            </Link>
-           <SearchToggleButton @toggle="handleSearchToggle" />
+          <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
+          <Link
+            v-if="user"
+            href="/fish/create"
+            class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
+            title="新增魚類"
+          >
+            <span class="mr-1 text-2xl leading-none font-normal pb-1">+</span> 新增
+          </Link>
+          <SearchToggleButton @toggle="handleSearchToggle" />
         </div>
       </div>
     </template>
@@ -34,37 +56,49 @@
     <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 (Mobile也加強顯示) -->
     <template #mobile-actions>
       <div class="flex items-center justify-between px-2 w-full">
-         <div class="text-sm font-bold text-gray-600 flex items-center">
-           總筆數 <span class="text-teal-700 ml-1 text-base">{{ totalCount }}</span>
-         </div>
-         
-         <div class="flex items-center gap-3">
-            <Link
-               v-if="user"
-               href="/fish/create"
-               class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
-               title="新增魚類"
-             >
-               <span class="text-2xl leading-none font-light pb-0.5">+</span>
-             </Link>
-           <SearchToggleButton @toggle="handleSearchToggle" />
-         </div>
+        <div class="text-sm font-bold text-gray-600 flex items-center flex-wrap gap-x-0.5">
+          <template v-if="tribeStats">
+            共 <span class="text-teal-700 mx-0.5 text-base">{{ totalCount }}</span> 筆｜
+            {{ tribeStats.tribe }}
+            分類 <span class="text-teal-700 mx-0.5">{{ tribeStats.foodCategoryCount }}</span
+            >/ 處理
+            <span class="text-teal-700 mx-0.5">{{ tribeStats.processingMethodCount }}</span> 筆
+          </template>
+          <template v-else>
+            總筆數 <span class="text-teal-700 ml-1 text-base">{{ totalCount }}</span>
+          </template>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <Link
+            v-if="user"
+            href="/fish/create"
+            class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
+            title="新增魚類"
+          >
+            <span class="text-2xl leading-none font-light pb-0.5">+</span>
+          </Link>
+          <SearchToggleButton @toggle="handleSearchToggle" />
+        </div>
       </div>
     </template>
 
     <!-- Header Extension Slot: Sticky Search Filter Bar -->
     <template #header-extension>
-       <div v-if="appliedFilters.length > 0" class="border-t border-gray-100 transition-all duration-300">
-         <div class="container mx-auto px-4 py-3 max-w-7xl">
-            <FishSearchStatsBar
-              :showTotalCount="false"
-              variant="header"
-              :totalCount="totalCount"
-              :appliedFilters="appliedFilters"
-              @remove-filter="removeFilter"
-            />
-         </div>
-       </div>
+      <div
+        v-if="appliedFilters.length > 0"
+        class="border-t border-gray-100 transition-all duration-300"
+      >
+        <div class="container mx-auto px-4 py-3 max-w-7xl">
+          <FishSearchStatsBar
+            :showTotalCount="false"
+            variant="header"
+            :totalCount="totalCount"
+            :appliedFilters="appliedFilters"
+            @remove-filter="removeFilter"
+          />
+        </div>
+      </div>
     </template>
 
     <div class="container mx-auto px-4 pb-20 relative pt-6">
@@ -90,8 +124,6 @@
         <div ref="sentinel" class="h-8"></div>
         <FishSearchCursorErrorBanner :show="showCursorError" @retry="retryFromStart" />
       </main>
-
-
     </div>
   </FishAppLayout>
 </template>
@@ -324,11 +356,22 @@ const clearStateStorage = () => {
   }
 }
 
-// 顯示總筆數：優先以後端 searchStats.total_results，否則退回目前清單數
+// 顯示總筆數：永遠是全部魚類圖鑑數量（不受篩選影響）
 const totalCount = computed(() => {
   const stat = props.searchStats && props.searchStats.total_results
   if (typeof stat === 'number') return stat
   return Array.isArray(items.value) ? items.value.length : 0
+})
+
+// 部落專屬統計：僅在篩選某一部落時出現
+const tribeStats = computed(() => {
+  const s = props.searchStats
+  if (!s || !s.tribe) return null
+  return {
+    tribe: s.tribe,
+    foodCategoryCount: s.tribe_food_category_count,
+    processingMethodCount: s.tribe_processing_method_count,
+  }
 })
 
 // 顯示中的搜尋條件（chip 用）
@@ -463,30 +506,33 @@ const retryFromStart = () => {
 // 監聽滾動觸底（IntersectionObserver）
 const sentinel = ref(null)
 let observer
-let rafId = null  // 用於追蹤 requestAnimationFrame ID
+let rafId = null // 用於追蹤 requestAnimationFrame ID
 
 const initObserver = () => {
   if (!sentinel.value) return
-  observer = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (e.isIntersecting && pageInfo.value.hasMore && !isLoading.value) {
-        // 取消之前排程的請求，避免重複觸發
-        if (rafId) {
-          cancelAnimationFrame(rafId)
+  observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting && pageInfo.value.hasMore && !isLoading.value) {
+          // 取消之前排程的請求，避免重複觸發
+          if (rafId) {
+            cancelAnimationFrame(rafId)
+          }
+
+          // 使用 requestAnimationFrame 確保在最佳時機執行
+          // 這樣可以與瀏覽器的渲染循環同步，避免掉幀
+          rafId = requestAnimationFrame(() => {
+            fetchPage({ last_id: pageInfo.value.nextCursor })
+            rafId = null
+          })
         }
-        
-        // 使用 requestAnimationFrame 確保在最佳時機執行
-        // 這樣可以與瀏覽器的渲染循環同步，避免掉幀
-        rafId = requestAnimationFrame(() => {
-          fetchPage({ last_id: pageInfo.value.nextCursor })
-          rafId = null
-        })
-      }
-    })
-  }, {
-    // 提前 200px 開始載入，改善使用者體驗
-    rootMargin: '200px'
-  })
+      })
+    },
+    {
+      // 提前 200px 開始載入，改善使用者體驗
+      rootMargin: '200px',
+    }
+  )
   observer.observe(sentinel.value)
 }
 
