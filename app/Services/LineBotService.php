@@ -43,6 +43,21 @@ class LineBotService
     }
 
     /**
+     * 取得 LINE 使用者 Profile
+     *
+     * @return array{displayName: string, pictureUrl: ?string, userId: string}
+     */
+    public function getUserProfile(string $userId): array
+    {
+        $response = $this->client->getProfile($userId);
+        return [
+            'userId'      => $response->getUserId(),
+            'displayName' => $response->getDisplayName(),
+            'pictureUrl'  => $response->getPictureUrl(),
+        ];
+    }
+
+    /**
      * 回覆訊息
      */
     public function replyMessage(string $replyToken, array $messages): void

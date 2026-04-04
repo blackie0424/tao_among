@@ -73,7 +73,10 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -133,7 +136,10 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -197,7 +203,10 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -254,7 +263,10 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -372,7 +384,13 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $mockMessage->shouldReceive('getId')->andReturn('msg_id');
                 $mockMessage->shouldReceive('getDuration')->andReturn(3000);
                 
-                $controller = new LineBotController($mockLineBotService, $this->app->make(ApiFishController::class));
+                $controller = new LineBotController(
+            $mockLineBotService,
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+        );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('handleAudioMessage');
                 $method->setAccessible(true);
@@ -388,7 +406,13 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $mockLineBotService = \Mockery::mock(LineBotService::class);
                 $mockLineBotService->shouldReceive('replyMessage');
                 
-                $controller = new LineBotController($mockLineBotService, $this->app->make(ApiFishController::class));
+                $controller = new LineBotController(
+            $mockLineBotService,
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+        );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('saveFishAudio');
                 $method->setAccessible(true);
@@ -410,7 +434,13 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $mockMessage->shouldReceive('getId')->andReturn('msg_id');
                 $mockMessage->shouldReceive('getDuration')->andReturn(5101);
                 
-                $controller = new LineBotController($mockLineBotService, $this->app->make(ApiFishController::class));
+                $controller = new LineBotController(
+            $mockLineBotService,
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+        );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('handleAudioMessage');
                 $method->setAccessible(true);

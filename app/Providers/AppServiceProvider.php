@@ -3,8 +3,12 @@
 namespace App\Providers;
 
 use App\Contracts\StorageServiceInterface;
+use App\Contracts\LineUserServiceInterface;
+use App\Contracts\RichMenuServiceInterface;
 use App\Services\S3StorageService;
 use App\Services\SupabaseStorageService;
+use App\Services\LineUserService;
+use App\Services\RichMenuService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 
@@ -25,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
                 default => throw new \InvalidArgumentException("Unsupported storage driver: {$driver}")
             };
         });
+
+        // LINE 角色機制服務綁定
+        $this->app->bind(RichMenuServiceInterface::class, RichMenuService::class);
+        $this->app->bind(LineUserServiceInterface::class, LineUserService::class);
     }
 
     /**

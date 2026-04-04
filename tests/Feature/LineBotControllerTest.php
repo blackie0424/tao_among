@@ -3,6 +3,7 @@
 use App\Http\Controllers\LineBotController;
 use App\Services\LineBotService;
 use App\Http\Controllers\ApiFishController;
+use App\Contracts\LineUserServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -335,9 +336,14 @@ class LineBotControllerTest extends TestCase
             ->with('test_reply_token', \Mockery::type('array'));
 
         // 建立 controller 並注入 mock
+        $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
+        $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            $mockLineUserService
         );
 
         // 使用反射來測試 protected 方法
@@ -393,9 +399,14 @@ class LineBotControllerTest extends TestCase
             ->with('test_reply_token', \Mockery::type('array'));
 
         // 建立 controller 並注入 mock
+        $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
+        $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            $mockLineUserService
         );
 
         // 使用反射來測試 protected 方法
@@ -453,9 +464,14 @@ class LineBotControllerTest extends TestCase
                 ->with('test_reply_token', \Mockery::type('array'));
 
             // 建立 controller
+            $mockLineUserService2 = \Mockery::mock(LineUserServiceInterface::class);
+            $mockLineUserService2->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
             $controller = new LineBotController(
                 $mockLineBotService,
-                $this->app->make(ApiFishController::class)
+                $this->app->make(ApiFishController::class),
+                $this->app->make(\App\Services\UploadService::class),
+                $this->app->make(\App\Contracts\StorageServiceInterface::class),
+                $mockLineUserService2
             );
 
             // 使用反射來測試 protected 方法
@@ -516,9 +532,14 @@ class LineBotControllerTest extends TestCase
             ->with('test_reply_token', \Mockery::type('array'));
 
         // 建立 controller
+        $mockLineUserService3 = \Mockery::mock(LineUserServiceInterface::class);
+        $mockLineUserService3->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            $mockLineUserService3
         );
 
         // 使用反射來測試 protected 方法
@@ -534,7 +555,7 @@ class LineBotControllerTest extends TestCase
 
         // 驗證 fish 表沒有被更新
         $this->assertNull($fish->audio_filename);
-        
+
         // 驗證 fish_audios 表沒有創建記錄
         $this->assertDatabaseMissing('fish_audios', [
             'fish_id' => $fish->id,

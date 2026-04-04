@@ -137,7 +137,10 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 4. 建立 controller 並注入 mock
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 5. 建立 mock event
@@ -223,7 +226,10 @@ class LineAudioUploadIntegrationTest extends TestCase
         
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         $reflection = new \ReflectionClass($controller);
@@ -318,7 +324,10 @@ class LineAudioUploadIntegrationTest extends TestCase
             // 建立 controller
             $controller = new LineBotController(
                 $mockLineBotService,
-                $this->app->make(ApiFishController::class)
+                $this->app->make(ApiFishController::class),
+                $this->app->make(\App\Services\UploadService::class),
+                $this->app->make(\App\Contracts\StorageServiceInterface::class),
+                \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
             );
             
             // 建立 mock event
@@ -415,7 +424,10 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 建立 mock event
@@ -478,7 +490,10 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 建立 mock event
@@ -528,7 +543,10 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 執行儲存
@@ -593,7 +611,10 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 建立 mock event
@@ -692,7 +713,10 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 建立 controller
         $controller = new LineBotController(
             $mockLineBotService,
-            $this->app->make(ApiFishController::class)
+            $this->app->make(ApiFishController::class),
+            $this->app->make(\App\Services\UploadService::class),
+            $this->app->make(\App\Contracts\StorageServiceInterface::class),
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
         );
         
         // 執行儲存
@@ -769,7 +793,10 @@ class LineAudioUploadIntegrationTest extends TestCase
             // 建立 controller
             $controller = new LineBotController(
                 $mockLineBotService,
-                $this->app->make(ApiFishController::class)
+                $this->app->make(ApiFishController::class),
+                $this->app->make(\App\Services\UploadService::class),
+                $this->app->make(\App\Contracts\StorageServiceInterface::class),
+                \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
             );
             
             // 執行儲存

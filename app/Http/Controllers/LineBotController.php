@@ -6,12 +6,14 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\LineBotService;
 use App\Http\Controllers\ApiFishController;
+use App\Contracts\LineUserServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use Illuminate\Support\Facades\Log;
 use LINE\Parser\EventRequestParser;
 use LINE\Parser\Exception\InvalidSignatureException;
 use LINE\Webhook\Model\MessageEvent;
+use LINE\Webhook\Model\FollowEvent;
 use LINE\Webhook\Model\TextMessageContent;
 use LINE\Webhook\Model\AudioMessageContent;
 use LINE\Webhook\Model\ImageMessageContent;
@@ -25,17 +27,20 @@ class LineBotController extends Controller
     protected $apiFishController;
     protected $uploadService;
     protected $storageService;
+    protected LineUserServiceInterface $lineUserService;
 
     public function __construct(
         LineBotService $lineBotService,
         ApiFishController $apiFishController,
         UploadService $uploadService,
-        StorageServiceInterface $storageService
+        StorageServiceInterface $storageService,
+        LineUserServiceInterface $lineUserService
     ) {
         $this->lineBotService = $lineBotService;
         $this->apiFishController = $apiFishController;
         $this->uploadService = $uploadService;
         $this->storageService = $storageService;
+        $this->lineUserService = $lineUserService;
     }
 
     /**
@@ -65,7 +70,9 @@ class LineBotController extends Controller
 
             // 處理每個事件
             foreach ($events->getEvents() as $event) {
-                if ($event instanceof MessageEvent) {
+                if ($event instanceof FollowEvent) {
+                    $this->handleFollowEvent($event);
+                } elseif ($event instanceof MessageEvent) {
                     $message = $event->getMessage();
                     
                     if ($message instanceof TextMessageContent) {
@@ -98,6 +105,35 @@ class LineBotController extends Controller
     }
 
     /**
+     * 處理加好友事件，自動收集使用者資料
+     */
+    protected function handleFollowEvent(FollowEvent $event): void
+    {
+        $userId = $event->getSource()->getUserId();
+        $this->upsertLineUserByProfile($userId);
+    }
+
+    /**
+     * 呼叫 LINE Profile API 取得使用者資料並 upsert 至資料庫
+     */
+    protected function upsertLineUserByProfile(string $userId): void
+    {
+        try {
+            $profile = $this->lineBotService->getUserProfile($userId);
+            $this->lineUserService->upsert(
+                $userId,
+                $profile['displayName'] ?? $userId,
+                $profile['pictureUrl'] ?? null
+            );
+        } catch (\Exception $e) {
+            Log::warning('LineBotController: failed to upsert line user', [
+                'userId' => $userId,
+                'error'  => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * 處理文字訊息
      */
     protected function handleTextMessage(MessageEvent $event, string $replyToken): void
@@ -105,6 +141,9 @@ class LineBotController extends Controller
         $message = $event->getMessage();
         $text = trim($message->getText());
         $userId = $event->getSource()->getUserId();
+
+        // 補漏網之魚：確保使用者有被記錄
+        $this->upsertLineUserByProfile($userId);
 
         // 空白訊息，回傳使用說明
         if (empty($text)) {
@@ -862,6 +901,24 @@ class LineBotController extends Controller
             Log::info('LINE Bot received postback', ['data' => $data, 'params' => $params]);
 
             $action = $params['action'] ?? '';
+
+            // 補漏網之魚：確保使用者有被記錄
+            $this->upsertLineUserByProfile($userId);
+
+            // 需要 editor/admin 角色的受保護 action
+            $protectedActions = ['start_create_fish', 'provide_clue'];
+            if (in_array($action, $protectedActions)) {
+                $role = $this->lineUserService->getRole($userId);
+                if (!in_array($role, ['editor', 'admin'])) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '⚠️ 您沒有此功能的使用權限。',
+                        ]),
+                    ]);
+                    return;
+                }
+            }
 
             // ==========================================
             // 圖文選單功能（Rich Menu）
