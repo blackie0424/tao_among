@@ -14,6 +14,7 @@ use LINE\Clients\MessagingApi\Model\FlexImage;
 use LINE\Parser\SignatureValidator;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
+use App\Models\Fish;
 
 class LineBotService
 {
@@ -250,9 +251,15 @@ class LineBotService
 
             foreach ($otherTribeData as $tribe => $data) {
                 $parts = [];
-                if (!empty($data['food_category']))     $parts[] = $data['food_category'];
-                if (!empty($data['processing_method'])) $parts[] = $data['processing_method'];
-                if (!empty($data['notes']))             $parts[] = $data['notes'];
+                if (!empty($data['food_category'])) {
+                    $parts[] = $data['food_category'];
+                }
+                if (!empty($data['processing_method'])) {
+                    $parts[] = $data['processing_method'];
+                }
+                if (!empty($data['notes'])) {
+                    $parts[] = $data['notes'];
+                }
 
                 $bodyContents[] = [
                     'type'  => 'text',
@@ -500,15 +507,15 @@ class LineBotService
         $quickReplyItems = [];
         
         // Random 模式：顯示「修改名稱」（當名稱是「我不知道」時）
-            $quickReplyItems[] = [
-                'type' => 'action',
-                'action' => [
-                    'type' => 'postback',
-                    'label' => '✏️ 修改名稱',
-                    'data' => "action=start_rename&fish_id={$fish['id']}",
-                    'displayText' => '修改名稱',
-                ],
-            ];
+        $quickReplyItems[] = [
+            'type' => 'action',
+            'action' => [
+                'type' => 'postback',
+                'label' => '✏️ 修改名稱',
+                'data' => "action=start_rename&fish_id={$fish['id']}",
+                'displayText' => '修改名稱',
+            ],
+        ];
         
         // 「提供發音」按鈕（無論有無音檔都顯示，田調工具盡量蒐集）
         $quickReplyItems[] = [
@@ -540,6 +547,85 @@ class LineBotService
         }
         
         return $card;
+    }
+
+    /**
+     * 建立「選擇部落」Carousel（瀏覽資料圖文選單用）
+     *
+     * 每個部落產生一張 FlexBubble：
+     *   header  → 部落名稱（依部落顏色上色）
+     *   body    → 該部落魚類筆數
+     *   footer  → [瀏覽魚類] 按鈕（postback: browse_tribe_data&tribe=xxx）
+     */
+    public function buildBrowseTribesCarousel(): array
+    {
+        $tribes = config('fish_options.tribes', []);
+
+        $tribeColors = [
+            'iraraley'   => '#2c6b8a',
+            'imowrod'    => '#2c7a66',
+            'ivalino'    => '#8a2c3b',
+            'iranmeilek' => '#6b8a2c',
+            'iratay'     => '#8a6b2c',
+            'yayo'       => '#5e2c8a',
+        ];
+
+        $bubbles = [];
+        foreach ($tribes as $tribe) {
+            $color = $tribeColors[$tribe] ?? '#444444';
+            $label = ucfirst($tribe);
+
+            $bubbles[] = [
+                'type' => 'bubble',
+                'size' => 'micro',
+                'header' => [
+                    'type'            => 'box',
+                    'layout'          => 'vertical',
+                    'paddingAll'      => 'md',
+                    'backgroundColor' => $color,
+                    'contents'        => [
+                        [
+                            'type'   => 'text',
+                            'text'   => $label,
+                            'color'  => '#ffffff',
+                            'size'   => 'md',
+                            'weight' => 'bold',
+                            'wrap'   => true,
+                        ],
+                    ],
+                ],
+                'footer' => [
+                    'type'       => 'box',
+                    'layout'     => 'vertical',
+                    'paddingAll' => 'sm',
+                    'contents'   => [
+                        [
+                            'type'   => 'button',
+                            'style'  => 'primary',
+                            'height' => 'sm',
+                            'color'  => $color,
+                            'action' => [
+                                'type'        => 'postback',
+                                'label'       => '瀏覽',
+                                'data'        => "action=browse_tribe_data&tribe={$tribe}",
+                                'displayText' => '瀏覽 ' . $label . ' 部落資料',
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+        }
+
+        $carousel = new FlexMessage([
+            'type'    => 'flex',
+            'altText' => "📖 請選擇部落",
+            'contents' => [
+                'type'     => 'carousel',
+                'contents' => $bubbles,
+            ],
+        ]);
+
+        return [$carousel];
     }
 
     /**

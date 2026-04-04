@@ -54,13 +54,14 @@ class FishController extends Controller
         // 游標式分頁 + 精簡欄位（提供給前端無限滾動使用）
         $paginated = $this->fishSearchService->paginate($filters);
 
-        // 篩選條件（供前端 UI 顯示）
-        $legacyFilters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
-
         $searchOptions = $this->fishSearchService->getSearchOptions();
-        $searchStats = $this->fishSearchService->getSearchStats($legacyFilters);
+        // total_results 在 getSearchStats 內固定使用 Fish::count()，不受 $filters 影響
+        // 但 tribe 需傳入以計算部落專屬統計（n, m）
+        $searchStats = $this->fishSearchService->getSearchStats($filters);
+        // 傳給前端的篩選條件：保留前端使用的 key 名（food_category）
+        $frontendFilters = array_intersect_key($filters, array_flip(['name', 'tribe', 'food_category', 'processing_method', 'capture_location', 'capture_method']));
         return Inertia::render('Fishs', [
-            'filters' => $legacyFilters,
+            'filters' => $frontendFilters,
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
             // 精簡欄位 + 游標分頁（FR-002, FR-005）

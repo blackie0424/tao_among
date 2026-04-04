@@ -55,7 +55,8 @@ class FishSearchService
     {
         $tribalFilters = array_filter([
             'tribe' => $filters['tribe'] ?? null,
-            'food_category' => $filters['dietary_classification'] ?? null, // 映射到正確的資料庫欄位
+            // 同時支援 food_category（cleaned 格式）與 dietary_classification（legacy 格式）
+            'food_category' => $filters['food_category'] ?? $filters['dietary_classification'] ?? null,
             'processing_method' => $filters['processing_method'] ?? null,
         ]);
 
@@ -160,16 +161,53 @@ class FishSearchService
 
     /**
      * 取得搜尋結果統計
+     * total_results 永遠是全部魚類總數（不受篩選影響，作為圖鑑基準數 x）
+     * 若有 tribe 篩選，額外回傳該部落的分類紀錄數（n）與處理方式紀錄數（m）
      */
     public function getSearchStats(array $filters)
     {
-        $query = $this->buildSearchQuery($filters);
-        
+        $tribe = $filters['tribe'] ?? null;
+
         return [
-            'total_results' => $query->count(),
-            'tribes_covered' => $query->whereHas('tribalClassifications')->distinct('id')->count(),
-            'with_capture_records' => $query->whereHas('captureRecords')->count(),
+            // x：圖鑑總筆數，永遠固定，不受任何篩選影響
+            'total_results'                 => Fish::count(),
+            // 部落專屬統計（無 tribe 篩選時為 null）
+            'tribe'                         => $tribe,
+            'tribe_food_category_count'     => $this->getTribeFoodCategoryCount($tribe),
+            'tribe_processing_method_count' => $this->getTribeProcessingMethodCount($tribe),
         ];
+    }
+
+    /**
+     * n：某部落中 food_category 已填寫的魚類（distinct fish_id）數量
+     * 排除 null 與空字串（視為「尚未紀錄」）
+     */
+    private function getTribeFoodCategoryCount(?string $tribe): ?int
+    {
+        if (!$tribe) {
+            return null;
+        }
+        return \App\Models\TribalClassification::where('tribe', $tribe)
+            ->whereNotNull('food_category')
+            ->where('food_category', '!=', '')
+            ->distinct('fish_id')
+            ->count('fish_id');
+    }
+
+    /**
+     * m：某部落中 processing_method 已填寫的魚類（distinct fish_id）數量
+     * 排除 null 與空字串（視為「尚未紀錄」）
+     */
+    private function getTribeProcessingMethodCount(?string $tribe): ?int
+    {
+        if (!$tribe) {
+            return null;
+        }
+        return \App\Models\TribalClassification::where('tribe', $tribe)
+            ->whereNotNull('processing_method')
+            ->where('processing_method', '!=', '')
+            ->distinct('fish_id')
+            ->count('fish_id');
     }
 
     /**
