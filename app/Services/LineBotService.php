@@ -14,6 +14,7 @@ use LINE\Clients\MessagingApi\Model\FlexImage;
 use LINE\Parser\SignatureValidator;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
+use App\Models\Fish;
 
 class LineBotService
 {
@@ -540,6 +541,108 @@ class LineBotService
         }
         
         return $card;
+    }
+
+    /**
+     * 建立「選擇部落」Carousel（瀏覽資料圖文選單用）
+     *
+     * 每個部落產生一張 FlexBubble：
+     *   header  → 部落名稱（依部落顏色上色）
+     *   body    → 該部落魚類筆數
+     *   footer  → [瀏覽魚類] 按鈕（postback: browse_tribe_data&tribe=xxx）
+     */
+    public function buildBrowseTribesCarousel(int $totalCount): array
+    {
+        $tribes = config('fish_options.tribes', []);
+
+        $tribeColors = [
+            'iraraley'   => '#2c6b8a',
+            'imowrod'    => '#2c7a66',
+            'ivalino'    => '#8a2c3b',
+            'iranmeilek' => '#6b8a2c',
+            'iratay'     => '#8a6b2c',
+            'yayo'       => '#5e2c8a',
+        ];
+
+        // 一次查詢取得各部落的魚類筆數（依 tribal_classifications.tribe 分群）
+        $countsByTribe = Fish::join('tribal_classifications', 'fish.id', '=', 'tribal_classifications.fish_id')
+            ->whereNull('fish.deleted_at')
+            ->selectRaw('tribal_classifications.tribe, COUNT(DISTINCT fish.id) as count')
+            ->groupBy('tribal_classifications.tribe')
+            ->pluck('count', 'tribe')
+            ->toArray();
+
+        $bubbles = [];
+        foreach ($tribes as $tribe) {
+            $color      = $tribeColors[$tribe] ?? '#444444';
+            $label      = ucfirst($tribe);
+            $fishCount  = $countsByTribe[$tribe] ?? 0;
+
+            $bubbles[] = [
+                'type' => 'bubble',
+                'size' => 'micro',   // 較小的泡泡，適合橫排 6 個
+                'header' => [
+                    'type'            => 'box',
+                    'layout'          => 'vertical',
+                    'paddingAll'      => 'md',
+                    'backgroundColor' => $color,
+                    'contents'        => [
+                        [
+                            'type'   => 'text',
+                            'text'   => $label,
+                            'color'  => '#ffffff',
+                            'size'   => 'md',
+                            'weight' => 'bold',
+                            'wrap'   => true,
+                        ],
+                    ],
+                ],
+                'body' => [
+                    'type'       => 'box',
+                    'layout'     => 'vertical',
+                    'paddingAll' => 'md',
+                    'contents'   => [
+                        [
+                            'type'   => 'text',
+                            'text'   => '🐟 ' . $fishCount . ' 筆魚類',
+                            'size'   => 'sm',
+                            'color'  => '#555555',
+                            'wrap'   => true,
+                        ],
+                    ],
+                ],
+                'footer' => [
+                    'type'       => 'box',
+                    'layout'     => 'vertical',
+                    'paddingAll' => 'sm',
+                    'contents'   => [
+                        [
+                            'type'   => 'button',
+                            'style'  => 'primary',
+                            'height' => 'sm',
+                            'color'  => $color,
+                            'action' => [
+                                'type'        => 'postback',
+                                'label'       => '瀏覽',
+                                'data'        => "action=browse_tribe_data&tribe={$tribe}",
+                                'displayText' => '瀏覽 ' . $label . ' 部落資料',
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+        }
+
+        $carousel = new FlexMessage([
+            'type'    => 'flex',
+            'altText' => "📖 魚類圖鑑共 {$totalCount} 筆，請選擇部落",
+            'contents' => [
+                'type'     => 'carousel',
+                'contents' => $bubbles,
+            ],
+        ]);
+
+        return [$carousel];
     }
 
     /**

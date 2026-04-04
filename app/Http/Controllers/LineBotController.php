@@ -879,32 +879,16 @@ class LineBotController extends Controller
                 return;
             }
 
-            // C: 瀏覽資料總選單 (Quick Reply 部落選擇)
+            // C: 瀏覽資料總選單 (Flex Carousel 部落選擇)
             if ($action === 'browse_tribes_menu') {
                 // 清除新增魚類流程的殘留狀態，避免污染後續操作
                 \Cache::forget("line_user_{$userId}_create_fish_state");
                 \Cache::forget("line_user_{$userId}_create_fish_image");
 
                 $totalCount = Fish::count();
-                $tribes = config('fish_options.tribes', []);
-                $tribeItems = array_map(fn ($tribe) => [
-                    'type'   => 'action',
-                    'action' => [
-                        'type'        => 'postback',
-                        'label'       => ucfirst($tribe),
-                        'data'        => "action=browse_tribe_data&tribe={$tribe}",
-                        'displayText' => "瀏覽 " . ucfirst($tribe) . " 部落資料",
-                    ],
-                ], $tribes);
+                $messages   = $this->lineBotService->buildBrowseTribesCarousel($totalCount);
 
-                // 為了避免一排太多按鈕，最多 LINE 支援 13 個 Quick Reply items。部落有 6 個沒問題。
-                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "📖 目前魚類圖鑑共有 {$totalCount} 筆資料。\n請選擇你要查看的部落資訊：",
-                ]);
-                $message->setQuickReply(['items' => $tribeItems]);
-
-                $this->lineBotService->replyMessage($replyToken, [$message]);
+                $this->lineBotService->replyMessage($replyToken, $messages);
                 return;
             }
 

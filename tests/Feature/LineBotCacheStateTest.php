@@ -47,6 +47,17 @@ class LineBotCacheStateTest extends TestCase
         // 預備 Mock
         $this->mockLineBotService = \Mockery::mock(LineBotService::class);
 
+        // buildBrowseTribesCarousel 預設回傳一個假 FlexMessage（多數測試只驗證 Cache，不關心回應內容）
+        $fakeFlexMessage = new \LINE\Clients\MessagingApi\Model\FlexMessage([
+            'type'    => 'flex',
+            'altText' => '魚類圖鑑共 0 筆，請選擇部落',
+            'contents' => ['type' => 'carousel', 'contents' => []],
+        ]);
+        $this->mockLineBotService
+            ->shouldReceive('buildBrowseTribesCarousel')
+            ->andReturn([$fakeFlexMessage])
+            ->byDefault();
+
         $this->controller = new LineBotController(
             $this->mockLineBotService,
             $this->app->make(ApiFishController::class),
@@ -143,7 +154,7 @@ class LineBotCacheStateTest extends TestCase
         // 預置：使用者處於等待上傳圖片狀態
         Cache::put('line_user_' . self::USER_ID . '_create_fish_state', 'waiting_image', now()->addMinutes(5));
 
-        // 預期：回覆部落選擇訊息（包含 QuickReply 部落按鈕）
+        // 預期：回覆部落選擇 FlexMessage Carousel
         $this->mockLineBotService
             ->shouldReceive('replyMessage')
             ->once()
@@ -151,8 +162,7 @@ class LineBotCacheStateTest extends TestCase
                 self::REPLY_TOKEN,
                 \Mockery::on(fn ($msgs) =>
                     count($msgs) === 1 &&
-                    $msgs[0] instanceof \LINE\Clients\MessagingApi\Model\TextMessage &&
-                    str_contains($msgs[0]->getText(), '筆資料') // 應包含總筆數的訊息
+                    $msgs[0] instanceof \LINE\Clients\MessagingApi\Model\FlexMessage
                 )
             );
 
@@ -506,12 +516,20 @@ class LineBotCacheStateTest extends TestCase
     // =========================================================
 
     /**
-     * 點擊「瀏覽資料」回覆的文字應包含部落 QuickReply 選項
+     * 點擊「瀏覽資料」回覆的是 FlexMessage Carousel（各部落一張卡片）
+     * 這個測試使用真實的 LineBotService 來驗證 Flex 結構
      */
-    public function test_browse_tribes_menu_reply_contains_tribe_quick_reply(): void
+    public function test_browse_tribes_menu_reply_contains_tribe_flex_carousel(): void
     {
-        // 先建立一些 Fish 資料讓計數不為 0
+        // 建立一些 Fish 資料（用於計算總數）
         \App\Models\Fish::factory()->count(3)->create();
+
+        // 覆寫 byDefault mock：讓這個測試呼叫真實的 buildBrowseTribesCarousel
+        $realService = new \App\Services\LineBotService();
+        $this->mockLineBotService
+            ->shouldReceive('buildBrowseTribesCarousel')
+            ->once()
+            ->andReturnUsing(fn(int $count) => $realService->buildBrowseTribesCarousel($count));
 
         $repliedMessages = [];
         $this->mockLineBotService
@@ -530,16 +548,17 @@ class LineBotCacheStateTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        // 回覆1則TextMessage
+        // 應回覆 1 則 FlexMessage
         $this->assertCount(1, $repliedMessages);
         $msg = $repliedMessages[0];
-        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $msg);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $msg);
 
-        // 文字包含魚類筆數
-        $this->assertStringContainsString('3', $msg->getText());
+        // altText 應包含總筆數（Fish::count() = 3）
+        $this->assertStringContainsString('3', $msg->getAltText());
 
-        // 有 QuickReply 部落按鈕
-        $quickReply = $msg->getQuickReply();
-        $this->assertNotNull($quickReply);
+        // contents 應是 carousel 型別，且有 6 個部落 bubble
+        $contents = $msg->getContents();
+        $this->assertEquals('carousel', $contents['type']);
+        $this->assertCount(6, $contents['contents']);
     }
 }
