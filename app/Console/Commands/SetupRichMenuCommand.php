@@ -12,13 +12,13 @@ class SetupRichMenuCommand extends Command
      * The name and signature of the console command.
      */
     protected $signature = 'line:setup-rich-menu
-                            {--image= : 圖文選單圖片路徑（預設使用 storage/app/rich_menu.jpg）}
+                            {--image= : 圖文選單圖片路徑（預設使用 public/images/line/rich_menu.png）}
                             {--dry-run : 只顯示設定內容，不實際建立}';
 
     /**
      * The console command description.
      */
-    protected $description = '建立 LINE 圖文選單（Rich Menu），定義 6 個功能區塊並設為預設';
+    protected $description = '建立 LINE 圖文選單（Rich Menu），定義 3 個功能區塊並設為預設';
 
     protected Client $httpClient;
     protected string $accessToken;
@@ -60,10 +60,10 @@ class SetupRichMenuCommand extends Command
             $this->info("✅ 建立圖文選單成功，ID: {$richMenuId}");
 
             // 步驟 3：上傳圖文選單圖片
-            $imagePath = $this->option('image') ?? public_path('images/line/rich_menu.jpg');
+            $imagePath = $this->option('image') ?? public_path('images/line/rich_menu.png');
             if (!file_exists($imagePath)) {
                 $this->warn("⚠️  找不到圖片檔案：{$imagePath}");
-                $this->warn('   請執行：php artisan line:setup-rich-menu --image=/path/to/your/image.jpg');
+                $this->warn('   請執行：php artisan line:setup-rich-menu --image=/path/to/your/image.png');
                 $this->warn('   或手動上傳圖片到 LINE Developers Console');
                 return Command::FAILURE;
             }
@@ -95,11 +95,11 @@ class SetupRichMenuCommand extends Command
     /**
      * 定義圖文選單資料結構
      *
-     * 版面：1200px × 405px
+     * 版面：1200px × 405px，三等分（每格 400px）
      *
-     * 左  (A)：新增魚類
-     * 右1 (B)：瀏覽資料
-     * 右2 (C)：提供線索
+     * 左  (A)：新增魚類  x=0~400
+     * 中  (B)：瀏覽魚類  x=400~800
+     * 右  (C)：提供線索  x=800~1200
      */
     protected function buildRichMenuData(): array
     {
@@ -112,9 +112,9 @@ class SetupRichMenuCommand extends Command
             'name' => '魚類資料與回報',
             'chatBarText' => '選單 🐟',
             'areas' => [
-                // A: 左 - 新增魚類（已交換）
+                // A: 左 - 新增魚類（x=0, w=400）
                 [
-                    'bounds' => ['x' => 0, 'y' => 0, 'width' => 600, 'height' => 405],
+                    'bounds' => ['x' => 0, 'y' => 0, 'width' => 400, 'height' => 405],
                     'action' => [
                         'type' => 'postback',
                         'label' => '新增魚類',
@@ -122,19 +122,19 @@ class SetupRichMenuCommand extends Command
                         'displayText' => '新增魚類 ➕',
                     ],
                 ],
-                // B: 右1 - 瀏覽資料（已交換）
+                // B: 中 - 瀏覽魚類（x=400, w=400）
                 [
-                    'bounds' => ['x' => 600, 'y' => 0, 'width' => 300, 'height' => 405],
+                    'bounds' => ['x' => 400, 'y' => 0, 'width' => 400, 'height' => 405],
                     'action' => [
                         'type' => 'postback',
-                        'label' => '瀏覽資料',
+                        'label' => '瀏覽魚類',
                         'data' => 'action=browse_tribes_menu',
-                        'displayText' => '瀏覽資料 📖',
+                        'displayText' => '瀏覽魚類 🔍',
                     ],
                 ],
-                // C: 右2 - 提供線索（維持不變）
+                // C: 右 - 提供線索（x=800, w=400）
                 [
-                    'bounds' => ['x' => 900, 'y' => 0, 'width' => 300, 'height' => 405],
+                    'bounds' => ['x' => 800, 'y' => 0, 'width' => 400, 'height' => 405],
                     'action' => [
                         'type' => 'postback',
                         'label' => '提供線索',
