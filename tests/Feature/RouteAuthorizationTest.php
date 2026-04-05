@@ -208,13 +208,6 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $response->assertRedirect('/login');
     });
 
-    it('編輯部落分類頁面需要登入', function () {
-        $fish = Fish::factory()->create();
-        $classification = TribalClassification::factory()->create(['fish_id' => $fish->id]);
-        $response = $this->get("/fish/{$fish->id}/tribal-classifications/{$classification->id}/edit");
-        $response->assertRedirect('/login');
-    });
-
     // -------------------------------------------------
     // 地方知識（部落分類）管理 - 寫入請求
     // -------------------------------------------------

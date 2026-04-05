@@ -51,12 +51,13 @@ it('assign_role_editor_saves_to_database', function () {
     $this->assertDatabaseHas('users', ['line_user_id' => 'U456', 'role' => 'editor']);
 });
 
-it('assign_role_viewer_unlinks_personal_menu', function () {
+it('assign_role_viewer_links_to_viewer_menu', function () {
     User::factory()->lineEditor()->create(['line_user_id' => 'U789', 'role' => 'editor']);
 
-    $this->richMenuService->shouldReceive('unlinkFromUser')
+    config(['line.viewer_rich_menu_id' => 'viewer_menu_id']);
+    $this->richMenuService->shouldReceive('linkToUser')
         ->once()
-        ->with('U789');
+        ->with('U789', 'viewer_menu_id');
 
     $user = $this->service->assignRole('U789', 'viewer');
 
@@ -76,4 +77,3 @@ it('get_role_returns_correct_role_for_existing_user', function () {
 
     expect($role)->toBe('editor');
 });
-
