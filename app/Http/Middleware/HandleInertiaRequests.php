@@ -60,10 +60,10 @@ class HandleInertiaRequests extends Middleware
             // 共享使用者資訊
             'auth' => [
                 'user' => $request->user() ? [
-                    'id'       => $request->user()->id,
-                    'name'     => $request->user()->name,
-                    'email'    => $request->user()->email,
-                    'is_admin' => (bool) $request->user()->is_admin,
+                    'id'    => $request->user()->id,
+                    'name'  => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'role'  => $request->user()->role,
                 ] : null,
             ],
         ]);

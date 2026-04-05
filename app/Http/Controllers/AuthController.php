@@ -26,19 +26,17 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        // 快捷處理：若輸入 'admin'，自動轉為 admin@example.com
-        // 快捷處理：自動轉換短名為完整 Email
-        $shortcuts = [
-            'admin' => 'admin@example.com',
-            'user1' => 'user1@pongsonotao.org',
-            'user2' => 'user2@pongsonotao.org',
-        ];
-
-        if (array_key_exists($credentials['email'], $shortcuts)) {
-            $credentials['email'] = $shortcuts[$credentials['email']];
-        }
-
         if (Auth::attempt($credentials)) {
+            // 只允許 source='web' 的管理員帳號透過此表單登入
+            if (Auth::user()->source !== 'web') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return back()->withErrors([
+                    'email' => '這組帳號密碼無法登入。',
+                ]);
+            }
+
             $request->session()->regenerate();
 
             // 從 URL 參數取得 redirect，預設為 /fishs

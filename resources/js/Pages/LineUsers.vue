@@ -11,7 +11,7 @@
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">LINE 使用者管理</h1>
         <p class="text-sm text-gray-500 mt-1">
-          管理 LINE 使用者角色。指派 editor 或 admin 後，使用者選單將立即切換為三格完整功能。
+          管理 LINE 使用者角色。指派 editor 後，使用者選單將立即切換為三格完整功能。
         </p>
       </div>
 
@@ -43,18 +43,17 @@
                   <img
                     v-if="user.picture_url"
                     :src="user.picture_url"
-                    :alt="user.display_name"
+                    :alt="user.name"
                     class="w-9 h-9 rounded-full object-cover bg-gray-200"
                   />
                   <div
                     v-else
                     class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold"
                   >
-                    {{ user.display_name.charAt(0) }}
+                    {{ user.name?.charAt(0) }}
                   </div>
                   <div>
-                    <div class="font-medium text-gray-900">{{ user.display_name }}</div>
-                    <div class="text-xs text-gray-400 font-mono">{{ user.line_user_id }}</div>
+                    <div class="font-medium text-gray-900">{{ user.name }}</div>
                   </div>
                 </div>
               </td>
@@ -71,7 +70,6 @@
                 >
                   <option value="viewer">viewer（瀏覽者）</option>
                   <option value="editor">editor（田調人員）</option>
-                  <option value="admin">admin（管理員）</option>
                 </select>
               </td>
             </tr>

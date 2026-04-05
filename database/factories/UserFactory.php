@@ -24,21 +24,54 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'name'              => fake()->name(),
+            'email'             => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'password'          => static::$password ??= Hash::make('password'),
+            'remember_token'    => Str::random(10),
+            'source'            => 'web',
+            'role'              => 'admin',
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'source' => 'web',
+            'role'   => 'admin',
+        ]);
+    }
+
+    public function lineEditor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name'         => fake()->name(),
+            'email'        => null,
+            'password'     => null,
+            'source'       => 'line',
+            'role'         => 'editor',
+            'line_user_id' => 'U' . fake()->unique()->regexify('[A-Za-z0-9]{32}'),
+            'picture_url'  => fake()->optional()->imageUrl(),
+        ]);
+    }
+
+    public function lineViewer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name'         => fake()->name(),
+            'email'        => null,
+            'password'     => null,
+            'source'       => 'line',
+            'role'         => 'viewer',
+            'line_user_id' => 'U' . fake()->unique()->regexify('[A-Za-z0-9]{32}'),
+            'picture_url'  => fake()->optional()->imageUrl(),
         ]);
     }
 }

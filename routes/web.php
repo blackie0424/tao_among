@@ -8,6 +8,7 @@ use App\Http\Controllers\CaptureRecordController;
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\FishManagementController;
 use App\Http\Controllers\LineUserController;
+use App\Http\Controllers\LineLoginController;
 
 use App\Http\Controllers\AuthController;
 
@@ -21,6 +22,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/login', [AuthController::class, 'create'])->name('login');
 Route::post('/login', [AuthController::class, 'store']);
 Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
+
+// LINE Login OAuth
+Route::get('/auth/line', [LineLoginController::class, 'redirect'])->name('auth.line');
+Route::get('/auth/line/callback', [LineLoginController::class, 'callback'])->name('auth.line.callback');
+Route::get('/auth/line/complete', [LineLoginController::class, 'complete'])->name('auth.line.complete');
 
 // 公開瀏覽頁面
 Route::get('/', [FishController::class, 'index']);
@@ -89,10 +95,12 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/fish/{id}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
 
     // -------------------------------------------------
-    // LINE 使用者管理
+    // LINE 使用者管理（僅 admin 可存取）
     // -------------------------------------------------
-    Route::get('/line-users', [LineUserController::class, 'index'])->name('line-users.index');
-    Route::put('/line-users/{lineUser}/role', [LineUserController::class, 'updateRole'])->name('line-users.update-role');
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/line-users', [LineUserController::class, 'index'])->name('line-users.index');
+        Route::put('/line-users/{lineUser}/role', [LineUserController::class, 'updateRole'])->name('line-users.update-role');
+    });
 });
 
 // 公開瀏覽頁面（魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突）

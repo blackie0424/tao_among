@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\LineUserServiceInterface;
-use App\Models\LineUser;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,17 +18,19 @@ class LineUserController extends Controller
 
     public function index(): Response
     {
-        $lineUsers = LineUser::orderBy('created_at', 'desc')->paginate(20);
+        $lineUsers = User::where('source', 'line')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
 
         return Inertia::render('LineUsers', [
             'lineUsers' => $lineUsers,
         ]);
     }
 
-    public function updateRole(Request $request, LineUser $lineUser): JsonResponse
+    public function updateRole(Request $request, User $lineUser): JsonResponse
     {
         $validated = $request->validate([
-            'role' => ['required', 'in:viewer,editor,admin'],
+            'role' => ['required', 'in:viewer,editor'],
         ]);
 
         $updated = $this->lineUserService->assignRole(
@@ -39,7 +41,7 @@ class LineUserController extends Controller
         return response()->json([
             'id'           => $updated->id,
             'line_user_id' => $updated->line_user_id,
-            'display_name' => $updated->display_name,
+            'display_name' => $updated->name,
             'role'         => $updated->role,
         ]);
     }

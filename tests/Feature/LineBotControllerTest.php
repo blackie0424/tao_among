@@ -337,7 +337,7 @@ class LineBotControllerTest extends TestCase
 
         // 建立 controller 並注入 mock
         $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
-        $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
+        $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
         $controller = new LineBotController(
             $mockLineBotService,
             $this->app->make(ApiFishController::class),
@@ -400,7 +400,7 @@ class LineBotControllerTest extends TestCase
 
         // 建立 controller 並注入 mock
         $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
-        $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
+        $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
         $controller = new LineBotController(
             $mockLineBotService,
             $this->app->make(ApiFishController::class),
@@ -465,7 +465,7 @@ class LineBotControllerTest extends TestCase
 
             // 建立 controller
             $mockLineUserService2 = \Mockery::mock(LineUserServiceInterface::class);
-            $mockLineUserService2->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
+            $mockLineUserService2->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
             $controller = new LineBotController(
                 $mockLineBotService,
                 $this->app->make(ApiFishController::class),
@@ -533,7 +533,7 @@ class LineBotControllerTest extends TestCase
 
         // 建立 controller
         $mockLineUserService3 = \Mockery::mock(LineUserServiceInterface::class);
-        $mockLineUserService3->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\LineUser())->byDefault();
+        $mockLineUserService3->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
         $controller = new LineBotController(
             $mockLineBotService,
             $this->app->make(ApiFishController::class),
