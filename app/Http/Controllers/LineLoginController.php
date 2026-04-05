@@ -14,7 +14,8 @@ class LineLoginController extends Controller
     public function __construct(
         private LineLoginService $lineLoginService,
         private LineUserService $lineUserService,
-    ) {}
+    ) {
+    }
 
     /**
      * 將使用者導向 LINE OAuth 授權頁面
