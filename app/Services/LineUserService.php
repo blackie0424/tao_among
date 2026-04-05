@@ -36,6 +36,11 @@ class LineUserService implements LineUserServiceInterface
             'role'         => 'viewer',
         ]);
 
+        $viewerMenuId = config('line.viewer_rich_menu_id');
+        if ($viewerMenuId) {
+            $this->richMenuService->linkToUser($lineUserId, $viewerMenuId);
+        }
+
         Log::info('LineUserService: upserted user', [
             'lineUserId'  => $lineUserId,
             'displayName' => $displayName,
@@ -55,7 +60,12 @@ class LineUserService implements LineUserServiceInterface
                 $this->richMenuService->linkToUser($lineUserId, $editorMenuId);
             }
         } else {
-            $this->richMenuService->unlinkFromUser($lineUserId);
+            $viewerMenuId = config('line.viewer_rich_menu_id');
+            if ($viewerMenuId) {
+                $this->richMenuService->linkToUser($lineUserId, $viewerMenuId);
+            } else {
+                $this->richMenuService->unlinkFromUser($lineUserId);
+            }
         }
 
         Log::info('LineUserService: assigned role', [
