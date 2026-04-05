@@ -13,9 +13,16 @@
           </svg>
           <span class="text-sm font-medium">圖鑑列表</span>
         </Link>
-        <h1 class="text-lg font-bold text-gray-900 mx-auto pr-8">
+        <h1 class="text-lg font-bold text-gray-900 mx-auto">
           <slot name="mobile-title">基本資料</slot>
         </h1>
+        <Link
+          v-if="user?.is_admin"
+          href="/line-users"
+          class="text-xs text-gray-500 hover:text-green-600 font-medium whitespace-nowrap"
+        >
+          LINE 管理
+        </Link>
       </div>
 
       <div class="hidden lg:flex items-center gap-4 w-full">
@@ -46,7 +53,7 @@
             {{ user.name }}
           </div>
           <Link
-            v-if="user"
+            v-if="user?.is_admin"
             href="/line-users"
             class="text-sm text-gray-500 hover:text-green-600 font-medium"
           >
