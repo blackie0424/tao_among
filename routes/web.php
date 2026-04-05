@@ -26,6 +26,7 @@ Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 // LINE Login OAuth
 Route::get('/auth/line', [LineLoginController::class, 'redirect'])->name('auth.line');
 Route::get('/auth/line/callback', [LineLoginController::class, 'callback'])->name('auth.line.callback');
+Route::get('/auth/line/complete', [LineLoginController::class, 'complete'])->name('auth.line.complete');
 
 // 公開瀏覽頁面
 Route::get('/', [FishController::class, 'index']);

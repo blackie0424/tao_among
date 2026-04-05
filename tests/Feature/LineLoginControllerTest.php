@@ -2,18 +2,19 @@
 
 use App\Models\User;
 use App\Services\LineLoginService;
-use App\Services\LineUserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     config([
-        'line.login_channel_id'    => 'TEST_CHANNEL_ID',
-        'line.login_callback_url'  => 'http://localhost/auth/line/callback',
+        'line.login_channel_id'   => 'TEST_CHANNEL_ID',
+        'line.login_callback_url' => 'http://localhost/auth/line/callback',
     ]);
 });
+
+// ─── redirect ────────────────────────────────────────────────────────────────
 
 it('redirect_回傳_LINE_OAuth_授權網址', function () {
     $response = $this->get('/auth/line');
@@ -33,7 +34,12 @@ it('redirect_包含_state_防止_CSRF', function () {
     expect($location)->toContain('state=');
 });
 
+// ─── callback ────────────────────────────────────────────────────────────────
+
 it('callback_新使用者首次登入建立_User_記錄', function () {
+    $state = 'test_state_value';
+    Cache::put('line_state:' . $state, true, now()->addMinutes(15));
+
     $mockService = Mockery::mock(LineLoginService::class);
     $mockService->shouldReceive('getUserProfile')
         ->once()
@@ -45,10 +51,7 @@ it('callback_新使用者首次登入建立_User_記錄', function () {
         ]);
     $this->app->instance(LineLoginService::class, $mockService);
 
-    $state = 'test_state_value';
-
-    $this->withSession(['line_login_state' => $state])
-        ->get('/auth/line/callback?code=fake_code&state=' . $state);
+    $this->get('/auth/line/callback?code=fake_code&state=' . $state);
 
     $this->assertDatabaseHas('users', [
         'line_user_id' => 'Unewuser123',
@@ -58,7 +61,10 @@ it('callback_新使用者首次登入建立_User_記錄', function () {
     ]);
 });
 
-it('callback_新使用者登入後_Auth_session_已建立', function () {
+it('callback_成功後導向_complete_端點並帶有_token', function () {
+    $state = 'session_state';
+    Cache::put('line_state:' . $state, true, now()->addMinutes(15));
+
     $mockService = Mockery::mock(LineLoginService::class);
     $mockService->shouldReceive('getUserProfile')
         ->once()
@@ -70,20 +76,15 @@ it('callback_新使用者登入後_Auth_session_已建立', function () {
         ]);
     $this->app->instance(LineLoginService::class, $mockService);
 
-    $state = 'session_state';
+    $response = $this->get('/auth/line/callback?code=fake_code&state=' . $state);
 
-    $response = $this->withSession(['line_login_state' => $state])
-        ->get('/auth/line/callback?code=fake_code&state=' . $state);
-
-    $response->assertRedirect('/fishs');
-    $this->assertAuthenticated();
+    $response->assertStatus(302);
+    expect($response->headers->get('Location'))->toContain('/auth/line/complete?token=');
 });
 
 it('callback_state_不符合時拒絕登入', function () {
-    $state = 'correct_state';
-
-    $response = $this->withSession(['line_login_state' => $state])
-        ->get('/auth/line/callback?code=fake_code&state=wrong_state');
+    // 不放入 Cache，模擬 state 不符
+    $response = $this->get('/auth/line/callback?code=fake_code&state=wrong_state');
 
     $response->assertRedirect('/login');
     $this->assertGuest();
@@ -94,6 +95,9 @@ it('callback_重複登入不會建立重複的_User_且更新名稱', function (
         'line_user_id' => 'Uexisting',
         'name'         => '舊名字',
     ]);
+
+    $state = 'existing_state';
+    Cache::put('line_state:' . $state, true, now()->addMinutes(15));
 
     $mockService = Mockery::mock(LineLoginService::class);
     $mockService->shouldReceive('getUserProfile')
@@ -106,11 +110,40 @@ it('callback_重複登入不會建立重複的_User_且更新名稱', function (
         ]);
     $this->app->instance(LineLoginService::class, $mockService);
 
-    $state = 'existing_state';
-
-    $this->withSession(['line_login_state' => $state])
-        ->get('/auth/line/callback?code=fake_code&state=' . $state);
+    $this->get('/auth/line/callback?code=fake_code&state=' . $state);
 
     $this->assertDatabaseCount('users', 1);
     $this->assertDatabaseHas('users', ['line_user_id' => 'Uexisting', 'name' => '新名字']);
+});
+
+// ─── complete ─────────────────────────────────────────────────────────────────
+
+it('complete_有效_token_登入成功並導向_fishs', function () {
+    $user = User::factory()->lineViewer()->create();
+    Cache::put('line_login_token:valid_token_123', $user->id, now()->addMinutes(5));
+
+    $response = $this->get('/auth/line/complete?token=valid_token_123');
+
+    $response->assertRedirect('/fishs');
+    $this->assertAuthenticatedAs($user);
+});
+
+it('complete_無效_token_拒絕並導向_login', function () {
+    $response = $this->get('/auth/line/complete?token=invalid_token');
+
+    $response->assertRedirect('/login');
+    $this->assertGuest();
+});
+
+it('complete_token_只能使用一次', function () {
+    $user = User::factory()->lineViewer()->create();
+    Cache::put('line_login_token:one_time_token', $user->id, now()->addMinutes(5));
+
+    $this->get('/auth/line/complete?token=one_time_token');
+    $this->app->get('auth')->logout();
+
+    // 第二次使用同一 token
+    $response = $this->get('/auth/line/complete?token=one_time_token');
+    $response->assertRedirect('/login');
+    $this->assertGuest();
 });
