@@ -103,10 +103,10 @@
         </section>
       </template>
   
-      <!-- 底部：進階知識 -->
+      <!-- 底部：進階知識（僅 editor / admin 可見） -->
       <template #bottom>
         <section 
-          v-if="Object.keys(groupedNotes).length || user"
+          v-if="isEditor && (Object.keys(groupedNotes).length || user)"
           class="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
         >
           <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
@@ -168,6 +168,7 @@ const props = defineProps({
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
 const groupedNotes = computed(() => props.fishNotes || {})
 
 // 將進階知識依據分類標籤 (note_type) 及部落標籤 (locate) 進行二次統整
