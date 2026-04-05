@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Contracts\LineUserServiceInterface;
 use App\Contracts\RichMenuServiceInterface;
-use App\Models\LineUser;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 class LineUserService implements LineUserServiceInterface
@@ -14,15 +14,27 @@ class LineUserService implements LineUserServiceInterface
     ) {
     }
 
-    public function upsert(string $lineUserId, string $displayName, ?string $pictureUrl = null): LineUser
+    public function upsert(string $lineUserId, string $displayName, ?string $pictureUrl = null): User
     {
-        $user = LineUser::updateOrCreate(
-            ['line_user_id' => $lineUserId],
-            array_filter([
-                'display_name' => $displayName,
-                'picture_url'  => $pictureUrl,
-            ], fn ($v) => $v !== null)
-        );
+        $existing = User::where('line_user_id', $lineUserId)->first();
+
+        if ($existing) {
+            // 更新時只更新名稱和大頭照，不覆蓋 role
+            $data = ['name' => $displayName];
+            if ($pictureUrl !== null) {
+                $data['picture_url'] = $pictureUrl;
+            }
+            $existing->update($data);
+            return $existing->fresh();
+        }
+
+        $user = User::create([
+            'line_user_id' => $lineUserId,
+            'name'         => $displayName,
+            'picture_url'  => $pictureUrl,
+            'source'       => 'line',
+            'role'         => 'viewer',
+        ]);
 
         Log::info('LineUserService: upserted user', [
             'lineUserId'  => $lineUserId,
@@ -32,9 +44,9 @@ class LineUserService implements LineUserServiceInterface
         return $user->fresh();
     }
 
-    public function assignRole(string $lineUserId, string $role): LineUser
+    public function assignRole(string $lineUserId, string $role): User
     {
-        $user = LineUser::where('line_user_id', $lineUserId)->firstOrFail();
+        $user = User::where('line_user_id', $lineUserId)->firstOrFail();
         $user->update(['role' => $role]);
 
         if (in_array($role, ['editor', 'admin'])) {
@@ -56,6 +68,6 @@ class LineUserService implements LineUserServiceInterface
 
     public function getRole(string $lineUserId): string
     {
-        return LineUser::where('line_user_id', $lineUserId)->value('role') ?? 'viewer';
+        return User::where('line_user_id', $lineUserId)->value('role') ?? 'viewer';
     }
 }

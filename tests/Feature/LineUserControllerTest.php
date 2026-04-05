@@ -1,13 +1,12 @@
 <?php
 
-use App\Models\LineUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->admin = User::factory()->create();
+    $this->admin = User::factory()->admin()->create();
 });
 
 it('index_requires_authentication', function () {
@@ -15,29 +14,58 @@ it('index_requires_authentication', function () {
     $response->assertRedirect('/login');
 });
 
+it('index_requires_admin_role', function () {
+    $editor = User::factory()->lineEditor()->create();
+
+    $response = $this->actingAs($editor)->get('/line-users');
+
+    $response->assertStatus(403);
+});
+
 it('index_returns_line_users_page', function () {
-    LineUser::factory()->count(3)->create();
+    User::factory()->lineViewer()->count(3)->create();
 
     $response = $this->actingAs($this->admin)->get('/line-users');
 
     $response->assertStatus(200);
     $response->assertInertia(
         fn ($page) => $page
-        ->component('LineUsers')
-        ->has('lineUsers.data', 3)
+            ->component('LineUsers')
+            ->has('lineUsers.data', 3)
+    );
+});
+
+it('index_does_not_show_admin_users', function () {
+    User::factory()->admin()->count(2)->create();
+    User::factory()->lineViewer()->count(1)->create();
+
+    $response = $this->actingAs($this->admin)->get('/line-users');
+
+    $response->assertInertia(
+        fn ($page) => $page->has('lineUsers.data', 1)
     );
 });
 
 it('update_role_requires_authentication', function () {
-    $lineUser = LineUser::factory()->create(['role' => 'viewer']);
+    $lineUser = User::factory()->lineViewer()->create();
 
     $response = $this->putJson("/line-users/{$lineUser->id}/role", ['role' => 'editor']);
 
     $response->assertStatus(401);
 });
 
+it('update_role_requires_admin_role', function () {
+    $editor    = User::factory()->lineEditor()->create();
+    $lineUser  = User::factory()->lineViewer()->create();
+
+    $response = $this->actingAs($editor)
+        ->putJson("/line-users/{$lineUser->id}/role", ['role' => 'editor']);
+
+    $response->assertStatus(403);
+});
+
 it('update_role_changes_user_role_and_returns_200', function () {
-    $lineUser = LineUser::factory()->create(['line_user_id' => 'U123', 'role' => 'viewer']);
+    $lineUser = User::factory()->lineViewer()->create(['line_user_id' => 'U123', 'role' => 'viewer']);
 
     $mockService = Mockery::mock(\App\Contracts\LineUserServiceInterface::class);
     $mockService->shouldReceive('assignRole')
@@ -54,7 +82,7 @@ it('update_role_changes_user_role_and_returns_200', function () {
 });
 
 it('update_role_rejects_invalid_role_value', function () {
-    $lineUser = LineUser::factory()->create(['role' => 'viewer']);
+    $lineUser = User::factory()->lineViewer()->create();
 
     $response = $this->actingAs($this->admin)
         ->putJson("/line-users/{$lineUser->id}/role", ['role' => 'superadmin']);
@@ -62,3 +90,14 @@ it('update_role_rejects_invalid_role_value', function () {
     $response->assertStatus(422);
     $response->assertJsonValidationErrors(['role']);
 });
+
+it('update_role_rejects_admin_role_for_line_users', function () {
+    $lineUser = User::factory()->lineViewer()->create();
+
+    $response = $this->actingAs($this->admin)
+        ->putJson("/line-users/{$lineUser->id}/role", ['role' => 'admin']);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['role']);
+});
+

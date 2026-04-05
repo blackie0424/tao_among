@@ -17,7 +17,7 @@
           <slot name="mobile-title">基本資料</slot>
         </h1>
         <Link
-          v-if="user?.is_admin"
+          v-if="user?.role === 'admin'"
           href="/line-users"
           class="text-xs text-gray-500 hover:text-green-600 font-medium whitespace-nowrap"
         >
@@ -53,7 +53,7 @@
             {{ user.name }}
           </div>
           <Link
-            v-if="user?.is_admin"
+            v-if="user?.role === 'admin'"
             href="/line-users"
             class="text-sm text-gray-500 hover:text-green-600 font-medium"
           >
