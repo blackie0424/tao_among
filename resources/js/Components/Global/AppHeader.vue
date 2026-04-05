@@ -21,6 +21,7 @@
           href="/line-users"
           class="text-xs text-gray-500 hover:text-green-600 font-medium whitespace-nowrap"
         >
+          使用者管理
         </Link>
       </div>
 
@@ -56,6 +57,7 @@
             href="/line-users"
             class="text-sm text-gray-500 hover:text-green-600 font-medium"
           >
+            使用者管理
           </Link>
           <Link
             v-if="user"
