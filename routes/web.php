@@ -7,6 +7,7 @@ use App\Http\Controllers\KnowledgeHubController;
 use App\Http\Controllers\CaptureRecordController;
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\FishManagementController;
+use App\Http\Controllers\LineUserController;
 
 use App\Http\Controllers\AuthController;
 
@@ -86,6 +87,12 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/fish/{id}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
     Route::put('/fish/{id}/audio/{audio}/set-base', [FishAudioController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
     Route::delete('/fish/{id}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
+
+    // -------------------------------------------------
+    // LINE 使用者管理
+    // -------------------------------------------------
+    Route::get('/line-users', [LineUserController::class, 'index'])->name('line-users.index');
+    Route::put('/line-users/{lineUser}/role', [LineUserController::class, 'updateRole'])->name('line-users.update-role');
 });
 
 // 公開瀏覽頁面（魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突）

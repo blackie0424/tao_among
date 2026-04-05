@@ -1,235 +1,226 @@
-# Tao Among — 專案說明
+# Tao Among — 魚類資料管理系統
 
-簡短概述
+原住民傳統漁業知識保存平台，結合田調人員的 LINE Bot 上傳流程與 Web 後台管理介面。
 
-- 全端魚類資料管理系統。後端採 Laravel (PHP) + PostgreSQL，前端為 Vue 3 SPA（Inertia.js），Tailwind CSS 主題，支援 Vercel 雲端部署。
-- 圖片/音檔採 Supabase 整合，上傳/處理工作建議放到佇列處理。
+## 系統架構概覽
 
-快速開始
-
-1. 進入專案資料夾：
-   ```bash
-   cd tao_among
-   ```
-2. 本地啟動
-   - 後端：`php artisan serve`
-   - 前端：`npm run dev`
-3. 測試
-   - 後端（Pest）：`./vendor/bin/pest`
-   - 前端（Vitest）：`npx vitest`
-
-專案目標（Constitution）
-
-- 以最小可行產品 (MVP) 為導向，優先交付可驗證與可測試的功能，避免過度設計。
-- 追求高程式碼品質、可測試性與可維護性；所有外部資源呼叫需做型別與 null 檢查，避免把 null 傳給需要字串的介面。
-
-speckit 與 AI 指令（使用方式）
-
-- 斜線指令（在 Copilot Chat 或相容 AI 聊天介面使用）：
-  - `/speckit.constitution` — 建立專案原則
-  - `/speckit.specify` — 建立基線規格
-  - `/speckit.plan` — 建立實作計畫
-  - `/speckit.tasks` — 產生可執行任務
-  - `/speckit.implement` — 執行實作
-- 注意：不要在終端或 zsh 直接輸入這些斜線指令（會被視為檔案路徑）；應在 Copilot Chat 的輸入框中執行。
-
-專案慣例與開發重點
-
-- API 設計：RESTful，路由集中於 `routes/api.php`、`routes/web.php`。
-- 控制器：`app/Http/Controllers/`；資料驗證集中於 `app/Http/Requests/`。
-- 模型：Eloquent 模型放於 `app/Models/`。
-- 圖片/音檔：上傳與存取統一走 Supabase，相關服務放在 `app/Services/`。
-- 前端元件：`resources/js/Components/`（共用元件放 `Components/Global/`），頁面放 `resources/js/Pages/`。
-- 樣式：Tailwind 為主，輔以 `resources/css/` 的專案自訂樣式。
-- 測試：後端用 Pest、前端用 Vitest；每個重要功能或元件應有對應測試。
-
-重要檔案／目錄（概覽）
-
-- app/Http/Controllers/ — API 控制器
-- app/Models/ — 資料模型
-- app/Services/ — 服務層（包含 Supabase 整合）
-- resources/js/Components/ — Vue 元件
-- resources/js/Pages/ — SPA 頁面
-- resources/js/Tests/ — Vitest 測試
-- routes/ — API / Web 路由
-- tests/Feature/ — Pest 功能測試
-- .github/ — CI/CD 與 AI 指令設定
-
-CI / 合併規則
-
-- PR 必須通過 lint 與測試（CI 綠燈）才能合併。
-- 建議在 CI 中加入基本 secret 掃描。
-- 分支策略建議遵循 Git Flow：feature -> develop -> release -> main。
-
-日誌與可觀察性
-
-- 生產環境請使用平台日誌（例如設定 `.env`：`LOG_CHANNEL=errorlog`），避免在唯讀檔案系統寫入 `storage/logs`。
-- 追蹤重要指標：錯誤率、延遲、佇列長度與失敗率；設定告警門檻。
-
-安全性與敏感資訊
-
-- 不要把憑證、auth token 或私密金鑰提交到版本庫。
-- Agent 或 speckit 可能會在資料夾中產生暫存或敏感檔案，請檢查並視情況納入 `.gitignore`（例如 `.speckit/` 或 `.github/agents/`）。
-- 若不慎推送敏感資訊，立即撤銷金鑰並使用工具（如 BFG、git filter-repo）清除歷史。
-
-效能與最佳實務
-
-- 避免 N+1 查詢，必要時使用 eager loading 與快取。
-- 媒體檔案優先壓縮並使用 CDN，耗時處理放入佇列。
-- API 回應僅包含必要欄位以降低 payload。
-
-文件與 Swagger
-
-- API 文件配置於 `config/l5-swagger.php`，預設路徑 `/api/documentation`。
-- 請同步更新 API schema 以維持前後端一致性。
-
-開發工作流程摘要
-
-1. 取得原始碼並安裝相依套件：
-   ```bash
-   composer install
-   npm install
-   ```
-2. 本地啟動：
-   ```bash
-   php artisan migrate --seed
-   php artisan serve
-   npm run dev
-   ```
-3. 執行測試：
-   ```bash
-   ./vendor/bin/pest
-   npx vitest
-   ```
-
-貢獻指南（簡短）
-
-- 新功能採 feature 分支策略，發 PR 到 develop。
-- PR 需包含簡短說明、測試與必要的文件更新。
-- 重構或大型變更需先與團隊討論，避免 overdesign。
-
-聯絡與支援
-
-- 若不確定是否應提交 speckit 產生的檔案，先審查是否包含敏感資訊；必要時加入 `.gitignore`。
-- 需要我協助掃描或產生建議 `.gitignore` 條目時，請提出要求。
-
-# Tao Among 專案
-
-本專案為基於 Laravel 的魚類資料管理 API，支援 RESTful 操作、驗證、測試與自動化部署。
-
-## 主要功能
-
-- 魚類資料 CRUD（建立、查詢、更新、刪除）
-- 魚類筆記管理
-- 圖片上傳
-- **LINE Bot 整合**（語音和圖片上傳）
-- 完整 API 驗證（含自訂 Request 驗證）
-- Pest 驗證測試案例
-- 支援 Vercel 雲端部署
-
-## LINE Bot 功能
-
-本專案整合 LINE Messaging API，支援透過 LINE Bot 上傳語音和圖片：
-
-### 語音上傳特殊處理
-
-LINE Bot 的語音上傳與 Web 版本有重要差異：
-
-- **Web 版本**：前端直接上傳到 S3（使用 presigned URL）
-- **LINE 版本**：後端從 LINE API 下載後上傳到 S3
-
-**關鍵技術要點**：
-
-- LINE 語音使用 M4A 格式（MPEG-4 Audio，AAC 編碼）
-- 上傳時**必須**設定 `ContentType: 'audio/mp4'`
-- 若未設定，S3 會使用預設的 `application/octet-stream`，導致瀏覽器無法播放
-- 系統會驗證音檔時長（最長 5.1 秒）和格式
-
-詳細說明請參考：[LINE Audio Upload Guide](.kiro/specs/line-audio-upload-fix/LINE_AUDIO_UPLOAD_GUIDE.md)
-
-### 相關服務
-
-- `LineUploadService`：處理 LINE 媒體檔案上傳到 S3
-- `LineBotService`：與 LINE Messaging API 互動
-- `LineBotController`：處理 LINE webhook 事件
-
-## 專案結構簡介
-
-- `app/Http/Controllers/`：控制器（如 FishController，負責 API 邏輯）
-- `app/Models/`：Eloquent ORM 資料模型
-- `app/Http/Requests/`：表單驗證（如 CreateFishRequest、UpdateFishRequest）
-- `app/Services/`：服務層
-  - `LineUploadService`：LINE 媒體檔案上傳（音檔、圖片）
-  - `LineBotService`：LINE Messaging API 整合
-  - `UploadService`：Web 版本的檔案上傳
-  - `FishService`：魚類資料業務邏輯
-- `routes/api.php`：API 路由設定
-- `routes/web.php`：Web 路由設定
-- `tests/Feature/`：功能測試（Pest 語法）
-- `resources/views/`：Blade 前端模板
-- `resources/js/`：Vue 3 前端應用
-- `public/`：靜態資源與入口
-- `.kiro/specs/`：功能規格文件
-- 其他：設定檔、資料庫 migration、CI/CD 等
-
-## API 範例
-
-- 取得魚類列表：`GET /prefix/api/fish`
-- 新增魚類：`POST /prefix/api/fish`
-- 更新魚類：`PUT /prefix/api/fish/{id}`
-- 取得單一魚類：`GET /prefix/api/fish/{id}`
-- 上傳圖片：`POST /prefix/api/upload`
-
-## 測試案例說明
-
-本專案使用 Pest 撰寫測試，涵蓋：
-
-- 正常取得、建立、更新魚類資料
-- 更新不存在資料時回傳 404
-- 欄位驗證失敗時回傳 422（如 name 為空、型別錯誤、長度超過 255）
-- since 參數錯誤時回傳 400
-- 空資料、資料庫為空等情境
-
-執行測試：
-
-```sh
-./vendor/bin/pest
+```
+┌─────────────────────────────────────────────────────────┐
+│                      使用者端                            │
+│   Web Browser (管理後台)    LINE App (田調人員)          │
+└──────────────┬──────────────────────┬───────────────────┘
+               │ HTTPS                │ LINE Webhook
+               ▼                      ▼
+┌─────────────────────────────────────────────────────────┐
+│               AWS EC2 (ap-southeast-1)                   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Nginx (反向代理)                                 │   │
+│  │  ├── PHP-FPM (Laravel 11)                        │   │
+│  │  │   ├── Inertia.js SPA (Vue 3)                  │   │
+│  │  │   ├── RESTful API                             │   │
+│  │  │   └── LINE Bot Webhook                        │   │
+│  │  └── Static Assets (public/build/)               │   │
+│  └──────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  PostgreSQL (同機部署)                            │   │
+│  └──────────────────────────────────────────────────┘   │
+└──────────────────────────┬──────────────────────────────┘
+                           │ S3 API
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                   AWS S3 Bucket                          │
+│  images/   audio/   webp/                               │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## 常見問題排解
+## 技術棧
 
-### LINE Bot 音檔無聲音
+| 層級      | 技術                                             |
+| --------- | ------------------------------------------------ |
+| 語言      | PHP 8.2+、JavaScript (ES2022)                    |
+| 後端框架  | Laravel 11                                       |
+| 前端框架  | Vue 3 + Inertia.js                               |
+| 樣式      | Tailwind CSS 3                                   |
+| 資料庫    | PostgreSQL（生產）、SQLite（測試）               |
+| 檔案儲存  | AWS S3（`league/flysystem-aws-s3-v3`）           |
+| 認證      | Laravel Sanctum + Session Guard                  |
+| LINE 整合 | LINE Messaging API SDK (`linecorp/line-bot-sdk`) |
+| API 文件  | Swagger（`darkaonline/l5-swagger`）              |
+| 後端測試  | Pest 3                                           |
+| 前端測試  | Vitest 3                                         |
+| CI/CD     | GitHub Actions → rsync → EC2                     |
 
-**症狀**：透過 LINE 上傳的語音在 Web 介面無法播放
+## 快速開始（本地開發）
 
-**可能原因**：
+### 前置需求
 
-1. S3 檔案的 Content-Type 設定不正確
-2. 音檔在上傳過程中損壞
-3. 瀏覽器不支援 M4A 格式
+- PHP 8.2+（含 `pdo_pgsql`、`pdo_sqlite`、`gd` 擴充）
+- Composer 2
+- Node.js 20+
+- PostgreSQL 或 SQLite（本地測試用 SQLite 即可）
 
-**解決方法**：
+### 安裝步驟
 
-1. 檢查 S3 檔案 metadata：
-   ```bash
-   aws s3api head-object --bucket YOUR_BUCKET --key audio/YOUR_FILE.m4a
-   ```
-2. 確認 ContentType 為 `audio/mp4` 或 `audio/m4a`
-3. 查看應用程式日誌：
-   ```bash
-   tail -f storage/logs/laravel.log | grep "LINE Upload"
-   ```
-4. 參考詳細指南：`.kiro/specs/line-audio-upload-fix/LINE_AUDIO_UPLOAD_GUIDE.md`
+```bash
+# 1. 安裝相依套件
+composer install
+npm install
 
-### 上傳失敗
+# 2. 設定環境
+cp .env.example .env
+php artisan key:generate
 
-**症狀**：LINE Bot 回覆錯誤訊息
+# 3. 執行資料庫 migration
+php artisan migrate --seed
 
-**檢查項目**：
+# 4. 啟動服務
+php artisan serve       # 後端：http://localhost:8000
+npm run dev             # 前端（Vite HMR）
+```
 
-- AWS 憑證設定（`.env` 檔案）
-- S3 bucket 權限（IAM policy）
-- 網路連線狀態
-- 應用程式日誌
+### 環境變數（重要）
 
-詳細的測試和除錯步驟請參考：`.kiro/specs/line-audio-upload-fix/manual-testing-guide.md`
+```env
+# 應用程式
+APP_ENV=local
+APP_URL=http://localhost:8000
+
+# 資料庫
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_DATABASE=tao_among
+
+# 檔案儲存（AWS S3）
+STORAGE_DRIVER=s3
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=ap-southeast-1
+AWS_BUCKET=
+AWS_IMAGE_FOLDER=images
+AWS_AUDIO_FOLDER=audio
+AWS_WEBP_FOLDER=webp
+
+# LINE Bot
+LINE_CHANNEL_SECRET=
+LINE_CHANNEL_ACCESS_TOKEN=
+LINE_VIEWER_RICH_MENU_ID=
+LINE_EDITOR_RICH_MENU_ID=
+```
+
+## 執行測試
+
+```bash
+# 後端（Pest）—— 使用 SQLite in-memory，不需要 PostgreSQL
+./vendor/bin/pest --testsuite=Unit
+./vendor/bin/pest --testsuite=Feature --exclude-group=legacy
+
+# 前端（Vitest）
+npx vitest run
+
+# 含覆蓋率
+npx vitest run --coverage
+```
+
+## 主要功能模組
+
+### 魚類資料管理
+
+- 魚類 CRUD（名稱、圖片、音檔、顯示圖）
+- 捕獲紀錄管理（部落、地點、捕獲方式、日期）
+- 地方知識（部落分類：食物類別、處理方式）
+- 知識筆記（自由格式文字）
+- 音訊管理（最長 5.1 秒 M4A/WebM）
+- 魚類合併（將重複魚類合併）
+- 圖片 WebP 自動轉換
+
+### LINE Bot 整合
+
+LINE Bot 供田調人員在外出田野時直接上傳影像與語音：
+
+- **Webhook**：`POST /prefix/api/line/webhook`
+- 使用者首次互動自動建立 `LineUser` 紀錄（viewer 角色）
+- 依角色綁定不同「圖文選單」（Rich Menu）
+  - `viewer`：一般瀏覽者，只能搜尋魚類
+  - `editor`/`admin`：可上傳圖片與音檔
+- 音訊格式：LINE 傳送 M4A（AAC），上傳 S3 時設定 `ContentType: audio/mp4`
+
+### 媒體檔案儲存（AWS S3）
+
+所有圖片與音訊透過 `StorageServiceInterface` 抽象操作：
+
+```
+S3 Bucket
+├── images/   原始 JPEG/PNG 圖片
+├── webp/     WebP 壓縮版本（CheckFishWebp Artisan 指令批次轉換）
+└── audio/    M4A 音訊檔案
+```
+
+前端上傳採用「Presigned URL」機制，瀏覽器直傳 S3，不佔用伺服器頻寬。
+
+## 目錄結構
+
+```
+app/
+├── Console/Commands/       Artisan 指令
+│   ├── CheckFishWebp           批次轉換圖片為 WebP
+│   ├── SetupRichMenuCommand    設定 LINE 圖文選單
+│   └── PurgePendingAudio       清除待確認音檔
+├── Contracts/              介面定義（StorageServiceInterface 等）
+├── Http/
+│   ├── Controllers/        控制器
+│   ├── Middleware/
+│   └── Requests/           表單驗證 Request 類別
+├── Models/                 Eloquent 資料模型
+└── Services/               業務邏輯服務層
+    ├── S3StorageService        AWS S3 儲存實作
+    ├── LineBotService          LINE Messaging API
+    ├── LineUploadService       LINE 媒體上傳
+    ├── FishService             魚類業務邏輯
+    └── FishMergeService        魚類合併邏輯
+
+resources/js/
+├── Components/             Vue 共用元件
+├── Pages/                  Inertia.js SPA 頁面
+└── Tests/                  Vitest 前端測試
+
+routes/
+├── api.php                 RESTful API 路由（前綴 /prefix/api/）
+└── web.php                 Web 路由（Inertia.js）
+
+tests/
+├── Feature/                Pest 功能測試
+└── Unit/                   Pest 單元測試
+```
+
+## API 端點概覽
+
+所有 API 加 `/prefix/api/` 前綴，完整文件見 `/api/documentation`（Swagger UI）。
+
+| 方法   | 路徑                         | 說明                         |
+| ------ | ---------------------------- | ---------------------------- |
+| GET    | `/fish`                      | 取得魚類列表（分頁）         |
+| POST   | `/fish`                      | 新增魚類                     |
+| GET    | `/fish/{id}`                 | 取得單一魚類                 |
+| PUT    | `/fish/{id}`                 | 更新魚類                     |
+| DELETE | `/fish/{id}`                 | 刪除魚類                     |
+| GET    | `/fishs/search`              | 搜尋魚類                     |
+| POST   | `/upload`                    | 上傳圖片（伺服器端）         |
+| POST   | `/storage/signed-upload-url` | 取得 S3 Presigned Upload URL |
+| POST   | `/fish/merge`                | 合併魚類                     |
+| POST   | `/line/webhook`              | LINE Bot Webhook             |
+
+## 開發慣例
+
+- **分支策略**：Git Flow（`feature/*` → `develop` → `main`），push `main` 觸發自動部署
+- **測試**：每個新功能需附帶對應測試；PR 需 CI 全綠才能合併
+- **API 文件**：新增/修改 API 需同步更新 Swagger 標註
+- **安全性**：禁止提交 `.env`、AWS 金鑰等敏感資訊
+- **N+1 防範**：善用 Eloquent `with()` 預先載入關聯
+- **儲存抽象**：所有檔案操作透過 `StorageServiceInterface`，不直接呼叫 `Storage::disk()`
+
+## 參考文件
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — 詳細系統架構與資料模型說明
+- [DEPLOYMENT.md](DEPLOYMENT.md) — 部署流程與 EC2 維運指南
+- `/api/documentation` — Swagger API 文件（需本地啟動）
+- [specs/](specs/) — 功能規格文件

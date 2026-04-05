@@ -5,6 +5,7 @@ use App\Http\Controllers\ApiFishController;
 use App\Services\LineBotService;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
+use App\Contracts\LineUserServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -58,11 +59,22 @@ class LineBotCacheStateTest extends TestCase
             ->andReturn([$fakeFlexMessage])
             ->byDefault();
 
+        // getUserProfile 的預設回傳（upsertLineUserByProfile 內部用）
+        $this->mockLineBotService
+            ->shouldReceive('getUserProfile')
+            ->andReturn(['displayName' => 'Test User', 'pictureUrl' => null])
+            ->byDefault();
+
+        $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
+        $mockLineUserService->shouldReceive('upsert')->andReturn(new \App\Models\LineUser())->byDefault();
+        // 預設角色為 editor，讓 Cache 狀態測試聚焦在流程邏輯而非權限
+        $mockLineUserService->shouldReceive('getRole')->andReturn('editor')->byDefault();
         $this->controller = new LineBotController(
             $this->mockLineBotService,
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
             $this->app->make(StorageServiceInterface::class),
+            $mockLineUserService
         );
     }
 
@@ -375,11 +387,15 @@ class LineBotCacheStateTest extends TestCase
         $mockStorageService->shouldReceive('getUrl')
             ->andReturn('https://example.com/some-fish-image.jpg');
 
+        $mockLineUserService4 = \Mockery::mock(LineUserServiceInterface::class);
+        $mockLineUserService4->shouldReceive('upsert')->andReturn(new \App\Models\LineUser())->byDefault();
+        $mockLineUserService4->shouldReceive('getRole')->andReturn('editor')->byDefault();
         $controller = new LineBotController(
             $this->mockLineBotService,
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
             $mockStorageService,
+            $mockLineUserService4
         );
 
         $this->mockLineBotService
