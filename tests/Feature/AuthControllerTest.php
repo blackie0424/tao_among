@@ -9,7 +9,7 @@ uses(RefreshDatabase::class);
 it('admin_帳號可以正常登入', function () {
     $admin = User::factory()->admin()->create([
         'email'    => 'admin@example.com',
-        'password' => bcrypt('secret'),
+        'password' => 'secret',
     ]);
 
     $response = $this->post('/login', [
@@ -41,7 +41,7 @@ it('source_line_使用者即使設定了_email_也不能透過_web_表單登入'
     // 邊界情境：LINE 使用者帳號被設定了 email（不應該登入）
     User::factory()->lineViewer()->create([
         'email'        => 'line@example.com',
-        'password'     => bcrypt('secret'),
+        'password'     => 'secret',
         'line_user_id' => 'Uboundary',
     ]);
 
