@@ -145,6 +145,9 @@ class LineBotController extends Controller
         // 補漏網之魚：確保使用者有被記錄
         $this->upsertLineUserByProfile($userId);
 
+        // 判斷是否為 editor 角色（用於圖卡 editor 按鈕顯示）
+        $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+
         // 空白訊息，回傳使用說明
         if (empty($text)) {
             $this->lineBotService->replyMessage($replyToken, [
@@ -236,18 +239,18 @@ class LineBotController extends Controller
 
         // 檢查是否為「隨機命名」關鍵字
         if (in_array(strtolower($text), ['隨機命名', 'random', '隨機'])) {
-            $this->handleRandomUnknownFish($replyToken);
+            $this->handleRandomUnknownFish($replyToken, $isEditor);
             return;
         }
 
         // 搜尋魚類
-        $this->searchFish($text, $replyToken);
+        $this->searchFish($text, $replyToken, $isEditor);
     }
 
     /**
      * 搜尋魚類並回應
      */
-    protected function searchFish(string $keyword, string $replyToken): void
+    protected function searchFish(string $keyword, string $replyToken, bool $isEditor = false): void
     {
         try {
             // 建立搜尋請求
@@ -263,7 +266,7 @@ class LineBotController extends Controller
             $fishes = $data['data'] ?? [];
 
             // 建立回應訊息
-            $messages = $this->lineBotService->buildFishListMessage($fishes);
+            $messages = $this->lineBotService->buildFishListMessage($fishes, $isEditor);
 
             // 回覆訊息
             $this->lineBotService->replyMessage($replyToken, $messages);
@@ -390,7 +393,7 @@ class LineBotController extends Controller
     /**
      * 處理「隨機命名」請求
      */
-    protected function handleRandomUnknownFish(string $replyToken): void
+    protected function handleRandomUnknownFish(string $replyToken, bool $isEditor = false): void
     {
         try {
             // 查詢隨機的「我不知道」魚類
@@ -411,7 +414,7 @@ class LineBotController extends Controller
             $fish = $data['data'];
 
             // 建立帶 Quick Reply 的魚類卡片
-            $card = $this->lineBotService->buildFishCardWithQuickReply($fish);
+            $card = $this->lineBotService->buildFishCardWithQuickReply($fish, $isEditor);
 
             // 回覆訊息
             $this->lineBotService->replyMessage($replyToken, [$card]);
@@ -905,19 +908,19 @@ class LineBotController extends Controller
             // 補漏網之魚：確保使用者有被記錄
             $this->upsertLineUserByProfile($userId);
 
+            // 取得使用者角色（用於 editor 按鈕顯示及受保護 action 檢查）
+            $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+
             // 需要 editor/admin 角色的受保護 action
             $protectedActions = ['start_create_fish', 'provide_clue'];
-            if (in_array($action, $protectedActions)) {
-                $role = $this->lineUserService->getRole($userId);
-                if (!in_array($role, ['editor', 'admin'])) {
-                    $this->lineBotService->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => '⚠️ 您沒有此功能的使用權限。',
-                        ]),
-                    ]);
-                    return;
-                }
+            if (in_array($action, $protectedActions) && !$isEditor) {
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '⚠️ 您沒有此功能的使用權限。',
+                    ]),
+                ]);
+                return;
             }
 
             // ==========================================
@@ -926,13 +929,13 @@ class LineBotController extends Controller
 
             // A: 瀏覽 oyod 類魚（food_category 篩選）
             if ($action === 'browse_oyod') {
-                $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚');
+                $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚', $isEditor);
                 return;
             }
 
             // B: 瀏覽 rahet 類魚（food_category 篩選）
             if ($action === 'browse_rahet') {
-                $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚');
+                $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚', $isEditor);
                 return;
             }
 
@@ -960,7 +963,7 @@ class LineBotController extends Controller
                     $tribe = 'iraraley'; // Fallback
                 }
                 
-                $this->handleBrowseByFilter($replyToken, 'tribe', $tribe, 1, ucfirst($tribe) . ' 部落');
+                $this->handleBrowseByFilter($replyToken, 'tribe', $tribe, 1, ucfirst($tribe) . ' 部落', $isEditor);
                 return;
             }
 
@@ -970,7 +973,7 @@ class LineBotController extends Controller
                 \Cache::forget("line_user_{$userId}_create_fish_state");
                 \Cache::forget("line_user_{$userId}_create_fish_image");
 
-                $this->handleRandomBrowse($replyToken);
+                $this->handleRandomBrowse($replyToken, $isEditor);
                 return;
             }
 
@@ -980,7 +983,7 @@ class LineBotController extends Controller
                 \Cache::forget("line_user_{$userId}_create_fish_state");
                 \Cache::forget("line_user_{$userId}_create_fish_image");
 
-                $this->handleRandomUnknownFish($replyToken);
+                $this->handleRandomUnknownFish($replyToken, $isEditor);
                 return;
             }
 
@@ -1171,10 +1174,10 @@ class LineBotController extends Controller
                         ];
                         $title = $titleMap["{$type}:{$value}"] ?? '魚類瀏覽';
                     }
-                    $this->handleBrowseByFilter($replyToken, $type, $value, $page, $title);
+                    $this->handleBrowseByFilter($replyToken, $type, $value, $page, $title, $isEditor);
                 } else {
                     // 隨機瀏覽的下一頁
-                    $this->handleRandomBrowse($replyToken);
+                    $this->handleRandomBrowse($replyToken, $isEditor);
                 }
                 return;
             }
@@ -1185,7 +1188,7 @@ class LineBotController extends Controller
 
             // 處理隨機魚類請求
             if ($action === 'random_unknown_fish') {
-                $this->handleRandomUnknownFish($replyToken);
+                $this->handleRandomUnknownFish($replyToken, $isEditor);
                 return;
             }
 
@@ -1371,7 +1374,8 @@ class LineBotController extends Controller
         string $filterType,
         string $filterValue,
         int $page,
-        string $title
+        string $title,
+        bool $isEditor = false
     ): void {
         try {
             $request = Request::create('/prefix/api/fishs/filter', 'GET', [
@@ -1399,7 +1403,8 @@ class LineBotController extends Controller
                 $hasMore,
                 $nextPageData,
                 $title,
-                $contextTribes
+                $contextTribes,
+                $isEditor
             );
 
             $this->lineBotService->replyMessage($replyToken, $messages);
@@ -1424,7 +1429,7 @@ class LineBotController extends Controller
     /**
      * 處理圖文選單「隨機瀏覽」
      */
-    protected function handleRandomBrowse(string $replyToken): void
+    protected function handleRandomBrowse(string $replyToken, bool $isEditor = false): void
     {
         try {
             $request = Request::create('/prefix/api/fishs/random', 'GET', ['limit' => 10]);
@@ -1437,7 +1442,9 @@ class LineBotController extends Controller
                 $fishes,
                 false, // 隨機瀏覽沒有「下一頁」概念，每次都重新隨機
                 'action=random_browse',
-                '隨機瀏覽'
+                '隨機瀏覽',
+                null,
+                $isEditor
             );
 
             // 額外加入 Quick Reply「再隨機一次」按鈕
