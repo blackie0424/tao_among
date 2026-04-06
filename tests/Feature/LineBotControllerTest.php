@@ -362,10 +362,10 @@ class LineBotControllerTest extends TestCase
         // 驗證 fish 表更新
         $this->assertEquals($expectedFilename, $fish->audio_filename);
         
-        // 驗證 fish_audios 表創建了記錄
+        // 驗證 fish_audios 表創建了記錄（name 為檔名，locate 為部落，未設定 Cache 故為 unknown）
         $this->assertDatabaseHas('fish_audios', [
             'fish_id' => $fish->id,
-            'locate' => $expectedFilename,
+            'name'    => $expectedFilename,
             'duration' => $duration,
         ]);
     }
@@ -495,9 +495,10 @@ class LineBotControllerTest extends TestCase
             );
             
             // 驗證 fish_audios 表創建了記錄並包含正確的 duration
+            // （name 為檔名，locate 為部落，未設定 Cache 故為 unknown）
             $this->assertDatabaseHas('fish_audios', [
                 'fish_id' => $fish->id,
-                'locate' => $expectedFilename,
+                'name'    => $expectedFilename,
                 'duration' => $duration,
             ]);
         }
