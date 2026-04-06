@@ -912,7 +912,9 @@ class LineBotController extends Controller
             $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
 
             // 需要 editor/admin 角色的受保護 action
-            $protectedActions = ['start_create_fish', 'provide_clue'];
+            // 注意：start_rename 與 start_add_audio 亦需保護，
+            // 防止 viewer 透過舊訊息的按鈕繞過 UI 限制直接觸發後端操作。
+            $protectedActions = ['start_create_fish', 'provide_clue', 'start_rename', 'start_add_audio'];
             if (in_array($action, $protectedActions) && !$isEditor) {
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
