@@ -32,7 +32,7 @@ class LineBotCacheStateTest extends TestCase
     protected const REPLY_TOKEN = 'test_reply_token';
 
     protected LineBotController $controller;
-    protected \Mockery\MockInterface $mockLineBotService;
+    protected LineBotService|\Mockery\MockInterface $mockLineBotService;
 
     protected function setUp(): void
     {
