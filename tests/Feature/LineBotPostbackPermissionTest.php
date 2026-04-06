@@ -73,13 +73,23 @@ class LineBotPostbackPermissionTest extends TestCase
     private function makePostbackEvent(string $data): object
     {
         $source = new class(self::USER_ID) {
-            public function __construct(private string $userId) {}
-            public function getUserId(): string { return $this->userId; }
+            public function __construct(private string $userId)
+            {
+            }
+            public function getUserId(): string
+            {
+                return $this->userId;
+            }
         };
 
         $postback = new class($data) {
-            public function __construct(private string $data) {}
-            public function getData(): string { return $this->data; }
+            public function __construct(private string $data)
+            {
+            }
+            public function getData(): string
+            {
+                return $this->data;
+            }
         };
 
         return new class($source, $postback, self::REPLY_TOKEN) {
@@ -87,10 +97,20 @@ class LineBotPostbackPermissionTest extends TestCase
                 private $source,
                 private $postback,
                 private string $replyToken,
-            ) {}
-            public function getSource()  { return $this->source; }
-            public function getPostback() { return $this->postback; }
-            public function getReplyToken(): string { return $this->replyToken; }
+            ) {
+            }
+            public function getSource()
+            {
+                return $this->source;
+            }
+            public function getPostback()
+            {
+                return $this->postback;
+            }
+            public function getReplyToken(): string
+            {
+                return $this->replyToken;
+            }
         };
     }
 

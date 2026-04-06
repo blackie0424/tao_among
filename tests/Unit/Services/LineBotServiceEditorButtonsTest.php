@@ -138,7 +138,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
         $this->assertContains('✏️ 修改名稱', $footerLabels);
         $this->assertContains('🎤 提供發音', $footerLabels);
         // 捕獲紀錄按鈕也應保留
-        $captureButton = array_filter($footerLabels, fn($l) => str_contains($l, '查看捕獲紀錄'));
+        $captureButton = array_filter($footerLabels, fn ($l) => str_contains($l, '查看捕獲紀錄'));
         $this->assertNotEmpty($captureButton, '有捕獲紀錄時應顯示查看捕獲紀錄按鈕');
     }
 
@@ -353,7 +353,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     private function extractFooterButtonLabelsFromBubble(array $bubble): array
     {
         $footerContents = $bubble['footer']['contents'] ?? [];
-        return array_map(fn($item) => $item['action']['label'] ?? '', $footerContents);
+        return array_map(fn ($item) => $item['action']['label'] ?? '', $footerContents);
     }
 
     /**
@@ -363,7 +363,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     {
         $bubble = $bubbleJson['contents'] ?? $bubbleJson;
         $footerContents = $bubble['footer']['contents'] ?? [];
-        return array_map(fn($item) => $item['action'] ?? [], $footerContents);
+        return array_map(fn ($item) => $item['action'] ?? [], $footerContents);
     }
 
     /**
@@ -386,6 +386,6 @@ class LineBotServiceEditorButtonsTest extends TestCase
     {
         $json = json_decode(json_encode($message->jsonSerialize()), true);
         $items = $json['quickReply']['items'] ?? [];
-        return array_map(fn($item) => $item['action']['label'] ?? '', $items);
+        return array_map(fn ($item) => $item['action']['label'] ?? '', $items);
     }
 }
