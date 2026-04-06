@@ -5,6 +5,8 @@ use App\Services\LineBotService;
 use App\Http\Controllers\ApiFishController;
 use App\Contracts\LineUserServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class LineBotControllerTest extends TestCase
@@ -390,7 +392,7 @@ class LineBotControllerTest extends TestCase
         $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
         
         // Mock Storage to avoid S3 configuration issues
-        \Storage::fake('s3');
+        Storage::fake('s3');
 
         // Mock LineBotService 的 replyMessage 方法（應該回覆錯誤訊息）
         $mockLineBotService = \Mockery::mock(\App\Services\LineBotService::class);
@@ -418,7 +420,7 @@ class LineBotControllerTest extends TestCase
         $method->invoke($controller, 'test_user_id', $nonExistentFishId, $audioBlob, $duration, 'test_reply_token');
 
         // 驗證 Cache 被清除（檢查方法內部行為）
-        $this->assertNull(\Cache::get('line_user_test_user_id_adding_audio'));
+        $this->assertNull(Cache::get('line_user_test_user_id_adding_audio'));
     }
 
     /**
@@ -562,6 +564,6 @@ class LineBotControllerTest extends TestCase
         ]);
 
         // 驗證 Cache 被清除
-        $this->assertNull(\Cache::get('line_user_test_user_id_adding_audio'));
+        $this->assertNull(Cache::get('line_user_test_user_id_adding_audio'));
     }
 }

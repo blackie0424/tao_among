@@ -9,6 +9,8 @@ use App\Http\Controllers\ApiFishController;
 use App\Contracts\LineUserServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use LINE\Parser\EventRequestParser;
 use LINE\Parser\Exception\InvalidSignatureException;
@@ -157,7 +159,7 @@ class LineBotController extends Controller
         }
 
         // 檢查新增魚類流程狀態
-        $createFishState = \Cache::get("line_user_{$userId}_create_fish_state");
+        $createFishState = Cache::get("line_user_{$userId}_create_fish_state");
 
         if ($createFishState === 'waiting_image') {
             // 正在等待圖片，文字訊息應被忽略並提示
@@ -231,7 +233,7 @@ class LineBotController extends Controller
         }
 
         // 檢查是否正在修改名稱
-        $renamingFishId = \Cache::get("line_user_{$userId}_renaming_fish");
+        $renamingFishId = Cache::get("line_user_{$userId}_renaming_fish");
         if ($renamingFishId) {
             $this->handleRenameFish($userId, $renamingFishId, $text, $replyToken);
             return;
@@ -293,7 +295,7 @@ class LineBotController extends Controller
     protected function handleImageMessage(MessageEvent $event, string $replyToken): void
     {
         $userId = $event->getSource()->getUserId();
-        $state = \Cache::get("line_user_{$userId}_create_fish_state");
+        $state = Cache::get("line_user_{$userId}_create_fish_state");
         
         // 只有在 waiting_image 狀態才接受圖片
         if ($state !== 'waiting_image') {
@@ -319,8 +321,8 @@ class LineBotController extends Controller
             }
             
             // 儲存圖片檔名到 Cache（5 分鐘）
-            \Cache::put("line_user_{$userId}_create_fish_image", $filename, now()->addMinutes(5));
-            \Cache::put("line_user_{$userId}_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
+            Cache::put("line_user_{$userId}_create_fish_image", $filename, now()->addMinutes(5));
+            Cache::put("line_user_{$userId}_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
             
             Log::info('LINE Bot image uploaded for fish creation', [
                 'userId' => $userId,
@@ -449,7 +451,7 @@ class LineBotController extends Controller
             $fish->update(['name' => $newName]);
 
             // 清除狀態
-            \Cache::forget("line_user_{$userId}_renaming_fish");
+            Cache::forget("line_user_{$userId}_renaming_fish");
 
             // 檢查是否有音檔
             if (empty($fish->audio_filename)) {
@@ -500,7 +502,7 @@ class LineBotController extends Controller
             ]);
 
             // 清除狀態
-            \Cache::forget("line_user_{$userId}_renaming_fish");
+            Cache::forget("line_user_{$userId}_renaming_fish");
 
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -525,7 +527,7 @@ class LineBotController extends Controller
         ]);
         
         // 檢查是否正在新增發音
-        $fishId = \Cache::get("line_user_{$userId}_adding_audio");
+        $fishId = Cache::get("line_user_{$userId}_adding_audio");
         
         if (!$fishId) {
             // 沒有在新增發音狀態，提示用戶
@@ -669,7 +671,7 @@ class LineBotController extends Controller
             
         } catch (\Exception $e) {
             // 清除使用者狀態
-            \Cache::forget("line_user_{$userId}_adding_audio");
+            Cache::forget("line_user_{$userId}_adding_audio");
             
             Log::error('LINE Bot handle audio message failed', [
                 'userId' => $userId,
@@ -755,7 +757,7 @@ class LineBotController extends Controller
                 $filename = $lineUploadService->uploadLineAudio($audioBlob);
             } catch (\Exception $e) {
                 // 清除使用者狀態
-                \Cache::forget("line_user_{$userId}_adding_audio");
+                Cache::forget("line_user_{$userId}_adding_audio");
                 
                 Log::error('LINE Bot failed to upload audio to S3', [
                     'userId' => $userId,
@@ -777,7 +779,7 @@ class LineBotController extends Controller
                 
                 if (!$fish) {
                     // 清除使用者狀態
-                    \Cache::forget("line_user_{$userId}_adding_audio");
+                    Cache::forget("line_user_{$userId}_adding_audio");
                     
                     Log::error('LINE Bot fish not found when saving audio', [
                         'userId' => $userId,
@@ -788,7 +790,7 @@ class LineBotController extends Controller
                     // 嘗試刪除已上傳的音檔（避免孤兒檔案）
                     try {
                         $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
-                        \Storage::disk('s3')->delete($audioFolder . '/' . $filename);
+                        Storage::disk('s3')->delete($audioFolder . '/' . $filename);
                         Log::info('LINE Bot deleted orphaned audio file', [
                             'filename' => $filename,
                         ]);
@@ -809,7 +811,7 @@ class LineBotController extends Controller
                 
                 // 在 fish_audios 表中創建詳細記錄
                 // locate 從 Cache 讀取使用者選擇的部落（由 select_tribe_for_audio postback 設定）
-                $tribe = \Cache::get("line_user_{$userId}_audio_tribe", 'unknown');
+                $tribe = Cache::get("line_user_{$userId}_audio_tribe", 'unknown');
                 FishAudio::create([
                     'fish_id'  => $fishId,
                     'name'     => $filename, // 檔案名稱（UUID.m4a）
@@ -819,7 +821,7 @@ class LineBotController extends Controller
                 
             } catch (\Exception $e) {
                 // 清除使用者狀態
-                \Cache::forget("line_user_{$userId}_adding_audio");
+                Cache::forget("line_user_{$userId}_adding_audio");
                 
                 Log::error('LINE Bot failed to update database', [
                     'userId' => $userId,
@@ -835,7 +837,7 @@ class LineBotController extends Controller
                 // 嘗試刪除已上傳的音檔（避免孤兒檔案）
                 try {
                     $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
-                    \Storage::disk('s3')->delete($audioFolder . '/' . $filename);
+                    Storage::disk('s3')->delete($audioFolder . '/' . $filename);
                     Log::info('LINE Bot deleted orphaned audio file after database failure', [
                         'filename' => $filename,
                     ]);
@@ -850,8 +852,8 @@ class LineBotController extends Controller
             }
             
             // 清除狀態（含部落選擇）
-            \Cache::forget("line_user_{$userId}_adding_audio");
-            \Cache::forget("line_user_{$userId}_audio_tribe");
+            Cache::forget("line_user_{$userId}_adding_audio");
+            Cache::forget("line_user_{$userId}_audio_tribe");
             
             Log::info('LINE Bot audio saved successfully', [
                 'userId' => $userId,
@@ -870,7 +872,7 @@ class LineBotController extends Controller
             
         } catch (\Exception $e) {
             // 確保使用者狀態被清除
-            \Cache::forget("line_user_{$userId}_adding_audio");
+            Cache::forget("line_user_{$userId}_adding_audio");
             
             Log::error('LINE Bot save fish audio failed', [
                 'userId' => $userId,
@@ -944,8 +946,8 @@ class LineBotController extends Controller
             // C: 瀏覽資料總選單 (Flex Carousel 部落選擇)
             if ($action === 'browse_tribes_menu') {
                 // 清除新增魚類流程的殘留狀態，避免污染後續操作
-                \Cache::forget("line_user_{$userId}_create_fish_state");
-                \Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_state");
+                Cache::forget("line_user_{$userId}_create_fish_image");
 
                 $messages = $this->lineBotService->buildBrowseTribesCarousel();
 
@@ -956,8 +958,8 @@ class LineBotController extends Controller
             // C-1: 瀏覽特定部落資料
             if ($action === 'browse_tribe_data') {
                 // 清除新增魚類流程的殘留狀態
-                \Cache::forget("line_user_{$userId}_create_fish_state");
-                \Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_state");
+                Cache::forget("line_user_{$userId}_create_fish_image");
 
                 $tribe = $params['tribe'] ?? 'iraraley';
                 $validTribes = config('fish_options.tribes', []);
@@ -972,8 +974,8 @@ class LineBotController extends Controller
             // E: 隨機瀏覽魚類
             if ($action === 'random_browse') {
                 // 清除新增魚類流程的殘留狀態
-                \Cache::forget("line_user_{$userId}_create_fish_state");
-                \Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_state");
+                Cache::forget("line_user_{$userId}_create_fish_image");
 
                 $this->handleRandomBrowse($replyToken, $isEditor);
                 return;
@@ -982,8 +984,8 @@ class LineBotController extends Controller
             // F: 提供線索（隨機「我不知道」魚）
             if ($action === 'provide_clue') {
                 // 清除新增魚類流程的殘留狀態
-                \Cache::forget("line_user_{$userId}_create_fish_state");
-                \Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_state");
+                Cache::forget("line_user_{$userId}_create_fish_image");
 
                 $this->handleRandomUnknownFish($replyToken, $isEditor);
                 return;
@@ -995,7 +997,7 @@ class LineBotController extends Controller
 
             // G: 開始新增魚類流程（Rich Menu 觸發）
             if ($action === 'start_create_fish') {
-                \Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
                 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1027,7 +1029,7 @@ class LineBotController extends Controller
 
             // 需要自訂名稱
             if ($action === 'create_fish_need_name') {
-                \Cache::put("line_user_{$userId}_create_fish_state", 'waiting_custom_name', now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_custom_name', now()->addMinutes(5));
                 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1054,8 +1056,8 @@ class LineBotController extends Controller
             // 重新上傳圖片
             if ($action === 'reupload_fish_image') {
                 // 清除已上傳的圖片
-                \Cache::forget("line_user_{$userId}_create_fish_image");
-                \Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
+                Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
                 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1082,8 +1084,8 @@ class LineBotController extends Controller
             // 取消新增魚類
             if ($action === 'cancel_create_fish') {
                 // 清除所有相關狀態
-                \Cache::forget("line_user_{$userId}_create_fish_state");
-                \Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_state");
+                Cache::forget("line_user_{$userId}_create_fish_image");
                 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1209,7 +1211,7 @@ class LineBotController extends Controller
                 }
 
                 // 暫存 fishId 到 Cache 供後續步驟使用（5 分鐘過期）
-                \Cache::put("line_user_{$userId}_pending_audio_fish", $fishId, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_pending_audio_fish", $fishId, now()->addMinutes(5));
 
                 // 從設定檔讀取六個部落，組成 Quick Reply 按鈕
                 $tribes = config('fish_options.tribes', []);
@@ -1235,7 +1237,7 @@ class LineBotController extends Controller
 
             // 處理部落選擇後進入錄音：第二步錄音
             if ($action === 'select_tribe_for_audio') {
-                $fishId = $params['fish_id'] ?? \Cache::get("line_user_{$userId}_pending_audio_fish");
+                $fishId = $params['fish_id'] ?? Cache::get("line_user_{$userId}_pending_audio_fish");
                 $tribe  = $params['tribe'] ?? null;
 
                 // 驗證部落是否合法
@@ -1251,10 +1253,10 @@ class LineBotController extends Controller
                 }
 
                 // 儲存部落選擇與錄音狀態到 Cache（5 分鐘過期）
-                \Cache::put("line_user_{$userId}_audio_tribe", $tribe, now()->addMinutes(5));
-                \Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_audio_tribe", $tribe, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
                 // 清除暫存的 pending fishId
-                \Cache::forget("line_user_{$userId}_pending_audio_fish");
+                Cache::forget("line_user_{$userId}_pending_audio_fish");
 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1280,11 +1282,11 @@ class LineBotController extends Controller
                 }
 
                 // 更新（或建立）Cache TTL，再給 5 分鐘
-                \Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
                 // 若有部落選擇，也延長 TTL
-                $existingTribe = \Cache::get("line_user_{$userId}_audio_tribe");
+                $existingTribe = Cache::get("line_user_{$userId}_audio_tribe");
                 if ($existingTribe) {
-                    \Cache::put("line_user_{$userId}_audio_tribe", $existingTribe, now()->addMinutes(5));
+                    Cache::put("line_user_{$userId}_audio_tribe", $existingTribe, now()->addMinutes(5));
                 }
 
                 $this->lineBotService->replyMessage($replyToken, [
@@ -1301,7 +1303,7 @@ class LineBotController extends Controller
                 $fishId = $params['fish_id'];
                 
                 // 儲存狀態到 Cache（5 分鐘過期）
-                \Cache::put("line_user_{$userId}_renaming_fish", $fishId, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_renaming_fish", $fishId, now()->addMinutes(5));
 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1493,7 +1495,7 @@ class LineBotController extends Controller
     {
         try {
             // 取得暫存的圖片
-            $filename = \Cache::get("line_user_{$userId}_create_fish_image");
+            $filename = Cache::get("line_user_{$userId}_create_fish_image");
             
             if (!$filename) {
                 $this->lineBotService->replyMessage($replyToken, [
@@ -1515,8 +1517,8 @@ class LineBotController extends Controller
             ]);
 
             // 立即清除所有流程狀態，確保即使後續步驟失敗也不殘留
-            \Cache::forget("line_user_{$userId}_create_fish_state");
-            \Cache::forget("line_user_{$userId}_create_fish_image");
+            Cache::forget("line_user_{$userId}_create_fish_state");
+            Cache::forget("line_user_{$userId}_create_fish_image");
             
             // 建立捕獲記錄（LINE Bot 上傳的圖片無法提供完整捕獲資訊，填入佔位預設值）
             try {
@@ -1562,8 +1564,8 @@ class LineBotController extends Controller
             
         } catch (\Exception $e) {
             // 確保即使 Fish::create 失敗，也要清除 Cache 狀態避免使用者卡住
-            \Cache::forget("line_user_{$userId}_create_fish_state");
-            \Cache::forget("line_user_{$userId}_create_fish_image");
+            Cache::forget("line_user_{$userId}_create_fish_state");
+            Cache::forget("line_user_{$userId}_create_fish_image");
 
             Log::error('LINE Bot create fish failed', [
                 'userId' => $userId,
