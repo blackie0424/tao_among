@@ -57,7 +57,7 @@ class LineBotServiceAudioButtonVisibilityTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $bodyLabels = $this->extractBodyButtonLabels($json);
 
-        $noAudioButtons = array_filter($bodyLabels, fn($l) => str_contains($l, '尚無') || str_contains($l, '🔇'));
+        $noAudioButtons = array_filter($bodyLabels, fn ($l) => str_contains($l, '尚無') || str_contains($l, '🔇'));
         $this->assertEmpty($noAudioButtons, '有音檔時不應顯示尚無發音相關按鈕');
     }
 
@@ -85,7 +85,9 @@ class LineBotServiceAudioButtonVisibilityTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $bodyLabels = $this->extractBodyButtonLabels($json);
 
-        $audioButtons = array_filter($bodyLabels, fn($l) =>
+        $audioButtons = array_filter(
+            $bodyLabels,
+            fn ($l) =>
             str_contains($l, '發音') || str_contains($l, '🔊') || str_contains($l, '🔇')
         );
         $this->assertEmpty($audioButtons, '無音檔時 viewer 不應看到任何發音按鈕');
@@ -99,7 +101,9 @@ class LineBotServiceAudioButtonVisibilityTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $bodyLabels = $this->extractBodyButtonLabels($json);
 
-        $audioButtons = array_filter($bodyLabels, fn($l) =>
+        $audioButtons = array_filter(
+            $bodyLabels,
+            fn ($l) =>
             str_contains($l, '🔊') || str_contains($l, '🔇') || str_contains($l, '尚無')
         );
         $this->assertEmpty($audioButtons, '無音檔時 body 不應顯示發音相關按鈕');
@@ -112,7 +116,7 @@ class LineBotServiceAudioButtonVisibilityTest extends TestCase
 
         $json = $this->extractBubbleJson($message);
         $footerContents = ($json['contents'] ?? $json)['footer']['contents'] ?? [];
-        $footerLabels = array_map(fn($i) => $i['action']['label'] ?? '', $footerContents);
+        $footerLabels = array_map(fn ($i) => $i['action']['label'] ?? '', $footerContents);
 
         $this->assertContains('🎤 提供發音', $footerLabels, '無音檔時 editor footer 應有「提供發音」');
     }
@@ -126,7 +130,7 @@ class LineBotServiceAudioButtonVisibilityTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $bodyLabels = $this->extractBodyButtonLabels($json);
         $footerContents = ($json['contents'] ?? $json)['footer']['contents'] ?? [];
-        $footerLabels = array_map(fn($i) => $i['action']['label'] ?? '', $footerContents);
+        $footerLabels = array_map(fn ($i) => $i['action']['label'] ?? '', $footerContents);
 
         $this->assertContains('🔊 播放發音', $bodyLabels);
         $this->assertContains('🎤 提供發音', $footerLabels, '有音檔時 editor 仍可覆蓋提供新錄音');
