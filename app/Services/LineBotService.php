@@ -127,19 +127,6 @@ class LineBotService
         // ==========================================
         $hasAudio = !empty($fish['audio_url']);
 
-        $audioAction = $hasAudio
-            ? [
-                'type'        => 'postback',
-                'label'       => '🔊 播放發音',
-                'data'        => "action=play_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
-                'displayText' => "播放 {$fish['name']} 的發音",
-            ]
-            : [
-                'type'  => 'postback',
-                'label' => '🔇 尚無發音',
-                'data'  => "action=no_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
-            ];
-
         $bodyContents = [
             // 魚名（完整一行）
             [
@@ -150,19 +137,29 @@ class LineBotService
                 'wrap'   => true,
                 'color'  => '#1a1a2e',
             ],
-            // 發音按鈕（魚名下方）
-            [
+        ];
+
+        // 有音檔才顯示播放按鈕；無音檔時 body 不顯示任何發音相關按鈕
+        // （editor 可透過 footer 的「🎤 提供發音」按鈕新增錄音）
+        if ($hasAudio) {
+            $bodyContents[] = [
                 'type'   => 'button',
-                'style'  => $hasAudio ? 'primary' : 'secondary',
+                'style'  => 'primary',
                 'height' => 'sm',
                 'margin' => 'sm',
-                'color'  => $hasAudio ? '#2c6b8a' : '#aaaaaa',
-                'action' => $audioAction,
-            ],
-            [
-                'type'   => 'separator',
-                'margin' => 'md',
-            ],
+                'color'  => '#2c6b8a',
+                'action' => [
+                    'type'        => 'postback',
+                    'label'       => '🔊 播放發音',
+                    'data'        => "action=play_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
+                    'displayText' => "播放 {$fish['name']} 的發音",
+                ],
+            ];
+        }
+
+        $bodyContents[] = [
+            'type'   => 'separator',
+            'margin' => 'md',
         ];
 
         // ==========================================

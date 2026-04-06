@@ -388,4 +388,20 @@ class LineBotServiceEditorButtonsTest extends TestCase
         $items = $json['quickReply']['items'] ?? [];
         return array_map(fn ($item) => $item['action']['label'] ?? '', $items);
     }
+
+    /**
+     * 從 bubble JSON 提取 body 所有內容的 action label 清單（含按鈕）
+     */
+    private function extractBodyButtonLabels(array $bubbleJson): array
+    {
+        $bubble = $bubbleJson['contents'] ?? $bubbleJson;
+        $bodyContents = $bubble['body']['contents'] ?? [];
+        $labels = [];
+        foreach ($bodyContents as $item) {
+            if (($item['type'] ?? '') === 'button' && isset($item['action']['label'])) {
+                $labels[] = $item['action']['label'];
+            }
+        }
+        return $labels;
+    }
 }
