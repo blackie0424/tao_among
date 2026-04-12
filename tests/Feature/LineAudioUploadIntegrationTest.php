@@ -456,8 +456,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             'fish_id' => $fish->id,
         ]);
         
-        // 驗證使用者狀態已清除
-        $this->assertNull(Cache::get("line_user_{$userId}_adding_audio"));
+        // 音檔驗證失敗時，Controller 刻意保留 Cache 狀態讓使用者可重錄
+        $this->assertNotNull(Cache::get("line_user_{$userId}_adding_audio"));
         
         // 驗證警告日誌
         Log::shouldHaveReceived('warning')

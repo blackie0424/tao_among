@@ -85,7 +85,7 @@ class LineBotService
      * @param array|null  $contextTribes 要顯示的指定部落（null = 顯示兩個預設部落）
      *                                    例： ['iraraley']、['imowrod']、['iraraley','imowrod']
      */
-    public function buildFishCard(array $fish, ?array $contextTribes = null): FlexMessage
+    public function buildFishCard(array $fish, ?array $contextTribes = null, bool $isEditor = false): FlexMessage
     {
         // 決定要渲染哪些「指定部落」區塊
         // - null / 空陣列 → 顯示 iraraley + imowrod 兩個
@@ -127,19 +127,6 @@ class LineBotService
         // ==========================================
         $hasAudio = !empty($fish['audio_url']);
 
-        $audioAction = $hasAudio
-            ? [
-                'type'        => 'postback',
-                'label'       => '🔊 播放發音',
-                'data'        => "action=play_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
-                'displayText' => "播放 {$fish['name']} 的發音",
-            ]
-            : [
-                'type'  => 'postback',
-                'label' => '🔇 尚無發音',
-                'data'  => "action=no_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
-            ];
-
         $bodyContents = [
             // 魚名（完整一行）
             [
@@ -150,19 +137,29 @@ class LineBotService
                 'wrap'   => true,
                 'color'  => '#1a1a2e',
             ],
-            // 發音按鈕（魚名下方）
-            [
+        ];
+
+        // 有音檔才顯示播放按鈕；無音檔時 body 不顯示任何發音相關按鈕
+        // （editor 可透過 footer 的「🎤 提供發音」按鈕新增錄音）
+        if ($hasAudio) {
+            $bodyContents[] = [
                 'type'   => 'button',
-                'style'  => $hasAudio ? 'primary' : 'secondary',
+                'style'  => 'primary',
                 'height' => 'sm',
                 'margin' => 'sm',
-                'color'  => $hasAudio ? '#2c6b8a' : '#aaaaaa',
-                'action' => $audioAction,
-            ],
-            [
-                'type'   => 'separator',
-                'margin' => 'md',
-            ],
+                'color'  => '#2c6b8a',
+                'action' => [
+                    'type'        => 'postback',
+                    'label'       => '🔊 播放發音',
+                    'data'        => "action=play_audio&fish_id={$fish['id']}&fish_name={$fish['name']}",
+                    'displayText' => "播放 {$fish['name']} 的發音",
+                ],
+            ];
+        }
+
+        $bodyContents[] = [
+            'type'   => 'separator',
+            'margin' => 'md',
         ];
 
         // ==========================================
@@ -308,6 +305,32 @@ class LineBotService
             ];
         }
 
+        // Editor 專屬按鈕：修改名稱、提供發音（僅 editor/admin 可見）
+        if ($isEditor) {
+            $footerContents[] = [
+                'type'   => 'button',
+                'style'  => 'secondary',
+                'height' => 'sm',
+                'action' => [
+                    'type'        => 'postback',
+                    'label'       => '✏️ 修改名稱',
+                    'data'        => "action=start_rename&fish_id={$fish['id']}",
+                    'displayText' => '修改名稱',
+                ],
+            ];
+            $footerContents[] = [
+                'type'   => 'button',
+                'style'  => 'secondary',
+                'height' => 'sm',
+                'action' => [
+                    'type'        => 'postback',
+                    'label'       => '🎤 提供發音',
+                    'data'        => "action=start_add_audio&fish_id={$fish['id']}",
+                    'displayText' => '提供發音',
+                ],
+            ];
+        }
+
         // ==========================================
         // 組裝完整 Bubble
         // ==========================================
@@ -350,7 +373,7 @@ class LineBotService
     /**
      * 建立魚類列表訊息（多筆資料時使用）
      */
-    public function buildFishListMessage(array $fishes): array
+    public function buildFishListMessage(array $fishes, bool $isEditor = false): array
     {
         $count = count($fishes);
         
@@ -366,14 +389,14 @@ class LineBotService
         if ($count === 1) {
             // 單一結果：使用帶 Quick Reply 的卡片
             // （發音已整合在卡片內的「🔊 播放發音」按鈕，不再自動附加音檔）
-            return [$this->buildFishCardWithQuickReply($fishes[0])];
+            return [$this->buildFishCardWithQuickReply($fishes[0], $isEditor)];
         }
 
         if ($count <= 10) {
             // 使用輪播卡片 (Carousel)
             $bubbles = [];
             foreach ($fishes as $fish) {
-                $bubbles[] = $this->buildFishCard($fish)->getContents();
+                $bubbles[] = $this->buildFishCard($fish, null, $isEditor)->getContents();
             }
 
             return [
@@ -515,35 +538,13 @@ class LineBotService
     /**
      * 建立魚類卡片（帶 Quick Reply 按鈕）
      */
-    public function buildFishCardWithQuickReply(array $fish): FlexMessage
+    public function buildFishCardWithQuickReply(array $fish, bool $isEditor = false): FlexMessage
     {
-        $card = $this->buildFishCard($fish);
+        $card = $this->buildFishCard($fish, null, $isEditor);
         
         $quickReplyItems = [];
         
-        // Random 模式：顯示「修改名稱」（當名稱是「我不知道」時）
-        $quickReplyItems[] = [
-            'type' => 'action',
-            'action' => [
-                'type' => 'postback',
-                'label' => '✏️ 修改名稱',
-                'data' => "action=start_rename&fish_id={$fish['id']}",
-                'displayText' => '修改名稱',
-            ],
-        ];
-        
-        // 「提供發音」按鈕（無論有無音檔都顯示，田調工具盡量蒐集）
-        $quickReplyItems[] = [
-            'type' => 'action',
-            'action' => [
-                'type' => 'postback',
-                'label' => '🎤 提供發音',
-                'data' => "action=start_add_audio&fish_id={$fish['id']}",
-                'displayText' => '提供發音',
-            ],
-        ];
-        
-        // Random 模式：顯示「換一隻」
+        // 「換一隻」Quick Reply（僅限「我不知道」魚類，editor 按鈕已整合至卡片 footer）
         if ($fish['name'] === '我不知道') {
             $quickReplyItems[] = [
                 'type' => 'action',
@@ -652,7 +653,7 @@ class LineBotService
      * @param string      $title          本次瀏覽標題（用於 altText）
      * @param array|null  $contextTribes  要顯示的指定部落（null = 顯示兩個預設部落）
      */
-    public function buildFishBrowseCarousel(array $fishes, bool $hasMore, string $nextPageData, string $title, ?array $contextTribes = null): array
+    public function buildFishBrowseCarousel(array $fishes, bool $hasMore, string $nextPageData, string $title, ?array $contextTribes = null, bool $isEditor = false): array
     {
         if (empty($fishes)) {
             return [
@@ -663,10 +664,10 @@ class LineBotService
             ];
         }
 
-        // 建立各張魚類卡片（使用 buildFishCard，傳入部落 context）
+        // 建立各張魚類卡片（使用 buildFishCard，傳入部落 context 及 editor 旗標）
         $bubbles = [];
         foreach ($fishes as $fish) {
-            $bubbles[] = $this->buildFishCard($fish, $contextTribes)->getContents();
+            $bubbles[] = $this->buildFishCard($fish, $contextTribes, $isEditor)->getContents();
         }
 
         $carouselMessage = new FlexMessage([

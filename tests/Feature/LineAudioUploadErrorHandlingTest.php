@@ -98,8 +98,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                     && isset($context['exception_class']);
             }));
         
-        // 驗證使用者狀態被清除
-        $this->assertNull(Cache::get("line_user_{$userId}_adding_audio"));
+        // 下載失敗時，Controller 刻意保留 Cache 狀態讓使用者可重試
+        $this->assertNotNull(Cache::get("line_user_{$userId}_adding_audio"));
     }
 
     /**
@@ -286,8 +286,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                     && $context['max_allowed'] === 5100;
             }));
         
-        // 驗證使用者狀態被清除
-        $this->assertNull(Cache::get("line_user_{$userId}_adding_audio"));
+        // 時長超限時，Controller 刻意保留 Cache 狀態讓使用者可重錄
+        $this->assertNotNull(Cache::get("line_user_{$userId}_adding_audio"));
     }
 
     /**
@@ -385,12 +385,12 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $mockMessage->shouldReceive('getDuration')->andReturn(3000);
                 
                 $controller = new LineBotController(
-            $mockLineBotService,
-            $this->app->make(ApiFishController::class),
-            $this->app->make(\App\Services\UploadService::class),
-            $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
-        );
+                    $mockLineBotService,
+                    $this->app->make(ApiFishController::class),
+                    $this->app->make(\App\Services\UploadService::class),
+                    $this->app->make(\App\Contracts\StorageServiceInterface::class),
+                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('handleAudioMessage');
                 $method->setAccessible(true);
@@ -407,12 +407,12 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $mockLineBotService->shouldReceive('replyMessage');
                 
                 $controller = new LineBotController(
-            $mockLineBotService,
-            $this->app->make(ApiFishController::class),
-            $this->app->make(\App\Services\UploadService::class),
-            $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
-        );
+                    $mockLineBotService,
+                    $this->app->make(ApiFishController::class),
+                    $this->app->make(\App\Services\UploadService::class),
+                    $this->app->make(\App\Contracts\StorageServiceInterface::class),
+                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('saveFishAudio');
                 $method->setAccessible(true);
@@ -435,12 +435,12 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $mockMessage->shouldReceive('getDuration')->andReturn(5101);
                 
                 $controller = new LineBotController(
-            $mockLineBotService,
-            $this->app->make(ApiFishController::class),
-            $this->app->make(\App\Services\UploadService::class),
-            $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
-        );
+                    $mockLineBotService,
+                    $this->app->make(ApiFishController::class),
+                    $this->app->make(\App\Services\UploadService::class),
+                    $this->app->make(\App\Contracts\StorageServiceInterface::class),
+                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('handleAudioMessage');
                 $method->setAccessible(true);
@@ -456,11 +456,20 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 // 忽略例外，我們只關心狀態清除
             }
             
-            // 驗證使用者狀態被清除
-            $this->assertNull(
-                Cache::get("line_user_{$userId}_adding_audio"),
-                "User state should be cleared in scenario: {$scenarioName}"
-            );
+            // download_failure / duration_exceeded：Controller 刻意保留狀態供重試
+            // upload_failure：狀態被清除
+            $scenariosShouldPreserveState = ['download_failure', 'duration_exceeded'];
+            if (in_array($scenarioName, $scenariosShouldPreserveState)) {
+                $this->assertNotNull(
+                    Cache::get("line_user_{$userId}_adding_audio"),
+                    "User state should be preserved for retry in scenario: {$scenarioName}"
+                );
+            } else {
+                $this->assertNull(
+                    Cache::get("line_user_{$userId}_adding_audio"),
+                    "User state should be cleared in scenario: {$scenarioName}"
+                );
+            }
         }
     }
 }

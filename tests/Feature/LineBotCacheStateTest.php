@@ -32,7 +32,7 @@ class LineBotCacheStateTest extends TestCase
     protected const REPLY_TOKEN = 'test_reply_token';
 
     protected LineBotController $controller;
-    protected \Mockery\MockInterface $mockLineBotService;
+    protected LineBotService|\Mockery\MockInterface $mockLineBotService;
 
     protected function setUp(): void
     {
@@ -88,13 +88,23 @@ class LineBotCacheStateTest extends TestCase
     private function makePostbackEvent(string $data): object
     {
         $source = new class(self::USER_ID) {
-            public function __construct(private string $userId) {}
-            public function getUserId(): string { return $this->userId; }
+            public function __construct(private string $userId)
+            {
+            }
+            public function getUserId(): string
+            {
+                return $this->userId;
+            }
         };
 
         $postback = new class($data) {
-            public function __construct(private string $data) {}
-            public function getData(): string { return $this->data; }
+            public function __construct(private string $data)
+            {
+            }
+            public function getData(): string
+            {
+                return $this->data;
+            }
         };
 
         return new class($source, $postback, self::REPLY_TOKEN) {
@@ -102,10 +112,20 @@ class LineBotCacheStateTest extends TestCase
                 private $source,
                 private $postback,
                 private string $replyToken,
-            ) {}
-            public function getSource() { return $this->source; }
-            public function getPostback() { return $this->postback; }
-            public function getReplyToken(): string { return $this->replyToken; }
+            ) {
+            }
+            public function getSource()
+            {
+                return $this->source;
+            }
+            public function getPostback()
+            {
+                return $this->postback;
+            }
+            public function getReplyToken(): string
+            {
+                return $this->replyToken;
+            }
         };
     }
 
@@ -172,7 +192,8 @@ class LineBotCacheStateTest extends TestCase
             ->once()
             ->with(
                 self::REPLY_TOKEN,
-                \Mockery::on(fn ($msgs) =>
+                \Mockery::on(
+                    fn ($msgs) =>
                     count($msgs) === 1 &&
                     $msgs[0] instanceof \LINE\Clients\MessagingApi\Model\FlexMessage
                 )
@@ -474,8 +495,10 @@ class LineBotCacheStateTest extends TestCase
             self::REPLY_TOKEN
         );
         // waiting_image 必須已被清除
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'),
-            '點擊瀏覽資料後 create_fish_state 應被清除');
+        $this->assertNull(
+            Cache::get('line_user_' . self::USER_ID . '_create_fish_state'),
+            '點擊瀏覽資料後 create_fish_state 應被清除'
+        );
 
         // Step 3：選擇部落 iraraley
         $this->callHandlePostback(
@@ -483,8 +506,10 @@ class LineBotCacheStateTest extends TestCase
             self::REPLY_TOKEN
         );
         // 仍然沒有 create_fish_state
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'),
-            '選擇部落後 create_fish_state 應仍然是空的');
+        $this->assertNull(
+            Cache::get('line_user_' . self::USER_ID . '_create_fish_state'),
+            '選擇部落後 create_fish_state 應仍然是空的'
+        );
 
         // 驗證整個過程沒有建立任何 Fish 記錄
         $this->assertDatabaseCount('fish', 0);
@@ -545,7 +570,7 @@ class LineBotCacheStateTest extends TestCase
         $this->mockLineBotService
             ->shouldReceive('buildBrowseTribesCarousel')
             ->once()
-            ->andReturnUsing(fn(int $count) => $realService->buildBrowseTribesCarousel($count));
+            ->andReturnUsing(fn () => $realService->buildBrowseTribesCarousel());
 
         $repliedMessages = [];
         $this->mockLineBotService
@@ -569,8 +594,8 @@ class LineBotCacheStateTest extends TestCase
         $msg = $repliedMessages[0];
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $msg);
 
-        // altText 應包含總筆數（Fish::count() = 3）
-        $this->assertStringContainsString('3', $msg->getAltText());
+        // altText 應包含部落選擇文字
+        $this->assertStringContainsString('請選擇部落', $msg->getAltText());
 
         // contents 應是 carousel 型別，且有 6 個部落 bubble
         $contents = $msg->getContents();
