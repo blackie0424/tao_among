@@ -3,13 +3,15 @@
 
   <FishAppLayout page-title="量化報告" mobile-back-url="/dashboard" mobile-back-text="統計面板">
     <div class="report-root">
-
       <!-- 頁面標題 -->
       <div class="report-header">
         <div class="report-header__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M9 17v-2m3 2v-4m3 4v-6M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 17v-2m3 2v-4m3 4v-6M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
+            />
           </svg>
         </div>
         <div>
@@ -63,7 +65,9 @@
                   v-for="tribe in tribes"
                   :key="tribe"
                   class="matrix-table__cell"
-                  :class="{ 'matrix-table__cell--has-value': getCategoryCount(tribe, category) > 0 }"
+                  :class="{
+                    'matrix-table__cell--has-value': getCategoryCount(tribe, category) > 0,
+                  }"
                 >
                   {{ getCategoryCount(tribe, category) || '–' }}
                 </td>
@@ -114,7 +118,9 @@
                   v-for="tribe in tribes"
                   :key="tribe"
                   class="matrix-table__cell"
-                  :class="{ 'matrix-table__cell--has-value': getProcessingCount(tribe, method) > 0 }"
+                  :class="{
+                    'matrix-table__cell--has-value': getProcessingCount(tribe, method) > 0,
+                  }"
                 >
                   {{ getProcessingCount(tribe, method) || '–' }}
                 </td>
@@ -199,13 +205,15 @@
           <div v-for="[method, count] in processingMethodEntries" :key="method" class="bar-item">
             <div class="bar-item__label">{{ method || '未記錄' }}</div>
             <div class="bar-item__track">
-              <div class="bar-item__fill" :style="{ width: barWidth(count, tribalTotalCount) }"></div>
+              <div
+                class="bar-item__fill"
+                :style="{ width: barWidth(count, tribalTotalCount) }"
+              ></div>
             </div>
             <div class="bar-item__count">{{ count }}</div>
           </div>
         </div>
       </section>
-
     </div>
   </FishAppLayout>
 </template>
@@ -217,31 +225,28 @@ import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 
 // ---- Props ----
 const props = defineProps({
-  tribes:            { type: Array,  required: true },
-  foodCategories:    { type: Array,  required: true },
-  processingMethods: { type: Array,  required: true },
-  statistics:        { type: Object, required: true },
+  tribes: { type: Array, required: true },
+  foodCategories: { type: Array, required: true },
+  processingMethods: { type: Array, required: true },
+  statistics: { type: Object, required: true },
 })
 
 // ---- 衍生資料：從實際統計中收集所有出現過的分類（含未在 config 中的例外值）----
 
 const allFoodCategories = computed(() => {
-  const fromStats = Object.values(props.statistics.food_categories_by_tribe)
-    .flatMap(Object.keys)
+  const fromStats = Object.values(props.statistics.food_categories_by_tribe).flatMap(Object.keys)
   const merged = [...new Set([...props.foodCategories, ...fromStats])]
-  return merged.filter(c => c !== '') // 空字串顯示於「未分類」邏輯已處理
+  return merged.filter((c) => c !== '') // 空字串顯示於「未分類」邏輯已處理
 })
 
 const allProcessingMethods = computed(() => {
   const fromStats = Object.keys(props.statistics.processing_methods)
   const merged = [...new Set([...props.processingMethods, ...fromStats])]
-  return merged.filter(m => m !== '')
+  return merged.filter((m) => m !== '')
 })
 
 const allCaptureMethods = computed(() => {
-  return [...new Set(
-    Object.values(props.statistics.capture_methods_by_tribe).flatMap(Object.keys)
-  )]
+  return [...new Set(Object.values(props.statistics.capture_methods_by_tribe).flatMap(Object.keys))]
 })
 
 // ---- 總計 ----
@@ -259,8 +264,7 @@ const captureTotalCount = computed(() =>
 )
 
 const processingMethodEntries = computed(() =>
-  Object.entries(props.statistics.processing_methods)
-    .sort(([, a], [, b]) => b - a)
+  Object.entries(props.statistics.processing_methods).sort(([, a], [, b]) => b - a)
 )
 
 // ---- 食用分類矩陣查詢函式 ----
@@ -274,8 +278,10 @@ function getCategoryRowTotal(category) {
 }
 
 function getTribeTribalTotal(tribe) {
-  return Object.values(props.statistics.food_categories_by_tribe?.[tribe] ?? {})
-    .reduce((sum, n) => sum + n, 0)
+  return Object.values(props.statistics.food_categories_by_tribe?.[tribe] ?? {}).reduce(
+    (sum, n) => sum + n,
+    0
+  )
 }
 
 // ---- 處理方式矩陣查詢函式 ----
@@ -303,8 +309,10 @@ function getCaptureRowTotal(method) {
 }
 
 function getTribeCaptureTotal(tribe) {
-  return Object.values(props.statistics.capture_methods_by_tribe?.[tribe] ?? {})
-    .reduce((sum, n) => sum + n, 0)
+  return Object.values(props.statistics.capture_methods_by_tribe?.[tribe] ?? {}).reduce(
+    (sum, n) => sum + n,
+    0
+  )
 }
 
 // ---- 工具函式 ----

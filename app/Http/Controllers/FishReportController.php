@@ -17,7 +17,8 @@ class FishReportController extends Controller
 {
     public function __construct(
         private FishStatisticsServiceInterface $statisticsService
-    ) {}
+    ) {
+    }
 
     /**
      * 顯示魚類量化報告頁面。

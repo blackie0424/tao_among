@@ -42,7 +42,8 @@ describe('FishReport Inertia props 結構', function () {
         $user = User::factory()->admin()->create();
 
         $this->actingAs($user)->get('/fish-report')
-            ->assertInertia(fn ($page) =>
+            ->assertInertia(
+                fn ($page) =>
                 $page->component('FishReport')
                     ->has('tribes')
                     ->has('foodCategories')
@@ -55,7 +56,8 @@ describe('FishReport Inertia props 結構', function () {
         $user = User::factory()->admin()->create();
 
         $this->actingAs($user)->get('/fish-report')
-            ->assertInertia(fn ($page) =>
+            ->assertInertia(
+                fn ($page) =>
                 $page->component('FishReport')
                     ->has('statistics.total_fish')
                     ->has('statistics.food_categories_by_tribe')
@@ -68,7 +70,8 @@ describe('FishReport Inertia props 結構', function () {
         $user = User::factory()->admin()->create();
 
         $this->actingAs($user)->get('/fish-report')
-            ->assertInertia(fn ($page) =>
+            ->assertInertia(
+                fn ($page) =>
                 $page->component('FishReport')
                     ->where('tribes', config('fish_options.tribes'))
             );
@@ -86,7 +89,8 @@ describe('FishReport 統計資料正確性', function () {
         Fish::factory()->count(4)->create();
 
         $this->actingAs($user)->get('/fish-report')
-            ->assertInertia(fn ($page) =>
+            ->assertInertia(
+                fn ($page) =>
                 $page->component('FishReport')
                     ->where('statistics.total_fish', 4)
             );
@@ -102,7 +106,8 @@ describe('FishReport 統計資料正確性', function () {
         TribalClassification::factory()->forTribe('iranmeilek')->withFoodCategory('rahet')->create(['fish_id' => $fish1->id]);
 
         $this->actingAs($user)->get('/fish-report')
-            ->assertInertia(fn ($page) =>
+            ->assertInertia(
+                fn ($page) =>
                 $page->component('FishReport')
                     ->where('statistics.food_categories_by_tribe.ivalino.oyod', 2)
                     ->where('statistics.food_categories_by_tribe.iranmeilek.rahet', 1)
@@ -119,7 +124,8 @@ describe('FishReport 統計資料正確性', function () {
         CaptureRecord::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish1->id, 'capture_method' => '魚叉']);
 
         $this->actingAs($user)->get('/fish-report')
-            ->assertInertia(fn ($page) =>
+            ->assertInertia(
+                fn ($page) =>
                 $page->component('FishReport')
                     ->where('statistics.capture_methods_by_tribe.ivalino.網捕', 2)
                     ->where('statistics.capture_methods_by_tribe.iranmeilek.魚叉', 1)
@@ -136,7 +142,8 @@ describe('FishReport 統計資料正確性', function () {
         TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish1->id, 'processing_method' => '剝皮']);
 
         $this->actingAs($user)->get('/fish-report')
-            ->assertInertia(fn ($page) =>
+            ->assertInertia(
+                fn ($page) =>
                 $page->component('FishReport')
                     ->where('statistics.processing_methods.去魚鱗', 2)
                     ->where('statistics.processing_methods.剝皮', 1)
