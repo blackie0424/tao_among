@@ -115,6 +115,13 @@
                 <!-- Actions -->
                 <Link
                   v-if="user?.role === 'admin'"
+                  href="/dashboard"
+                  class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+                >
+                  統計面板
+                </Link>
+                <Link
+                  v-if="user?.role === 'admin'"
                   href="/line-users"
                   class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 transition"
                 >
@@ -226,6 +233,13 @@
                 >
                 {{ user.name }}
               </div>
+              <Link
+                v-if="user?.role === 'admin'"
+                href="/dashboard"
+                class="text-sm text-gray-500 hover:text-blue-600 font-medium"
+              >
+                統計面板
+              </Link>
               <Link
                 v-if="user?.role === 'admin'"
                 href="/line-users"
