@@ -53,11 +53,26 @@ class FishSearchService
      */
     protected function applyTribalFilters(Builder $query, array $filters)
     {
+        $tribe           = $filters['tribe'] ?? null;
+        $foodCategory    = $filters['food_category'] ?? $filters['dietary_classification'] ?? null;
+        $processingMethod = $filters['processing_method'] ?? null;
+
+        // 尚未紀錄：該部落完全沒有 tribal_classification 紀錄
+        if ($foodCategory === '__missing__' || $processingMethod === '__missing__') {
+            if ($tribe) {
+                $query->whereDoesntHave('tribalClassifications', function ($q) use ($tribe) {
+                    $q->where('tribe', $tribe);
+                });
+            } else {
+                $query->doesntHave('tribalClassifications');
+            }
+            return;
+        }
+
         $tribalFilters = array_filter([
-            'tribe' => $filters['tribe'] ?? null,
-            // 同時支援 food_category（cleaned 格式）與 dietary_classification（legacy 格式）
-            'food_category' => $filters['food_category'] ?? $filters['dietary_classification'] ?? null,
-            'processing_method' => $filters['processing_method'] ?? null,
+            'tribe'             => $tribe,
+            'food_category'     => $foodCategory,
+            'processing_method' => $processingMethod,
         ]);
 
         if (!empty($tribalFilters)) {
@@ -101,11 +116,11 @@ class FishSearchService
     public function getSearchOptions()
     {
         return [
-            'tribes' => ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'],
-            'dietaryClassifications' => ['oyod', 'rahet', '不分類', '不食用', '?', ''],
-            'processingMethods' => $this->getUniqueProcessingMethods(),
-            'captureMethods' => $this->getUniqueCaptureMethods(),
-            'captureLocations' => $this->getUniqueCaptureLocations(),
+            'tribes'                 => config('fish_options.tribes', []),
+            'dietaryClassifications' => config('fish_options.food_categories', []),
+            'processingMethods'      => config('fish_options.processing_methods', []),
+            'captureMethods'         => $this->getUniqueCaptureMethods(),
+            'captureLocations'       => $this->getUniqueCaptureLocations(),
         ];
     }
 

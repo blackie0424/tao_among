@@ -91,6 +91,18 @@
             </div>
             <div class="completeness-item__detail">
               <span>已確認 {{ dataCompleteness.food.recorded }} 筆</span>
+              <a
+                v-if="dataCompleteness.food.q > 0"
+                :href="`/fishs?tribe=${selectedTribe}&food_category=?`"
+                class="completeness-item__link"
+                >待確認(?) {{ dataCompleteness.food.q }} 筆</a
+              >
+              <a
+                v-if="dataCompleteness.food.unrecorded > 0"
+                :href="`/fishs?tribe=${selectedTribe}&food_category=__missing__`"
+                class="completeness-item__link completeness-item__link--missing"
+                >尚未紀錄 {{ dataCompleteness.food.unrecorded }} 筆</a
+              >
             </div>
           </div>
           <!-- 處理方式 -->
@@ -117,6 +129,18 @@
             </div>
             <div class="completeness-item__detail">
               <span>已確認 {{ dataCompleteness.processing.recorded }} 筆</span>
+              <a
+                v-if="dataCompleteness.processing.q > 0"
+                :href="`/fishs?tribe=${selectedTribe}&processing_method=?`"
+                class="completeness-item__link"
+                >待確認(?) {{ dataCompleteness.processing.q }} 筆</a
+              >
+              <a
+                v-if="dataCompleteness.processing.unrecorded > 0"
+                :href="`/fishs?tribe=${selectedTribe}&processing_method=__missing__`"
+                class="completeness-item__link completeness-item__link--missing"
+                >尚未紀錄 {{ dataCompleteness.processing.unrecorded }} 筆</a
+              >
             </div>
           </div>
         </div>
@@ -146,7 +170,10 @@
             </div>
             <template v-if="dataCompleteness?.food.unrecorded > 0">
               <div class="bar-separator"></div>
-              <div class="bar-item bar-item--missing">
+              <a
+                class="bar-item bar-item--missing bar-item--link"
+                :href="`/fishs?tribe=${selectedTribe}&food_category=__missing__`"
+              >
                 <div class="bar-item__label">尚未紀錄</div>
                 <div class="bar-item__track">
                   <div
@@ -159,7 +186,7 @@
                 <div class="bar-item__count bar-item__count--missing">
                   {{ dataCompleteness.food.unrecorded }} 筆
                 </div>
-              </div>
+              </a>
             </template>
           </div>
         </div>
@@ -190,7 +217,10 @@
             </div>
             <template v-if="dataCompleteness?.processing.unrecorded > 0">
               <div class="bar-separator"></div>
-              <div class="bar-item bar-item--missing">
+              <a
+                class="bar-item bar-item--missing bar-item--link"
+                :href="`/fishs?tribe=${selectedTribe}&processing_method=__missing__`"
+              >
                 <div class="bar-item__label">尚未紀錄</div>
                 <div class="bar-item__track">
                   <div
@@ -206,7 +236,7 @@
                 <div class="bar-item__count bar-item__count--missing">
                   {{ dataCompleteness.processing.unrecorded }} 筆
                 </div>
-              </div>
+              </a>
             </template>
           </div>
         </div>
@@ -596,6 +626,23 @@ function barWidth(count, total) {
 .completeness-item__detail {
   font-size: 0.75rem;
   color: #9ca3af;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.completeness-item__link {
+  color: #d97706;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.completeness-item__link--missing {
+  color: #f97316;
+}
+.completeness-item__link:hover,
+.completeness-item__link--missing:hover {
+  opacity: 0.75;
 }
 .completeness-item__missing {
   color: #f97316;
@@ -719,6 +766,17 @@ function barWidth(count, total) {
 .bar-item__count--missing {
   color: #f97316;
   font-weight: 600;
+}
+.bar-item--link {
+  display: flex;
+  text-decoration: none;
+  cursor: pointer;
+}
+.bar-item--link:hover .bar-item__label {
+  text-decoration: underline;
+}
+.bar-item--link:hover .bar-item__count--missing {
+  opacity: 0.75;
 }
 .bar-item__count {
   font-size: 0.8125rem;
