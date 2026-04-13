@@ -110,7 +110,12 @@
                 <!-- User Info -->
                 <div class="px-4 py-3 border-b border-gray-50 bg-gray-50/50">
                   <div class="text-sm font-bold text-gray-900 truncate">{{ user.name }}</div>
-                  <div class="text-xs text-blue-600 font-medium mt-0.5">田調人員</div>
+                  <div
+                    v-if="user?.role !== 'admin'"
+                    class="text-xs text-blue-600 font-medium mt-0.5"
+                  >
+                    田調人員
+                  </div>
                 </div>
                 <!-- Actions -->
                 <Link
@@ -227,28 +232,74 @@
 
             <!-- User Menu (Right aligned) -->
             <div class="ml-auto flex items-center gap-3 shrink-0">
-              <div v-if="user" class="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <!-- Admin: Dropdown Button -->
+              <div v-if="user?.role === 'admin'" class="relative">
+                <button
+                  @click="showDesktopAdminMenu = !showDesktopAdminMenu"
+                  class="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-blue-600 transition"
+                >
+                  {{ user.name }}
+                  <svg
+                    class="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                <div
+                  v-if="showDesktopAdminMenu"
+                  class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down"
+                >
+                  <Link
+                    href="/dashboard"
+                    class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+                    @click="showDesktopAdminMenu = false"
+                  >
+                    統計面板
+                  </Link>
+                  <Link
+                    href="/line-users"
+                    class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 transition"
+                    @click="showDesktopAdminMenu = false"
+                  >
+                    使用者管理
+                  </Link>
+                  <Link
+                    href="/logout"
+                    method="post"
+                    as="button"
+                    class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition"
+                  >
+                    登出
+                  </Link>
+                </div>
+                <div
+                  v-if="showDesktopAdminMenu"
+                  @click="showDesktopAdminMenu = false"
+                  class="fixed inset-0 z-40"
+                  style="background: transparent"
+                ></div>
+              </div>
+              <!-- Non-Admin: Name with Badge -->
+              <div
+                v-else-if="user"
+                class="text-sm font-medium text-gray-700 flex items-center gap-2"
+              >
                 <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs"
                   >田調人員</span
                 >
                 {{ user.name }}
               </div>
+              <!-- Non-Admin Logout -->
               <Link
-                v-if="user?.role === 'admin'"
-                href="/dashboard"
-                class="text-sm text-gray-500 hover:text-blue-600 font-medium"
-              >
-                統計面板
-              </Link>
-              <Link
-                v-if="user?.role === 'admin'"
-                href="/line-users"
-                class="text-sm text-gray-500 hover:text-green-600 font-medium"
-              >
-                使用者管理
-              </Link>
-              <Link
-                v-if="user"
+                v-if="user && user.role !== 'admin'"
                 href="/logout"
                 method="post"
                 as="button"
@@ -257,7 +308,7 @@
                 登出
               </Link>
               <Link
-                v-else
+                v-if="!user"
                 :href="loginUrl"
                 class="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
@@ -311,6 +362,9 @@ const loginUrl = computed(() => {
 
 // Mobile User Menu State
 const showMobileUserMenu = ref(false)
+
+// Desktop Admin Dropdown State
+const showDesktopAdminMenu = ref(false)
 
 // Props 定義
 const props = defineProps({
