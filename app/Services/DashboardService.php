@@ -74,27 +74,27 @@ class DashboardService
     {
         if ($tribe) {
             return [
-                'total'    => CaptureRecord::where('tribe', $tribe)->count(),
-                'by_tribe' => collect(),
-                'by_method' => CaptureRecord::where('tribe', $tribe)
-                    ->selectRaw('capture_method, COUNT(*) as count')
-                    ->groupBy('capture_method')
+                'total'       => CaptureRecord::where('tribe', $tribe)->count(),
+                'by_tribe'    => collect(),
+                'by_location' => CaptureRecord::where('tribe', $tribe)
+                    ->selectRaw('location, COUNT(*) as count')
+                    ->groupBy('location')
                     ->orderByDesc('count')
                     ->get()
-                    ->map(fn ($row) => ['label' => $row->capture_method ?: '未記錄', 'count' => $row->count])
+                    ->map(fn ($row) => ['label' => $row->location ?: '未記錄', 'count' => $row->count])
                     ->values(),
             ];
         }
 
         return [
-            'total'    => CaptureRecord::count(),
-            'by_tribe' => CaptureRecord::selectRaw('tribe, COUNT(*) as count')
+            'total'       => CaptureRecord::count(),
+            'by_tribe'    => CaptureRecord::selectRaw('tribe, COUNT(*) as count')
                 ->groupBy('tribe')
                 ->orderByDesc('count')
                 ->get()
                 ->map(fn ($row) => ['tribe' => $row->tribe ?: '未分類', 'count' => $row->count])
                 ->values(),
-            'by_method' => collect(),
+            'by_location' => collect(),
         ];
     }
 

@@ -266,21 +266,21 @@ describe('getCaptureStats()', function () {
 
         expect($stats['total'])->toBe(2);
         expect($stats['by_tribe'])->toHaveCount(2);
-        expect($stats['by_method'])->toBeEmpty();
+        expect($stats['by_location'])->toBeEmpty();
     });
 
-    it('部落模式：回傳 by_method 分佈', function () {
+    it('部落模式：回傳 by_location 分佈', function () {
         $fish = Fish::factory()->create();
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino', 'capture_method' => '釣魚']);
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino', 'capture_method' => '魚叉']);
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'iranmeilek', 'capture_method' => '釣魚']);
+        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino', 'location' => '東海岸']);
+        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino', 'location' => '礁石區']);
+        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'iranmeilek', 'location' => '東海岸']);
 
         $service = new DashboardService();
         $stats   = $service->getCaptureStats('ivalino');
 
         expect($stats['total'])->toBe(2);
         expect($stats['by_tribe'])->toBeEmpty();
-        expect($stats['by_method'])->toHaveCount(2);
+        expect($stats['by_location'])->toHaveCount(2);
     });
 });
 

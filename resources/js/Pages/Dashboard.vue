@@ -1,7 +1,11 @@
 <template>
-  <Head title="統計面板 | 管理後台" />
+  <Head :title="`${selectedTribe} 的統計資料 | 管理後台`" />
 
-  <FishAppLayout page-title="統計面板" mobile-back-url="/fishs" mobile-back-text="among no tao">
+  <FishAppLayout
+    :page-title="`${selectedTribe} 的統計資料`"
+    mobile-back-url="/fishs"
+    mobile-back-text="among no tao"
+  >
     <div class="dashboard-root">
       <!-- 頁面標題 -->
       <div class="dashboard-header">
@@ -15,8 +19,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="dashboard-header__title">資料統計面板</h1>
-          <p class="dashboard-header__subtitle">即時掌握系統各類資料總覽</p>
+          <h1 class="dashboard-header__title">{{ selectedTribe }} 的統計資料</h1>
+          <p class="dashboard-header__subtitle">掌握 {{ selectedTribe }} 部落的資料統計</p>
         </div>
       </div>
 
@@ -55,66 +59,6 @@
         </div>
       </div>
 
-      <!-- 頂部 Summary Cards -->
-      <div class="summary-grid">
-        <div class="summary-card summary-card--fish">
-          <div class="summary-card__icon">🐟</div>
-          <div class="summary-card__body">
-            <div class="summary-card__number">{{ fishStats.total }}</div>
-            <div class="summary-card__label">魚類</div>
-          </div>
-          <div class="summary-card__sub-group">
-            <span class="summary-card__sub"
-              >有捕獲紀錄 <strong>{{ fishStats.with_capture_record }}</strong></span
-            >
-            <span class="summary-card__sub"
-              >有音檔 <strong>{{ fishStats.with_audio }}</strong></span
-            >
-            <span class="summary-card__sub"
-              >食用分類紀錄 <strong>{{ tribalStats.total }}</strong></span
-            >
-            <span class="summary-card__sub"
-              >處理方式紀錄
-              <strong>{{
-                (tribalStats.by_processing_method ?? []).reduce((s, i) => s + i.count, 0)
-              }}</strong></span
-            >
-          </div>
-        </div>
-
-        <div class="summary-card summary-card--capture">
-          <div class="summary-card__icon">📸</div>
-          <div class="summary-card__body">
-            <div class="summary-card__number">{{ captureStats.total }}</div>
-            <div class="summary-card__label">捕獲紀錄</div>
-          </div>
-        </div>
-
-        <div class="summary-card summary-card--tribal">
-          <div class="summary-card__icon">🏘️</div>
-          <div class="summary-card__body">
-            <div class="summary-card__number">{{ tribalStats.total }}</div>
-            <div class="summary-card__label">部落分類</div>
-          </div>
-        </div>
-
-        <div class="summary-card summary-card--audio">
-          <div class="summary-card__icon">🔊</div>
-          <div class="summary-card__body">
-            <div class="summary-card__number">{{ audioStats.total }}</div>
-            <div class="summary-card__label">音檔</div>
-          </div>
-        </div>
-
-        <div class="summary-card summary-card--note">
-          <div class="summary-card__icon">📝</div>
-          <div class="summary-card__body">
-            <div class="summary-card__number">{{ noteStats.total }}</div>
-            <div class="summary-card__label">地方知識</div>
-          </div>
-        </div>
-      </div>
-
       <!-- 詳細 Breakdown 區域 -->
       <div class="detail-grid">
         <!-- 全部模式：捕獲紀錄 by 部落 -->
@@ -144,15 +88,15 @@
           </div>
         </div>
 
-        <!-- 部落模式：捕獲紀錄 by 捕獲方式 -->
-        <div class="detail-card" v-if="selectedTribe && captureStats.by_method?.length">
+        <!-- 部落模式：捕獲紀錄 by 地點 -->
+        <div class="detail-card" v-if="selectedTribe && captureStats.by_location?.length">
           <div class="detail-card__header">
             <span class="detail-card__icon">📸</span>
-            <h2 class="detail-card__title">捕獲方式分佈</h2>
+            <h2 class="detail-card__title">捕獲地點分佈</h2>
             <span class="detail-card__badge">{{ captureStats.total }} 筆</span>
           </div>
           <div class="bar-list">
-            <div v-for="item in captureStats.by_method" :key="item.label" class="bar-item">
+            <div v-for="item in captureStats.by_location" :key="item.label" class="bar-item">
               <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
               <div class="bar-item__track">
                 <div
@@ -505,89 +449,6 @@ function barWidth(count, total) {
 }
 .filter-banner__clear:hover {
   background: #dbeafe;
-}
-
-/* =========================================
-   Summary Grid
-   ========================================= */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.summary-card {
-  background: #fff;
-  border-radius: 1rem;
-  padding: 1.25rem 1.25rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.07),
-    0 4px 12px rgba(0, 0, 0, 0.04);
-  border: 1px solid #f3f4f6;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-.summary-card__icon {
-  font-size: 1.75rem;
-  line-height: 1;
-}
-.summary-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-.summary-card__number {
-  font-size: 2rem;
-  font-weight: 800;
-  line-height: 1;
-  color: #111827;
-}
-.summary-card__label {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #6b7280;
-}
-.summary-card__sub-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  border-top: 1px solid #f3f4f6;
-  padding-top: 0.625rem;
-}
-.summary-card__sub {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-.summary-card__sub strong {
-  color: #374151;
-  font-weight: 600;
-}
-
-.summary-card--fish {
-  border-top: 3px solid #3b82f6;
-}
-.summary-card--capture {
-  border-top: 3px solid #f59e0b;
-}
-.summary-card--tribal {
-  border-top: 3px solid #10b981;
-}
-.summary-card--audio {
-  border-top: 3px solid #8b5cf6;
-}
-.summary-card--note {
-  border-top: 3px solid #ec4899;
-}
-.summary-card--user {
-  border-top: 3px solid #06b6d4;
 }
 
 /* =========================================
