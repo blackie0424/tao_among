@@ -63,6 +63,7 @@ describe('FishReport Inertia props 結構', function () {
                     ->has('statistics.food_categories_by_tribe')
                     ->has('statistics.capture_methods_by_tribe')
                     ->has('statistics.processing_methods')
+                        ->has('statistics.processing_methods_by_tribe')
             );
     });
 

@@ -9,7 +9,9 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __construct(private DashboardService $service) {}
+    public function __construct(private DashboardService $service)
+    {
+    }
 
     public function index(Request $request): Response
     {
@@ -23,7 +25,6 @@ class DashboardController extends Controller
             'tribalStats'   => $this->service->getTribalStats($selectedTribe),
             'audioStats'    => $this->service->getAudioStats($selectedTribe),
             'noteStats'     => $this->service->getNoteStats($selectedTribe),
-            'userStats'     => $this->service->getUserStats(),
         ]);
     }
 }

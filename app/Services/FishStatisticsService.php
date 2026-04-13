@@ -28,6 +28,7 @@ class FishStatisticsService implements FishStatisticsServiceInterface
             'food_categories_by_tribe' => $this->getFoodCategoriesByTribe(),
             'capture_methods_by_tribe' => $this->getCaptureMethodsByTribe(),
             'processing_methods'       => $this->getProcessingMethods(),
+                'processing_methods_by_tribe' => $this->getProcessingMethodsByTribe(),
         ];
     }
 
@@ -83,6 +84,25 @@ class FishStatisticsService implements FishStatisticsServiceInterface
             ->get()
             ->each(function ($row) use (&$result) {
                 $result[$row->processing_method] = (int) $row->count;
+            });
+
+        return $result;
+    }
+
+    /**
+     * 依部落統計處理方式數量。
+     *
+     * @return array<string, array<string, int>>  [部落名稱 => [處理方式 => 數量]]
+     */
+    private function getProcessingMethodsByTribe(): array
+    {
+        $result = [];
+
+        TribalClassification::selectRaw('tribe, processing_method, COUNT(*) as count')
+            ->groupBy('tribe', 'processing_method')
+            ->get()
+            ->each(function ($row) use (&$result) {
+                $result[$row->tribe][$row->processing_method] = (int) $row->count;
             });
 
         return $result;

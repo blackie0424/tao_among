@@ -41,7 +41,8 @@ describe('Dashboard props 結構', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->has('tribes')
                 ->has('selectedTribe')
@@ -50,7 +51,6 @@ describe('Dashboard props 結構', function () {
                 ->has('tribalStats')
                 ->has('audioStats')
                 ->has('noteStats')
-                ->has('userStats')
         );
     });
 
@@ -58,7 +58,8 @@ describe('Dashboard props 結構', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->has('fishStats.total')
                 ->has('fishStats.with_capture_record')
@@ -71,7 +72,8 @@ describe('Dashboard props 結構', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->has('tribalStats.total')
                 ->has('tribalStats.by_tribe')
@@ -84,7 +86,8 @@ describe('Dashboard props 結構', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->where('selectedTribe', null)
         );
@@ -94,7 +97,8 @@ describe('Dashboard props 結構', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard?tribe=ivalino');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->where('selectedTribe', 'ivalino')
         );
@@ -119,7 +123,8 @@ describe('Dashboard 部落篩選模式 tribalStats', function () {
 
         $response = $this->actingAs($user)->get('/dashboard?tribe=ivalino');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->has('tribalStats.by_food_category')
                 ->has('tribalStats.by_processing_method')
@@ -138,7 +143,8 @@ describe('Dashboard 部落篩選模式 tribalStats', function () {
 
         $response = $this->actingAs($user)->get('/dashboard?tribe=ivalino');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->has('tribalStats.by_food_category.0.label')
                 ->has('tribalStats.by_food_category.0.count')
@@ -156,7 +162,8 @@ describe('Dashboard 部落篩選模式 tribalStats', function () {
 
         $response = $this->actingAs($user)->get('/dashboard?tribe=ivalino');
 
-        $response->assertInertia(fn ($page) =>
+        $response->assertInertia(
+            fn ($page) =>
             $page->component('Dashboard')
                 ->has('tribalStats.by_processing_method.0.label')
                 ->has('tribalStats.by_processing_method.0.count')

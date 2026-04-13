@@ -130,4 +130,27 @@ it('returns empty statistics when no data exists', function () {
     expect($stats['food_categories_by_tribe'])->toBeEmpty();
     expect($stats['capture_methods_by_tribe'])->toBeEmpty();
     expect($stats['processing_methods'])->toBeEmpty();
+    expect($stats['processing_methods_by_tribe'])->toBeEmpty();
+});
+
+it('returns processing method statistics by tribe', function () {
+    $fish1 = Fish::factory()->create();
+    $fish2 = Fish::factory()->create();
+    $fish3 = Fish::factory()->create();
+
+    // ivalino 部落：去魚鱗 2 筆（fish1, fish2）、不去魚鱗 1 筆（fish3）
+    TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $fish1->id, 'processing_method' => '去魚鱗']);
+    TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $fish2->id, 'processing_method' => '去魚鱗']);
+    TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $fish3->id, 'processing_method' => '不去魚鱗']);
+
+    // iranmeilek 部落：剝皮 1 筆
+    TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish1->id, 'processing_method' => '剝皮']);
+
+    $service = new FishStatisticsService();
+    $stats = $service->getStatistics();
+
+    expect($stats['processing_methods_by_tribe']['ivalino']['去魚鱗'])->toBe(2);
+    expect($stats['processing_methods_by_tribe']['ivalino']['不去魚鱗'])->toBe(1);
+    expect($stats['processing_methods_by_tribe']['iranmeilek']['剝皮'])->toBe(1);
+    expect($stats['processing_methods_by_tribe'])->not->toHaveKey('imowrod');
 });

@@ -40,7 +40,49 @@
         </div>
       </div>
 
-      <!-- 食用分類矩陣表 -->
+      <!-- 食用分類總覽橫條圖 -->
+      <section class="matrix-section summary-section" v-if="allFoodCategories.length > 0">
+        <div class="matrix-section__header">
+          <span class="matrix-section__icon">🍽️</span>
+          <h2 class="matrix-section__title">食用分類總覽（跨部落合計）</h2>
+          <span class="matrix-section__hint">單位：筆</span>
+        </div>
+        <div class="summary-bars">
+          <div v-for="category in allFoodCategories" :key="category" class="summary-bar-item">
+            <div class="summary-bar-item__label">{{ category || '未分類' }}</div>
+            <div class="summary-bar-item__track">
+              <div
+                class="summary-bar-item__fill summary-bar-item__fill--food"
+                :style="{ width: barWidth(getCategoryRowTotal(category), tribalTotalCount) }"
+              ></div>
+            </div>
+            <div class="summary-bar-item__count">{{ getCategoryRowTotal(category) }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 處理方式總覽橫條圖 -->
+      <section class="matrix-section summary-section" v-if="allProcessingMethods.length > 0">
+        <div class="matrix-section__header">
+          <span class="matrix-section__icon">🔪</span>
+          <h2 class="matrix-section__title">處理方式總覽（跨部落合計）</h2>
+          <span class="matrix-section__hint">單位：筆</span>
+        </div>
+        <div class="summary-bars">
+          <div v-for="method in allProcessingMethods" :key="method" class="summary-bar-item">
+            <div class="summary-bar-item__label">{{ method || '未記錄' }}</div>
+            <div class="summary-bar-item__track">
+              <div
+                class="summary-bar-item__fill summary-bar-item__fill--processing"
+                :style="{ width: barWidth(getProcessingRowTotal(method), processingTotalCount) }"
+              ></div>
+            </div>
+            <div class="summary-bar-item__count">{{ getProcessingRowTotal(method) }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 食用分類矩陣表（各部落細節）-->
       <section class="matrix-section">
         <div class="matrix-section__header">
           <span class="matrix-section__icon">🍽️</span>
@@ -136,9 +178,9 @@
               <tr>
                 <td class="matrix-table__footer-label">部落小計</td>
                 <td v-for="tribe in tribes" :key="tribe" class="matrix-table__footer-total">
-                  {{ getTribeTribalTotal(tribe) }}
+                  {{ getTribeProcessingTotal(tribe) }}
                 </td>
-                <td class="matrix-table__footer-grand">{{ tribalTotalCount }}</td>
+                <td class="matrix-table__footer-grand">{{ processingTotalCount }}</td>
               </tr>
             </tfoot>
           </table>
@@ -194,26 +236,6 @@
           </table>
         </div>
       </section>
-
-      <!-- 處理方式總覽橫條圖 -->
-      <section class="matrix-section" v-if="processingMethodEntries.length > 0">
-        <div class="matrix-section__header">
-          <span class="matrix-section__icon">📊</span>
-          <h2 class="matrix-section__title">處理方式整體分佈（跨部落）</h2>
-        </div>
-        <div class="bar-list">
-          <div v-for="[method, count] in processingMethodEntries" :key="method" class="bar-item">
-            <div class="bar-item__label">{{ method || '未記錄' }}</div>
-            <div class="bar-item__track">
-              <div
-                class="bar-item__fill"
-                :style="{ width: barWidth(count, tribalTotalCount) }"
-              ></div>
-            </div>
-            <div class="bar-item__count">{{ count }}</div>
-          </div>
-        </div>
-      </section>
     </div>
   </FishAppLayout>
 </template>
@@ -263,8 +285,10 @@ const captureTotalCount = computed(() =>
     .reduce((sum, n) => sum + n, 0)
 )
 
-const processingMethodEntries = computed(() =>
-  Object.entries(props.statistics.processing_methods).sort(([, a], [, b]) => b - a)
+const processingTotalCount = computed(() =>
+  Object.values(props.statistics.processing_methods_by_tribe)
+    .flatMap(Object.values)
+    .reduce((sum, n) => sum + n, 0)
 )
 
 // ---- 食用分類矩陣查詢函式 ----
@@ -287,15 +311,18 @@ function getTribeTribalTotal(tribe) {
 // ---- 處理方式矩陣查詢函式 ----
 
 function getProcessingCount(tribe, method) {
-  // 處理方式統計來自 food_categories_by_tribe 的同一部落分類表
-  // 但 processing_methods 是跨部落的，需要用個別部落的資料
-  // 這裡用 tribally-keyed 的 processing 資料（需後端支援）
-  // 目前用同一部落分類資料集估算
   return props.statistics.processing_methods_by_tribe?.[tribe]?.[method] ?? 0
 }
 
 function getProcessingRowTotal(method) {
-  return props.statistics.processing_methods?.[method] ?? 0
+  return props.tribes.reduce((sum, tribe) => sum + getProcessingCount(tribe, method), 0)
+}
+
+function getTribeProcessingTotal(tribe) {
+  return Object.values(props.statistics.processing_methods_by_tribe?.[tribe] ?? {}).reduce(
+    (sum, n) => sum + n,
+    0
+  )
 }
 
 // ---- 捕獲方式矩陣查詢函式 ----
@@ -569,47 +596,62 @@ function barWidth(count, total) {
 /* =========================================
    Bar List (處理方式橫條圖)
    ========================================= */
-.bar-list {
+/* =========================================
+   Summary Bars（總覽橫條圖）
+   ========================================= */
+.summary-section {
+  box-shadow: 0 0 0 2px #e7f7f0;
+}
+
+.summary-bars {
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.625rem;
 }
 
-.bar-item {
+.summary-bar-item {
   display: grid;
-  grid-template-columns: 120px 1fr 48px;
+  grid-template-columns: 100px 1fr 52px;
   align-items: center;
   gap: 0.75rem;
 }
 
-.bar-item__label {
-  font-size: 0.8125rem;
-  color: #374151;
-  font-weight: 500;
+.summary-bar-item__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.bar-item__track {
-  height: 0.5rem;
+.summary-bar-item__track {
+  height: 1.25rem;
   background: #f3f4f6;
-  border-radius: 999px;
+  border-radius: 0.375rem;
   overflow: hidden;
 }
 
-.bar-item__fill {
+.summary-bar-item__fill {
   height: 100%;
-  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
-  border-radius: 999px;
-  transition: width 0.4s ease;
+  border-radius: 0.375rem;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.bar-item__count {
-  font-size: 0.8125rem;
+.summary-bar-item__fill--food {
+  background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+}
+
+.summary-bar-item__fill--processing {
+  background: linear-gradient(90deg, #fb923c 0%, #f97316 100%);
+}
+
+.summary-bar-item__count {
+  font-size: 1rem;
   font-weight: 700;
-  color: #065f46;
+  color: #111827;
   text-align: right;
+  min-width: 2rem;
 }
 </style>

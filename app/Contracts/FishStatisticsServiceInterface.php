@@ -18,7 +18,8 @@ interface FishStatisticsServiceInterface
      *   total_fish: int,
      *   food_categories_by_tribe: array<string, array<string, int>>,
      *   capture_methods_by_tribe: array<string, array<string, int>>,
-     *   processing_methods: array<string, int>
+         *   processing_methods: array<string, int>,
+         *   processing_methods_by_tribe: array<string, array<string, int>>
      * }
      */
     public function getStatistics(): array;
