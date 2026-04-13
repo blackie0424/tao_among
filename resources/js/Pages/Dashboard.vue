@@ -71,8 +71,14 @@
           <div class="completeness-item">
             <div class="completeness-item__header">
               <span class="completeness-item__label">食用分類</span>
-              <span class="completeness-dot" :class="`completeness-dot--${dataCompleteness.food.level}`"></span>
-              <span class="completeness-item__pct" :class="`completeness-item__pct--${dataCompleteness.food.level}`">
+              <span
+                class="completeness-dot"
+                :class="`completeness-dot--${dataCompleteness.food.level}`"
+              ></span>
+              <span
+                class="completeness-item__pct"
+                :class="`completeness-item__pct--${dataCompleteness.food.level}`"
+              >
                 {{ dataCompleteness.food.pct }}%
               </span>
             </div>
@@ -91,8 +97,14 @@
           <div class="completeness-item">
             <div class="completeness-item__header">
               <span class="completeness-item__label">處理方式</span>
-              <span class="completeness-dot" :class="`completeness-dot--${dataCompleteness.processing.level}`"></span>
-              <span class="completeness-item__pct" :class="`completeness-item__pct--${dataCompleteness.processing.level}`">
+              <span
+                class="completeness-dot"
+                :class="`completeness-dot--${dataCompleteness.processing.level}`"
+              ></span>
+              <span
+                class="completeness-item__pct"
+                :class="`completeness-item__pct--${dataCompleteness.processing.level}`"
+              >
                 {{ dataCompleteness.processing.pct }}%
               </span>
             </div>
@@ -139,10 +151,14 @@
                 <div class="bar-item__track">
                   <div
                     class="bar-item__fill bar-item__fill--missing"
-                    :style="{ width: barWidth(dataCompleteness.food.unrecorded, dataCompleteness.total) }"
+                    :style="{
+                      width: barWidth(dataCompleteness.food.unrecorded, dataCompleteness.total),
+                    }"
                   ></div>
                 </div>
-                <div class="bar-item__count bar-item__count--missing">{{ dataCompleteness.food.unrecorded }} 筆</div>
+                <div class="bar-item__count bar-item__count--missing">
+                  {{ dataCompleteness.food.unrecorded }} 筆
+                </div>
               </div>
             </template>
           </div>
@@ -179,10 +195,17 @@
                 <div class="bar-item__track">
                   <div
                     class="bar-item__fill bar-item__fill--missing"
-                    :style="{ width: barWidth(dataCompleteness.processing.unrecorded, dataCompleteness.total) }"
+                    :style="{
+                      width: barWidth(
+                        dataCompleteness.processing.unrecorded,
+                        dataCompleteness.total
+                      ),
+                    }"
                   ></div>
                 </div>
-                <div class="bar-item__count bar-item__count--missing">{{ dataCompleteness.processing.unrecorded }} 筆</div>
+                <div class="bar-item__count bar-item__count--missing">
+                  {{ dataCompleteness.processing.unrecorded }} 筆
+                </div>
               </div>
             </template>
           </div>
@@ -241,13 +264,17 @@ function selectTribe(tribe) {
   if (isLoading.value) return
   isLoading.value = true
 
-  router.get('/dashboard', { tribe }, {
-    preserveState: false,
-    preserveScroll: false,
-    onFinish: () => {
-      isLoading.value = false
-    },
-  })
+  router.get(
+    '/dashboard',
+    { tribe },
+    {
+      preserveState: false,
+      preserveScroll: false,
+      onFinish: () => {
+        isLoading.value = false
+      },
+    }
+  )
 }
 
 // ---- 資料完整度計算 ----
@@ -258,11 +285,12 @@ const dataCompleteness = computed(() => {
 
   const unrecorded = total - props.tribalStats.total
 
-  const foodQ = (props.tribalStats.by_food_category ?? []).find(i => i.label === '?')?.count ?? 0
+  const foodQ = (props.tribalStats.by_food_category ?? []).find((i) => i.label === '?')?.count ?? 0
   const foodMissing = unrecorded + foodQ
   const foodRate = (total - foodMissing) / total
 
-  const procQ = (props.tribalStats.by_processing_method ?? []).find(i => i.label === '?')?.count ?? 0
+  const procQ =
+    (props.tribalStats.by_processing_method ?? []).find((i) => i.label === '?')?.count ?? 0
   const procMissing = unrecorded + procQ
   const procRate = (total - procMissing) / total
 
@@ -522,17 +550,29 @@ function barWidth(count, total) {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.completeness-dot--green  { background: #10b981; }
-.completeness-dot--yellow { background: #f59e0b; }
-.completeness-dot--red    { background: #ef4444; }
+.completeness-dot--green {
+  background: #10b981;
+}
+.completeness-dot--yellow {
+  background: #f59e0b;
+}
+.completeness-dot--red {
+  background: #ef4444;
+}
 .completeness-item__pct {
   margin-left: auto;
   font-size: 0.875rem;
   font-weight: 700;
 }
-.completeness-item__pct--green  { color: #059669; }
-.completeness-item__pct--yellow { color: #d97706; }
-.completeness-item__pct--red    { color: #dc2626; }
+.completeness-item__pct--green {
+  color: #059669;
+}
+.completeness-item__pct--yellow {
+  color: #d97706;
+}
+.completeness-item__pct--red {
+  color: #dc2626;
+}
 .completeness-item__track {
   background: #f3f4f6;
   border-radius: 999px;
@@ -544,9 +584,15 @@ function barWidth(count, total) {
   border-radius: 999px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.completeness-item__fill--green  { background: linear-gradient(90deg, #059669, #10b981); }
-.completeness-item__fill--yellow { background: linear-gradient(90deg, #d97706, #f59e0b); }
-.completeness-item__fill--red    { background: linear-gradient(90deg, #dc2626, #ef4444); }
+.completeness-item__fill--green {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+.completeness-item__fill--yellow {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+.completeness-item__fill--red {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}
 .completeness-item__detail {
   font-size: 0.75rem;
   color: #9ca3af;
@@ -659,13 +705,7 @@ function barWidth(count, total) {
   background: linear-gradient(90deg, #f97316, #fb923c);
 }
 .bar-item__fill--missing {
-  background: repeating-linear-gradient(
-    45deg,
-    #d1d5db,
-    #d1d5db 4px,
-    #e5e7eb 4px,
-    #e5e7eb 8px
-  );
+  background: repeating-linear-gradient(45deg, #d1d5db, #d1d5db 4px, #e5e7eb 4px, #e5e7eb 8px);
 }
 .bar-separator {
   height: 1px;
