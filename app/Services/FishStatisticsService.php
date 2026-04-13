@@ -25,11 +25,31 @@ class FishStatisticsService implements FishStatisticsServiceInterface
     {
         return [
             'total_fish'               => Fish::count(),
+            'fish_count_by_tribe'      => $this->getFishCountByTribe(),
             'food_categories_by_tribe' => $this->getFoodCategoriesByTribe(),
             'capture_methods_by_tribe' => $this->getCaptureMethodsByTribe(),
             'processing_methods'       => $this->getProcessingMethods(),
-                'processing_methods_by_tribe' => $this->getProcessingMethodsByTribe(),
+            'processing_methods_by_tribe' => $this->getProcessingMethodsByTribe(),
         ];
+    }
+
+    /**
+     * 依部落統計已有紀錄的不重複魚種數。
+     *
+     * @return array<string, int>  [部落名稱 => 魚種數]
+     */
+    private function getFishCountByTribe(): array
+    {
+        $result = [];
+
+        TribalClassification::selectRaw('tribe, COUNT(DISTINCT fish_id) as count')
+            ->groupBy('tribe')
+            ->get()
+            ->each(function ($row) use (&$result) {
+                $result[$row->tribe] = (int) $row->count;
+            });
+
+        return $result;
     }
 
     /**

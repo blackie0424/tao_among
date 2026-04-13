@@ -45,13 +45,8 @@ class DashboardService
     public function getFishStats(?string $tribe): array
     {
         if ($tribe) {
-            $fishQuery = Fish::where(function ($q) use ($tribe) {
-                $q->whereHas('tribalClassifications', fn ($q2) => $q2->where('tribe', $tribe))
-                  ->orWhereHas('captureRecords', fn ($q2) => $q2->where('tribe', $tribe));
-            });
-
             return [
-                'total'                      => (clone $fishQuery)->count(),
+                'total'                      => Fish::count(),
                 'with_capture_record'        => Fish::whereHas('captureRecords', fn ($q) => $q->where('tribe', $tribe))->count(),
                 'with_audio'                 => Fish::whereHas('audios', fn ($q) => $q->where('locate', $tribe))->count(),
                 'with_tribal_classification' => Fish::whereHas('tribalClassifications', fn ($q) => $q->where('tribe', $tribe))->count(),
@@ -121,31 +116,40 @@ class DashboardService
     public function getTribalStats(?string $tribe): array
     {
         if ($tribe) {
+            $foodCategoryMap = TribalClassification::where('tribe', $tribe)
+                ->selectRaw('food_category, COUNT(*) as count')
+                ->groupBy('food_category')
+                ->pluck('count', 'food_category')
+                ->toArray();
+
+            $processingMethodMap = TribalClassification::where('tribe', $tribe)
+                ->selectRaw('processing_method, COUNT(*) as count')
+                ->groupBy('processing_method')
+                ->pluck('count', 'processing_method')
+                ->toArray();
+
+            $configFoodCategories    = config('fish_options.food_categories', []);
+            $configProcessingMethods = config('fish_options.processing_methods', []);
+
+            // 合併 config 定義的選項與實際資料（config 順序優先，補入 0 筆）
+            $allFoodKeys    = array_unique(array_merge($configFoodCategories, array_keys($foodCategoryMap)));
+            $allProcessKeys = array_unique(array_merge($configProcessingMethods, array_keys($processingMethodMap)));
+
+            $byFoodCategory = collect($allFoodKeys)->map(fn ($cat) => [
+                'label' => $cat ?: '未分類',
+                'count' => $foodCategoryMap[$cat] ?? 0,
+            ])->values();
+
+            $byProcessingMethod = collect($allProcessKeys)->map(fn ($method) => [
+                'label' => $method ?: '未記錄',
+                'count' => $processingMethodMap[$method] ?? 0,
+            ])->values();
+
             return [
-                'total'    => TribalClassification::where('tribe', $tribe)->count(),
-                'by_tribe' => collect(),
-
-                'by_food_category' => TribalClassification::where('tribe', $tribe)
-                    ->selectRaw('food_category, COUNT(*) as count')
-                    ->groupBy('food_category')
-                    ->orderByDesc('count')
-                    ->get()
-                    ->map(fn ($row) => [
-                        'label' => $row->food_category !== '' ? $row->food_category : '未分類',
-                        'count' => $row->count,
-                    ])
-                    ->values(),
-
-                'by_processing_method' => TribalClassification::where('tribe', $tribe)
-                    ->selectRaw('processing_method, COUNT(*) as count')
-                    ->groupBy('processing_method')
-                    ->orderByDesc('count')
-                    ->get()
-                    ->map(fn ($row) => [
-                        'label' => $row->processing_method !== '' ? $row->processing_method : '未記錄',
-                        'count' => $row->count,
-                    ])
-                    ->values(),
+                'total'                => TribalClassification::where('tribe', $tribe)->count(),
+                'by_tribe'             => collect(),
+                'by_food_category'     => $byFoodCategory,
+                'by_processing_method' => $byProcessingMethod,
             ];
         }
 

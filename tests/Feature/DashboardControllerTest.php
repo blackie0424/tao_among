@@ -68,7 +68,7 @@ describe('Dashboard props 結構', function () {
         );
     });
 
-    it('tribalStats 全部模式包含 total 與 by_tribe，不含 by_food_category 資料', function () {
+    it('tribalStats 預設模式（iraraley）包含 total 與 by_food_category', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard');
 
@@ -76,20 +76,20 @@ describe('Dashboard props 結構', function () {
             fn ($page) =>
             $page->component('Dashboard')
                 ->has('tribalStats.total')
-                ->has('tribalStats.by_tribe')
-                ->where('tribalStats.by_food_category', [])
-                ->where('tribalStats.by_processing_method', [])
+                ->has('tribalStats.by_food_category')
+                ->has('tribalStats.by_processing_method')
+                ->where('tribalStats.by_tribe', [])
         );
     });
 
-    it('selectedTribe 在無帶參數時為 null', function () {
+    it('selectedTribe 在無帶參數時預設為 iraraley', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard');
 
         $response->assertInertia(
             fn ($page) =>
             $page->component('Dashboard')
-                ->where('selectedTribe', null)
+                ->where('selectedTribe', 'iraraley')
         );
     });
 

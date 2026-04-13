@@ -81,21 +81,20 @@ describe('getFishStats() - 全部模式', function () {
 
 describe('getFishStats() - 部落篩選模式', function () {
 
-    it('只計算有該部落 TribalClassification 的魚種', function () {
+    it('部落模式下 total 始終是系統總魚種數（不與部落篩選）', function () {
         $fish1 = Fish::factory()->create();
         $fish2 = Fish::factory()->create();
         $fish3 = Fish::factory()->create();
 
-        // fish1 有 ivalino 的分類
+        // fish1 有 ivalino 的分類、fish2 有 iranmeilek、fish3 無分類
         TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $fish1->id]);
-        // fish2 有 iranmeilek 的分類
         TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish2->id]);
-        // fish3 無分類
 
         $service = new DashboardService();
         $stats   = $service->getFishStats('ivalino');
 
-        expect($stats['total'])->toBe(1);
+        // total 應為系統所有魚種（3 條），不受部落篩選
+        expect($stats['total'])->toBe(3);
     });
 
     it('也計算有該部落捕獲紀錄但無分類的魚種', function () {
@@ -104,11 +103,14 @@ describe('getFishStats() - 部落篩選模式', function () {
             'fish_id' => $fishWithRecord->id,
             'tribe'   => 'ivalino',
         ]);
+        Fish::factory()->create(); // 另一條魚，無任何標籤
 
         $service = new DashboardService();
         $stats   = $service->getFishStats('ivalino');
 
-        expect($stats['total'])->toBe(1);
+        // total = 2（系統總數），with_capture_record = 1（ivalino 有捕獲紀錄）
+        expect($stats['total'])->toBe(2);
+        expect($stats['with_capture_record'])->toBe(1);
     });
 });
 
@@ -144,12 +146,12 @@ describe('getTribalStats() - 全部模式', function () {
 
 describe('getTribalStats() - 部落篩選模式', function () {
 
-    it('by_food_category 依食用分類列出魚種數量（降冪排列）', function () {
+    it('by_food_category 包含所有 config 選項，有紀錄的顯示數量，無紀錄的為 0', function () {
         $fish1 = Fish::factory()->create();
         $fish2 = Fish::factory()->create();
         $fish3 = Fish::factory()->create();
 
-        // 3 隻 oyod、1 隻 rahet（同部落 ivalino）
+        // 3 隻 oyod、2 隻 rahet（同部落 ivalino）
         TribalClassification::factory()->forTribe('ivalino')->withFoodCategory('oyod')->create(['fish_id' => $fish1->id]);
         TribalClassification::factory()->forTribe('ivalino')->withFoodCategory('oyod')->create(['fish_id' => $fish2->id]);
         TribalClassification::factory()->forTribe('ivalino')->withFoodCategory('rahet')->create(['fish_id' => $fish3->id]);
@@ -161,13 +163,17 @@ describe('getTribalStats() - 部落篩選模式', function () {
         $service = new DashboardService();
         $stats   = $service->getTribalStats('ivalino');
 
-        expect($stats['by_food_category'])->toHaveCount(2);
-        // 第一名應是 oyod（count=2）
-        expect($stats['by_food_category'][0]['label'])->toBe('oyod');
-        expect($stats['by_food_category'][0]['count'])->toBe(2);
-        // 第二名應是 rahet（count=1）
-        expect($stats['by_food_category'][1]['label'])->toBe('rahet');
-        expect($stats['by_food_category'][1]['count'])->toBe(1);
+        // config 定義 5 個選項，全部應出現
+        expect($stats['by_food_category'])->toHaveCount(5);
+        // oyod 已有紀錄
+        $oyod = collect($stats['by_food_category'])->firstWhere('label', 'oyod');
+        expect($oyod['count'])->toBe(2);
+        // rahet 已有紀錄
+        $rahet = collect($stats['by_food_category'])->firstWhere('label', 'rahet');
+        expect($rahet['count'])->toBe(1);
+        // 不分類無紀錄，應為 0
+        $noCategory = collect($stats['by_food_category'])->firstWhere('label', '不分類');
+        expect($noCategory['count'])->toBe(0);
     });
 
     it('by_food_category 空字串顯示為「未分類」', function () {
@@ -180,10 +186,12 @@ describe('getTribalStats() - 部落篩選模式', function () {
         $service = new DashboardService();
         $stats   = $service->getTribalStats('ivalino');
 
-        expect($stats['by_food_category'][0]['label'])->toBe('未分類');
+        $item = collect($stats['by_food_category'])->firstWhere('label', '未分類');
+        expect($item)->not->toBeNull();
+        expect($item['count'])->toBe(1);
     });
 
-    it('by_processing_method 依處理方法列出魚種數量（降冪排列）', function () {
+    it('by_processing_method 包含所有 config 選項，有紀錄的顯示數量，無紀錄的為 0', function () {
         $fish1 = Fish::factory()->create();
         $fish2 = Fish::factory()->create();
         $fish3 = Fish::factory()->create();
@@ -195,11 +203,15 @@ describe('getTribalStats() - 部落篩選模式', function () {
         $service = new DashboardService();
         $stats   = $service->getTribalStats('ivalino');
 
-        expect($stats['by_processing_method'])->toHaveCount(2);
-        expect($stats['by_processing_method'][0]['label'])->toBe('去魚鱗');
-        expect($stats['by_processing_method'][0]['count'])->toBe(2);
-        expect($stats['by_processing_method'][1]['label'])->toBe('剝皮');
-        expect($stats['by_processing_method'][1]['count'])->toBe(1);
+        // config 定義 5 個選項，全部應出現
+        expect($stats['by_processing_method'])->toHaveCount(5);
+        $scale = collect($stats['by_processing_method'])->firstWhere('label', '去魚鱗');
+        expect($scale['count'])->toBe(2);
+        $skin = collect($stats['by_processing_method'])->firstWhere('label', '剝皮');
+        expect($skin['count'])->toBe(1);
+        // 不去魚鱗無紀錄
+        $noScale = collect($stats['by_processing_method'])->firstWhere('label', '不去魚鱗');
+        expect($noScale['count'])->toBe(0);
     });
 
     it('by_processing_method 空字串顯示為「未記錄」', function () {
@@ -212,7 +224,9 @@ describe('getTribalStats() - 部落篩選模式', function () {
         $service = new DashboardService();
         $stats   = $service->getTribalStats('ivalino');
 
-        expect($stats['by_processing_method'][0]['label'])->toBe('未記錄');
+        $item = collect($stats['by_processing_method'])->firstWhere('label', '未記錄');
+        expect($item)->not->toBeNull();
+        expect($item['count'])->toBe(1);
     });
 
     it('全部模式時 by_food_category 與 by_processing_method 為空', function () {

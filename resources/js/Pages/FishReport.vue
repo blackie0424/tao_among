@@ -20,65 +20,123 @@
         </div>
       </div>
 
+      <!-- 部落選擇器 -->
+      <div class="tribe-selector">
+        <label class="tribe-selector__label">目前檢視部落：</label>
+        <select v-model="selectedTribe" class="tribe-selector__dropdown">
+          <option v-for="tribe in tribes" :key="tribe" :value="tribe">
+            {{ tribe }}
+          </option>
+        </select>
+      </div>
+
       <!-- 總覽卡片 -->
       <div class="overview-card">
-        <div class="overview-card__item">
-          <span class="overview-card__num">{{ statistics.total_fish }}</span>
-          <span class="overview-card__label">魚種總數</span>
+        <div class="overview-card__item overview-card__item--highlight">
+          <span class="overview-card__num">{{ tribeFishCount }}</span>
+          <span class="overview-card__label">已蒐集魚種數</span>
         </div>
         <div class="overview-card__item">
-          <span class="overview-card__num">{{ tribalTotalCount }}</span>
-          <span class="overview-card__label">部落分類筆數</span>
+          <span class="overview-card__num">{{ tribeCategoryTotal }}</span>
+          <span class="overview-card__label">食用分類紀錄</span>
         </div>
         <div class="overview-card__item">
-          <span class="overview-card__num">{{ captureTotalCount }}</span>
+          <span class="overview-card__num">{{ tribeProcessingTotal }}</span>
+          <span class="overview-card__label">處理方式紀錄</span>
+        </div>
+        <div class="overview-card__item">
+          <span class="overview-card__num">{{ tribeCaptureTotal }}</span>
           <span class="overview-card__label">捕獲紀錄筆數</span>
-        </div>
-        <div class="overview-card__item">
-          <span class="overview-card__num">{{ tribes.length }}</span>
-          <span class="overview-card__label">部落數量</span>
         </div>
       </div>
 
-      <!-- 食用分類總覽橫條圖 -->
-      <section class="matrix-section summary-section" v-if="allFoodCategories.length > 0">
+      <!-- 食用分類詳細清單 -->
+      <section class="matrix-section summary-section">
         <div class="matrix-section__header">
           <span class="matrix-section__icon">🍽️</span>
-          <h2 class="matrix-section__title">食用分類總覽（跨部落合計）</h2>
+          <h2 class="matrix-section__title">食用分類詳細</h2>
+          <span class="tribe-badge tribe-badge--food">{{ selectedTribe }}</span>
           <span class="matrix-section__hint">單位：筆</span>
         </div>
         <div class="summary-bars">
-          <div v-for="category in allFoodCategories" :key="category" class="summary-bar-item">
+          <div v-for="category in tribeFoodCategories" :key="category" class="summary-bar-item">
             <div class="summary-bar-item__label">{{ category || '未分類' }}</div>
+            <div class="summary-bar-item__count">
+              <template v-if="getTribeCategoryCount(category) > 0">
+                {{ getTribeCategoryCount(category) }} 筆
+              </template>
+              <span v-else class="summary-bar-item__unrecorded">尚未記錄</span>
+            </div>
             <div class="summary-bar-item__track">
               <div
                 class="summary-bar-item__fill summary-bar-item__fill--food"
-                :style="{ width: barWidth(getCategoryRowTotal(category), tribalTotalCount) }"
+                :style="{ width: tribeCategoryBarWidth(getTribeCategoryCount(category)) }"
               ></div>
             </div>
-            <div class="summary-bar-item__count">{{ getCategoryRowTotal(category) }}</div>
           </div>
+          <p v-if="tribeFoodCategories.length === 0" class="summary-bars__empty">
+            尚無食用分類資料
+          </p>
         </div>
       </section>
 
-      <!-- 處理方式總覽橫條圖 -->
-      <section class="matrix-section summary-section" v-if="allProcessingMethods.length > 0">
+      <!-- 處理方式詳細清單 -->
+      <section class="matrix-section summary-section">
         <div class="matrix-section__header">
           <span class="matrix-section__icon">🔪</span>
-          <h2 class="matrix-section__title">處理方式總覽（跨部落合計）</h2>
+          <h2 class="matrix-section__title">處理方式詳細</h2>
+          <span class="tribe-badge tribe-badge--processing">{{ selectedTribe }}</span>
           <span class="matrix-section__hint">單位：筆</span>
         </div>
         <div class="summary-bars">
-          <div v-for="method in allProcessingMethods" :key="method" class="summary-bar-item">
+          <div v-for="method in tribeProcessingMethods" :key="method" class="summary-bar-item">
             <div class="summary-bar-item__label">{{ method || '未記錄' }}</div>
+            <div class="summary-bar-item__count">
+              <template v-if="getTribeProcessingCount(method) > 0">
+                {{ getTribeProcessingCount(method) }} 筆
+              </template>
+              <span v-else class="summary-bar-item__unrecorded">尚未記錄</span>
+            </div>
             <div class="summary-bar-item__track">
               <div
                 class="summary-bar-item__fill summary-bar-item__fill--processing"
-                :style="{ width: barWidth(getProcessingRowTotal(method), processingTotalCount) }"
+                :style="{ width: tribeProcessingBarWidth(getTribeProcessingCount(method)) }"
               ></div>
             </div>
-            <div class="summary-bar-item__count">{{ getProcessingRowTotal(method) }}</div>
           </div>
+          <p v-if="tribeProcessingMethods.length === 0" class="summary-bars__empty">
+            尚無處理方式資料
+          </p>
+        </div>
+      </section>
+
+      <!-- 捕獲方式詳細清單 -->
+      <section class="matrix-section summary-section">
+        <div class="matrix-section__header">
+          <span class="matrix-section__icon">🎣</span>
+          <h2 class="matrix-section__title">捕獲方式詳細</h2>
+          <span class="tribe-badge tribe-badge--capture">{{ selectedTribe }}</span>
+          <span class="matrix-section__hint">單位：筆</span>
+        </div>
+        <div class="summary-bars">
+          <div v-for="method in tribeCaptureMethodList" :key="method" class="summary-bar-item">
+            <div class="summary-bar-item__label">{{ method || '未記錄' }}</div>
+            <div class="summary-bar-item__count">
+              <template v-if="getTribeCaptureCount(method) > 0">
+                {{ getTribeCaptureCount(method) }} 筆
+              </template>
+              <span v-else class="summary-bar-item__unrecorded">尚未記錄</span>
+            </div>
+            <div class="summary-bar-item__track">
+              <div
+                class="summary-bar-item__fill summary-bar-item__fill--capture"
+                :style="{ width: tribeCaptureBarWidth(getTribeCaptureCount(method)) }"
+              ></div>
+            </div>
+          </div>
+          <p v-if="tribeCaptureMethodList.length === 0" class="summary-bars__empty">
+            尚無捕獲方式資料
+          </p>
         </div>
       </section>
 
@@ -241,7 +299,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 
@@ -250,10 +308,50 @@ const props = defineProps({
   tribes: { type: Array, required: true },
   foodCategories: { type: Array, required: true },
   processingMethods: { type: Array, required: true },
+  captureMethods: { type: Array, required: true },
   statistics: { type: Object, required: true },
 })
 
-// ---- 衍生資料：從實際統計中收集所有出現過的分類（含未在 config 中的例外值）----
+// ---- State ----
+const selectedTribe = ref('iraraley')
+
+// ---- 衍生資料：選定部落的分類與方式（包含 config 未記錄的選項 + 實際存在的選項） ----
+
+/**
+ * 該部落的所有食用分類（包括 config 中定義但尚未有紀錄的選項）
+ */
+const tribeFoodCategories = computed(() => {
+  // 取得該部落實際出現過的食用分類
+  const tribeCategories = Object.keys(
+    props.statistics.food_categories_by_tribe?.[selectedTribe.value] ?? {}
+  )
+  // 與 config 中的食用分類並集，優先 config 順序
+  const merged = [...new Set([...props.foodCategories, ...tribeCategories])]
+  return merged.filter((c) => c !== '')
+})
+
+/**
+ * 該部落的所有處理方式（包括 config 中定義但尚未有紀錄的選項）
+ */
+const tribeProcessingMethods = computed(() => {
+  const tribeMethods = Object.keys(
+    props.statistics.processing_methods_by_tribe?.[selectedTribe.value] ?? {}
+  )
+  const merged = [...new Set([...props.processingMethods, ...tribeMethods])]
+  return merged.filter((m) => m !== '')
+})
+
+/**
+ * 該部落的捕獲方式清單（包括 config 中定義但尚未有紀錄的選項）
+ */
+const tribeCaptureMethodList = computed(() => {
+  const fromStats = Object.keys(
+    props.statistics.capture_methods_by_tribe?.[selectedTribe.value] ?? {}
+  )
+  return [...new Set([...props.captureMethods, ...fromStats])]
+})
+
+// ---- 衍生資料：跨部落總覽（供矩陣表使用） ----
 
 const allFoodCategories = computed(() => {
   const fromStats = Object.values(props.statistics.food_categories_by_tribe).flatMap(Object.keys)
@@ -268,10 +366,38 @@ const allProcessingMethods = computed(() => {
 })
 
 const allCaptureMethods = computed(() => {
-  return [...new Set(Object.values(props.statistics.capture_methods_by_tribe).flatMap(Object.keys))]
+  const fromStats = Object.values(props.statistics.capture_methods_by_tribe).flatMap(Object.keys)
+  return [...new Set([...props.captureMethods, ...fromStats])]
 })
 
-// ---- 總計 ----
+// ---- 選定部落的總計 ----
+
+const tribeFishCount = computed(
+  () => props.statistics.fish_count_by_tribe?.[selectedTribe.value] ?? 0
+)
+
+const tribeCategoryTotal = computed(() =>
+  Object.values(props.statistics.food_categories_by_tribe?.[selectedTribe.value] ?? {}).reduce(
+    (sum, n) => sum + n,
+    0
+  )
+)
+
+const tribeProcessingTotal = computed(() =>
+  Object.values(props.statistics.processing_methods_by_tribe?.[selectedTribe.value] ?? {}).reduce(
+    (sum, n) => sum + n,
+    0
+  )
+)
+
+const tribeCaptureTotal = computed(() =>
+  Object.values(props.statistics.capture_methods_by_tribe?.[selectedTribe.value] ?? {}).reduce(
+    (sum, n) => sum + n,
+    0
+  )
+)
+
+// ---- 跨部落的總計 ----
 
 const tribalTotalCount = computed(() =>
   Object.values(props.statistics.food_categories_by_tribe)
@@ -291,7 +417,48 @@ const processingTotalCount = computed(() =>
     .reduce((sum, n) => sum + n, 0)
 )
 
-// ---- 食用分類矩陣查詢函式 ----
+// ---- 選定部落的查詢函式 ----
+
+/**
+ * 查詢選定部落的特定食用分類紀錄數
+ */
+function getTribeCategoryCount(category) {
+  return props.statistics.food_categories_by_tribe?.[selectedTribe.value]?.[category] ?? 0
+}
+
+/**
+ * 查詢選定部落的特定處理方式紀錄數
+ */
+function getTribeProcessingCount(method) {
+  return props.statistics.processing_methods_by_tribe?.[selectedTribe.value]?.[method] ?? 0
+}
+
+/**
+ * 查詢選定部落的特定捕獲方式紀錄數
+ */
+function getTribeCaptureCount(method) {
+  return props.statistics.capture_methods_by_tribe?.[selectedTribe.value]?.[method] ?? 0
+}
+
+/**
+ * 計算視覺化橫條寬度（針對選定部落）
+ */
+function tribeCategoryBarWidth(count) {
+  if (!tribeCategoryTotal.value) return '0%'
+  return Math.round((count / tribeCategoryTotal.value) * 100) + '%'
+}
+
+function tribeProcessingBarWidth(count) {
+  if (!tribeProcessingTotal.value) return '0%'
+  return Math.round((count / tribeProcessingTotal.value) * 100) + '%'
+}
+
+function tribeCaptureBarWidth(count) {
+  if (!tribeCaptureTotal.value) return '0%'
+  return Math.round((count / tribeCaptureTotal.value) * 100) + '%'
+}
+
+// ---- 跨部落的查詢函式 ----
 
 function getCategoryCount(tribe, category) {
   return props.statistics.food_categories_by_tribe?.[tribe]?.[category] ?? 0
@@ -401,6 +568,49 @@ function barWidth(count, total) {
 }
 
 /* =========================================
+   Tribe Selector
+   ========================================= */
+.tribe-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.tribe-selector__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111827);
+  white-space: nowrap;
+}
+
+.tribe-selector__dropdown {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--color-text-primary, #111827);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.tribe-selector__dropdown:hover {
+  border-color: #9ca3af;
+}
+
+.tribe-selector__dropdown:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* =========================================
    Overview Cards
    ========================================= */
 .overview-card {
@@ -437,6 +647,15 @@ function barWidth(count, total) {
   font-size: 0.75rem;
   color: #6b7280;
   text-align: center;
+}
+
+.overview-card__item--highlight .overview-card__num {
+  color: #0284c7;
+}
+
+.overview-card__item--highlight .overview-card__label {
+  font-weight: 600;
+  color: #0369a1;
 }
 
 /* =========================================
@@ -612,7 +831,7 @@ function barWidth(count, total) {
 
 .summary-bar-item {
   display: grid;
-  grid-template-columns: 100px 1fr 52px;
+  grid-template-columns: 110px 80px 1fr;
   align-items: center;
   gap: 0.75rem;
 }
@@ -624,6 +843,20 @@ function barWidth(count, total) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.summary-bar-item__count {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.summary-bar-item__unrecorded {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .summary-bar-item__track {
@@ -647,11 +880,44 @@ function barWidth(count, total) {
   background: linear-gradient(90deg, #fb923c 0%, #f97316 100%);
 }
 
-.summary-bar-item__count {
-  font-size: 1rem;
+.summary-bar-item__fill--capture {
+  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.summary-bars__empty {
+  color: #9ca3af;
+  text-align: center;
+  padding: 1.5rem;
+  font-style: italic;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* =========================================
+   Tribe Badge
+   ========================================= */
+.tribe-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
   font-weight: 700;
-  color: #111827;
-  text-align: right;
-  min-width: 2rem;
+  letter-spacing: 0.02em;
+}
+
+.tribe-badge--food {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.tribe-badge--processing {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.tribe-badge--capture {
+  background: #dbeafe;
+  color: #1e40af;
 }
 </style>

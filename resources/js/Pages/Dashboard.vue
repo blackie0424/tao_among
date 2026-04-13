@@ -24,16 +24,6 @@
       <div class="tribe-switcher">
         <div class="tribe-switcher__inner">
           <button
-            id="tribe-btn-all"
-            class="tribe-btn"
-            :class="{ 'tribe-btn--active': !selectedTribe }"
-            :disabled="isLoading && !selectedTribe"
-            @click="selectTribe(null)"
-          >
-            <span class="tribe-btn__dot tribe-btn__dot--all"></span>
-            全部
-          </button>
-          <button
             v-for="tribe in tribes"
             :id="`tribe-btn-${tribe}`"
             :key="tribe"
@@ -65,34 +55,13 @@
         </div>
       </div>
 
-      <!-- 篩選標籤 -->
-      <div v-if="selectedTribe" class="filter-banner">
-        <svg
-          class="filter-banner__icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
-          />
-        </svg>
-        目前篩選：<strong>{{ selectedTribe }}</strong> 部落的資料
-        <button class="filter-banner__clear" @click="selectTribe(null)">清除篩選 ✕</button>
-      </div>
-
       <!-- 頂部 Summary Cards -->
       <div class="summary-grid">
         <div class="summary-card summary-card--fish">
           <div class="summary-card__icon">🐟</div>
           <div class="summary-card__body">
             <div class="summary-card__number">{{ fishStats.total }}</div>
-            <div class="summary-card__label">
-              {{ selectedTribe ? `${selectedTribe} 魚種` : '魚類' }}
-            </div>
+            <div class="summary-card__label">魚類</div>
           </div>
           <div class="summary-card__sub-group">
             <span class="summary-card__sub"
@@ -102,7 +71,13 @@
               >有音檔 <strong>{{ fishStats.with_audio }}</strong></span
             >
             <span class="summary-card__sub"
-              >有部落分類 <strong>{{ fishStats.with_tribal_classification }}</strong></span
+              >食用分類紀錄 <strong>{{ tribalStats.total }}</strong></span
+            >
+            <span class="summary-card__sub"
+              >處理方式紀錄
+              <strong>{{
+                (tribalStats.by_processing_method ?? []).reduce((s, i) => s + i.count, 0)
+              }}</strong></span
             >
           </div>
         </div>
@@ -149,11 +124,24 @@
             <h2 class="detail-card__title">捕獲紀錄分佈</h2>
             <span class="detail-card__badge">{{ captureStats.total }} 筆</span>
           </div>
-          <BarList
-            :items="captureStats.by_tribe.map((i) => ({ label: i.tribe, count: i.count }))"
-            :total="captureStats.total"
-            color="capture"
-          />
+          <div class="bar-list">
+            <div
+              v-for="item in captureStats.by_tribe.map((i) => ({ label: i.tribe, count: i.count }))"
+              :key="item.label"
+              class="bar-item"
+            >
+              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
+              <div class="bar-item__track">
+                <div
+                  class="bar-item__fill bar-item__fill--capture"
+                  :style="{ width: barWidth(item.count, captureStats.total) }"
+                ></div>
+              </div>
+              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
+                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 部落模式：捕獲紀錄 by 捕獲方式 -->
@@ -163,7 +151,20 @@
             <h2 class="detail-card__title">捕獲方式分佈</h2>
             <span class="detail-card__badge">{{ captureStats.total }} 筆</span>
           </div>
-          <BarList :items="captureStats.by_method" :total="captureStats.total" color="capture" />
+          <div class="bar-list">
+            <div v-for="item in captureStats.by_method" :key="item.label" class="bar-item">
+              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
+              <div class="bar-item__track">
+                <div
+                  class="bar-item__fill bar-item__fill--capture"
+                  :style="{ width: barWidth(item.count, captureStats.total) }"
+                ></div>
+              </div>
+              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
+                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 全部模式：部落分類 by 部落 -->
@@ -173,39 +174,74 @@
             <h2 class="detail-card__title">部落分類分佈</h2>
             <span class="detail-card__badge">{{ tribalStats.total }} 筆</span>
           </div>
-          <BarList
-            :items="tribalStats.by_tribe.map((i) => ({ label: i.tribe, count: i.count }))"
-            :total="tribalStats.total"
-            color="tribal"
-          />
+          <div class="bar-list">
+            <div
+              v-for="item in tribalStats.by_tribe.map((i) => ({ label: i.tribe, count: i.count }))"
+              :key="item.label"
+              class="bar-item"
+            >
+              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
+              <div class="bar-item__track">
+                <div
+                  class="bar-item__fill bar-item__fill--tribal"
+                  :style="{ width: barWidth(item.count, tribalStats.total) }"
+                ></div>
+              </div>
+              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
+                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 部落模式：部落分類 by 食物分類 -->
-        <div class="detail-card" v-if="selectedTribe && tribalStats.by_food_category?.length">
+        <div class="detail-card" v-if="selectedTribe">
           <div class="detail-card__header">
             <span class="detail-card__icon">🏘️</span>
             <h2 class="detail-card__title">食用分類分佈</h2>
             <span class="detail-card__badge">{{ tribalStats.total }} 種</span>
           </div>
-          <BarList
-            :items="tribalStats.by_food_category"
-            :total="tribalStats.total"
-            color="tribal"
-          />
+          <div class="bar-list">
+            <div v-for="item in tribalStats.by_food_category" :key="item.label" class="bar-item">
+              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
+              <div class="bar-item__track">
+                <div
+                  class="bar-item__fill bar-item__fill--tribal"
+                  :style="{ width: barWidth(item.count, tribalStats.total) }"
+                ></div>
+              </div>
+              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
+                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 部落模式：部落分類 by 處理方法 -->
-        <div class="detail-card" v-if="selectedTribe && tribalStats.by_processing_method?.length">
+        <div class="detail-card" v-if="selectedTribe">
           <div class="detail-card__header">
             <span class="detail-card__icon">🔪</span>
             <h2 class="detail-card__title">處理方式分佈</h2>
             <span class="detail-card__badge">{{ tribalStats.total }} 種</span>
           </div>
-          <BarList
-            :items="tribalStats.by_processing_method"
-            :total="tribalStats.total"
-            color="processing"
-          />
+          <div class="bar-list">
+            <div
+              v-for="item in tribalStats.by_processing_method"
+              :key="item.label"
+              class="bar-item"
+            >
+              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
+              <div class="bar-item__track">
+                <div
+                  class="bar-item__fill bar-item__fill--processing"
+                  :style="{ width: barWidth(item.count, tribalStats.total) }"
+                ></div>
+              </div>
+              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
+                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 音檔 by 地區（全部模式） -->
@@ -215,11 +251,24 @@
             <h2 class="detail-card__title">音檔地區分佈</h2>
             <span class="detail-card__badge">{{ audioStats.total }} 筆</span>
           </div>
-          <BarList
-            :items="audioStats.by_locate.map((i) => ({ label: i.locate, count: i.count }))"
-            :total="audioStats.total"
-            color="audio"
-          />
+          <div class="bar-list">
+            <div
+              v-for="item in audioStats.by_locate.map((i) => ({ label: i.locate, count: i.count }))"
+              :key="item.label"
+              class="bar-item"
+            >
+              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
+              <div class="bar-item__track">
+                <div
+                  class="bar-item__fill bar-item__fill--audio"
+                  :style="{ width: barWidth(item.count, audioStats.total) }"
+                ></div>
+              </div>
+              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
+                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 地方知識 by 類型 -->
@@ -229,11 +278,24 @@
             <h2 class="detail-card__title">地方知識類型</h2>
             <span class="detail-card__badge">{{ noteStats.total }} 筆</span>
           </div>
-          <BarList
-            :items="noteStats.by_type.map((i) => ({ label: i.type, count: i.count }))"
-            :total="noteStats.total"
-            color="note"
-          />
+          <div class="bar-list">
+            <div
+              v-for="item in noteStats.by_type.map((i) => ({ label: i.type, count: i.count }))"
+              :key="item.label"
+              class="bar-item"
+            >
+              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
+              <div class="bar-item__track">
+                <div
+                  class="bar-item__fill bar-item__fill--note"
+                  :style="{ width: barWidth(item.count, noteStats.total) }"
+                ></div>
+              </div>
+              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
+                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -244,38 +306,6 @@
 import { ref } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-
-// ---- 子元件：橫條圖列表 ----
-// 抽成 inline component 以便複用
-const BarList = {
-  props: {
-    items: { type: Array, required: true },
-    total: { type: Number, required: true },
-    color: { type: String, default: 'capture' },
-  },
-  template: `
-    <div class="bar-list">
-      <div v-for="item in items" :key="item.label" class="bar-item">
-        <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
-        <div class="bar-item__track">
-          <div
-            class="bar-item__fill"
-            :class="'bar-item__fill--' + color"
-            :style="{ width: barWidth(item.count, total) }"
-          ></div>
-        </div>
-        <div class="bar-item__count">{{ item.count }}</div>
-      </div>
-    </div>
-  `,
-  setup(props) {
-    function barWidth(count, total) {
-      if (!total) return '0%'
-      return Math.round((count / total) * 100) + '%'
-    }
-    return { barWidth }
-  },
-}
 
 // ---- Props ----
 const props = defineProps({
@@ -306,6 +336,11 @@ function selectTribe(tribe) {
 }
 
 // ---- 工具函式 ----
+
+function barWidth(count, total) {
+  if (!total) return '0%'
+  return Math.round((count / total) * 100) + '%'
+}
 </script>
 
 <style scoped>
@@ -603,20 +638,20 @@ function selectTribe(tribe) {
 }
 
 /* =========================================
-   Bar List（全局，非 scoped 無法直接作用於 inline component）
+   Bar List
    ========================================= */
-:deep(.bar-list) {
+.bar-list {
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
 }
-:deep(.bar-item) {
+.bar-item {
   display: grid;
   grid-template-columns: 7rem 1fr 2.5rem;
   align-items: center;
   gap: 0.625rem;
 }
-:deep(.bar-item__label) {
+.bar-item__label {
   font-size: 0.8125rem;
   color: #374151;
   font-weight: 500;
@@ -624,39 +659,43 @@ function selectTribe(tribe) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-:deep(.bar-item__track) {
+.bar-item__track {
   background: #f3f4f6;
   border-radius: 999px;
   height: 0.5rem;
   overflow: hidden;
 }
-:deep(.bar-item__fill) {
+.bar-item__fill {
   height: 100%;
   border-radius: 999px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
-:deep(.bar-item__fill--capture) {
+.bar-item__fill--capture {
   background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
-:deep(.bar-item__fill--tribal) {
+.bar-item__fill--tribal {
   background: linear-gradient(90deg, #10b981, #34d399);
 }
-:deep(.bar-item__fill--audio) {
+.bar-item__fill--audio {
   background: linear-gradient(90deg, #8b5cf6, #a78bfa);
 }
-:deep(.bar-item__fill--note) {
+.bar-item__fill--note {
   background: linear-gradient(90deg, #ec4899, #f472b6);
 }
-:deep(.bar-item__fill--user) {
+.bar-item__fill--user {
   background: linear-gradient(90deg, #06b6d4, #22d3ee);
 }
-:deep(.bar-item__fill--processing) {
+.bar-item__fill--processing {
   background: linear-gradient(90deg, #f97316, #fb923c);
 }
-:deep(.bar-item__count) {
+.bar-item__count {
   font-size: 0.8125rem;
   font-weight: 600;
   color: #374151;
   text-align: right;
+}
+.bar-item__count--zero {
+  color: #9ca3af;
+  font-weight: 400;
 }
 </style>

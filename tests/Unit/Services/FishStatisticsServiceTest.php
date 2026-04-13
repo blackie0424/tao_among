@@ -154,3 +154,25 @@ it('returns processing method statistics by tribe', function () {
     expect($stats['processing_methods_by_tribe']['iranmeilek']['剝皮'])->toBe(1);
     expect($stats['processing_methods_by_tribe'])->not->toHaveKey('imowrod');
 });
+
+it('returns fish count by tribe', function () {
+    $fish1 = Fish::factory()->create();
+    $fish2 = Fish::factory()->create();
+    $fish3 = Fish::factory()->create();
+
+    // ivalino 部落：3 種魚
+    TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $fish1->id]);
+    TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $fish2->id]);
+    TribalClassification::factory()->forTribe('ivalino')->create(['fish_id' => $fish3->id]);
+
+    // iranmeilek 部落：2 種魚（fish1, fish2）
+    TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish1->id]);
+    TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish2->id]);
+
+    $service = new FishStatisticsService();
+    $stats = $service->getStatistics();
+
+    expect($stats['fish_count_by_tribe']['ivalino'])->toBe(3);
+    expect($stats['fish_count_by_tribe']['iranmeilek'])->toBe(2);
+    expect($stats['fish_count_by_tribe'])->not->toHaveKey('imowrod');
+});

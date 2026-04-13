@@ -60,6 +60,7 @@ describe('FishReport Inertia props 結構', function () {
                 fn ($page) =>
                 $page->component('FishReport')
                     ->has('statistics.total_fish')
+                    ->has('statistics.fish_count_by_tribe')
                     ->has('statistics.food_categories_by_tribe')
                     ->has('statistics.capture_methods_by_tribe')
                     ->has('statistics.processing_methods')

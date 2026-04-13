@@ -35,6 +35,7 @@ class FishReportController extends Controller
             'tribes'            => config('fish_options.tribes', []),
             'foodCategories'    => config('fish_options.food_categories', []),
             'processingMethods' => config('fish_options.processing_methods', []),
+            'captureMethods'    => array_keys(config('fish_options.capture_methods', [])),
             'statistics'        => $this->statisticsService->getStatistics(),
         ]);
     }

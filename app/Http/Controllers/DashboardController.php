@@ -15,7 +15,7 @@ class DashboardController extends Controller
 
     public function index(Request $request): Response
     {
-        $selectedTribe = $request->query('tribe'); // null = 全部
+        $selectedTribe = $request->query('tribe', 'iraraley');
 
         return Inertia::render('Dashboard', [
             'tribes'        => $this->service->getTribes(),
