@@ -47,7 +47,6 @@ describe('Dashboard props 結構', function () {
                 ->has('tribes')
                 ->has('selectedTribe')
                 ->has('fishStats')
-                ->has('captureStats')
                 ->has('tribalStats')
                 ->has('audioStats')
                 ->has('noteStats')
@@ -85,6 +84,17 @@ describe('Dashboard props 結構', function () {
     it('selectedTribe 在無帶參數時預設為 iraraley', function () {
         $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertInertia(
+            fn ($page) =>
+            $page->component('Dashboard')
+                ->where('selectedTribe', 'iraraley')
+        );
+    });
+
+    it('帶 tribe= 空字串時 selectedTribe 仍預設為 iraraley', function () {
+        $user = User::factory()->admin()->create();
+        $response = $this->actingAs($user)->get('/dashboard?tribe=');
 
         $response->assertInertia(
             fn ($page) =>

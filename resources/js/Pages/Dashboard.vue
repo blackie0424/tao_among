@@ -59,91 +59,65 @@
         </div>
       </div>
 
+      <!-- 部落模式：資料完整度概況 -->
+      <div class="tribe-overview" v-if="dataCompleteness">
+        <div class="tribe-overview__title">
+          <span>📊</span>
+          <span>資料完整度概況</span>
+          <span class="tribe-overview__total">系統總魚類共 {{ dataCompleteness.total }} 筆</span>
+        </div>
+        <div class="tribe-overview__metrics">
+          <!-- 食用分類 -->
+          <div class="completeness-item">
+            <div class="completeness-item__header">
+              <span class="completeness-item__label">食用分類</span>
+              <span class="completeness-dot" :class="`completeness-dot--${dataCompleteness.food.level}`"></span>
+              <span class="completeness-item__pct" :class="`completeness-item__pct--${dataCompleteness.food.level}`">
+                {{ dataCompleteness.food.pct }}%
+              </span>
+            </div>
+            <div class="completeness-item__track">
+              <div
+                class="completeness-item__fill"
+                :class="`completeness-item__fill--${dataCompleteness.food.level}`"
+                :style="{ width: dataCompleteness.food.pct + '%' }"
+              ></div>
+            </div>
+            <div class="completeness-item__detail">
+              <span>已確認 {{ dataCompleteness.food.recorded }} 筆</span>
+            </div>
+          </div>
+          <!-- 處理方式 -->
+          <div class="completeness-item">
+            <div class="completeness-item__header">
+              <span class="completeness-item__label">處理方式</span>
+              <span class="completeness-dot" :class="`completeness-dot--${dataCompleteness.processing.level}`"></span>
+              <span class="completeness-item__pct" :class="`completeness-item__pct--${dataCompleteness.processing.level}`">
+                {{ dataCompleteness.processing.pct }}%
+              </span>
+            </div>
+            <div class="completeness-item__track">
+              <div
+                class="completeness-item__fill"
+                :class="`completeness-item__fill--${dataCompleteness.processing.level}`"
+                :style="{ width: dataCompleteness.processing.pct + '%' }"
+              ></div>
+            </div>
+            <div class="completeness-item__detail">
+              <span>已確認 {{ dataCompleteness.processing.recorded }} 筆</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 詳細 Breakdown 區域 -->
       <div class="detail-grid">
-        <!-- 全部模式：捕獲紀錄 by 部落 -->
-        <div class="detail-card" v-if="!selectedTribe && captureStats.by_tribe?.length">
-          <div class="detail-card__header">
-            <span class="detail-card__icon">📸</span>
-            <h2 class="detail-card__title">捕獲紀錄分佈</h2>
-            <span class="detail-card__badge">{{ captureStats.total }} 筆</span>
-          </div>
-          <div class="bar-list">
-            <div
-              v-for="item in captureStats.by_tribe.map((i) => ({ label: i.tribe, count: i.count }))"
-              :key="item.label"
-              class="bar-item"
-            >
-              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
-              <div class="bar-item__track">
-                <div
-                  class="bar-item__fill bar-item__fill--capture"
-                  :style="{ width: barWidth(item.count, captureStats.total) }"
-                ></div>
-              </div>
-              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
-                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 部落模式：捕獲紀錄 by 地點 -->
-        <div class="detail-card" v-if="selectedTribe && captureStats.by_location?.length">
-          <div class="detail-card__header">
-            <span class="detail-card__icon">📸</span>
-            <h2 class="detail-card__title">捕獲地點分佈</h2>
-            <span class="detail-card__badge">{{ captureStats.total }} 筆</span>
-          </div>
-          <div class="bar-list">
-            <div v-for="item in captureStats.by_location" :key="item.label" class="bar-item">
-              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
-              <div class="bar-item__track">
-                <div
-                  class="bar-item__fill bar-item__fill--capture"
-                  :style="{ width: barWidth(item.count, captureStats.total) }"
-                ></div>
-              </div>
-              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
-                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 全部模式：部落分類 by 部落 -->
-        <div class="detail-card" v-if="!selectedTribe && tribalStats.by_tribe?.length">
-          <div class="detail-card__header">
-            <span class="detail-card__icon">🏘️</span>
-            <h2 class="detail-card__title">部落分類分佈</h2>
-            <span class="detail-card__badge">{{ tribalStats.total }} 筆</span>
-          </div>
-          <div class="bar-list">
-            <div
-              v-for="item in tribalStats.by_tribe.map((i) => ({ label: i.tribe, count: i.count }))"
-              :key="item.label"
-              class="bar-item"
-            >
-              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
-              <div class="bar-item__track">
-                <div
-                  class="bar-item__fill bar-item__fill--tribal"
-                  :style="{ width: barWidth(item.count, tribalStats.total) }"
-                ></div>
-              </div>
-              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
-                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 部落模式：部落分類 by 食物分類 -->
-        <div class="detail-card" v-if="selectedTribe">
+        <!-- 部落分類 by 食物分類 -->
+        <div class="detail-card">
           <div class="detail-card__header">
             <span class="detail-card__icon">🏘️</span>
             <h2 class="detail-card__title">食用分類分佈</h2>
-            <span class="detail-card__badge">{{ tribalStats.total }} 種</span>
+            <span class="detail-card__badge">{{ fishStats.total }} 筆</span>
           </div>
           <div class="bar-list">
             <div v-for="item in tribalStats.by_food_category" :key="item.label" class="bar-item">
@@ -158,15 +132,28 @@
                 {{ item.count > 0 ? item.count + ' 筆' : '–' }}
               </div>
             </div>
+            <template v-if="dataCompleteness?.food.unrecorded > 0">
+              <div class="bar-separator"></div>
+              <div class="bar-item bar-item--missing">
+                <div class="bar-item__label">尚未紀錄</div>
+                <div class="bar-item__track">
+                  <div
+                    class="bar-item__fill bar-item__fill--missing"
+                    :style="{ width: barWidth(dataCompleteness.food.unrecorded, dataCompleteness.total) }"
+                  ></div>
+                </div>
+                <div class="bar-item__count bar-item__count--missing">{{ dataCompleteness.food.unrecorded }} 筆</div>
+              </div>
+            </template>
           </div>
         </div>
 
-        <!-- 部落模式：部落分類 by 處理方法 -->
-        <div class="detail-card" v-if="selectedTribe">
+        <!-- 處理方式分佈 -->
+        <div class="detail-card">
           <div class="detail-card__header">
             <span class="detail-card__icon">🔪</span>
             <h2 class="detail-card__title">處理方式分佈</h2>
-            <span class="detail-card__badge">{{ tribalStats.total }} 種</span>
+            <span class="detail-card__badge">{{ fishStats.total }} 筆</span>
           </div>
           <div class="bar-list">
             <div
@@ -185,33 +172,19 @@
                 {{ item.count > 0 ? item.count + ' 筆' : '–' }}
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- 音檔 by 地區（全部模式） -->
-        <div class="detail-card" v-if="!selectedTribe && audioStats.by_locate?.length">
-          <div class="detail-card__header">
-            <span class="detail-card__icon">🔊</span>
-            <h2 class="detail-card__title">音檔地區分佈</h2>
-            <span class="detail-card__badge">{{ audioStats.total }} 筆</span>
-          </div>
-          <div class="bar-list">
-            <div
-              v-for="item in audioStats.by_locate.map((i) => ({ label: i.locate, count: i.count }))"
-              :key="item.label"
-              class="bar-item"
-            >
-              <div class="bar-item__label" :title="item.label">{{ item.label }}</div>
-              <div class="bar-item__track">
-                <div
-                  class="bar-item__fill bar-item__fill--audio"
-                  :style="{ width: barWidth(item.count, audioStats.total) }"
-                ></div>
+            <template v-if="dataCompleteness?.processing.unrecorded > 0">
+              <div class="bar-separator"></div>
+              <div class="bar-item bar-item--missing">
+                <div class="bar-item__label">尚未紀錄</div>
+                <div class="bar-item__track">
+                  <div
+                    class="bar-item__fill bar-item__fill--missing"
+                    :style="{ width: barWidth(dataCompleteness.processing.unrecorded, dataCompleteness.total) }"
+                  ></div>
+                </div>
+                <div class="bar-item__count bar-item__count--missing">{{ dataCompleteness.processing.unrecorded }} 筆</div>
               </div>
-              <div class="bar-item__count" :class="{ 'bar-item__count--zero': item.count === 0 }">
-                {{ item.count > 0 ? item.count + ' 筆' : '–' }}
-              </div>
-            </div>
+            </template>
           </div>
         </div>
 
@@ -247,7 +220,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 
@@ -256,7 +229,6 @@ const props = defineProps({
   tribes: { type: Array, required: true },
   selectedTribe: { type: String, default: null },
   fishStats: { type: Object, required: true },
-  captureStats: { type: Object, required: true },
   tribalStats: { type: Object, required: true },
   audioStats: { type: Object, required: true },
   noteStats: { type: Object, required: true },
@@ -269,8 +241,7 @@ function selectTribe(tribe) {
   if (isLoading.value) return
   isLoading.value = true
 
-  const params = tribe ? { tribe } : {}
-  router.get('/dashboard', params, {
+  router.get('/dashboard', { tribe }, {
     preserveState: false,
     preserveScroll: false,
     onFinish: () => {
@@ -278,6 +249,49 @@ function selectTribe(tribe) {
     },
   })
 }
+
+// ---- 資料完整度計算 ----
+
+const dataCompleteness = computed(() => {
+  const total = props.fishStats.total
+  if (!total) return null
+
+  const unrecorded = total - props.tribalStats.total
+
+  const foodQ = (props.tribalStats.by_food_category ?? []).find(i => i.label === '?')?.count ?? 0
+  const foodMissing = unrecorded + foodQ
+  const foodRate = (total - foodMissing) / total
+
+  const procQ = (props.tribalStats.by_processing_method ?? []).find(i => i.label === '?')?.count ?? 0
+  const procMissing = unrecorded + procQ
+  const procRate = (total - procMissing) / total
+
+  function level(rate) {
+    if (rate >= 0.8) return 'green'
+    if (rate >= 0.6) return 'yellow'
+    return 'red'
+  }
+
+  return {
+    total,
+    food: {
+      recorded: total - foodMissing,
+      q: foodQ,
+      unrecorded,
+      missing: foodMissing,
+      pct: Math.round(foodRate * 100),
+      level: level(foodRate),
+    },
+    processing: {
+      recorded: total - procMissing,
+      q: procQ,
+      unrecorded,
+      missing: procMissing,
+      pct: Math.round(procRate * 100),
+      level: level(procRate),
+    },
+  }
+})
 
 // ---- 工具函式 ----
 
@@ -391,9 +405,6 @@ function barWidth(count, total) {
   background: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
-.tribe-btn__dot--all {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6, #10b981);
-}
 
 .tribe-switcher__loading {
   display: flex;
@@ -449,6 +460,104 @@ function barWidth(count, total) {
 }
 .filter-banner__clear:hover {
   background: #dbeafe;
+}
+
+/* =========================================
+   Tribe Overview / Completeness
+   ========================================= */
+.tribe-overview {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.07),
+    0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.tribe-overview__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+}
+.tribe-overview__total {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+.tribe-overview__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+@media (max-width: 480px) {
+  .tribe-overview__metrics {
+    grid-template-columns: 1fr;
+  }
+}
+.completeness-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.completeness-item__header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.completeness-item__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+.completeness-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.completeness-dot--green  { background: #10b981; }
+.completeness-dot--yellow { background: #f59e0b; }
+.completeness-dot--red    { background: #ef4444; }
+.completeness-item__pct {
+  margin-left: auto;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.completeness-item__pct--green  { color: #059669; }
+.completeness-item__pct--yellow { color: #d97706; }
+.completeness-item__pct--red    { color: #dc2626; }
+.completeness-item__track {
+  background: #f3f4f6;
+  border-radius: 999px;
+  height: 0.5rem;
+  overflow: hidden;
+}
+.completeness-item__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.completeness-item__fill--green  { background: linear-gradient(90deg, #059669, #10b981); }
+.completeness-item__fill--yellow { background: linear-gradient(90deg, #d97706, #f59e0b); }
+.completeness-item__fill--red    { background: linear-gradient(90deg, #dc2626, #ef4444); }
+.completeness-item__detail {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+.completeness-item__missing {
+  color: #f97316;
+  font-weight: 500;
+}
+.completeness-item__q {
+  color: #d97706;
+  font-weight: 500;
 }
 
 /* =========================================
@@ -548,6 +657,28 @@ function barWidth(count, total) {
 }
 .bar-item__fill--processing {
   background: linear-gradient(90deg, #f97316, #fb923c);
+}
+.bar-item__fill--missing {
+  background: repeating-linear-gradient(
+    45deg,
+    #d1d5db,
+    #d1d5db 4px,
+    #e5e7eb 4px,
+    #e5e7eb 8px
+  );
+}
+.bar-separator {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 0.25rem 0;
+}
+.bar-item--missing .bar-item__label {
+  color: #9ca3af;
+  font-style: italic;
+}
+.bar-item__count--missing {
+  color: #f97316;
+  font-weight: 600;
 }
 .bar-item__count {
   font-size: 0.8125rem;

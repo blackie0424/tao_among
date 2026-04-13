@@ -251,40 +251,6 @@ describe('getTribalStats() - 部落篩選模式', function () {
 });
 
 // =========================================================
-// getCaptureStats()
-// =========================================================
-
-describe('getCaptureStats()', function () {
-
-    it('全部模式：回傳 by_tribe 分佈', function () {
-        $fish = Fish::factory()->create();
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino']);
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'iranmeilek']);
-
-        $service = new DashboardService();
-        $stats   = $service->getCaptureStats(null);
-
-        expect($stats['total'])->toBe(2);
-        expect($stats['by_tribe'])->toHaveCount(2);
-        expect($stats['by_location'])->toBeEmpty();
-    });
-
-    it('部落模式：回傳 by_location 分佈', function () {
-        $fish = Fish::factory()->create();
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino', 'location' => '東海岸']);
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino', 'location' => '礁石區']);
-        CaptureRecord::factory()->create(['fish_id' => $fish->id, 'tribe' => 'iranmeilek', 'location' => '東海岸']);
-
-        $service = new DashboardService();
-        $stats   = $service->getCaptureStats('ivalino');
-
-        expect($stats['total'])->toBe(2);
-        expect($stats['by_tribe'])->toBeEmpty();
-        expect($stats['by_location'])->toHaveCount(2);
-    });
-});
-
-// =========================================================
 // getUserStats()
 // =========================================================
 

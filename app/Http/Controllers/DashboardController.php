@@ -15,13 +15,13 @@ class DashboardController extends Controller
 
     public function index(Request $request): Response
     {
-        $selectedTribe = $request->query('tribe', 'iraraley');
+        // tribe 未帶參數或空字串 → 預設 iraraley
+        $selectedTribe = $request->query('tribe') ?: 'iraraley';
 
         return Inertia::render('Dashboard', [
             'tribes'        => $this->service->getTribes(),
             'selectedTribe' => $selectedTribe,
             'fishStats'     => $this->service->getFishStats($selectedTribe),
-            'captureStats'  => $this->service->getCaptureStats($selectedTribe),
             'tribalStats'   => $this->service->getTribalStats($selectedTribe),
             'audioStats'    => $this->service->getAudioStats($selectedTribe),
             'noteStats'     => $this->service->getNoteStats($selectedTribe),

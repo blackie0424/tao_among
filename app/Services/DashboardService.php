@@ -62,43 +62,6 @@ class DashboardService
     }
 
     /**
-     * 取得捕獲紀錄統計資料。
-     *
-     * 全部模式：breakdown 為各部落分佈（by_tribe）。
-     * 部落模式：breakdown 為各捕獲方式分佈（by_method）。
-     *
-     * @param  string|null $tribe
-     * @return array{total: int, by_tribe: Collection, by_method: Collection}
-     */
-    public function getCaptureStats(?string $tribe): array
-    {
-        if ($tribe) {
-            return [
-                'total'       => CaptureRecord::where('tribe', $tribe)->count(),
-                'by_tribe'    => collect(),
-                'by_location' => CaptureRecord::where('tribe', $tribe)
-                    ->selectRaw('location, COUNT(*) as count')
-                    ->groupBy('location')
-                    ->orderByDesc('count')
-                    ->get()
-                    ->map(fn ($row) => ['label' => $row->location ?: '未記錄', 'count' => $row->count])
-                    ->values(),
-            ];
-        }
-
-        return [
-            'total'       => CaptureRecord::count(),
-            'by_tribe'    => CaptureRecord::selectRaw('tribe, COUNT(*) as count')
-                ->groupBy('tribe')
-                ->orderByDesc('count')
-                ->get()
-                ->map(fn ($row) => ['tribe' => $row->tribe ?: '未分類', 'count' => $row->count])
-                ->values(),
-            'by_location' => collect(),
-        ];
-    }
-
-    /**
      * 取得部落分類統計資料。
      *
      * 全部模式：breakdown 為各部落分佈（by_tribe）。
