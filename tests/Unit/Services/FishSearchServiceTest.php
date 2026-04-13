@@ -9,7 +9,7 @@ use App\Services\FishService;
 
 uses(TestCase::class, RefreshDatabase::class);
 
-it('分頁查詢時正確回傳 hasMore 並包含 tribal_classifications 欄位', function () {
+it('分頁查詢時正確回傳 hasMore', function () {
     Fish::factory()->count(6)->create();
     $service = new FishSearchService(app(FishService::class));
     $result = $service->paginate(['perPage' => 5]);
@@ -20,13 +20,9 @@ it('分頁查詢時正確回傳 hasMore 並包含 tribal_classifications 欄位'
     
     $lastReturnedId = end($result['items'])['id'];
     expect($result['pageInfo']['nextCursor'])->toBe($lastReturnedId);
-    
-    // 驗證 tribal_classifications 欄位存在
-    expect($result['items'][0])->toHaveKey('tribal_classifications');
-    expect($result['items'][0]['tribal_classifications'])->toBeArray();
 });
 
-it('items 包含 tribal_classifications 欄位結構', function () {
+it('items 包含必要欄位結構', function () {
     Fish::factory()->create();
     $service = new FishSearchService(app(FishService::class));
     $result = $service->paginate(['perPage' => 10]);
@@ -35,11 +31,11 @@ it('items 包含 tribal_classifications 欄位結構', function () {
     expect($result['items'])->not->toBeEmpty();
     
     $firstItem = $result['items'][0];
-    expect($firstItem)->toHaveKeys(['id', 'name', 'image_url', 'tribal_classifications']);
-    expect($firstItem['tribal_classifications'])->toBeArray();
+    expect($firstItem)->toHaveKeys(['id', 'name', 'image_url']);
+    expect($firstItem)->not->toHaveKey('tribal_classifications');
 });
 
-it('tribal_classifications 包含 tribe 和 food_category 資料', function () {
+it('部落篩選可正常查詢', function () {
     $fish = Fish::factory()->create();
     
     // 建立 3 個部落分類
@@ -63,27 +59,13 @@ it('tribal_classifications 包含 tribe 和 food_category 資料', function () {
     ]);
     
     $service = new FishSearchService(app(FishService::class));
-    $result = $service->paginate(['perPage' => 10]);
+    $result = $service->paginate(['perPage' => 10, 'tribe' => 'ivalino']);
     
     expect($result['items'])->toHaveCount(1);
-    $item = $result['items'][0];
-    expect($item['tribal_classifications'])->toHaveCount(3);
-    
-    // 驗證每個分類都有 tribe 和 food_category
-    foreach ($item['tribal_classifications'] as $tc) {
-        expect($tc)->toHaveKeys(['tribe', 'food_category']);
-        expect($tc['tribe'])->not->toBeEmpty();
-    }
-    
-    // 驗證特定值
-    $tribes = array_column($item['tribal_classifications'], 'tribe');
-    expect($tribes)->toContain('ivalino', 'iranmeilek', 'imowrod');
-    
-    $foodCategories = array_column($item['tribal_classifications'], 'food_category');
-    expect($foodCategories)->toContain('oyod', 'rahet');
+    expect($result['items'][0]['id'])->toBe($fish->id);
 });
 
-it('沒有部落分類的魚類回傳空陣列', function () {
+it('沒有部落分類的魚類也能正常回傳', function () {
     Fish::factory()->create();
     // 不建立任何 tribal_classifications
     
@@ -92,11 +74,11 @@ it('沒有部落分類的魚類回傳空陣列', function () {
     
     expect($result['items'])->toHaveCount(1);
     $item = $result['items'][0];
-    expect($item)->toHaveKey('tribal_classifications');
-    expect($item['tribal_classifications'])->toBeArray()->toBeEmpty();
+    expect($item)->toHaveKeys(['id', 'name', 'image_url']);
+    expect($item)->not->toHaveKey('tribal_classifications');
 });
 
-it('tribal_classifications 只包含 tribe 和 food_category 欄位', function () {
+it('items 不包含多餘欄位', function () {
     $fish = Fish::factory()->create();
     
     TribalClassification::create([
@@ -110,18 +92,11 @@ it('tribal_classifications 只包含 tribe 和 food_category 欄位', function (
     $service = new FishSearchService(app(FishService::class));
     $result = $service->paginate(['perPage' => 10]);
     
-    $tc = $result['items'][0]['tribal_classifications'][0];
+    $item = $result['items'][0];
     
     // 應該包含的欄位
-    expect($tc)->toHaveKeys(['tribe', 'food_category']);
+    expect($item)->toHaveKeys(['id', 'name', 'image_url']);
     
-    // 不應該包含的欄位
-    expect($tc)->not->toHaveKeys([
-        'processing_method',
-        'notes',
-        'id',
-        'fish_id',
-        'created_at',
-        'updated_at'
-    ]);
+    // 不應該包含 tribal_classifications
+    expect($item)->not->toHaveKey('tribal_classifications');
 });

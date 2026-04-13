@@ -300,7 +300,6 @@ class FishSearchService
         $query = Fish::query()
             ->select($selects)
             ->with([
-                'tribalClassifications:id,fish_id,tribe,food_category',
                 'displayCaptureRecord:id,image_path' // 預載圖鑑主圖關聯（僅需 id 和 image_path）
             ])
             ->orderByDesc('id');
@@ -378,10 +377,6 @@ class FishSearchService
                 'image_url' => $f->image_url,
                 'display_image_url' => $f->display_image_url, // 優先使用圖鑑主圖
                 'audio_url' => $f->audio_url, // 透過模型 accessor 轉換為完整播放連結
-                'tribal_classifications' => $f->tribalClassifications->map(fn ($tc) => [
-                    'tribe' => $tc->tribe,
-                    'food_category' => $tc->food_category,
-                ])->all(),
             ];
         })->all();
 
