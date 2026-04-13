@@ -314,20 +314,32 @@ class FishSearchService
             $tribe = $filters['tribe'] ?? null;
             $food = $filters['food_category'] ?? null;
             $proc = $filters['processing_method'] ?? null;
-            $query->whereHas('tribalClassifications', function ($q) use ($tribe, $food, $proc) {
-                if (!empty($tribe)) {
-                    // FR-003 tribe 等值（LOWER=LOWER）
-                    $q->whereRaw('LOWER(tribe) = LOWER(?)', [$tribe]);
+
+            // 尚未紀錄：該部落完全沒有 tribal_classification 紀錄（FR-003 特殊值）
+            if ($food === '尚未紀錄' || $proc === '尚未紀錄') {
+                if ($tribe) {
+                    $query->whereDoesntHave('tribalClassifications', function ($q) use ($tribe) {
+                        $q->whereRaw('LOWER(tribe) = LOWER(?)', [$tribe]);
+                    });
+                } else {
+                    $query->doesntHave('tribalClassifications');
                 }
-                if (!empty($food)) {
-                    // FR-003 food_category 等值（LOWER=LOWER）
-                    $q->whereRaw('LOWER(food_category) = LOWER(?)', [$food]);
-                }
-                if (!empty($proc)) {
-                    // FR-003 processing_method 模糊大小寫不敏感
-                    $q->whereRaw('LOWER(processing_method) LIKE ?', ['%' . strtolower($proc) . '%']);
-                }
-            });
+            } else {
+                $query->whereHas('tribalClassifications', function ($q) use ($tribe, $food, $proc) {
+                    if (!empty($tribe)) {
+                        // FR-003 tribe 等值（LOWER=LOWER）
+                        $q->whereRaw('LOWER(tribe) = LOWER(?)', [$tribe]);
+                    }
+                    if (!empty($food)) {
+                        // FR-003 food_category 等值（LOWER=LOWER）
+                        $q->whereRaw('LOWER(food_category) = LOWER(?)', [$food]);
+                    }
+                    if (!empty($proc)) {
+                        // FR-003 processing_method 模糊大小寫不敏感
+                        $q->whereRaw('LOWER(processing_method) LIKE ?', ['%' . strtolower($proc) . '%']);
+                    }
+                });
+            }
         }
         if (!empty($filters['capture_location']) || !empty($filters['capture_method'])) {
             $loc = $filters['capture_location'] ?? null;
