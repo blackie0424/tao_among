@@ -99,7 +99,7 @@
               >
               <a
                 v-if="dataCompleteness.food.unrecorded > 0"
-                :href="`/fishs?tribe=${selectedTribe}&food_category=__missing__`"
+                :href="`/fishs?tribe=${selectedTribe}&food_category=尚未紀錄`"
                 class="completeness-item__link completeness-item__link--missing"
                 >尚未紀錄 {{ dataCompleteness.food.unrecorded }} 筆</a
               >
@@ -137,7 +137,7 @@
               >
               <a
                 v-if="dataCompleteness.processing.unrecorded > 0"
-                :href="`/fishs?tribe=${selectedTribe}&processing_method=__missing__`"
+                :href="`/fishs?tribe=${selectedTribe}&processing_method=尚未紀錄`"
                 class="completeness-item__link completeness-item__link--missing"
                 >尚未紀錄 {{ dataCompleteness.processing.unrecorded }} 筆</a
               >
@@ -172,7 +172,7 @@
               <div class="bar-separator"></div>
               <a
                 class="bar-item bar-item--missing bar-item--link"
-                :href="`/fishs?tribe=${selectedTribe}&food_category=__missing__`"
+                :href="`/fishs?tribe=${selectedTribe}&food_category=尚未紀錄`"
               >
                 <div class="bar-item__label">尚未紀錄</div>
                 <div class="bar-item__track">
@@ -219,7 +219,7 @@
               <div class="bar-separator"></div>
               <a
                 class="bar-item bar-item--missing bar-item--link"
-                :href="`/fishs?tribe=${selectedTribe}&processing_method=__missing__`"
+                :href="`/fishs?tribe=${selectedTribe}&processing_method=尚未紀錄`"
               >
                 <div class="bar-item__label">尚未紀錄</div>
                 <div class="bar-item__track">

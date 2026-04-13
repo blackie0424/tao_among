@@ -58,7 +58,7 @@ class FishSearchService
         $processingMethod = $filters['processing_method'] ?? null;
 
         // 尚未紀錄：該部落完全沒有 tribal_classification 紀錄
-        if ($foodCategory === '__missing__' || $processingMethod === '__missing__') {
+        if ($foodCategory === '尚未紀錄' || $processingMethod === '尚未紀錄') {
             if ($tribe) {
                 $query->whereDoesntHave('tribalClassifications', function ($q) use ($tribe) {
                     $q->where('tribe', $tribe);

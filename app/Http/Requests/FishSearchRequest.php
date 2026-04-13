@@ -48,7 +48,7 @@ class FishSearchRequest extends FormRequest
         foreach ($textFields as $f) {
             if ($this->has($f)) {
                 $v = trim((string)$this->input($f));
-                // __missing__ 是特殊篩選值，保留不轉 null；空字串轉 null
+                // 尚未紀錄 是特殊篩選值，保留不轉 null；空字串轉 null
                 $data[$f] = ($v === '') ? null : $v;
             }
         }

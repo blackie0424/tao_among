@@ -99,7 +99,6 @@
 import { ref, watch } from 'vue'
 
 const optionLabelMap = {
-  '__missing__': '尚未紀錄',
   '?': '待確認(?)',
 }
 const optionLabel = (val) => optionLabelMap[val] ?? val

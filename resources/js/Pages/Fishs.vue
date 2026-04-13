@@ -7,37 +7,9 @@
     mobileBackText="首頁"
     :showBottomNav="false"
   >
-    <!-- Desktop Nav Slot: 顯示搜尋統計與按鈕 -->
+    <!-- Desktop Nav Slot: 搜尋與新增按鈕 -->
     <template #desktop-nav>
       <div class="flex items-center justify-end w-full px-4 h-10 gap-6">
-        <div
-          class="text-base lg:text-lg font-bold text-gray-700 flex items-center flex-wrap gap-x-1"
-        >
-          <template v-if="tribeStats">
-            系統收錄
-            <span class="text-teal-700 text-xl lg:text-2xl mx-1 font-extrabold">{{
-              totalCount
-            }}</span>
-            筆，{{ tribeStats.tribe }} 部落分類
-            <span class="text-teal-700 text-xl lg:text-2xl mx-1 font-extrabold">{{
-              tribeStats.foodCategoryCount
-            }}</span>
-            筆、處理方式
-            <span class="text-teal-700 text-xl lg:text-2xl mx-1 font-extrabold">{{
-              tribeStats.processingMethodCount
-            }}</span>
-            筆有紀錄
-          </template>
-          <template v-else>
-            資料總筆數
-            <span class="text-teal-700 text-xl lg:text-2xl mx-1.5 font-extrabold">{{
-              totalCount
-            }}</span>
-          </template>
-        </div>
-
-        <div class="h-5 w-px bg-gray-300"></div>
-
         <div class="flex items-center gap-3">
           <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
           <Link
@@ -53,22 +25,9 @@
       </div>
     </template>
 
-    <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 (Mobile也加強顯示) -->
+    <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 -->
     <template #mobile-actions>
-      <div class="flex items-center justify-between px-2 w-full">
-        <div class="text-sm font-bold text-gray-600 flex items-center flex-wrap gap-x-0.5">
-          <template v-if="tribeStats">
-            共 <span class="text-teal-700 mx-0.5 text-base">{{ totalCount }}</span> 筆｜
-            {{ tribeStats.tribe }}
-            分類 <span class="text-teal-700 mx-0.5">{{ tribeStats.foodCategoryCount }}</span
-            >/ 處理
-            <span class="text-teal-700 mx-0.5">{{ tribeStats.processingMethodCount }}</span> 筆
-          </template>
-          <template v-else>
-            總筆數 <span class="text-teal-700 ml-1 text-base">{{ totalCount }}</span>
-          </template>
-        </div>
-
+      <div class="flex items-center justify-end px-2 w-full">
         <div class="flex items-center gap-3">
           <Link
             v-if="user"

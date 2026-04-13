@@ -91,8 +91,8 @@ class DashboardService
                 ->pluck('count', 'processing_method')
                 ->toArray();
 
-            $configFoodCategories    = array_filter(config('fish_options.food_categories', []), fn ($v) => $v !== '__missing__');
-            $configProcessingMethods = array_filter(config('fish_options.processing_methods', []), fn ($v) => $v !== '__missing__');
+            $configFoodCategories    = array_filter(config('fish_options.food_categories', []), fn ($v) => $v !== '尚未紀錄');
+            $configProcessingMethods = array_filter(config('fish_options.processing_methods', []), fn ($v) => $v !== '尚未紀錄');
 
             // 合併 config 定義的選項與實際資料（config 順序優先，補入 0 筆）
             $allFoodKeys    = array_unique(array_merge($configFoodCategories, array_keys($foodCategoryMap)));
