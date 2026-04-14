@@ -59,7 +59,7 @@ class FishController extends Controller
         // 但 tribe 需傳入以計算部落專屬統計（n, m）
         $searchStats = $this->fishSearchService->getSearchStats($filters);
         // 傳給前端的篩選條件：保留前端使用的 key 名（food_category）
-        $frontendFilters = array_intersect_key($filters, array_flip(['name', 'tribe', 'food_category', 'processing_method', 'capture_location', 'capture_method']));
+        $frontendFilters = array_intersect_key($filters, array_flip(['name', 'tribe', 'food_category', 'processing_method', 'capture_location', 'capture_method', 'without_audio']));
         return Inertia::render('Fishs', [
             'filters' => $frontendFilters,
             'searchOptions' => $searchOptions,

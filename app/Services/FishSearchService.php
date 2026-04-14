@@ -354,6 +354,10 @@ class FishSearchService
                 }
             });
         }
+        // 無音檔篩選：全域顯示完全沒有 FishAudio 紀錄的魚類
+        if (!empty($filters['without_audio'])) {
+            $query->doesntHave('audios');
+        }
         if (!is_null($lastId)) {
             // FR-005 游標邏輯 id < last_id
             $query->where('id', '<', (int)$lastId); // 游標條件（FR-005）

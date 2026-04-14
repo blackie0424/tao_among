@@ -143,10 +143,40 @@
               >
             </div>
           </div>
+          <!-- 魚類發音（音檔） -->
+          <div class="completeness-item">
+            <div class="completeness-item__header">
+              <span class="completeness-item__label">魚類發音</span>
+              <span
+                class="completeness-dot"
+                :class="`completeness-dot--${dataCompleteness.audio.level}`"
+              ></span>
+              <span
+                class="completeness-item__pct"
+                :class="`completeness-item__pct--${dataCompleteness.audio.level}`"
+              >
+                {{ dataCompleteness.audio.pct }}%
+              </span>
+            </div>
+            <div class="completeness-item__track">
+              <div
+                class="completeness-item__fill"
+                :class="`completeness-item__fill--${dataCompleteness.audio.level}`"
+                :style="{ width: dataCompleteness.audio.pct + '%' }"
+              ></div>
+            </div>
+            <div class="completeness-item__detail">
+              <span>有音檔 {{ dataCompleteness.audio.with }} 筆</span>
+              <a
+                v-if="dataCompleteness.audio.without > 0"
+                href="/fishs?without_audio=1"
+                class="completeness-item__link completeness-item__link--missing"
+                >尚無音檔 {{ dataCompleteness.audio.without }} 筆</a
+              >
+            </div>
+          </div>
         </div>
       </div>
-
-      <!-- 詳細 Breakdown 區域 -->
       <div class="detail-grid">
         <!-- 部落分類 by 食物分類 -->
         <div class="detail-card">
@@ -324,6 +354,9 @@ const dataCompleteness = computed(() => {
   const procMissing = unrecorded + procQ
   const procRate = (total - procMissing) / total
 
+  const withoutAudio = props.fishStats.without_audio ?? 0
+  const audioRate = (total - withoutAudio) / total
+
   function level(rate) {
     if (rate >= 0.8) return 'green'
     if (rate >= 0.6) return 'yellow'
@@ -347,6 +380,12 @@ const dataCompleteness = computed(() => {
       missing: procMissing,
       pct: Math.round(procRate * 100),
       level: level(procRate),
+    },
+    audio: {
+      with: total - withoutAudio,
+      without: withoutAudio,
+      pct: Math.round(audioRate * 100),
+      level: level(audioRate),
     },
   }
 })

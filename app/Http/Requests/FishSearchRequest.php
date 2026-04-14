@@ -27,6 +27,7 @@ class FishSearchRequest extends FormRequest
             'capture_method' => ['nullable', 'string'],
             'processing_method' => ['nullable', 'string'],
             'food_category' => ['nullable', 'string'],
+            'without_audio' => ['nullable', 'string'],
             'perPage' => ['nullable'],
             'last_id' => ['nullable', 'integer', 'min:1'],
         ];
@@ -75,6 +76,9 @@ class FishSearchRequest extends FormRequest
 
     public function cleaned(): array
     {
+        $raw = $this->input('without_audio');
+        $withoutAudio = (!empty($raw) && $raw !== '0' && $raw !== 'false') ? true : null;
+
         return [
             'name' => $this->input('name'),
             'tribe' => $this->input('tribe'),
@@ -82,6 +86,7 @@ class FishSearchRequest extends FormRequest
             'capture_method' => $this->input('capture_method'),
             'processing_method' => $this->input('processing_method'),
             'food_category' => $this->input('food_category'),
+            'without_audio' => $withoutAudio,
             'perPage' => (int)$this->input('perPage'),
             'last_id' => $this->input('last_id'),
         ];

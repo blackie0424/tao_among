@@ -140,8 +140,11 @@ const currentFilters = ref({
   food_category: '',
   processing_method: '',
   capture_location: '',
+  without_audio: '',
   // capture_method 已暫時移除
   ...props.filters,
+  // without_audio 從 props 傳入時可能是 boolean true，統一轉為 '1' 供 URL 使用
+  without_audio: props.filters?.without_audio ? 1 : '',
 })
 
 // 新列表狀態（使用後端精簡欄位）
@@ -189,7 +192,13 @@ const restoreStateFromStorage = async () => {
     // 檢查篩選條件是否一致（若 URL 帶有不同篩選則不還原）
     const urlFilters = props.filters || {}
     const cachedFilters = state.filters || {}
-    const filterKeys = ['tribe', 'food_category', 'processing_method', 'capture_location']
+    const filterKeys = [
+      'tribe',
+      'food_category',
+      'processing_method',
+      'capture_location',
+      'without_audio',
+    ]
     const filtersMatch = filterKeys.every(
       (key) => (urlFilters[key] || '') === (cachedFilters[key] || '')
     )
@@ -346,6 +355,8 @@ const appliedFilters = computed(() => {
     if (item.value) chips.push({ key: item.key, label: item.label, value: item.value })
   }
   if (nameQuery.value) chips.push({ key: 'name', label: '名稱', value: nameQuery.value })
+  if (currentFilters.value.without_audio)
+    chips.push({ key: 'without_audio', label: '音檔', value: '尚無音檔' })
   return chips
 })
 
@@ -370,6 +381,7 @@ const clearUnifiedSearchForm = () => {
     food_category: '',
     processing_method: '',
     capture_location: '',
+    without_audio: '',
     // capture_method 已暫時移除
   }
   nameQuery.value = ''
@@ -384,6 +396,8 @@ const removeFilter = (key) => {
   if (key === 'name') {
     nameQuery.value = ''
     // 若 props.filters 仍含 name，不動它，只以目前狀態為準
+  } else if (key === 'without_audio') {
+    currentFilters.value.without_audio = ''
   } else if (key in currentFilters.value) {
     currentFilters.value[key] = ''
   }

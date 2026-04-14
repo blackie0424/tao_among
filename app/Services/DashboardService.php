@@ -45,18 +45,24 @@ class DashboardService
     public function getFishStats(?string $tribe): array
     {
         if ($tribe) {
+            $total      = Fish::count();
+            $withAudio  = Fish::whereHas('audios', fn ($q) => $q->where('locate', $tribe))->count();
             return [
-                'total'                      => Fish::count(),
+                'total'                      => $total,
                 'with_capture_record'        => Fish::whereHas('captureRecords', fn ($q) => $q->where('tribe', $tribe))->count(),
-                'with_audio'                 => Fish::whereHas('audios', fn ($q) => $q->where('locate', $tribe))->count(),
+                'with_audio'                 => $withAudio,
+                'without_audio'              => $total - $withAudio,
                 'with_tribal_classification' => Fish::whereHas('tribalClassifications', fn ($q) => $q->where('tribe', $tribe))->count(),
             ];
         }
 
+        $total     = Fish::count();
+        $withAudio = Fish::has('audios')->count();
         return [
-            'total'                      => Fish::count(),
+            'total'                      => $total,
             'with_capture_record'        => Fish::has('captureRecords')->count(),
-            'with_audio'                 => Fish::has('audios')->count(),
+            'with_audio'                 => $withAudio,
+            'without_audio'              => $total - $withAudio,
             'with_tribal_classification' => Fish::has('tribalClassifications')->count(),
         ];
     }
