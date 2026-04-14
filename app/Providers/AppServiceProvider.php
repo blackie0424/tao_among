@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\FishStatisticsServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
 use App\Contracts\RichMenuServiceInterface;
+use App\Services\FishStatisticsService;
 use App\Services\S3StorageService;
 use App\Services\SupabaseStorageService;
 use App\Services\LineUserService;
@@ -33,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
         // LINE 角色機制服務綁定
         $this->app->bind(RichMenuServiceInterface::class, RichMenuService::class);
         $this->app->bind(LineUserServiceInterface::class, LineUserService::class);
+
+        // 魚類統計報告服務綁定
+        $this->app->bind(FishStatisticsServiceInterface::class, FishStatisticsService::class);
     }
 
     /**

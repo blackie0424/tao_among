@@ -37,7 +37,7 @@
             >
               <option value="">請選擇分類</option>
               <option v-for="fc in searchOptions.dietaryClassifications" :key="fc" :value="fc">
-                {{ fc }}
+                {{ optionLabel(fc) }}
               </option>
             </select>
           </div>
@@ -50,7 +50,7 @@
             >
               <option value="">請選擇魚鱗的處理方式</option>
               <option v-for="pm in searchOptions.processingMethods" :key="pm" :value="pm">
-                {{ pm }}
+                {{ optionLabel(pm) }}
               </option>
             </select>
           </div>
@@ -97,6 +97,11 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+
+const optionLabelMap = {
+  '?': '待確認(?)',
+}
+const optionLabel = (val) => optionLabelMap[val] ?? val
 
 const props = defineProps({
   show: {

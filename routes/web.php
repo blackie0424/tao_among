@@ -7,7 +7,9 @@ use App\Http\Controllers\KnowledgeHubController;
 use App\Http\Controllers\CaptureRecordController;
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\FishManagementController;
+use App\Http\Controllers\FishReportController;
 use App\Http\Controllers\LineUserController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LineLoginController;
 
 use App\Http\Controllers\AuthController;
@@ -98,6 +100,8 @@ Route::middleware(['auth'])->group(function () {
     // LINE 使用者管理（僅 admin 可存取）
     // -------------------------------------------------
     Route::middleware(['admin'])->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/fish-report', [FishReportController::class, 'index'])->name('fish-report');
         Route::get('/line-users', [LineUserController::class, 'index'])->name('line-users.index');
         Route::put('/line-users/{lineUser}/role', [LineUserController::class, 'updateRole'])->name('line-users.update-role');
     });

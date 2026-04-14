@@ -53,11 +53,26 @@ class FishSearchService
      */
     protected function applyTribalFilters(Builder $query, array $filters)
     {
+        $tribe           = $filters['tribe'] ?? null;
+        $foodCategory    = $filters['food_category'] ?? $filters['dietary_classification'] ?? null;
+        $processingMethod = $filters['processing_method'] ?? null;
+
+        // 尚未紀錄：該部落完全沒有 tribal_classification 紀錄
+        if ($foodCategory === '尚未紀錄' || $processingMethod === '尚未紀錄') {
+            if ($tribe) {
+                $query->whereDoesntHave('tribalClassifications', function ($q) use ($tribe) {
+                    $q->where('tribe', $tribe);
+                });
+            } else {
+                $query->doesntHave('tribalClassifications');
+            }
+            return;
+        }
+
         $tribalFilters = array_filter([
-            'tribe' => $filters['tribe'] ?? null,
-            // 同時支援 food_category（cleaned 格式）與 dietary_classification（legacy 格式）
-            'food_category' => $filters['food_category'] ?? $filters['dietary_classification'] ?? null,
-            'processing_method' => $filters['processing_method'] ?? null,
+            'tribe'             => $tribe,
+            'food_category'     => $foodCategory,
+            'processing_method' => $processingMethod,
         ]);
 
         if (!empty($tribalFilters)) {
@@ -101,11 +116,11 @@ class FishSearchService
     public function getSearchOptions()
     {
         return [
-            'tribes' => ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'],
-            'dietaryClassifications' => ['oyod', 'rahet', '不分類', '不食用', '?', ''],
-            'processingMethods' => $this->getUniqueProcessingMethods(),
-            'captureMethods' => $this->getUniqueCaptureMethods(),
-            'captureLocations' => $this->getUniqueCaptureLocations(),
+            'tribes'                 => config('fish_options.tribes', []),
+            'dietaryClassifications' => config('fish_options.food_categories', []),
+            'processingMethods'      => config('fish_options.processing_methods', []),
+            'captureMethods'         => $this->getUniqueCaptureMethods(),
+            'captureLocations'       => $this->getUniqueCaptureLocations(),
         ];
     }
 
@@ -285,7 +300,6 @@ class FishSearchService
         $query = Fish::query()
             ->select($selects)
             ->with([
-                'tribalClassifications:id,fish_id,tribe,food_category',
                 'displayCaptureRecord:id,image_path' // 預載圖鑑主圖關聯（僅需 id 和 image_path）
             ])
             ->orderByDesc('id');
@@ -299,20 +313,32 @@ class FishSearchService
             $tribe = $filters['tribe'] ?? null;
             $food = $filters['food_category'] ?? null;
             $proc = $filters['processing_method'] ?? null;
-            $query->whereHas('tribalClassifications', function ($q) use ($tribe, $food, $proc) {
-                if (!empty($tribe)) {
-                    // FR-003 tribe 等值（LOWER=LOWER）
-                    $q->whereRaw('LOWER(tribe) = LOWER(?)', [$tribe]);
+
+            // 尚未紀錄：該部落完全沒有 tribal_classification 紀錄（FR-003 特殊值）
+            if ($food === '尚未紀錄' || $proc === '尚未紀錄') {
+                if ($tribe) {
+                    $query->whereDoesntHave('tribalClassifications', function ($q) use ($tribe) {
+                        $q->whereRaw('LOWER(tribe) = LOWER(?)', [$tribe]);
+                    });
+                } else {
+                    $query->doesntHave('tribalClassifications');
                 }
-                if (!empty($food)) {
-                    // FR-003 food_category 等值（LOWER=LOWER）
-                    $q->whereRaw('LOWER(food_category) = LOWER(?)', [$food]);
-                }
-                if (!empty($proc)) {
-                    // FR-003 processing_method 模糊大小寫不敏感
-                    $q->whereRaw('LOWER(processing_method) LIKE ?', ['%' . strtolower($proc) . '%']);
-                }
-            });
+            } else {
+                $query->whereHas('tribalClassifications', function ($q) use ($tribe, $food, $proc) {
+                    if (!empty($tribe)) {
+                        // FR-003 tribe 等值（LOWER=LOWER）
+                        $q->whereRaw('LOWER(tribe) = LOWER(?)', [$tribe]);
+                    }
+                    if (!empty($food)) {
+                        // FR-003 food_category 等值（LOWER=LOWER）
+                        $q->whereRaw('LOWER(food_category) = LOWER(?)', [$food]);
+                    }
+                    if (!empty($proc)) {
+                        // FR-003 processing_method 模糊大小寫不敏感
+                        $q->whereRaw('LOWER(processing_method) LIKE ?', ['%' . strtolower($proc) . '%']);
+                    }
+                });
+            }
         }
         if (!empty($filters['capture_location']) || !empty($filters['capture_method'])) {
             $loc = $filters['capture_location'] ?? null;
@@ -327,6 +353,10 @@ class FishSearchService
                     $q->whereRaw('LOWER(capture_method) LIKE ?', ['%' . strtolower($met) . '%']);
                 }
             });
+        }
+        // 無音檔篩選：全域顯示完全沒有 FishAudio 紀錄的魚類
+        if (!empty($filters['without_audio'])) {
+            $query->doesntHave('audios');
         }
         if (!is_null($lastId)) {
             // FR-005 游標邏輯 id < last_id
@@ -351,10 +381,6 @@ class FishSearchService
                 'image_url' => $f->image_url,
                 'display_image_url' => $f->display_image_url, // 優先使用圖鑑主圖
                 'audio_url' => $f->audio_url, // 透過模型 accessor 轉換為完整播放連結
-                'tribal_classifications' => $f->tribalClassifications->map(fn ($tc) => [
-                    'tribe' => $tc->tribe,
-                    'food_category' => $tc->food_category,
-                ])->all(),
             ];
         })->all();
 
