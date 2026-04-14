@@ -5,57 +5,60 @@
     :page-title="`${selectedTribe} 的統計資料`"
     mobile-back-url="/fishs"
     mobile-back-text="among no tao"
+    breadcrumb-page="統計面板"
   >
     <div class="dashboard-root">
-      <!-- 頁面標題 -->
-      <div class="dashboard-header">
-        <div class="dashboard-header__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
+      <!-- 頁面標題 + 部落切換器（同排，空間不足時換行） -->
+      <div class="dashboard-top">
+        <div class="dashboard-header">
+          <div class="dashboard-header__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="dashboard-header__title">{{ selectedTribe }} 的統計資料</h1>
+            <p class="dashboard-header__subtitle">掌握 {{ selectedTribe }} 部落的資料統計</p>
+          </div>
         </div>
-        <div>
-          <h1 class="dashboard-header__title">{{ selectedTribe }} 的統計資料</h1>
-          <p class="dashboard-header__subtitle">掌握 {{ selectedTribe }} 部落的資料統計</p>
-        </div>
-      </div>
 
-      <!-- 部落切換器 -->
-      <div class="tribe-switcher">
-        <div class="tribe-switcher__inner">
-          <button
-            v-for="tribe in tribes"
-            :id="`tribe-btn-${tribe}`"
-            :key="tribe"
-            class="tribe-btn"
-            :class="{ 'tribe-btn--active': selectedTribe === tribe }"
-            :disabled="isLoading && selectedTribe === tribe"
-            @click="selectTribe(tribe)"
-          >
-            <span class="tribe-btn__dot"></span>
-            {{ tribe }}
-          </button>
-        </div>
-        <!-- 載入指示 -->
-        <div v-if="isLoading" class="tribe-switcher__loading">
-          <svg
-            class="loading-spinner"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16 8 8 0 01-8-8z"
-            />
-          </svg>
-          載入中…
+        <!-- 部落切換器 -->
+        <div class="tribe-switcher">
+          <div class="tribe-switcher__inner">
+            <button
+              v-for="tribe in tribes"
+              :id="`tribe-btn-${tribe}`"
+              :key="tribe"
+              class="tribe-btn"
+              :class="{ 'tribe-btn--active': selectedTribe === tribe }"
+              :disabled="isLoading && selectedTribe === tribe"
+              @click="selectTribe(tribe)"
+            >
+              <span class="tribe-btn__dot"></span>
+              {{ tribe }}
+            </button>
+          </div>
+          <!-- 載入指示 -->
+          <div v-if="isLoading" class="tribe-switcher__loading">
+            <svg
+              class="loading-spinner"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16 8 8 0 01-8-8z"
+              />
+            </svg>
+            載入中…
+          </div>
         </div>
       </div>
 
@@ -409,12 +412,23 @@ function barWidth(count, total) {
 }
 
 /* =========================================
+   Top Row（標題 + 部落切換器）
+   ========================================= */
+.dashboard-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* =========================================
    Header
    ========================================= */
 .dashboard-header {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
 }
 .dashboard-header__icon {
   width: 3rem;
@@ -452,6 +466,7 @@ function barWidth(count, total) {
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+  margin-left: auto;
 }
 .tribe-switcher__inner {
   display: flex;
