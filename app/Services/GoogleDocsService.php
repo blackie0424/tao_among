@@ -215,15 +215,16 @@ class GoogleDocsService
         }
 
         // --- 3. 地方知識（部落分類表格）---
+        // 固定只顯示 imowrod 與 iraraley 兩個部落；有任一筆資料就建立表格
         $classifications = $fish->tribalClassifications
             ->whereIn('tribe', ['imowrod', 'iraraley'])
             ->values();
 
         if ($classifications->count() > 0) {
-            $rows = $classifications->count() + 1; // +1 for header row
+            // 固定 3 行：標題列 + imowrod 列 + iraraley 列，確保 Phase 2 填表時行列對齊
             $requests[] = new DocsRequest([
                 'insertTable' => [
-                    'rows' => $rows,
+                    'rows' => 3,
                     'columns' => 3,
                     'location' => ['index' => 1],
                 ],
@@ -336,13 +337,15 @@ class GoogleDocsService
 
         $allInserts = [];
         $tableIndex = 0;
+        $targetTribes = ['imowrod', 'iraraley'];
 
         foreach ($fishes as $fish) {
-            $classifications = $fish->tribalClassifications
-                ->whereIn('tribe', ['imowrod', 'iraraley'])
-                ->values();
+            // 與 Phase 1 相同的條件：有任一 imowrod/iraraley 資料才有表格
+            $hasClassification = $fish->tribalClassifications
+                ->whereIn('tribe', $targetTribes)
+                ->count() > 0;
 
-            if ($classifications->count() === 0) {
+            if (!$hasClassification) {
                 continue;
             }
 
@@ -364,20 +367,26 @@ class GoogleDocsService
                 }
             }
 
-            // 資料列
-            foreach ($classifications as $classIdx => $classification) {
-                $rowIndex = $classIdx + 1;
+            // 資料列：以 tribe 名稱為 key 查找，固定順序 imowrod → iraraley
+            // 若該部落無資料，顯示「尚未紀錄」
+            $classificationsByTribe = $fish->tribalClassifications
+                ->whereIn('tribe', $targetTribes)
+                ->keyBy('tribe');
+
+            foreach ($targetTribes as $rowIdx => $tribe) {
+                $rowIndex = $rowIdx + 1;
                 if (!isset($tableRows[$rowIndex])) {
                     continue;
                 }
                 $cells = $tableRows[$rowIndex]->getTableCells();
+                $c = $classificationsByTribe->get($tribe);
                 $values = [
-                    $this->formatTribeName($classification->tribe),
-                    $classification->food_category ?? '',
-                    $classification->processing_method ?? '',
+                    $this->formatTribeName($tribe),
+                    $c ? ($c->food_category ?: '尚未紀錄') : '尚未紀錄',
+                    $c ? ($c->processing_method ?: '尚未紀錄') : '尚未紀錄',
                 ];
                 foreach ($values as $colIdx => $value) {
-                    if (isset($cells[$colIdx]) && $value !== '') {
+                    if (isset($cells[$colIdx])) {
                         $pos = $cells[$colIdx]->getContent()[0]->getStartIndex();
                         $allInserts[] = ['pos' => $pos, 'text' => $value];
                     }
