@@ -123,29 +123,27 @@ class GoogleDocsService
         $fishList = $fishes->values()->all();
         $lastFishIndex = count($fishList) - 1;
 
-        // 將所有魚的請求按魚為單位分批（避免超過 API 每批 500 個請求上限）
-        $currentBatch = [];
-        $currentCount = 0;
-
+        // 每隻魚獨立執行一次 batchUpdate。
+        // 若某隻魚的批次因圖片問題失敗，自動移除 insertInlineImage 請求後重試，
+        // 確保一張問題圖片不會導致整份文件匯出失敗。
         for ($i = $lastFishIndex; $i >= 0; $i--) {
             $fishReqs = $this->buildFishRequests($fishList[$i], $i === $lastFishIndex);
-            $fishReqCount = count($fishReqs);
-
-            // 若加入後超過 400，先送出目前批次再開新批次
-            if ($currentCount + $fishReqCount > 400 && !empty($currentBatch)) {
-                $this->executeBatchUpdate($docId, $currentBatch);
-                $currentBatch = [];
-                $currentCount = 0;
+            if (empty($fishReqs)) {
+                continue;
             }
 
-            foreach ($fishReqs as $req) {
-                $currentBatch[] = $req;
+            try {
+                $this->executeBatchUpdate($docId, $fishReqs);
+            } catch (\Google\Service\Exception $e) {
+                // 移除所有 insertInlineImage 請求後重試
+                $reqs = array_values(array_filter(
+                    $fishReqs,
+                    fn (DocsRequest $r) => $r->getInsertInlineImage() === null
+                ));
+                if (!empty($reqs)) {
+                    $this->executeBatchUpdate($docId, $reqs);
+                }
             }
-            $currentCount += $fishReqCount;
-        }
-
-        if (!empty($currentBatch)) {
-            $this->executeBatchUpdate($docId, $currentBatch);
         }
     }
 
