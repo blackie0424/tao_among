@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'google' => [
+        'credentials_path' => env('GOOGLE_CREDENTIALS_PATH', 'app/google-credentials.json'),
+        'docs_document_id' => env('GOOGLE_DOCS_DOCUMENT_ID'),
+    ],
+
 ];
