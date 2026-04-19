@@ -14,6 +14,9 @@ class ExportFishToGoogleDocs extends Command
 
     public function handle(): int
     {
+        // 區塊處理大型 Google Docs 物件需要較大記憶體，CLI 不受 web 限制
+        ini_set('memory_limit', '512M');
+
         $docId = config('services.google.docs_document_id');
         if (empty($docId)) {
             $this->error('請在 .env 設定 GOOGLE_DOCS_DOCUMENT_ID');

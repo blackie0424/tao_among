@@ -71,6 +71,9 @@ class GoogleDocsService
         // Phase 2：取得更新後的文件，填入表格內容
         $doc = $this->docsService->documents->get($docId);
         $fillRequests = $this->buildTableFillRequests($doc, $fishes);
+        // doc 物件已不需要，立即釋放記憶體
+        unset($doc);
+
         if (!empty($fillRequests)) {
             $this->chunkAndExecute($docId, $fillRequests);
         }
