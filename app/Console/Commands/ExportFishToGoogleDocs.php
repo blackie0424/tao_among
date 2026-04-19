@@ -28,8 +28,12 @@ class ExportFishToGoogleDocs extends Command
             return self::FAILURE;
         }
 
+        $exportTribes = array_values(array_intersect(
+            config('fish_options.tribes', []),
+            ['imowrod', 'iraraley']
+        ));
         $fishes = Fish::with([
-            'tribalClassifications' => fn ($q) => $q->whereIn('tribe', ['imowrod', 'iraraley']),
+            'tribalClassifications' => fn ($q) => $q->whereIn('tribe', $exportTribes),
             'captureRecords' => fn ($q) => $q->latest('capture_date'),
         ])->orderBy('name')->get();
 
