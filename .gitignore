@@ -29,3 +29,6 @@ yarn-error.log
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+
+storage/app/google-credentials.json
