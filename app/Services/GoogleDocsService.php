@@ -33,8 +33,26 @@ class GoogleDocsService
     }
 
     /**
+     * Google Docs API 支援的圖片 MIME 類型
+     */
+    private const SUPPORTED_IMAGE_TYPES = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/bmp',
+        'image/tiff',
+        'image/svg+xml',
+    ];
+
+    /**
+     * Google Docs API 圖片大小上限（20MB）
+     */
+    private const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+
+    /**
      * 取得可讓 Google Docs API 存取的圖片 URL（S3 預簽章 URL，有效 1 小時）。
      * 若非 S3 driver 則直接回傳原始 URL。
+     * 若圖片格式不支援或超過大小限制，回傳 null 跳過。
      */
     private function getAccessibleImageUrl(string $folder, string $filename): ?string
     {
@@ -53,11 +71,55 @@ class GoogleDocsService
                 return null;
             }
 
-            return $disk->temporaryUrl($path, now()->addHour());
+            $url = $disk->temporaryUrl($path, now()->addHour());
         } catch (\Exception $e) {
-            // 非 S3 或不支援 temporaryUrl，回傳一般 URL
+            // 非 S3 或不支援 temporaryUrl，回傳一般 URL（跳過驗證）
             return $this->storage->getUrl('images', $filename, false);
         }
+
+        // 透過 HEAD 請求驗證格式與大小，避免不支援的圖片讓整批 API 請求失敗
+        if (!$this->isImageUrlSupported($url)) {
+            return null;
+        }
+
+        return $url;
+    }
+
+    /**
+     * 發送 HEAD 請求確認圖片格式與大小是否符合 Google Docs API 限制。
+     */
+    private function isImageUrlSupported(string $url): bool
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_NOBODY => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+        ]);
+        curl_exec($ch);
+
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $contentLength = (int) curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            return false;
+        }
+
+        // 取出純 MIME type（去除 charset 等附加資訊）
+        $mimeType = strtolower(trim(explode(';', $contentType)[0]));
+        if (!in_array($mimeType, self::SUPPORTED_IMAGE_TYPES, true)) {
+            return false;
+        }
+
+        // content-length 為 -1 表示 server 未回傳，視為允許（讓 Google 自行決定）
+        if ($contentLength > 0 && $contentLength > self::MAX_IMAGE_BYTES) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
