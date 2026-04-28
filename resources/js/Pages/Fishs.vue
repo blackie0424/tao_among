@@ -88,8 +88,8 @@
 </template>
 
 <script setup>
-import { Head, router, Link, usePage } from '@inertiajs/vue3'
-import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
+import { Head, Link, usePage } from '@inertiajs/vue3'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
@@ -98,26 +98,17 @@ import FishSearchStatsBar from '@/Components/FishList/FishSearchStatsBar.vue'
 import FishSearchLoading from '@/Components/FishList/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/FishList/FishSearchCursorErrorBanner.vue'
 import FishCard from '@/Components/FishList/FishCard.vue'
-import {
-  getStaleIds,
-  clearStaleIds,
-  getDeletedIds,
-  clearDeletedIds,
-  getCreatedIds,
-  clearCreatedIds,
-} from '@/utils/fishListCache'
-import { getFishCompact } from '@/api/fishApi'
+
+import { useFishList } from '@/composables/useFishList'
+import { useFishListCache } from '@/composables/useFishListCache'
+import { useFishSearch } from '@/composables/useFishSearch'
 
 const user = computed(() => usePage().props.auth?.user)
 
 const props = defineProps({
-  // 精簡欄位列表（後端游標分頁）
   items: { type: Array, default: () => [] },
   pageInfo: { type: Object, default: () => ({ hasMore: false, nextCursor: null }) },
-  filters: {
-    type: Object,
-    default: () => ({}),
-  },
+  filters: { type: Object, default: () => ({}) },
   searchOptions: {
     type: Object,
     default: () => ({
@@ -128,13 +119,10 @@ const props = defineProps({
       captureLocations: [],
     }),
   },
-  searchStats: {
-    type: Object,
-    default: () => ({}),
-  },
+  searchStats: { type: Object, default: () => ({}) },
 })
 
-// 響應式狀態
+// ── 共享狀態（傳入各 composable）──────────────────────────────
 const currentFilters = ref({
   name: '',
   tribe: '',
@@ -142,369 +130,56 @@ const currentFilters = ref({
   processing_method: '',
   capture_location: '',
   without_audio: '',
-  // capture_method 已暫時移除
   ...props.filters,
-  // without_audio 從 props 傳入時可能是 boolean true，統一轉為 '1' 供 URL 使用
   without_audio: props.filters?.without_audio ? 1 : '',
 })
-
-// 新列表狀態（使用後端精簡欄位）
-const items = ref(props.items || [])
-const pageInfo = ref(props.pageInfo || { hasMore: false, nextCursor: null })
 const nameQuery = ref(currentFilters.value.name || '')
-const showCursorError = ref(false)
-const isLoading = ref(false)
-const showSearchDialog = ref(false)
 
-// === SessionStorage 狀態保存 ===
-const STORAGE_KEY = 'fishs_list_state'
-const CACHE_TTL = 30 * 60 * 1000 // 30 分鐘過期
+// ── Composable：資料抓取 + 無限滾動 ──────────────────────────
+const {
+  items,
+  pageInfo,
+  isLoading,
+  showCursorError,
+  sentinel,
+  fetchPage,
+  performSearch,
+  retryFromStart,
+  initObserver,
+  disconnectObserver,
+  cleanPaginationFromUrl,
+} = useFishList(currentFilters, nameQuery)
 
-// 保存狀態到 sessionStorage
-const saveStateToStorage = () => {
-  try {
-    const state = {
-      items: items.value,
-      pageInfo: pageInfo.value,
-      scrollY: window.scrollY,
-      filters: currentFilters.value,
-      nameQuery: nameQuery.value,
-      timestamp: Date.now(),
-    }
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch (e) {
-    // sessionStorage 不可用或容量已滿，忽略
-  }
-}
+// ── Composable：SessionStorage 快取 ──────────────────────────
+const { saveStateToStorage, clearStateStorage, restoreStateFromStorage } = useFishListCache(
+  items,
+  pageInfo,
+  currentFilters,
+  nameQuery,
+  () => props.filters
+)
 
-// 從 sessionStorage 還原狀態
-const restoreStateFromStorage = async () => {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return false
+// 觸發搜尋前先清快取，再交由 useFishList 重置並 fetchPage
+const doSearch = () => performSearch(clearStateStorage)
 
-    const state = JSON.parse(raw)
-    // 檢查是否過期
-    if (Date.now() - state.timestamp > CACHE_TTL) {
-      sessionStorage.removeItem(STORAGE_KEY)
-      return false
-    }
+// ── Composable：搜尋篩選 UI ───────────────────────────────────
+const {
+  showSearchDialog,
+  appliedFilters,
+  handleSearchToggle,
+  submitUnifiedSearch,
+  resetUnifiedSearch,
+  removeFilter,
+} = useFishSearch(currentFilters, nameQuery, doSearch)
 
-    // 檢查篩選條件是否一致（若 URL 帶有不同篩選則不還原）
-    const urlFilters = props.filters || {}
-    const cachedFilters = state.filters || {}
-    const filterKeys = [
-      'tribe',
-      'food_category',
-      'processing_method',
-      'capture_location',
-      'without_audio',
-    ]
-    const filtersMatch = filterKeys.every(
-      (key) => (urlFilters[key] || '') === (cachedFilters[key] || '')
-    )
-    const nameMatch = (urlFilters.name || '') === (state.nameQuery || '')
-
-    if (!filtersMatch || !nameMatch) {
-      sessionStorage.removeItem(STORAGE_KEY)
-      return false
-    }
-
-    // 還原狀態
-    items.value = state.items || []
-    pageInfo.value = state.pageInfo || { hasMore: false, nextCursor: null }
-    currentFilters.value = state.filters || currentFilters.value
-    nameQuery.value = state.nameQuery || ''
-
-    // 用於追蹤快取是否需要更新
-    let cacheNeedsUpdate = false
-
-    // 檢查是否有新增的魚類（created IDs）
-    const createdIds = getCreatedIds()
-    if (createdIds.length > 0) {
-      // 查詢新增的魚類資料並插入到清單開頭
-      await fetchAndPrependCreatedItems(createdIds)
-      clearCreatedIds()
-      cacheNeedsUpdate = true
-    }
-
-    // 檢查是否有需要刪除的魚類（deleted IDs）
-    const deletedIds = getDeletedIds()
-    if (deletedIds.length > 0) {
-      // 從 items 中移除已刪除的魚類
-      items.value = items.value.filter((item) => !deletedIds.includes(item.id))
-      clearDeletedIds()
-      cacheNeedsUpdate = true
-    }
-
-    // 檢查是否有需要更新的魚類（stale IDs）
-    const staleIds = getStaleIds()
-    if (staleIds.length > 0) {
-      // 局部更新：只更新有變動的魚類資料
-      await refreshStaleItems(staleIds)
-      clearStaleIds()
-      cacheNeedsUpdate = true
-    }
-
-    // 若有刪除或更新，重新保存快取以確保下次重新整理時資料正確
-    if (cacheNeedsUpdate) {
-      saveStateToStorage()
-    }
-
-    // 延遲還原捲動位置（等待 DOM 渲染完成）
-    nextTick(() => {
-      setTimeout(() => {
-        window.scrollTo(0, state.scrollY || 0)
-      }, 50)
-    })
-
-    return true
-  } catch (e) {
-    return false
-  }
-}
-
-// 局部更新：針對特定魚類 ID 呼叫 API 取得最新資料並替換
-const refreshStaleItems = async (staleIds) => {
-  const fetchPromises = staleIds.map(async (id) => {
-    try {
-      return await getFishCompact(id)
-    } catch (e) {
-      return null
-    }
-  })
-
-  const freshDataList = await Promise.all(fetchPromises)
-
-  // 在 items 中替換對應的資料
-  freshDataList.forEach((freshData) => {
-    if (!freshData) return
-    const index = items.value.findIndex((item) => item.id === freshData.id)
-    if (index !== -1) {
-      items.value[index] = freshData
-    }
-  })
-}
-
-// 新增魚類：查詢新增的魚類資料並插入到清單開頭
-const fetchAndPrependCreatedItems = async (createdIds) => {
-  const fetchPromises = createdIds.map(async (id) => {
-    try {
-      return await getFishCompact(id)
-    } catch (e) {
-      return null
-    }
-  })
-
-  const newDataList = await Promise.all(fetchPromises)
-
-  // 過濾掉失敗的請求，並按 ID 降序排列（最新的在前）
-  const validNewItems = newDataList.filter((item) => item !== null).sort((a, b) => b.id - a.id)
-
-  // 插入到 items 開頭（避免重複）
-  validNewItems.forEach((newItem) => {
-    const exists = items.value.some((item) => item.id === newItem.id)
-    if (!exists) {
-      items.value.unshift(newItem)
-    }
-  })
-}
-
-// 清除快取
-const clearStateStorage = () => {
-  try {
-    sessionStorage.removeItem(STORAGE_KEY)
-  } catch (e) {
-    // 忽略
-  }
-}
-
-// 顯示總筆數：永遠是全部魚類圖鑑數量（不受篩選影響）
+// ── 統計數字（仍依賴 props，保留在頁面層）──────────────────────
 const totalCount = computed(() => {
   const stat = props.searchStats && props.searchStats.total_results
   if (typeof stat === 'number') return stat
   return Array.isArray(items.value) ? items.value.length : 0
 })
 
-// 部落專屬統計：僅在篩選某一部落時出現
-const tribeStats = computed(() => {
-  const s = props.searchStats
-  if (!s || !s.tribe) return null
-  return {
-    tribe: s.tribe,
-    foodCategoryCount: s.tribe_food_category_count,
-    processingMethodCount: s.tribe_processing_method_count,
-  }
-})
-
-// 顯示中的搜尋條件（chip 用）
-const appliedFilters = computed(() => {
-  const chips = []
-  const map = [
-    { key: 'tribe', label: '部落', value: currentFilters.value.tribe },
-    { key: 'food_category', label: '分類', value: currentFilters.value.food_category },
-    { key: 'processing_method', label: '魚鱗處理', value: currentFilters.value.processing_method },
-    { key: 'capture_location', label: '捕獲地點', value: currentFilters.value.capture_location },
-  ]
-  for (const item of map) {
-    if (item.value) chips.push({ key: item.key, label: item.label, value: item.value })
-  }
-  if (nameQuery.value) chips.push({ key: 'name', label: '名稱', value: nameQuery.value })
-  if (currentFilters.value.without_audio)
-    chips.push({ key: 'without_audio', label: '音檔', value: '尚無音檔' })
-  return chips
-})
-
-// 直接使用 icon 切換統一搜尋表單顯示；Shift+點可清除後重新開啟
-const handleSearchToggle = (e) => {
-  if (e && e.shiftKey) {
-    clearUnifiedSearchForm()
-    showSearchDialog.value = true
-    return
-  }
-  showSearchDialog.value = !showSearchDialog.value
-}
-
-const submitUnifiedSearch = () => {
-  performSearch()
-  showSearchDialog.value = false
-}
-const clearUnifiedSearchForm = () => {
-  currentFilters.value = {
-    name: '',
-    tribe: '',
-    food_category: '',
-    processing_method: '',
-    capture_location: '',
-    without_audio: '',
-    // capture_method 已暫時移除
-  }
-  nameQuery.value = ''
-}
-const resetUnifiedSearch = () => {
-  performSearch()
-  showSearchDialog.value = false
-}
-
-// 移除單一條件 chip 並立即重新搜尋
-const removeFilter = (key) => {
-  if (key === 'name') {
-    nameQuery.value = ''
-    // 若 props.filters 仍含 name，不動它，只以目前狀態為準
-  } else if (key === 'without_audio') {
-    currentFilters.value.without_audio = ''
-  } else if (key in currentFilters.value) {
-    currentFilters.value[key] = ''
-  }
-  performSearch()
-}
-
-// 重新啟動搜尋（第一頁）
-const performSearch = () => {
-  clearStateStorage() // 新搜尋時清除快取
-  showCursorError.value = false
-  pageInfo.value = { hasMore: false, nextCursor: null }
-  fetchPage({})
-}
-
-// 執行搜尋
-const buildQueryParams = (override = {}) => {
-  const base = {
-    ...currentFilters.value,
-    name: nameQuery.value || currentFilters.value.name || '',
-    perPage: 20,
-  }
-  const merged = { ...base, ...override }
-  return Object.fromEntries(
-    Object.entries(merged).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
-  )
-}
-
-const fetchPage = (opts = {}) => {
-  if (isLoading.value || showCursorError.value) return
-  isLoading.value = true
-  const params = buildQueryParams(opts)
-  const isPagination = Boolean(params.last_id)
-  router.get('/fishs', params, {
-    preserveState: true,
-    preserveScroll: true,
-    replace: isPagination, // 分頁請求不堆疊歷史紀錄，避免返回鍵陷阱
-    onSuccess: (page) => {
-      const newItems = page.props.items || []
-      const newPageInfo = page.props.pageInfo || { hasMore: false, nextCursor: null }
-      if (params.last_id) {
-        items.value = [...items.value, ...newItems]
-      } else {
-        items.value = newItems
-      }
-      pageInfo.value = newPageInfo
-      isLoading.value = false
-
-      // 清理網址上的分頁參數，避免重新整理後僅看到部分資料
-      try {
-        const url = new URL(window.location.href)
-        url.searchParams.delete('last_id')
-        url.searchParams.delete('perPage')
-        const qs = url.searchParams.toString()
-        const clean = url.pathname + (qs ? `?${qs}` : '') + (url.hash || '')
-        window.history.replaceState(window.history.state, '', clean)
-      } catch (e) {
-        // 忽略 URL API 在部分環境不可用的情況
-      }
-    },
-    onError: (errors) => {
-      // 若為游標錯誤 (422 INVALID_CURSOR) → 顯示 Banner
-      isLoading.value = false
-      showCursorError.value = true
-    },
-  })
-}
-
-const restartSearch = () => {
-  showCursorError.value = false
-  pageInfo.value = { hasMore: false, nextCursor: null }
-  fetchPage({})
-}
-
-const retryFromStart = () => {
-  // 保留目前篩選與名稱，僅重置游標從第一頁重新抓取
-  restartSearch()
-}
-
-// 監聽滾動觸底（IntersectionObserver）
-const sentinel = ref(null)
-let observer
-let rafId = null // 用於追蹤 requestAnimationFrame ID
-
-const initObserver = () => {
-  if (!sentinel.value) return
-  observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting && pageInfo.value.hasMore && !isLoading.value) {
-          // 取消之前排程的請求，避免重複觸發
-          if (rafId) {
-            cancelAnimationFrame(rafId)
-          }
-
-          // 使用 requestAnimationFrame 確保在最佳時機執行
-          // 這樣可以與瀏覽器的渲染循環同步，避免掉幀
-          rafId = requestAnimationFrame(() => {
-            fetchPage({ last_id: pageInfo.value.nextCursor })
-            rafId = null
-          })
-        }
-      })
-    },
-    {
-      // 提前 200px 開始載入，改善使用者體驗
-      rootMargin: '200px',
-    }
-  )
-  observer.observe(sentinel.value)
-}
-
-// 監聽 props 變化
+// ── 同步 Inertia server-side 回傳的 props ─────────────────────
 watch(
   () => props.items,
   (newVal) => {
@@ -520,51 +195,31 @@ watch(
   { immediate: true }
 )
 
-// 初始化
+// ── 初始化 ─────────────────────────────────────────────────────
 onMounted(async () => {
-  // 嘗試從 sessionStorage 還原狀態（優先）
   const restored = await restoreStateFromStorage()
   if (restored && items.value.length) {
-    // 成功還原，初始化 observer 後即完成
     initObserver()
     return
   }
 
-  // 若網址含分頁參數（last_id/perPage），首次載入就清理並重抓第一頁，避免重整後只看到部分資料
   try {
     const url = new URL(window.location.href)
     const hadCursor = url.searchParams.has('last_id') || url.searchParams.has('perPage')
     if (hadCursor) {
-      url.searchParams.delete('last_id')
-      url.searchParams.delete('perPage')
-      const qs = url.searchParams.toString()
-      const clean = url.pathname + (qs ? `?${qs}` : '') + (url.hash || '')
-      window.history.replaceState(window.history.state, '', clean)
-      // 強制以目前篩選重新發送首批請求（忽略伺服器端因游標導致的部分資料）
-      performSearch()
+      cleanPaginationFromUrl()
+      doSearch()
     } else if (!items.value.length) {
-      // 初始抓第一頁（若後端未提供 items）
       fetchPage({})
     }
   } catch (e) {
-    if (!items.value.length) {
-      fetchPage({})
-    }
+    if (!items.value.length) fetchPage({})
   }
   initObserver()
 })
 
-// 離開頁面前保存狀態
 onBeforeUnmount(() => {
-  if (items.value.length) {
-    saveStateToStorage()
-  }
-  if (observer) {
-    observer.disconnect()
-  }
+  if (items.value.length) saveStateToStorage()
+  disconnectObserver()
 })
 </script>
-
-<style scoped>
-/* 已移至 FishSearchModal.vue */
-</style>
