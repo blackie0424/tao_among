@@ -106,6 +106,7 @@ import {
   getCreatedIds,
   clearCreatedIds,
 } from '@/utils/fishListCache'
+import { getFishCompact } from '@/api/fishApi'
 
 const user = computed(() => usePage().props.auth?.user)
 
@@ -267,10 +268,7 @@ const restoreStateFromStorage = async () => {
 const refreshStaleItems = async (staleIds) => {
   const fetchPromises = staleIds.map(async (id) => {
     try {
-      const response = await fetch(`/prefix/api/fish/${id}/compact`)
-      if (!response.ok) return null
-      const result = await response.json()
-      return result.data
+      return await getFishCompact(id)
     } catch (e) {
       return null
     }
@@ -292,10 +290,7 @@ const refreshStaleItems = async (staleIds) => {
 const fetchAndPrependCreatedItems = async (createdIds) => {
   const fetchPromises = createdIds.map(async (id) => {
     try {
-      const response = await fetch(`/prefix/api/fish/${id}/compact`)
-      if (!response.ok) return null
-      const result = await response.json()
-      return result.data
+      return await getFishCompact(id)
     } catch (e) {
       return null
     }
