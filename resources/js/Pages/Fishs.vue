@@ -93,11 +93,11 @@ import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import SearchToggleButton from '@/Components/SearchToggleButton.vue'
-import FishSearchModal from '@/Components/FishSearchModal.vue'
-import FishSearchStatsBar from '@/Components/FishSearchStatsBar.vue'
-import FishSearchLoading from '@/Components/Global/FishSearchLoading.vue'
-import FishSearchCursorErrorBanner from '@/Components/Fish/FishSearchCursorErrorBanner.vue'
-import FishCard from '@/Components/FishCard.vue'
+import FishSearchModal from '@/Components/FishList/FishSearchModal.vue'
+import FishSearchStatsBar from '@/Components/FishList/FishSearchStatsBar.vue'
+import FishSearchLoading from '@/Components/FishList/FishSearchLoading.vue'
+import FishSearchCursorErrorBanner from '@/Components/FishList/FishSearchCursorErrorBanner.vue'
+import FishCard from '@/Components/FishList/FishCard.vue'
 import {
   getStaleIds,
   clearStaleIds,
