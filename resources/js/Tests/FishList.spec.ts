@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import Fishs from '../Pages/Fishs.vue'
 import { router } from '@inertiajs/vue3'
 
@@ -24,6 +24,14 @@ vi.mock('@inertiajs/vue3', () => ({
         })
     }),
   },
+  usePage: () => ({
+    props: {
+      auth: { user: null },
+      fish: null,
+      storageFolders: { image: 'images', webp: 'webp' },
+      flash: {},
+    },
+  }),
   Head: { name: 'Head', render: () => null },
   Link: { name: 'Link', template: '<a><slot /></a>' },
 }))
@@ -89,8 +97,8 @@ describe('Fishs infinite list', () => {
     const wrapper = mount(Fishs, {
       props: { items: [], pageInfo: { hasMore: false, nextCursor: null } },
     })
-    // onMounted 會呼叫 fetchPage → 顯示 loading
-    await wrapper.vm.$nextTick()
+    // onMounted 是 async，需 flushPromises 讓 restoreStateFromStorage 解決後才會呼叫 fetchPage
+    await flushPromises()
     expect(wrapper.find('[role="status"]').exists()).toBe(true)
 
     // 等待回應

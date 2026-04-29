@@ -19,6 +19,14 @@ vi.mock('@inertiajs/vue3', () => ({
         })
     }),
   },
+  usePage: () => ({
+    props: {
+      auth: { user: null },
+      fish: null,
+      storageFolders: { image: 'images', webp: 'webp' },
+      flash: {},
+    },
+  }),
   Head: { name: 'Head', render: () => null },
   Link: { name: 'Link', template: '<a><slot /></a>' },
 }))
