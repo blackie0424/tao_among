@@ -44,20 +44,13 @@
 
     <!-- Header Extension Slot: Sticky Search Filter Bar -->
     <template #header-extension>
-      <div
-        v-if="appliedFilters.length > 0"
-        class="border-t border-gray-100 transition-all duration-300"
-      >
-        <div class="container mx-auto px-4 py-3 max-w-7xl">
-          <FishSearchStatsBar
-            :showTotalCount="false"
-            variant="header"
-            :totalCount="totalCount"
-            :appliedFilters="appliedFilters"
-            @remove-filter="removeFilter"
-          />
-        </div>
-      </div>
+      <FishSearchStatsBar
+        variant="header"
+        :showTotalCount="false"
+        :totalCount="totalCount"
+        :appliedFilters="appliedFilters"
+        @remove-filter="removeFilter"
+      />
     </template>
 
     <div class="container mx-auto px-4 pb-20 relative pt-6">
