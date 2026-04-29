@@ -9,37 +9,12 @@
   >
     <!-- Desktop Nav Slot: 搜尋與新增按鈕 -->
     <template #desktop-nav>
-      <div class="flex items-center justify-end w-full px-4 h-10 gap-6">
-        <div class="flex items-center gap-3">
-          <!-- 將「新增魚類」按鈕也整併到上方 (Desktop) -->
-          <Link
-            v-if="user"
-            href="/fish/create"
-            class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
-            title="新增魚類"
-          >
-            <span class="mr-1 text-2xl leading-none font-normal pb-1">+</span> 新增
-          </Link>
-          <SearchToggleButton @toggle="handleSearchToggle" />
-        </div>
-      </div>
+      <FishListNavActions variant="desktop" :user="user" @toggle="handleSearchToggle" />
     </template>
 
     <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 -->
     <template #mobile-actions>
-      <div class="flex items-center justify-end px-2 w-full">
-        <div class="flex items-center gap-3">
-          <Link
-            v-if="user"
-            href="/fish/create"
-            class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
-            title="新增魚類"
-          >
-            <span class="text-2xl leading-none font-light pb-0.5">+</span>
-          </Link>
-          <SearchToggleButton @toggle="handleSearchToggle" />
-        </div>
-      </div>
+      <FishListNavActions variant="mobile" :user="user" @toggle="handleSearchToggle" />
     </template>
 
     <!-- Header Extension Slot: Sticky Search Filter Bar -->
@@ -85,7 +60,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import SearchToggleButton from '@/Components/SearchToggleButton.vue'
+import FishListNavActions from '@/Components/FishList/FishListNavActions.vue'
 import FishSearchModal from '@/Components/FishList/FishSearchModal.vue'
 import FishSearchStatsBar from '@/Components/FishList/FishSearchStatsBar.vue'
 import FishSearchLoading from '@/Components/FishList/FishSearchLoading.vue'
