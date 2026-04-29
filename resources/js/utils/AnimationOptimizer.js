@@ -22,9 +22,6 @@ class AnimationOptimizer {
 
     this.optimizationLevel = this.calculateOptimizationLevel()
     this.animationConfig = this.getOptimalAnimationConfig()
-
-    // 監聽偏好設定變化
-    this.setupPreferenceListeners()
   }
 
   /**
@@ -118,12 +115,6 @@ class AnimationOptimizer {
       return 'moderate'
     }
 
-    // 檢查當前頁面的複雜度
-    const elementCount = document.querySelectorAll('*').length
-    if (elementCount > 1000) {
-      return 'light'
-    }
-
     return 'none'
   }
 
@@ -172,6 +163,19 @@ class AnimationOptimizer {
     }
 
     return configs[this.optimizationLevel]
+  }
+
+  /**
+   * 初始化動畫優化器
+   * 應在應用程式掛載後呼叫一次，負責設定媒體查詢監聽器並套用 CSS 變數。
+   * 將副作用（DOM 操作、事件綁定）集中於此，確保 import 時不產生任何副作用。
+   */
+  init() {
+    this.setupPreferenceListeners()
+    this.applyCSSVariables()
+    window.addEventListener('animation-config-updated', () => {
+      this.applyCSSVariables()
+    })
   }
 
   /**
@@ -358,15 +362,7 @@ class AnimationOptimizer {
   }
 }
 
-// 創建全域實例
+// 建立全域單例；呼叫端須在應用程式掛載後呼叫 animationOptimizer.init() 以啟用副作用
 const animationOptimizer = new AnimationOptimizer()
-
-// 初始化時應用 CSS 變數
-animationOptimizer.applyCSSVariables()
-
-// 監聽配置更新事件
-window.addEventListener('animation-config-updated', () => {
-  animationOptimizer.applyCSSVariables()
-})
 
 export default animationOptimizer
