@@ -54,6 +54,7 @@ describe('FishAudioCard', () => {
     audio: {
       id: 1,
       name: '測試發音',
+      file_name: 'test-audio.mp3',
       locate: 'test-audio.mp3',
       url: 'https://example.com/test-audio.mp3',
       created_at: '2023-10-13T10:30:00Z',
@@ -90,9 +91,9 @@ describe('FishAudioCard', () => {
         props: defaultProps,
       })
 
-      expect(wrapper.find('.bg-gray-50').exists()).toBe(true)
+      expect(wrapper.find('.bg-white').exists()).toBe(true)
       expect(wrapper.find('.rounded-lg').exists()).toBe(true)
-      expect(wrapper.find('.border-gray-200').exists()).toBe(true)
+      expect(wrapper.find('.shadow-sm').exists()).toBe(true)
     })
 
     it('應該顯示音頻名稱', () => {
@@ -100,7 +101,8 @@ describe('FishAudioCard', () => {
         props: defaultProps,
       })
 
-      const audioName = wrapper.find('h4')
+      // audio.name 顯示於播放區塊的 .text-gray-800 div
+      const audioName = wrapper.find('.text-gray-800')
       expect(audioName.exists()).toBe(true)
       expect(audioName.text()).toBe('測試發音')
     })
@@ -120,7 +122,8 @@ describe('FishAudioCard', () => {
         props: defaultProps,
       })
 
-      const fileInfo = wrapper.find('.text-gray-700')
+      // audio.file_name 顯示於 h4
+      const fileInfo = wrapper.find('h4')
       expect(fileInfo.exists()).toBe(true)
       expect(fileInfo.text()).toBe('test-audio.mp3')
     })
@@ -130,9 +133,10 @@ describe('FishAudioCard', () => {
         props: defaultProps,
       })
 
-      const timeInfo = wrapper.find('.text-gray-400')
-      expect(timeInfo.exists()).toBe(true)
-      expect(timeInfo.text()).toContain('記錄時間:')
+      // 元件不再顯示建立時間，改為驗證預設狀態文字
+      const statusText = wrapper.find('.text-gray-500')
+      expect(statusText.exists()).toBe(true)
+      expect(statusText.text()).toBe('點擊播放')
     })
 
     it('應該包含隱藏的音頻元素', () => {

@@ -20,7 +20,7 @@ const makeUsers = (count = 2) =>
   Array.from({ length: count }, (_, i) => ({
     id: i + 1,
     line_user_id: `U${i + 1}`,
-    display_name: `使用者 ${i + 1}`,
+    name: `使用者 ${i + 1}`,
     picture_url: null,
     role: 'viewer',
     created_at: '2026-01-01T00:00:00.000Z',

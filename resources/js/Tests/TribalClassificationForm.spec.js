@@ -7,6 +7,14 @@ vi.mock('@inertiajs/vue3', () => ({
   router: {
     post: vi.fn(),
   },
+  usePage: () => ({
+    props: {
+      auth: { user: null },
+      fish: null,
+      storageFolders: { image: 'images', webp: 'webp' },
+      flash: {},
+    },
+  }),
 }))
 
 describe('TribalClassificationForm', () => {
@@ -41,7 +49,8 @@ describe('TribalClassificationForm', () => {
       props: defaultProps,
     })
 
-    expect(wrapper.text()).toContain('正在為 Test Fish 新增部落分類')
+    // fishName 作為 img alt 屬性傳入 LazyImage
+    expect(wrapper.find('img').attributes('alt')).toBe('Test Fish')
   })
 
   it('renders all tribe options', () => {

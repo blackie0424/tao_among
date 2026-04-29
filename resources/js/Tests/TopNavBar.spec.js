@@ -7,6 +7,7 @@ describe('TopNavBar', () => {
     const wrapper = mount(TopNavBar, {
       props: {
         title: '測試標題',
+        goBack: vi.fn(),
         showSubmit: true,
       },
     })
@@ -16,8 +17,8 @@ describe('TopNavBar', () => {
     const closeBtn = wrapper.find('button[type="button"]')
     expect(closeBtn.exists()).toBe(true)
     expect(closeBtn.find('svg').exists()).toBe(true)
-    // 檢查送出按鈕
-    const submitBtn = wrapper.find('button[type="submit"]')
+    // 檢查送出按鈕（component 使用 type="button"，以 class 識別）
+    const submitBtn = wrapper.find('button.bg-green-600')
     expect(submitBtn.exists()).toBe(true)
     expect(submitBtn.text()).toContain('送出')
   })
@@ -73,8 +74,8 @@ describe('TopNavBar', () => {
         showSubmit: true,
       },
     })
-    // 模擬點擊送出按鈕
-    await wrapper.find('button:last-of-type').trigger('click')
+    // 模擬點擊送出按鈕（以 class 識別，因為兩個按鈕都是 type="button"）
+    await wrapper.find('button.bg-green-600').trigger('click')
     // 檢查 submitNote 是否被呼叫
     expect(submitNote).toHaveBeenCalled()
   })
@@ -116,10 +117,11 @@ describe('TopNavBar', () => {
     const wrapper = mount(TopNavBar, {
       props: {
         submitting: true,
+        showSubmit: true,
       },
     })
     // 檢查送出按鈕應該存在
-    const submitBtn = wrapper.find('button:last-of-type')
+    const submitBtn = wrapper.find('button.bg-green-600')
     expect(submitBtn.exists()).toBe(true)
     // 檢查送出按鈕應該是禁用狀態
     expect(submitBtn.element.disabled).toBe(true)
