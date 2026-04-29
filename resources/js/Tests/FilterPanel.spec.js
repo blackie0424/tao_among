@@ -23,7 +23,7 @@ describe('FilterPanel', () => {
     expect(wrapper.find('#tribe-filter').exists()).toBe(true)
     expect(wrapper.find('#food-category-filter').exists()).toBe(true)
     expect(wrapper.find('#processing-method-filter').exists()).toBe(true)
-    expect(wrapper.find('#location-search').exists()).toBe(true)
+    expect(wrapper.find('#capture-location-search').exists()).toBe(true)
     expect(wrapper.find('#fish-name-search').exists()).toBe(true)
   })
 
@@ -61,7 +61,8 @@ describe('FilterPanel', () => {
       tribe: 'iraraley',
       food_category: '',
       processing_method: '',
-      location: '',
+      capture_method: '',
+      capture_location: '',
       name: '',
     })
   })
@@ -88,7 +89,8 @@ describe('FilterPanel', () => {
       tribe: '',
       food_category: '',
       processing_method: '',
-      location: '',
+      capture_method: '',
+      capture_location: '',
       name: '',
     })
   })
