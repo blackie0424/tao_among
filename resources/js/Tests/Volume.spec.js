@@ -17,6 +17,17 @@ const mockButtonClasses = ref('bg-gray-200 hover:bg-gray-300 cursor-pointer')
 const mockButtonTitle = ref('點擊播放音頻')
 const mockIsPlaying = ref(false)
 
+// Mock AnimationOptimizer，隔離 DOM 副作用（init 會呼叫 matchMedia，jsdom 不支援）
+vi.mock('../utils/AnimationOptimizer.js', () => ({
+  default: {
+    optimizationLevel: 'none',
+    animationConfig: { enableTransitions: true, enableAnimations: true },
+    shouldEnableAnimation: vi.fn(() => true),
+    getOptimalAnimationConfig: vi.fn(() => ({ enableTransitions: true, enableAnimations: true })),
+    init: vi.fn(),
+  },
+}))
+
 vi.mock('../composables/useAudioPlayback.js', () => ({
   useAudioPlayback: vi.fn(() => ({
     playbackState: mockPlaybackState,

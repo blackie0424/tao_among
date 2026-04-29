@@ -120,10 +120,7 @@ const shouldEnableAnimations = computed(() => {
 })
 
 onMounted(() => {
-  // 監聽動畫配置更新
-  window.addEventListener('animation-config-updated', (event) => {
-    console.log('動畫配置已更新:', event.detail)
-  })
+  animationOptimizer.init()
 })
 </script>
 <style scoped>
