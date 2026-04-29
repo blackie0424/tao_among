@@ -17,6 +17,17 @@ import Volume from '../Components/Volume.vue'
 import FishAudioCard from '../Components/FishAudioCard.vue'
 import { useAudioPlayback } from '../composables/useAudioPlayback.js'
 
+// Mock AnimationOptimizer — 此測試關注音頻播放整合，不測試動畫優化邏輯
+vi.mock('../utils/AnimationOptimizer.js', () => ({
+  default: {
+    optimizationLevel: 'none',
+    animationConfig: { enableTransitions: true, enableAnimations: true },
+    shouldEnableAnimation: vi.fn(() => true),
+    getOptimalAnimationConfig: vi.fn(() => ({ enableTransitions: true, enableAnimations: true })),
+    init: vi.fn(),
+  },
+}))
+
 // Mock the AudioPlayerService module
 vi.mock('../services/AudioPlayerService.js', () => {
   const service = {

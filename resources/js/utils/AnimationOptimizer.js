@@ -182,9 +182,6 @@ class AnimationOptimizer {
    * 設置偏好設定監聽器
    */
   setupPreferenceListeners() {
-    // 非瀏覽器環境（SSR、測試 jsdom 未設定）直接略過
-    if (typeof window.matchMedia !== 'function') return
-
     // 監聽減少動畫偏好變化
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     reducedMotionQuery.addEventListener('change', (e) => {

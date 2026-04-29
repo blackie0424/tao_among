@@ -13,6 +13,17 @@ import { mount } from '@vue/test-utils'
 import { useAudioPlayback } from '../composables/useAudioPlayback.js'
 import Volume from '../Components/Volume.vue'
 
+// Mock AnimationOptimizer — 此測試關注錯誤處理，不測試動畫優化邏輯
+vi.mock('../utils/AnimationOptimizer.js', () => ({
+  default: {
+    optimizationLevel: 'none',
+    animationConfig: { enableTransitions: true, enableAnimations: true },
+    shouldEnableAnimation: vi.fn(() => true),
+    getOptimalAnimationConfig: vi.fn(() => ({ enableTransitions: true, enableAnimations: true })),
+    init: vi.fn(),
+  },
+}))
+
 // Mock fetch for network status checks
 global.fetch = vi.fn()
 
