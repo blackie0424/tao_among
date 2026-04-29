@@ -13,6 +13,7 @@ vi.mock('../services/AudioPlayerService.js', () => ({
   default: {
     currentPlayingId: { value: null },
     play: vi.fn(),
+    playShortAudio: vi.fn(),
     stop: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
@@ -20,8 +21,28 @@ vi.mock('../services/AudioPlayerService.js', () => ({
   },
 }))
 
+// Mock AudioNetworkService — 測試關注播放狀態，不測試音頻載入策略
+vi.mock('../services/AudioNetworkService.js', () => ({
+  default: {
+    optimizedAudioLoad: vi.fn(),
+    init: vi.fn(),
+    rese: vi.fn(),
+    emit: vi.fn(),
+  },
+}))
+
+// Mock AudioNetworkService — 測試關注播放狀態，不測試音頻載入策略
+vi.mock('../services/AudioNetworkService.js', () => ({
+  default: {
+    optimizedAudioLoad: vi.fn(),
+    init: vi.fn(),
+    reset: vi.fn(),
+  },
+}))
+
 import { useAudioPlayback, PlaybackState } from '../composables/useAudioPlayback.js'
 import audioPlayerService from '../services/AudioPlayerService.js'
+import audioNetworkService from '../services/AudioNetworkService.js'
 
 // Mock Audio constructor with more comprehensive functionality
 const createMockAudio = () => ({
@@ -50,6 +71,7 @@ global.fetch = vi.fn().mockResolvedValue({ ok: true })
 
 describe('useAudioPlayback', () => {
   let composable
+  let mockAudio
   const testAudioUrl = 'test-audio.mp3'
   const testAudioId = 'test-id'
 
@@ -58,6 +80,8 @@ describe('useAudioPlayback', () => {
     audioPlayerService.currentPlayingId.value = null
     navigator.onLine = true
     global.fetch.mockResolvedValue({ ok: true })
+    mockAudio = createMockAudio()
+    audioNetworkService.optimizedAudioLoad.mockResolvedValue(mockAudio)
     composable = useAudioPlayback(testAudioUrl, testAudioId)
   })
 
@@ -83,11 +107,11 @@ describe('useAudioPlayback', () => {
 
   describe('播放功能', () => {
     it('應該能夠播放音頻', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.playAudio()
 
-      expect(audioPlayerService.play).toHaveBeenCalledWith(
+      expect(audioPlayerService.playShortAudio).toHaveBeenCalledWith(
         testAudioId,
         expect.any(Object), // audio element
         testAudioUrl
@@ -96,7 +120,7 @@ describe('useAudioPlayback', () => {
     })
 
     it('播放中狀態應該正確更新視覺樣式', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.playAudio()
 
@@ -107,39 +131,38 @@ describe('useAudioPlayback', () => {
     })
 
     it('播放中時不應該響應點擊', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.playAudio()
-      const playCallCount = audioPlayerService.play.mock.calls.length
+      const playCallCount = audioPlayerService.playShortAudio.mock.calls.length
 
       // 再次點擊
       await composable.handleClick()
 
       // 播放方法不應該被再次調用
-      expect(audioPlayerService.play.mock.calls.length).toBe(playCallCount)
+      expect(audioPlayerService.playShortAudio.mock.calls.length).toBe(playCallCount)
     })
 
     it('應該正確設置音頻元素屬性', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.playAudio()
 
-      expect(global.Audio).toHaveBeenCalled()
-      const audioInstance = global.Audio.mock.results[0].value
-      expect(audioInstance.preload).toBe('metadata')
-      expect(audioInstance.crossOrigin).toBe('anonymous')
+      expect(audioNetworkService.optimizedAudioLoad).toHaveBeenCalledWith(
+        testAudioUrl,
+        expect.objectContaining({ timeout: expect.any(Number) })
+      )
     })
 
     it('應該在播放時設置事件監聽器', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.playAudio()
 
-      const audioInstance = global.Audio.mock.results[0].value
-      expect(audioInstance.addEventListener).toHaveBeenCalledWith('ended', expect.any(Function), {
+      expect(mockAudio.addEventListener).toHaveBeenCalledWith('ended', expect.any(Function), {
         once: true,
       })
-      expect(audioInstance.addEventListener).toHaveBeenCalledWith('error', expect.any(Function), {
+      expect(mockAudio.addEventListener).toHaveBeenCalledWith('error', expect.any(Function), {
         once: true,
       })
     })
@@ -148,7 +171,7 @@ describe('useAudioPlayback', () => {
   describe('錯誤處理', () => {
     it('應該處理播放錯誤', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValue(testError)
+      audioPlayerService.playShortAudio.mockRejectedValue(testError)
 
       await composable.playAudio()
 
@@ -160,7 +183,7 @@ describe('useAudioPlayback', () => {
 
     it('錯誤狀態應該正確更新視覺樣式', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValue(testError)
+      audioPlayerService.playShortAudio.mockRejectedValue(testError)
 
       await composable.playAudio()
 
@@ -171,7 +194,7 @@ describe('useAudioPlayback', () => {
 
     it('應該提供友善的錯誤訊息', async () => {
       const networkError = new Error('NetworkError: 網路問題')
-      audioPlayerService.play.mockRejectedValue(networkError)
+      audioPlayerService.playShortAudio.mockRejectedValue(networkError)
 
       await composable.playAudio()
 
@@ -181,7 +204,7 @@ describe('useAudioPlayback', () => {
     it('應該處理網路離線狀態', async () => {
       navigator.onLine = false
       const testError = new Error('NetworkError')
-      audioPlayerService.play.mockRejectedValue(testError)
+      audioPlayerService.playShortAudio.mockRejectedValue(testError)
 
       await composable.playAudio()
 
@@ -190,7 +213,7 @@ describe('useAudioPlayback', () => {
 
     it('應該處理不支援的音頻格式錯誤', async () => {
       const formatError = new Error('NotSupportedError')
-      audioPlayerService.play.mockRejectedValue(formatError)
+      audioPlayerService.playShortAudio.mockRejectedValue(formatError)
 
       await composable.playAudio()
 
@@ -199,7 +222,7 @@ describe('useAudioPlayback', () => {
 
     it('應該處理播放被阻止的錯誤', async () => {
       const blockedError = new Error('NotAllowedError')
-      audioPlayerService.play.mockRejectedValue(blockedError)
+      audioPlayerService.playShortAudio.mockRejectedValue(blockedError)
 
       await composable.playAudio()
 
@@ -208,7 +231,7 @@ describe('useAudioPlayback', () => {
 
     it('應該處理解碼錯誤', async () => {
       const decodeError = new Error('DecodeError')
-      audioPlayerService.play.mockRejectedValue(decodeError)
+      audioPlayerService.playShortAudio.mockRejectedValue(decodeError)
 
       await composable.playAudio()
 
@@ -217,7 +240,7 @@ describe('useAudioPlayback', () => {
 
     it('應該處理超時錯誤', async () => {
       const timeoutError = new Error('載入超時')
-      audioPlayerService.play.mockRejectedValue(timeoutError)
+      audioPlayerService.playShortAudio.mockRejectedValue(timeoutError)
 
       await composable.playAudio()
 
@@ -228,7 +251,7 @@ describe('useAudioPlayback', () => {
   describe('重試機制', () => {
     it('應該支援重試播放', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValueOnce(testError)
+      audioPlayerService.playShortAudio.mockRejectedValueOnce(testError)
 
       // 第一次播放失敗
       await composable.playAudio()
@@ -236,7 +259,7 @@ describe('useAudioPlayback', () => {
       expect(composable.canRetry.value).toBe(true)
 
       // Mock successful retry
-      audioPlayerService.play.mockResolvedValueOnce()
+      audioPlayerService.playShortAudio.mockResolvedValueOnce()
 
       // 執行重試
       await composable.retryPlay()
@@ -247,7 +270,7 @@ describe('useAudioPlayback', () => {
 
     it('應該限制最大重試次數', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValue(testError)
+      audioPlayerService.playShortAudio.mockRejectedValue(testError)
 
       // 超過最大重試次數
       for (let i = 0; i < composable.maxRetries + 1; i++) {
@@ -265,7 +288,7 @@ describe('useAudioPlayback', () => {
 
     it('重試狀態應該正確更新視覺樣式', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValueOnce(testError)
+      audioPlayerService.playShortAudio.mockRejectedValueOnce(testError)
 
       await composable.playAudio()
       expect(composable.playbackState.value).toBe(PlaybackState.ERROR)
@@ -284,7 +307,7 @@ describe('useAudioPlayback', () => {
 
     it('應該在重試前檢查網路狀態', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValueOnce(testError)
+      audioPlayerService.playShortAudio.mockRejectedValueOnce(testError)
 
       await composable.playAudio()
       expect(composable.playbackState.value).toBe(PlaybackState.ERROR)
@@ -300,7 +323,7 @@ describe('useAudioPlayback', () => {
 
     it('應該計算重試進度百分比', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValue(testError)
+      audioPlayerService.playShortAudio.mockRejectedValue(testError)
 
       // 第一次失敗
       await composable.playAudio()
@@ -314,24 +337,24 @@ describe('useAudioPlayback', () => {
 
   describe('點擊處理', () => {
     it('正常狀態下點擊應該開始播放', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.handleClick()
 
-      expect(audioPlayerService.play).toHaveBeenCalled()
+      expect(audioPlayerService.playShortAudio).toHaveBeenCalled()
       expect(composable.playbackState.value).toBe(PlaybackState.PLAYING)
     })
 
     it('錯誤狀態下點擊應該重試', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValueOnce(testError)
+      audioPlayerService.playShortAudio.mockRejectedValueOnce(testError)
 
       // 第一次播放失敗
       await composable.playAudio()
       expect(composable.playbackState.value).toBe(PlaybackState.ERROR)
 
       // Mock successful retry
-      audioPlayerService.play.mockResolvedValueOnce()
+      audioPlayerService.playShortAudio.mockResolvedValueOnce()
 
       // 點擊重試
       await composable.handleClick()
@@ -341,20 +364,20 @@ describe('useAudioPlayback', () => {
     })
 
     it('播放中時點擊應該被忽略', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.playAudio()
       expect(composable.playbackState.value).toBe(PlaybackState.PLAYING)
 
-      const playCallCount = audioPlayerService.play.mock.calls.length
+      const playCallCount = audioPlayerService.playShortAudio.mock.calls.length
       await composable.handleClick()
 
-      expect(audioPlayerService.play.mock.calls.length).toBe(playCallCount)
+      expect(audioPlayerService.playShortAudio.mock.calls.length).toBe(playCallCount)
     })
 
     it('重試中時點擊應該被忽略', async () => {
       const testError = new Error('播放失敗')
-      audioPlayerService.play.mockRejectedValueOnce(testError)
+      audioPlayerService.playShortAudio.mockRejectedValueOnce(testError)
 
       await composable.playAudio()
 
@@ -362,10 +385,10 @@ describe('useAudioPlayback', () => {
       const retryPromise = composable.retryPlay()
       expect(composable.playbackState.value).toBe(PlaybackState.RETRYING)
 
-      const playCallCount = audioPlayerService.play.mock.calls.length
+      const playCallCount = audioPlayerService.playShortAudio.mock.calls.length
       await composable.handleClick()
 
-      expect(audioPlayerService.play.mock.calls.length).toBe(playCallCount)
+      expect(audioPlayerService.playShortAudio.mock.calls.length).toBe(playCallCount)
 
       await retryPromise
     })
@@ -415,7 +438,7 @@ describe('useAudioPlayback', () => {
     })
 
     it('應該在停止播放時清理音頻元素', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
       audioPlayerService.currentPlayingId.value = testAudioId
 
       await composable.playAudio()
@@ -437,19 +460,17 @@ describe('useAudioPlayback', () => {
     })
 
     it('應該清理音頻元素事件監聽器', async () => {
-      audioPlayerService.play.mockResolvedValue()
+      audioPlayerService.playShortAudio.mockResolvedValue()
 
       await composable.playAudio()
 
-      const audioInstance = global.Audio.mock.results[0].value
-
       // 預先設置 cleanup 函數
-      audioInstance._cleanup = vi.fn()
+      mockAudio._cleanup = vi.fn()
 
       composable.stopAudio()
 
       // 驗證清理函數被調用（測試清理邏輯存在）
-      expect(audioInstance._cleanup).toBeDefined()
+      expect(mockAudio._cleanup).toBeDefined()
     })
   })
 

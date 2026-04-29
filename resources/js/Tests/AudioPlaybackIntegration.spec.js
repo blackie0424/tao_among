@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 // Import components and services
@@ -25,6 +25,26 @@ vi.mock('../utils/AnimationOptimizer.js', () => ({
     shouldEnableAnimation: vi.fn(() => true),
     getOptimalAnimationConfig: vi.fn(() => ({ enableTransitions: true, enableAnimations: true })),
     init: vi.fn(),
+  },
+}))
+
+// Mock AudioNetworkService — 此測試關注播放整合，不測試音頻載入策略
+vi.mock('../services/AudioNetworkService.js', () => ({
+  default: {
+    optimizedAudioLoad: vi.fn().mockResolvedValue({
+      src: '',
+      preload: 'none',
+      crossOrigin: 'anonymous',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      play: vi.fn().mockResolvedValue(undefined),
+      pause: vi.fn(),
+      load: vi.fn(),
+      canPlayType: vi.fn().mockReturnValue('probably'),
+      _cleanup: vi.fn(),
+    }),
+    init: vi.fn(),
+    reset: vi.fn(),
   },
 }))
 
@@ -257,9 +277,10 @@ describe('音頻播放系統整合測試', () => {
 
       // 點擊播放
       await wrapper.find('span[role="button"]').trigger('click')
+      await flushPromises()
 
-      // 驗證 AudioPlayerService.play 被調用
-      expect(mockAudioPlayerService.play).toHaveBeenCalledWith(
+      // 驗證 AudioPlayerService.playShortAudio 被調用
+      expect(mockAudioPlayerService.playShortAudio).toHaveBeenCalledWith(
         'test-id',
         expect.any(Object), // audio element
         'test-audio.mp3'
@@ -268,12 +289,12 @@ describe('音頻播放系統整合測試', () => {
       wrapper.unmount()
     })
 
-    it('useAudioPlayback 應該正確使用 AudioPlayerService 的 play 方法', async () => {
+    it('useAudioPlayback 應該正確使用 AudioPlayerService 的 playShortAudio 方法', async () => {
       const { playAudio } = useAudioPlayback('test.mp3', 'test-id')
 
       await playAudio()
 
-      expect(mockAudioPlayerService.play).toHaveBeenCalledWith(
+      expect(mockAudioPlayerService.playShortAudio).toHaveBeenCalledWith(
         'test-id',
         expect.any(Object),
         'test.mp3'
@@ -331,9 +352,9 @@ describe('音頻播放系統整合測試', () => {
 
       // 播放第一個音頻
       await wrapper1.find('span[role="button"]').trigger('click')
-      await nextTick()
+      await flushPromises()
 
-      expect(mockAudioPlayerService.play).toHaveBeenCalledWith(
+      expect(mockAudioPlayerService.playShortAudio).toHaveBeenCalledWith(
         'audio-1',
         expect.any(Object),
         'audio1.mp3'
@@ -341,11 +362,11 @@ describe('音頻播放系統整合測試', () => {
 
       // 播放第二個音頻
       await wrapper2.find('span[role="button"]').trigger('click')
-      await nextTick()
+      await flushPromises()
 
       // 驗證互斥行為
       expect(mockAudioPlayerService.ensureMutualExclusion).toHaveBeenCalledWith('audio-2')
-      expect(mockAudioPlayerService.play).toHaveBeenCalledWith(
+      expect(mockAudioPlayerService.playShortAudio).toHaveBeenCalledWith(
         'audio-2',
         expect.any(Object),
         'audio2.mp3'
@@ -541,11 +562,11 @@ describe('音頻播放系統整合測試', () => {
 
       // 模擬播放錯誤
       const testError = new Error('播放失敗')
-      mockAudioPlayerService.play.mockRejectedValueOnce(testError)
+      mockAudioPlayerService.playShortAudio.mockRejectedValueOnce(testError)
 
       // 點擊播放
       await wrapper.find('span[role="button"]').trigger('click')
-      await nextTick()
+      await flushPromises()
 
       // 驗證錯誤狀態
       expect(wrapper.vm.playbackState).toBe('error')
@@ -570,7 +591,7 @@ describe('音頻播放系統整合測試', () => {
       })
 
       // 第一個組件播放成功
-      mockAudioPlayerService.play.mockResolvedValueOnce()
+      mockAudioPlayerService.playShortAudio.mockResolvedValueOnce()
       await wrapper1.find('span[role="button"]').trigger('click')
 
       // 模擬第一個音頻播放成功
@@ -581,10 +602,9 @@ describe('音頻播放系統整合測試', () => {
 
       // 第二個組件播放失敗
       const testError = new Error('播放失敗')
-      mockAudioPlayerService.play.mockRejectedValueOnce(testError)
+      mockAudioPlayerService.playShortAudio.mockRejectedValueOnce(testError)
       await wrapper2.find('span[role="button"]').trigger('click')
-
-      await nextTick()
+      await flushPromises()
 
       // 驗證狀態獨立性
       expect(wrapper1.vm.playbackState).toBe('playing')
