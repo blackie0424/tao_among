@@ -48,6 +48,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useFishNotes } from '@/composables/useFishNotes.js'
 
 const props = defineProps({
   fishNotes: { type: Object, default: () => ({}) },
@@ -55,20 +56,6 @@ const props = defineProps({
   user: { type: Object, default: null },
 })
 
-const hasNotes = computed(() => Object.keys(props.fishNotes || {}).length > 0)
-
-const groupedNotesByTypeAndLocate = computed(() => {
-  const result = {}
-  for (const [type, notes] of Object.entries(props.fishNotes || {})) {
-    result[type] = {}
-    for (const note of notes) {
-      const locate = note.locate || '未分類部落'
-      if (!result[type][locate]) {
-        result[type][locate] = []
-      }
-      result[type][locate].push(note)
-    }
-  }
-  return result
-})
+const fishNotesRef = computed(() => props.fishNotes)
+const { hasNotes, groupedNotesByTypeAndLocate } = useFishNotes(fishNotesRef)
 </script>
