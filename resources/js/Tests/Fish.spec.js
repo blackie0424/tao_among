@@ -36,10 +36,10 @@ vi.mock('@/Components/TribalClassificationSummary.vue', () => ({
   },
 }))
 
-vi.mock('@/Components/CaptureRecordDisplayCard.vue', () => ({
+vi.mock('@/Components/CaptureRecordSection.vue', () => ({
   default: {
-    template: '<div data-testid="capture-record-display-card" />',
-    props: ['record', 'index', 'fishName'],
+    template: '<div data-testid="capture-record-section" />',
+    props: ['captureRecords', 'fishName', 'user'],
   },
 }))
 
@@ -69,26 +69,6 @@ const mountFish = (propsData = {}) =>
       ...propsData,
     },
   })
-
-// ──────────────────────────────────────────────
-// 捕獲紀錄渲染
-// ──────────────────────────────────────────────
-describe('捕獲紀錄渲染', () => {
-  it('有捕獲紀錄時，應渲染對應數量的 CaptureRecordDisplayCard', () => {
-    const wrapper = mountFish({
-      captureRecords: [
-        { id: 1, capture_date: '2024-01-01', image_url: null },
-        { id: 2, capture_date: '2024-02-01', image_url: null },
-      ],
-    })
-    expect(wrapper.findAll('[data-testid="capture-record-display-card"]').length).toBe(2)
-  })
-
-  it('捕獲紀錄為空時，不應渲染 CaptureRecordDisplayCard', () => {
-    const wrapper = mountFish({ captureRecords: [] })
-    expect(wrapper.findAll('[data-testid="capture-record-display-card"]').length).toBe(0)
-  })
-})
 
 // ──────────────────────────────────────────────
 // mobileBackText computed
