@@ -43,6 +43,13 @@ vi.mock('@/Components/CaptureRecordDisplayCard.vue', () => ({
   },
 }))
 
+vi.mock('@/Components/FishAdvancedKnowledgeSection.vue', () => ({
+  default: {
+    template: '<div data-testid="fish-advanced-knowledge-section" />',
+    props: ['fishNotes', 'isEditor', 'user'],
+  },
+}))
+
 const makeFish = (overrides = {}) => ({
   id: 1,
   name: '鯛魚',
@@ -124,46 +131,3 @@ describe('isEditor', () => {
   })
 })
 
-// ──────────────────────────────────────────────
-// groupedNotesByTypeAndLocate computed
-// ──────────────────────────────────────────────
-describe('groupedNotesByTypeAndLocate', () => {
-  const fishNotes = {
-    習性: [
-      { id: 1, note: '深海魚', locate: '蘭嶼' },
-      { id: 2, note: '珊瑚礁', locate: '蘭嶼' },
-      { id: 3, note: '常在淺灘', locate: '綠島' },
-    ],
-    烹飪: [
-      { id: 4, note: '適合清蒸', locate: null },
-    ],
-  }
-
-  it('應依 note_type 再依 locate 進行二次分組', () => {
-    const wrapper = mountFish({ fishNotes })
-    const grouped = wrapper.vm.groupedNotesByTypeAndLocate
-
-    expect(Object.keys(grouped)).toContain('習性')
-    expect(Object.keys(grouped.習性)).toContain('蘭嶼')
-    expect(grouped.習性['蘭嶼']).toHaveLength(2)
-    expect(grouped.習性['綠島']).toHaveLength(1)
-  })
-
-  it('locate 為 null 時，應歸類到 "未分類部落"', () => {
-    const wrapper = mountFish({ fishNotes })
-    const grouped = wrapper.vm.groupedNotesByTypeAndLocate
-
-    expect(Object.keys(grouped.烹飪)).toContain('未分類部落')
-    expect(grouped.烹飪['未分類部落']).toHaveLength(1)
-  })
-
-  it('fishNotes 為空物件時，grouped 應為空物件', () => {
-    const wrapper = mountFish({ fishNotes: {} })
-    expect(wrapper.vm.groupedNotesByTypeAndLocate).toEqual({})
-  })
-
-  it('fishNotes 為 null 時，grouped 應為空物件', () => {
-    const wrapper = mountFish({ fishNotes: null })
-    expect(wrapper.vm.groupedNotesByTypeAndLocate).toEqual({})
-  })
-})
