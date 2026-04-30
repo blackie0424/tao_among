@@ -195,6 +195,7 @@
 import OverflowMenu from './OverflowMenu.vue'
 import audioPlayerService from '../services/AudioPlayerService.js'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { formatDateTime } from '@/utils/formatDate.js'
 
 const props = defineProps({
   audio: Object,
@@ -413,13 +414,6 @@ function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = Math.floor(seconds % 60)
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-/**
- * 格式化日期時間
- */
-function formatDateTime(dateString) {
-  return new Date(dateString).toLocaleString('zh-TW')
 }
 </script>
 
