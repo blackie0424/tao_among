@@ -11,6 +11,22 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+// 在模組 import 前先 stub window.matchMedia（AnimationOptimizer constructor 在 import 時就會呼叫）
+vi.hoisted(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  })
+})
+
 import animationOptimizer from '../utils/AnimationOptimizer.js'
 
 /**
