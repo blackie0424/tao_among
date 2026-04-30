@@ -36,10 +36,10 @@ vi.mock('@/Components/TribalClassificationSummary.vue', () => ({
   },
 }))
 
-vi.mock('@/Components/LazyImage.vue', () => ({
+vi.mock('@/Components/CaptureRecordDisplayCard.vue', () => ({
   default: {
-    template: '<img />',
-    props: ['src', 'alt', 'class'],
+    template: '<div data-testid="capture-record-display-card" />',
+    props: ['record', 'index', 'fishName'],
   },
 }))
 
@@ -64,29 +64,22 @@ const mountFish = (propsData = {}) =>
   })
 
 // ──────────────────────────────────────────────
-// formatDate
+// 捕獲紀錄渲染
 // ──────────────────────────────────────────────
-describe('formatDate', () => {
-  it('應將日期字串格式化為 YYYY/MM/DD', () => {
+describe('捕獲紀錄渲染', () => {
+  it('有捕獲紀錄時，應渲染對應數量的 CaptureRecordDisplayCard', () => {
     const wrapper = mountFish({
       captureRecords: [
-        {
-          id: 1,
-          capture_date: '2024-03-05T00:00:00.000Z',
-          image_url: null,
-        },
+        { id: 1, capture_date: '2024-01-01', image_url: null },
+        { id: 2, capture_date: '2024-02-01', image_url: null },
       ],
     })
-
-    expect(wrapper.text()).toContain('2024/03/05')
+    expect(wrapper.findAll('[data-testid="capture-record-display-card"]').length).toBe(2)
   })
 
-  it('若 capture_date 為 null，不應渲染日期區塊', () => {
-    const wrapper = mountFish({
-      captureRecords: [{ id: 1, capture_date: null, image_url: null }],
-    })
-
-    expect(wrapper.text()).not.toContain('捕獲時間')
+  it('捕獲紀錄為空時，不應渲染 CaptureRecordDisplayCard', () => {
+    const wrapper = mountFish({ captureRecords: [] })
+    expect(wrapper.findAll('[data-testid="capture-record-display-card"]').length).toBe(0)
   })
 })
 
