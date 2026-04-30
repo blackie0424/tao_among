@@ -28,6 +28,19 @@ vi.mock('../utils/AnimationOptimizer.js', () => ({
   },
 }))
 
+// Mock PerformanceMonitor — 此測試關注播放整合，不測試效能監控
+vi.mock('../utils/PerformanceMonitor.js', () => ({
+  default: {
+    startMonitoring: vi.fn().mockReturnValue({}),
+    recordLoadStart: vi.fn(),
+    recordLoadEnd: vi.fn(),
+    recordPlayStart: vi.fn(),
+    recordPlayEnd: vi.fn(),
+    recordError: vi.fn(),
+    reset: vi.fn(),
+  },
+}))
+
 // Mock AudioNetworkService — 此測試關注播放整合，不測試音頻載入策略
 vi.mock('../services/AudioNetworkService.js', () => ({
   default: {
