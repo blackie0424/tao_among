@@ -3,6 +3,17 @@ import { mount, flushPromises } from '@vue/test-utils'
 import Fishs from '../Pages/Fishs.vue'
 import { router } from '@inertiajs/vue3'
 
+// Mock AnimationOptimizer — 此測試關注魚類清單功能，不測試動畫優化邏輯
+vi.mock('../utils/AnimationOptimizer.js', () => ({
+  default: {
+    optimizationLevel: 'none',
+    animationConfig: { enableTransitions: true, enableAnimations: true },
+    shouldEnableAnimation: vi.fn(() => true),
+    getOptimalAnimationConfig: vi.fn(() => ({ enableTransitions: true, enableAnimations: true })),
+    init: vi.fn(),
+  },
+}))
+
 // 模擬 Inertia router
 vi.mock('@inertiajs/vue3', () => ({
   router: {
