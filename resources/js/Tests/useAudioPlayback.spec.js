@@ -26,16 +26,19 @@ vi.mock('../services/AudioNetworkService.js', () => ({
   default: {
     optimizedAudioLoad: vi.fn(),
     init: vi.fn(),
-    rese: vi.fn(),
-    emit: vi.fn(),
+    reset: vi.fn(),
   },
 }))
 
-// Mock AudioNetworkService — 測試關注播放狀態，不測試音頻載入策略
-vi.mock('../services/AudioNetworkService.js', () => ({
+// Mock PerformanceMonitor — 測試關注播放狀態，不測試效能監控
+vi.mock('../utils/PerformanceMonitor.js', () => ({
   default: {
-    optimizedAudioLoad: vi.fn(),
-    init: vi.fn(),
+    startMonitoring: vi.fn().mockReturnValue({}),
+    recordLoadStart: vi.fn(),
+    recordLoadEnd: vi.fn(),
+    recordPlayStart: vi.fn(),
+    recordPlayEnd: vi.fn(),
+    recordError: vi.fn(),
     reset: vi.fn(),
   },
 }))
