@@ -56,5 +56,4 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['updated', 'deleted'])
-
 </script>

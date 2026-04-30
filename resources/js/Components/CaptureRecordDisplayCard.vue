@@ -26,10 +26,7 @@
     <!-- 卡片內容區 -->
     <div class="p-4 flex flex-col gap-4">
       <!-- 捕獲時間 -->
-      <div
-        v-if="record.capture_date"
-        class="flex items-center text-base text-gray-900 font-medium"
-      >
+      <div v-if="record.capture_date" class="flex items-center text-base text-gray-900 font-medium">
         <span class="text-gray-600 mr-2">📅</span>
         捕獲時間：{{ formatDate(record.capture_date) }}
       </div>
@@ -88,5 +85,4 @@ defineProps({
   index: { type: Number, required: true },
   fishName: { type: String, default: '' },
 })
-
 </script>

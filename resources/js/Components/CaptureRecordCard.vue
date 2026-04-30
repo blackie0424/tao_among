@@ -127,5 +127,4 @@ const displayLabel = computed(() => {
   const loc = (props.record.location || '').toString().trim()
   return loc ? `${props.record.tribe} => ${loc}` : props.record.tribe
 })
-
 </script>

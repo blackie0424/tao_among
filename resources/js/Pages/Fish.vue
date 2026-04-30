@@ -50,11 +50,7 @@
 
       <!-- 底部：進階知識（僅 editor / admin 可見） -->
       <template #bottom>
-        <FishAdvancedKnowledgeSection
-          :fishNotes="fishNotes"
-          :isEditor="isEditor"
-          :user="user"
-        />
+        <FishAdvancedKnowledgeSection :fishNotes="fishNotes" :isEditor="isEditor" :user="user" />
       </template>
     </FishGridLayout>
   </FishAppLayout>
@@ -90,5 +86,4 @@ const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
 const mobileBackText = computed(() => {
   return (props.fish?.name?.length || 0) > 12 ? '...' : 'among no tao'
 })
-
 </script>

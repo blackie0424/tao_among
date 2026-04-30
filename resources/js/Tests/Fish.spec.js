@@ -130,4 +130,3 @@ describe('isEditor', () => {
     expect(wrapper.vm.isEditor).toBe(false)
   })
 })
-
