@@ -37,9 +37,9 @@
 
         <!-- 時間資訊 -->
         <div class="flex flex-wrap gap-4 text-xs text-gray-500">
-          <span>建立時間: {{ formatDate(classification.created_at) }}</span>
+          <span>建立時間: {{ formatDateTime(classification.created_at) }}</span>
           <span v-if="classification.updated_at !== classification.created_at">
-            更新時間: {{ formatDate(classification.updated_at) }}
+            更新時間: {{ formatDateTime(classification.updated_at) }}
           </span>
         </div>
       </div>
@@ -48,6 +48,8 @@
 </template>
 
 <script setup>
+import { formatDateTime } from '@/utils/formatDate'
+
 const props = defineProps({
   classification: Object,
   fishId: Number,
@@ -55,7 +57,4 @@ const props = defineProps({
 
 const emit = defineEmits(['updated', 'deleted'])
 
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleString('zh-TW')
-}
 </script>

@@ -72,6 +72,7 @@ import OverflowMenu from './OverflowMenu.vue'
 import { computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
+import { formatDate, formatDateTime } from '@/utils/formatDate'
 
 const props = defineProps({
   record: Object,
@@ -127,11 +128,4 @@ const displayLabel = computed(() => {
   return loc ? `${props.record.tribe} => ${loc}` : props.record.tribe
 })
 
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString('zh-TW')
-}
-
-function formatDateTime(dateString) {
-  return new Date(dateString).toLocaleString('zh-TW')
-}
 </script>

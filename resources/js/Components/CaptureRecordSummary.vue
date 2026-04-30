@@ -81,6 +81,7 @@
 
 <script setup>
 import LazyImage from './LazyImage.vue'
+import { formatDate } from '@/utils/formatDate'
 
 const props = defineProps({
   records: {
@@ -93,7 +94,4 @@ const props = defineProps({
   },
 })
 
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString('zh-TW')
-}
 </script>

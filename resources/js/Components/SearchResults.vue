@@ -197,6 +197,7 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import LazyImage from '@/Components/LazyImage.vue'
+import { formatDate } from '@/utils/formatDate'
 
 const props = defineProps({
   results: {
@@ -291,18 +292,6 @@ const getFilteredCaptureRecords = (records) => {
       return true
     })
     .slice(0, 3) // 最多顯示3筆捕獲紀錄
-}
-
-// 格式化日期
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
 }
 
 // 導航狀態（點擊卡片後顯示過場）

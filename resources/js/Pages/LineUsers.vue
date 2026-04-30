@@ -102,6 +102,7 @@ import { ref } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import AppHeader from '@/Components/Global/AppHeader.vue'
 import axios from 'axios'
+import { formatDate } from '@/utils/formatDate'
 
 const props = defineProps({
   lineUsers: Object,
@@ -129,13 +130,5 @@ function roleClass(role) {
     'bg-blue-50 text-blue-700 border-blue-300': role === 'editor',
     'bg-purple-50 text-purple-700 border-purple-300': role === 'admin',
   }
-}
-
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
 }
 </script>
