@@ -35,6 +35,7 @@
 
 <script setup>
 import OverflowMenu from './OverflowMenu.vue'
+import { formatDateTime } from '@/utils/formatDate'
 
 const props = defineProps({
   note: {
@@ -52,8 +53,4 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['updated', 'deleted'])
-
-function formatDateTime(dateString) {
-  return new Date(dateString).toLocaleString('zh-TW')
-}
 </script>
