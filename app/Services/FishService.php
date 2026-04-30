@@ -7,8 +7,9 @@ use \Carbon\Carbon;
 use App\Models\Fish;
 use App\Http\Resources\FishResource;
 use App\Contracts\StorageServiceInterface;
+use App\Contracts\FishServiceInterface;
 
-class FishService
+class FishService implements FishServiceInterface
 {
     protected $storageService;
 

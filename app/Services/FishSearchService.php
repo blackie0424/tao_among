@@ -6,17 +6,19 @@ use App\Models\Fish;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use App\Contracts\FishSearchServiceInterface;
+use App\Contracts\FishServiceInterface;
 
 /**
  * FishSearchService — 後端搜尋核心服務
  * Trace: FR-001 多條件後端搜尋, FR-002 精簡欄位, FR-003 比對規則, FR-005 游標分頁,
  *        FR-007 perPage 正規化（搭配 Request）, FR-009 降低關聯載入, SC-004 payload 降幅
  */
-class FishSearchService
+class FishSearchService implements FishSearchServiceInterface
 {
     protected $fishService;
 
-    public function __construct(FishService $fishService)
+    public function __construct(FishServiceInterface $fishService)
     {
         $this->fishService = $fishService;
     }

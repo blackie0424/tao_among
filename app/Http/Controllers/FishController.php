@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Contracts\StorageServiceInterface;
+use App\Contracts\FishServiceInterface;
+use App\Contracts\FishSearchServiceInterface;
 use App\Http\Requests\CreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Models\CaptureRecord;
-use App\Services\FishService;
-use App\Services\FishSearchService;
 use App\Http\Requests\FishSearchRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -24,7 +24,7 @@ class FishController extends Controller
     protected $storageService;
     protected $fishSearchService;
 
-    public function __construct(FishService $fishService, StorageServiceInterface $storageService, FishSearchService $fishSearchService)
+    public function __construct(FishServiceInterface $fishService, StorageServiceInterface $storageService, FishSearchServiceInterface $fishSearchService)
     {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
