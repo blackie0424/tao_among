@@ -1,20 +1,11 @@
 <template>
   <Head :title="`${fish.name}的知識管理`" />
 
-  <FishDetailLayout currentPage="knowledge" pageDescription="進階知識管理">
-    <template #stats>
-      <div class="flex flex-wrap gap-4 text-sm">
-        <div class="flex items-center">
-          <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-          <span class="text-gray-700"> 已記錄 {{ totalKnowledgeCount }} 筆進階知識 </span>
-        </div>
-        <div class="flex items-center">
-          <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-          <span class="text-gray-700"> 涵蓋 {{ categoryCount }} 個分類 </span>
-        </div>
-      </div>
-    </template>
-
+  <FishAppLayout
+    :pageTitle="`${fish.name}的知識管理`"
+    mobileBackUrl="/fishs"
+    :mobileBackText="fish.name"
+  >
     <div class="container mx-auto p-4 relative">
       <div class="pb-20">
         <!-- 網路狀態提示 -->
@@ -134,12 +125,12 @@
         />
       </div>
     </div>
-  </FishDetailLayout>
+  </FishAppLayout>
 </template>
 
 <script setup>
 import { Head } from '@inertiajs/vue3'
-import FishDetailLayout from '@/Layouts/FishDetailLayout.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishKnowledgeCard from '../Components/FishKnowledgeCard.vue'
 import FabButton from '../Components/FabButton.vue'
 import { router } from '@inertiajs/vue3'
