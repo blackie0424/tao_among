@@ -37,39 +37,11 @@
               />
             </svg>
           </button>
-          <div
+          <UserMenuDropdown
             v-if="showMobileAdminMenu"
-            class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
-          >
-            <Link
-              href="/dashboard"
-              class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
-              @click="showMobileAdminMenu = false"
-            >
-              統計面板
-            </Link>
-            <Link
-              href="/line-users"
-              class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 transition"
-              @click="showMobileAdminMenu = false"
-            >
-              使用者管理
-            </Link>
-            <Link
-              href="/logout"
-              method="post"
-              as="button"
-              class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition"
-            >
-              登出
-            </Link>
-          </div>
-          <div
-            v-if="showMobileAdminMenu"
-            @click="showMobileAdminMenu = false"
-            class="fixed inset-0 z-40"
-            style="background: transparent"
-          ></div>
+            :user="user"
+            @close="showMobileAdminMenu = false"
+          />
         </div>
       </div>
 
@@ -117,39 +89,11 @@
                 />
               </svg>
             </button>
-            <div
+            <UserMenuDropdown
               v-if="showAdminMenu"
-              class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down"
-            >
-              <Link
-                href="/dashboard"
-                class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
-                @click="showAdminMenu = false"
-              >
-                統計面板
-              </Link>
-              <Link
-                href="/line-users"
-                class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 transition"
-                @click="showAdminMenu = false"
-              >
-                使用者管理
-              </Link>
-              <Link
-                href="/logout"
-                method="post"
-                as="button"
-                class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition"
-              >
-                登出
-              </Link>
-            </div>
-            <div
-              v-if="showAdminMenu"
-              @click="showAdminMenu = false"
-              class="fixed inset-0 z-40"
-              style="background: transparent"
-            ></div>
+              :user="user"
+              @close="showAdminMenu = false"
+            />
           </div>
           <!-- Non-Admin: Name with Badge + Logout -->
           <div v-else-if="user" class="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -181,6 +125,7 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
+import UserMenuDropdown from '@/Components/Global/UserMenuDropdown.vue'
 
 // 直接在元件內取得 User 狀態，減少父層傳遞 props 的負擔
 const page = usePage()
