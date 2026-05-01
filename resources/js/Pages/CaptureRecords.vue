@@ -1,22 +1,11 @@
 <template>
   <Head :title="`${fish.name}的捕獲紀錄`" />
 
-  <FishDetailLayout currentPage="captureRecords" pageDescription="捕獲紀錄與照片">
-    <template #stats>
-      <div class="flex flex-wrap gap-4 text-xl">
-        <div class="flex items-center">
-          <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-          <span class="text-gray-700">
-            已記錄 {{ fish.captureRecords?.length || 0 }} 筆捕獲紀錄
-          </span>
-        </div>
-        <div class="flex items-center">
-          <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-          <span class="text-gray-700"> 涵蓋 {{ uniqueTribes.length }} 個部落 </span>
-        </div>
-      </div>
-    </template>
-
+  <FishAppLayout
+    :pageTitle="`${fish.name}的捕獲紀錄`"
+    mobileBackUrl="/fishs"
+    :mobileBackText="fish.name"
+  >
     <div class="container mx-auto p-4 relative text-3xl">
       <div class="pb-20">
         <!-- 捕獲紀錄列表 -->
@@ -71,12 +60,12 @@
         />
       </div>
     </div>
-  </FishDetailLayout>
+  </FishAppLayout>
 </template>
 
 <script setup>
 import { Head } from '@inertiajs/vue3'
-import FishDetailLayout from '@/Layouts/FishDetailLayout.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import CaptureRecordCard from '../Components/CaptureRecordCard.vue'
 import FabButton from '../Components/FabButton.vue'
 import { router } from '@inertiajs/vue3'

@@ -1,22 +1,11 @@
 <template>
   <Head :title="`${fish.name}的發音列表`" />
 
-  <FishDetailLayout currentPage="audioList" pageDescription="發音列表管理">
-    <template #stats>
-      <div class="flex flex-wrap gap-4 text-sm">
-        <div class="flex items-center">
-          <span class="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
-          <span class="text-gray-700"> 已記錄 {{ audioCount }} 個發音檔案 </span>
-        </div>
-        <div class="flex items-center">
-          <span class="inline-block w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
-          <span class="text-gray-700">
-            {{ playbackStatus }}
-          </span>
-        </div>
-      </div>
-    </template>
-
+  <FishAppLayout
+    :pageTitle="`${fish.name}的發音列表`"
+    mobileBackUrl="/fishs"
+    :mobileBackText="fish.name"
+  >
     <div class="container mx-auto p-4 relative">
       <div class="pb-20">
         <!-- 網路狀態提示 -->
@@ -100,12 +89,12 @@
         />
       </div>
     </div>
-  </FishDetailLayout>
+  </FishAppLayout>
 </template>
 
 <script setup>
 import { Head } from '@inertiajs/vue3'
-import FishDetailLayout from '@/Layouts/FishDetailLayout.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishAudioCard from '../Components/FishAudioCard.vue'
 import FabButton from '../Components/FabButton.vue'
 import audioPlayerService from '../services/AudioPlayerService.js'

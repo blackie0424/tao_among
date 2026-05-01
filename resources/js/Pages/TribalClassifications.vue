@@ -1,28 +1,9 @@
 <template>
-  <FishDetailLayout currentPage="tribalKnowledge" pageDescription="不同部落的飲食分類與處理方式">
-    <template #stats>
-      <div class="flex flex-wrap gap-4 text-sm">
-        <div class="flex items-center">
-          <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-          <span class="text-gray-700">
-            已記錄 {{ fish.tribal_classifications?.length || 0 }} 筆部落分類
-          </span>
-        </div>
-        <div class="flex items-center">
-          <span
-            :class="[
-              'inline-block w-3 h-3 rounded-full mr-2',
-              isAllTribesRecorded ? 'bg-green-500' : 'bg-gray-400',
-            ]"
-          ></span>
-          <span :class="['font-medium', isAllTribesRecorded ? 'text-green-700' : 'text-gray-700']">
-            涵蓋 {{ uniqueTribes.length }} / {{ totalTribesCount }} 個部落
-            <span v-if="isAllTribesRecorded" class="ml-1 text-green-600">✓</span>
-          </span>
-        </div>
-      </div>
-    </template>
-
+  <FishAppLayout
+    :pageTitle="`${fish.name}的地方知識`"
+    mobileBackUrl="/fishs"
+    :mobileBackText="fish.name"
+  >
     <div class="container mx-auto p-4 relative">
       <div class="pb-20">
         <!-- 完成狀態提示 -->
@@ -105,11 +86,11 @@
         />
       </div>
     </div>
-  </FishDetailLayout>
+  </FishAppLayout>
 </template>
 
 <script setup>
-import FishDetailLayout from '@/Layouts/FishDetailLayout.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import TribalClassificationCard from '../Components/TribalClassificationCard.vue'
 import FabButton from '../Components/FabButton.vue'
 import { router } from '@inertiajs/vue3'
