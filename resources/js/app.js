@@ -1,15 +1,12 @@
 import { createApp, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import './bootstrap'
-import FishAppLayout from './Layouts/FishAppLayout.vue'
 
 const pages = import.meta.glob('./Pages/**/*.vue')
 
 createInertiaApp({
   resolve: (name) => {
     const page = pages[`./Pages/${name}.vue`]().then((module) => {
-      // 為所有頁面設定預設 layout（除非頁面自己定義了 layout）
-      module.default.layout = module.default.layout || FishAppLayout
       return module.default
     })
     return page
