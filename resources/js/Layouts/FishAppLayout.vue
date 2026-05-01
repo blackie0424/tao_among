@@ -103,52 +103,12 @@
               </Link>
 
               <!-- Mobile User Dropdown -->
-              <div
+              <UserMenuDropdown
                 v-if="showMobileUserMenu && user"
-                class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down"
-              >
-                <!-- User Info -->
-                <div class="px-4 py-3 border-b border-gray-50 bg-gray-50/50">
-                  <div class="text-sm font-bold text-gray-900 truncate">{{ user.name }}</div>
-                  <div
-                    v-if="user?.role !== 'admin'"
-                    class="text-xs text-blue-600 font-medium mt-0.5"
-                  >
-                    田調人員
-                  </div>
-                </div>
-                <!-- Actions -->
-                <Link
-                  v-if="user?.role === 'admin'"
-                  href="/dashboard"
-                  class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
-                >
-                  統計面板
-                </Link>
-                <Link
-                  v-if="user?.role === 'admin'"
-                  href="/line-users"
-                  class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 transition"
-                >
-                  使用者管理
-                </Link>
-                <Link
-                  href="/logout"
-                  method="post"
-                  as="button"
-                  class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition"
-                >
-                  登出
-                </Link>
-              </div>
-
-              <!-- Backdrop for closing -->
-              <div
-                v-if="showMobileUserMenu"
-                @click="showMobileUserMenu = false"
-                class="fixed inset-0 z-40"
-                style="background: transparent"
-              ></div>
+                :user="user"
+                :showUserInfo="true"
+                @close="showMobileUserMenu = false"
+              />
             </div>
           </div>
 
@@ -253,39 +213,11 @@
                     />
                   </svg>
                 </button>
-                <div
+                <UserMenuDropdown
                   v-if="showDesktopAdminMenu"
-                  class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down"
-                >
-                  <Link
-                    href="/dashboard"
-                    class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
-                    @click="showDesktopAdminMenu = false"
-                  >
-                    統計面板
-                  </Link>
-                  <Link
-                    href="/line-users"
-                    class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 transition"
-                    @click="showDesktopAdminMenu = false"
-                  >
-                    使用者管理
-                  </Link>
-                  <Link
-                    href="/logout"
-                    method="post"
-                    as="button"
-                    class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition"
-                  >
-                    登出
-                  </Link>
-                </div>
-                <div
-                  v-if="showDesktopAdminMenu"
-                  @click="showDesktopAdminMenu = false"
-                  class="fixed inset-0 z-40"
-                  style="background: transparent"
-                ></div>
+                  :user="user"
+                  @close="showDesktopAdminMenu = false"
+                />
               </div>
               <!-- Non-Admin: Name with Badge -->
               <div
@@ -347,6 +279,7 @@ import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 import FlashMessage from '@/Components/FlashMessage.vue'
 import AppFooter from '@/Components/Global/AppFooter.vue'
 import AdminFloatingMenu from '@/Components/Global/AdminFloatingMenu.vue'
+import UserMenuDropdown from '@/Components/Global/UserMenuDropdown.vue'
 
 // 從 Inertia page props 取得 fish 資料
 const page = usePage()
