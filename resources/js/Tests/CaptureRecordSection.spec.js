@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import CaptureRecordSection from '@/Components/CaptureRecordSection.vue'
+import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 
-vi.mock('@/Components/CaptureRecordDisplayCard.vue', () => ({
+vi.mock('@/Components/CaptureRecord/CaptureRecordDisplayCard.vue', () => ({
   default: {
     template: '<div data-testid="capture-record-display-card" />',
     props: ['record', 'index', 'fishName'],

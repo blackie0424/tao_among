@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import CaptureRecordDisplayCard from '@/Components/CaptureRecordDisplayCard.vue'
+import CaptureRecordDisplayCard from '@/Components/CaptureRecord/CaptureRecordDisplayCard.vue'
 
-vi.mock('@/Components/LazyImage.vue', () => ({
+vi.mock('@/Components/UI/LazyImage.vue', () => ({
   default: {
     template: '<img data-testid="lazy-image" :src="src" :alt="alt" />',
     props: ['src', 'alt', 'class'],

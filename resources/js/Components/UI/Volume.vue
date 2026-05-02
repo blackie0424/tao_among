@@ -70,8 +70,8 @@
 
 <script setup>
 import { computed, onMounted } from 'vue'
-import { useAudioPlayback } from '../composables/useAudioPlayback.js'
-import animationOptimizer from '../utils/AnimationOptimizer.js'
+import { useAudioPlayback } from '@/composables/useAudioPlayback.js'
+import animationOptimizer from '@/utils/AnimationOptimizer.js'
 
 const props = defineProps({
   audioUrl: {

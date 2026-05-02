@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import FabButton from '@/Components/FabButton.vue'
+import FabButton from '@/Components/UI/FabButton.vue'
 
 describe('FabButton 畫面測試', () => {
   it('應顯示正確的 label 與 icon', () => {

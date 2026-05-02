@@ -71,8 +71,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import LoadingBar from '@/Components/LoadingBar.vue'
-import OverflowMenu from '@/Components/OverflowMenu.vue'
+import LoadingBar from '@/Components/UI/LoadingBar.vue'
+import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 
 const props = defineProps({
   locates: Array,

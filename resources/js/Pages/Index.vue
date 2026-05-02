@@ -22,7 +22,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import AnimatedText from '@/Components/AnimatedText.vue'
+import AnimatedText from '@/Components/UI/AnimatedText.vue'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 
 const headerM = '/images/header-m.png'

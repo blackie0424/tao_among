@@ -45,9 +45,9 @@ import { Head } from '@inertiajs/vue3'
 
 import { ref, onMounted, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
-import FilterPanel from '@/Components/FilterPanel.vue'
-import SearchResults from '@/Components/SearchResults.vue'
-import FabButton from '@/Components/FabButton.vue'
+import FilterPanel from '@/Components/UI/FilterPanel.vue'
+import SearchResults from '@/Components/UI/SearchResults.vue'
+import FabButton from '@/Components/UI/FabButton.vue'
 
 const props = defineProps({
   fishs: {

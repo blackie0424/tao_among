@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import OverflowMenu from './OverflowMenu.vue'
+import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 import { formatDateTime } from '@/utils/formatDate'
 
 const props = defineProps({

@@ -66,8 +66,8 @@
 <script setup>
 import { Head } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import CaptureRecordCard from '../Components/CaptureRecordCard.vue'
-import FabButton from '../Components/FabButton.vue'
+import CaptureRecordCard from '../Components/CaptureRecord/CaptureRecordCard.vue'
+import FabButton from '../Components/UI/FabButton.vue'
 import { router } from '@inertiajs/vue3'
 import { computed } from 'vue'
 

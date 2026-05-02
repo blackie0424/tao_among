@@ -95,8 +95,8 @@
 <script setup>
 import { Head } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import FishAudioCard from '../Components/FishAudioCard.vue'
-import FabButton from '../Components/FabButton.vue'
+import FishAudioCard from '../Components/Fish/FishAudioCard.vue'
+import FabButton from '../Components/UI/FabButton.vue'
 import audioPlayerService from '../services/AudioPlayerService.js'
 import { router } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted } from 'vue'

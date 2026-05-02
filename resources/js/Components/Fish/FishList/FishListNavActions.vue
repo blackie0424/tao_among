@@ -38,7 +38,7 @@
 
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import SearchToggleButton from '@/Components/SearchToggleButton.vue'
+import SearchToggleButton from '@/Components/UI/SearchToggleButton.vue'
 
 defineProps({
   variant: {

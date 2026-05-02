@@ -195,7 +195,7 @@ import { computed, ref } from 'vue'
 import { markFishStale } from '@/utils/fishListCache'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
-import LazyImage from '@/Components/LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 
 // 設定巢狀佈局，並傳遞 props
 defineOptions({

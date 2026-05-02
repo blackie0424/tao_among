@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import FabButton from '@/Components/FabButton.vue'
+import FabButton from '@/Components/UI/FabButton.vue'
 
 describe('FabButton 功能測試', () => {
   it('點擊時若有 to prop，應導向指定網址', async () => {

@@ -113,7 +113,7 @@
 import { reactive, computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
-import LazyImage from '@/Components/LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 import { markFishStale } from '@/utils/fishListCache'
 
 const props = defineProps({

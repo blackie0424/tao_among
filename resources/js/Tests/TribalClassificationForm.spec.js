@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import TribalClassificationForm from '@/Components/TribalClassificationForm.vue'
+import TribalClassificationForm from '@/Components/TribalClassification/TribalClassificationForm.vue'
 
 // Mock Inertia router
 vi.mock('@inertiajs/vue3', () => ({

@@ -30,8 +30,8 @@ import { Head } from '@inertiajs/vue3'
 import { onMounted, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
-import FishImageUploader from '@/Components/FishImageUploader.vue'
-import FishNameForm from '@/Components/FishNameForm.vue'
+import FishImageUploader from '@/Components/Fish/FishImageUploader.vue'
+import FishNameForm from '@/Components/Fish/FishNameForm.vue'
 
 const props = defineProps({
   tribes: Array,

@@ -192,8 +192,8 @@
 </template>
 
 <script setup>
-import OverflowMenu from './OverflowMenu.vue'
-import audioPlayerService from '../services/AudioPlayerService.js'
+import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
+import audioPlayerService from '@/services/AudioPlayerService.js'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { formatDateTime } from '@/utils/formatDate.js'
 

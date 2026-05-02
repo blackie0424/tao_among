@@ -67,7 +67,7 @@
 <script setup>
 import { ref, onBeforeUnmount, nextTick } from 'vue'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
-import LazyImage from '../Components/LazyImage.vue'
+import LazyImage from '../Components/UI/LazyImage.vue'
 
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'

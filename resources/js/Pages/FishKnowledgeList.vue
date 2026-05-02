@@ -131,8 +131,8 @@
 <script setup>
 import { Head } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import FishKnowledgeCard from '../Components/FishKnowledgeCard.vue'
-import FabButton from '../Components/FabButton.vue'
+import FishKnowledgeCard from '../Components/Fish/FishKnowledgeCard.vue'
+import FabButton from '../Components/UI/FabButton.vue'
 import { router } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useNetworkStatus } from '../composables/useNetworkStatus.js'

@@ -252,7 +252,7 @@
 import { ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import LazyImage from '@/Components/LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 import { markFishStale, markFishesDeleted } from '@/utils/fishListCache'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 

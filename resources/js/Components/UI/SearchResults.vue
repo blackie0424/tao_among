@@ -196,7 +196,7 @@
 
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
-import LazyImage from '@/Components/LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 import { formatDate } from '@/utils/formatDate'
 
 const props = defineProps({

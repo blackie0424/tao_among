@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import LazyImage from './LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 import { formatDate } from '@/utils/formatDate'
 
 defineProps({

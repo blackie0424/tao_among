@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
-import CaptureRecordForm from '@/Components/CaptureRecordForm.vue'
+import CaptureRecordForm from '@/Components/CaptureRecord/CaptureRecordForm.vue'
 
 // Mock Inertia router
 vi.mock('@inertiajs/vue3', () => ({

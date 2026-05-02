@@ -27,7 +27,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import CaptureRecordForm from '../Components/CaptureRecordForm.vue'
+import CaptureRecordForm from '../Components/CaptureRecord/CaptureRecordForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref, computed, onMounted, nextTick } from 'vue'
 

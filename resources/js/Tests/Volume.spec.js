@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
-import Volume from '../Components/Volume.vue'
+import Volume from '../Components/UI/Volume.vue'
 
 // Mock useAudioPlayback composable
 const mockHandleClick = vi.fn()

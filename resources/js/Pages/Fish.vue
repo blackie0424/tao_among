@@ -39,9 +39,9 @@ import { Head, Link, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
-import TribalClassificationSummary from '@/Components/TribalClassificationSummary.vue'
-import CaptureRecordSection from '@/Components/CaptureRecordSection.vue'
-import FishAdvancedKnowledgeSection from '@/Components/FishAdvancedKnowledgeSection.vue'
+import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
+import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
+import FishAdvancedKnowledgeSection from '@/Components/Fish/FishAdvancedKnowledgeSection.vue'
 
 // Removed persistent layout to support dynamic props
 // defineOptions({

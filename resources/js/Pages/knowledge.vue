@@ -94,7 +94,7 @@
 <script setup>
 import { Head } from '@inertiajs/vue3'
 import BottomNavBar from '../Components/Global/BottomNavBar.vue'
-import LazyImage from '../Components/LazyImage.vue'
+import LazyImage from '../Components/UI/LazyImage.vue'
 
 const props = defineProps({
   fish: Object,

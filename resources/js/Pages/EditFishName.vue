@@ -9,7 +9,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import FishNameForm from '../Components/FishNameForm.vue'
+import FishNameForm from '../Components/Fish/FishNameForm.vue'
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 

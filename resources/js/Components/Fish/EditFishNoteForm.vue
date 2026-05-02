@@ -174,8 +174,8 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import LazyImage from './LazyImage.vue'
-import { useFormValidation, validationRules } from '../composables/useFormValidation.js'
+import LazyImage from '@/Components/UI/LazyImage.vue'
+import { useFormValidation, validationRules } from '@/composables/useFormValidation.js'
 
 const props = defineProps({
   note: Object,
