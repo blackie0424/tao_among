@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent class="space-y-4">
+  <form @submit.prevent class="space-y-6 md:space-y-8 text-xl leading-relaxed">
     <!-- 當前照片和上傳新照片 -->
     <div>
       <!-- 當前照片 -->
@@ -96,18 +96,18 @@
           </div>
         </div>
       </div>
-      <div v-if="errors.image" class="text-red-500 text-sm mt-1">{{ errors.image }}</div>
+      <div v-if="errors.image" class="text-red-500 text-base mt-1">{{ errors.image }}</div>
     </div>
 
     <!-- 部落選擇 -->
     <div>
-      <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">
+      <label for="tribe" class="block text-xl font-medium text-gray-700 mb-2">
         部落 <span class="text-red-500">*</span>
       </label>
       <select
         id="tribe"
         v-model="form.tribe"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
       >
         <option value="">請選擇部落</option>
@@ -115,23 +115,23 @@
           {{ tribe }}
         </option>
       </select>
-      <div v-if="errors.tribe" class="text-red-500 text-sm mt-1">{{ errors.tribe }}</div>
+      <div v-if="errors.tribe" class="text-red-500 text-base mt-1">{{ errors.tribe }}</div>
     </div>
 
     <!-- 捕獲地點 -->
     <div>
-      <label for="location" class="block text-sm font-medium text-gray-700 mb-1">
+      <label for="location" class="block text-xl font-medium text-gray-700 mb-2">
         捕獲地點 <span class="text-red-500">*</span>
       </label>
       <input
         id="location"
         v-model="form.location"
         type="text"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         placeholder="例如：太魯閣溪上游、立霧溪出海口"
         required
       />
-      <div v-if="errors.location" class="text-red-500 text-sm mt-1">{{ errors.location }}</div>
+      <div v-if="errors.location" class="text-red-500 text-base mt-1">{{ errors.location }}</div>
     </div>
 
     <!-- 捕獲方式 -->
@@ -156,7 +156,7 @@
 
     <!-- 捕獲日期 -->
     <div>
-      <label for="capture_date" class="block text-sm font-medium text-gray-700 mb-1">
+      <label for="capture_date" class="block text-xl font-medium text-gray-700 mb-2">
         捕獲日期 <span class="text-red-500">*</span>
       </label>
       <input
@@ -164,25 +164,25 @@
         v-model="form.capture_date"
         type="date"
         :max="today"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
       />
-      <div v-if="errors.capture_date" class="text-red-500 text-sm mt-1">
+      <div v-if="errors.capture_date" class="text-red-500 text-base mt-1">
         {{ errors.capture_date }}
       </div>
     </div>
 
     <!-- 備註 -->
     <div>
-      <label for="notes" class="block text-sm font-medium text-gray-700 mb-1"> 備註 </label>
+      <label for="notes" class="block text-xl font-medium text-gray-700 mb-2"> 備註 </label>
       <textarea
         id="notes"
         v-model="form.notes"
-        rows="4"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="記錄捕獲時的天氣、水況、特殊情況等"
+        rows="3"
+        class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="請輸入相關備註資訊"
       ></textarea>
-      <div v-if="errors.notes" class="text-red-500 text-sm mt-1">{{ errors.notes }}</div>
+      <div v-if="errors.notes" class="text-red-500 text-base mt-1">{{ errors.notes }}</div>
     </div>
   </form>
 </template>
@@ -227,10 +227,6 @@ const today = computed(() => {
 
 // 初始化表單資料
 onMounted(() => {
-  console.log('Mounted - Props record:', props.record) // 調試
-  console.log('Mounted - Record ID:', props.record?.id) // 調試
-  console.log('Mounted - Fish ID:', props.fishId) // 調試
-
   if (props.record) {
     form.tribe = props.record.tribe || ''
     form.location = props.record.location || ''
