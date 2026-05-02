@@ -304,8 +304,8 @@
 import { reactive, ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
-import LazyImage from './LazyImage.vue'
-import { useFormValidation, validationRules } from '../composables/useFormValidation.js'
+import LazyImage from '@/Components/UI/LazyImage.vue'
+import { useFormValidation, validationRules } from '@/composables/useFormValidation.js'
 
 const props = defineProps({
   audio: Object,

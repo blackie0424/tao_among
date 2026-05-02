@@ -29,21 +29,21 @@ vi.mock('@/Layouts/FishGridLayout.vue', () => ({
   },
 }))
 
-vi.mock('@/Components/TribalClassificationSummary.vue', () => ({
+vi.mock('@/Components/TribalClassification/TribalClassificationSummary.vue', () => ({
   default: {
     template: '<div />',
     props: ['classifications', 'tribes', 'fishId'],
   },
 }))
 
-vi.mock('@/Components/CaptureRecordSection.vue', () => ({
+vi.mock('@/Components/CaptureRecord/CaptureRecordSection.vue', () => ({
   default: {
     template: '<div data-testid="capture-record-section" />',
     props: ['captureRecords', 'fishName', 'user'],
   },
 }))
 
-vi.mock('@/Components/FishAdvancedKnowledgeSection.vue', () => ({
+vi.mock('@/Components/Fish/FishAdvancedKnowledgeSection.vue', () => ({
   default: {
     template: '<div data-testid="fish-advanced-knowledge-section" />',
     props: ['fishNotes', 'isEditor', 'user'],

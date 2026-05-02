@@ -34,8 +34,8 @@
 
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import LazyImage from '@/Components/LazyImage.vue'
-import Volume from '@/Components/Volume.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
+import Volume from '@/Components/UI/Volume.vue'
 
 const props = defineProps({
   fish: {

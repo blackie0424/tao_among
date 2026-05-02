@@ -9,7 +9,6 @@
         imgClass="fish-image"
       />
     </div>
-
     <!-- 部落選擇 -->
     <div>
       <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">
@@ -87,11 +86,10 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
-import LazyImage from './LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 import { markFishStale } from '@/utils/fishListCache'
 
 const props = defineProps({
-  classification: Object,
   tribes: Array,
   foodCategories: Array,
   processingMethods: Array,
@@ -112,10 +110,10 @@ const filteredProcessingMethods = computed(() => {
 const emit = defineEmits(['submitted'])
 
 const form = reactive({
-  tribe: props.classification.tribe || '',
-  food_category: props.classification.food_category || '',
-  processing_method: props.classification.processing_method || '',
-  notes: props.classification.notes || '',
+  tribe: '',
+  food_category: '',
+  processing_method: '',
+  notes: '',
 })
 
 const errors = ref({})
@@ -125,10 +123,15 @@ function submitForm() {
   processing.value = true
   errors.value = {}
 
-  router.put(`/fish/${props.fishId}/tribal-classifications/${props.classification.id}`, form, {
+  router.post(`/fish/${props.fishId}/tribal-classifications`, form, {
     onSuccess: () => {
       // 標記此魚類需要在 Fishs 頁面更新
       markFishStale(props.fishId)
+      // 重置表單
+      form.tribe = ''
+      form.food_category = ''
+      form.processing_method = ''
+      form.notes = ''
       emit('submitted')
     },
     onError: (errorResponse) => {

@@ -13,8 +13,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 // Import components and services
-import Volume from '../Components/Volume.vue'
-import FishAudioCard from '../Components/FishAudioCard.vue'
+import Volume from '../Components/UI/Volume.vue'
+import FishAudioCard from '../Components/Fish/FishAudioCard.vue'
 import { useAudioPlayback } from '../composables/useAudioPlayback.js'
 
 // Mock AnimationOptimizer — 此測試關注音頻播放整合，不測試動畫優化邏輯
@@ -215,7 +215,7 @@ Object.defineProperty(navigator, 'onLine', {
 global.fetch = vi.fn().mockResolvedValue({ ok: true })
 
 // Mock FishAudioCard component for integration tests
-vi.mock('../Components/FishAudioCard.vue', () => ({
+vi.mock('../Components/Fish/FishAudioCard.vue', () => ({
   default: {
     name: 'FishAudioCard',
     props: ['audio', 'fishId'],

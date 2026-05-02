@@ -154,7 +154,7 @@ import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
-import LazyImage from '@/Components/LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 
 // 設定巢狀佈局，並傳遞 props
 defineOptions({

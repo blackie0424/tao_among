@@ -91,8 +91,8 @@
 
 <script setup>
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import TribalClassificationCard from '../Components/TribalClassificationCard.vue'
-import FabButton from '../Components/FabButton.vue'
+import TribalClassificationCard from '../Components/TribalClassification/TribalClassificationCard.vue'
+import FabButton from '../Components/UI/FabButton.vue'
 import { router } from '@inertiajs/vue3'
 import { computed } from 'vue'
 

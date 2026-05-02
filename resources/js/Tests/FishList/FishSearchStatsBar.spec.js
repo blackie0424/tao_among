@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import FishSearchStatsBar from '@/Components/FishList/FishSearchStatsBar.vue'
+import FishSearchStatsBar from '@/Components/Fish/FishList/FishSearchStatsBar.vue'
 
 const filters = [
   { key: 'tribe', label: '部落', value: '阿美族' },

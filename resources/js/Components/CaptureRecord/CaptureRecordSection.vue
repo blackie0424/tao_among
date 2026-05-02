@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-import CaptureRecordDisplayCard from '@/Components/CaptureRecordDisplayCard.vue'
+import CaptureRecordDisplayCard from '@/Components/CaptureRecord/CaptureRecordDisplayCard.vue'
 
 defineProps({
   captureRecords: { type: Array, default: () => [] },

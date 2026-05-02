@@ -67,8 +67,8 @@
 </template>
 
 <script setup>
-import LazyImage from './LazyImage.vue'
-import OverflowMenu from './OverflowMenu.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
+import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 import { computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'

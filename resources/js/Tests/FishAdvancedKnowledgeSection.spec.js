@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import FishAdvancedKnowledgeSection from '@/Components/FishAdvancedKnowledgeSection.vue'
+import FishAdvancedKnowledgeSection from '@/Components/Fish/FishAdvancedKnowledgeSection.vue'
 
 // ────────────────────────────────────────────────────
 // Fixtures

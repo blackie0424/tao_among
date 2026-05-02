@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import FilterPanel from '@/Components/FilterPanel.vue'
+import FilterPanel from '@/Components/UI/FilterPanel.vue'
 
 describe('FilterPanel', () => {
   let wrapper

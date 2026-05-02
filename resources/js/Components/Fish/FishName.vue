@@ -23,8 +23,8 @@
 
 <script setup>
 import { router } from '@inertiajs/vue3'
-import Volume from '@/Components/Volume.vue'
-import OverflowMenu from '@/Components/OverflowMenu.vue'
+import Volume from '@/Components/UI/Volume.vue'
+import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 
 const props = defineProps({
   fishName: String,

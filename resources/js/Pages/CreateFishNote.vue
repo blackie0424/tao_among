@@ -23,7 +23,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import FishNoteForm from '../Components/FishNoteForm.vue'
+import FishNoteForm from '../Components/Fish/FishNoteForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 

@@ -60,7 +60,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import LoadingBar from '@/Components/LoadingBar.vue'
+import LoadingBar from '@/Components/UI/LoadingBar.vue'
 import { getResponsiveImageUrls, isResponsiveWebp } from '@/composables/useResponsiveImage.js'
 
 const props = defineProps({

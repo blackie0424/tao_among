@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { useAudioPlayback } from '../composables/useAudioPlayback.js'
-import Volume from '../Components/Volume.vue'
+import Volume from '../Components/UI/Volume.vue'
 
 // Mock AnimationOptimizer — 此測試關注錯誤處理，不測試動畫優化邏輯
 vi.mock('../utils/AnimationOptimizer.js', () => ({

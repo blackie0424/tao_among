@@ -25,7 +25,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import EditFishNoteForm from '../Components/EditFishNoteForm.vue'
+import EditFishNoteForm from '../Components/Fish/EditFishNoteForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 

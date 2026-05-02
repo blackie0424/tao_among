@@ -25,7 +25,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import CaptureRecordEditForm from '../Components/CaptureRecordEditForm.vue'
+import CaptureRecordEditForm from '../Components/CaptureRecord/CaptureRecordEditForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 

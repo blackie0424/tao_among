@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import FilterPanel from '@/Components/FilterPanel.vue'
+import FilterPanel from '@/Components/UI/FilterPanel.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false },

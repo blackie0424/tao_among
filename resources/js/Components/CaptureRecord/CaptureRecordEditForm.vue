@@ -190,7 +190,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import LazyImage from './LazyImage.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 
 const props = defineProps({
   record: Object,
