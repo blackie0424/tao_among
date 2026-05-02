@@ -45,7 +45,7 @@
 import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
-import FlashMessage from '@/Components/FlashMessage.vue'
+import FlashMessage from '@/Components/Global/FlashMessage.vue'
 import AppFooter from '@/Components/Global/AppFooter.vue'
 import AdminFloatingMenu from '@/Components/Global/AdminFloatingMenu.vue'
 import AppNavBar from '@/Components/Global/AppNavBar.vue'
