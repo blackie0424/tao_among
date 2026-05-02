@@ -7,7 +7,10 @@
         <!-- Mobile Row 1: Nav & User -->
         <div class="flex items-center justify-between w-full lg:hidden h-14">
           <!-- Mobile Breadcrumb -->
-          <div data-testid="mobile-breadcrumb" class="flex items-center gap-1 shrink-0 overflow-hidden">
+          <div
+            data-testid="mobile-breadcrumb"
+            class="flex items-center gap-1 shrink-0 overflow-hidden"
+          >
             <!-- Home Link (Hide when breadcrumbPage exists) -->
             <Link
               v-if="!breadcrumbPage"
@@ -215,13 +218,8 @@
               />
             </div>
             <!-- Non-Admin: Name with Badge -->
-            <div
-              v-else-if="user"
-              class="text-sm font-medium text-gray-700 flex items-center gap-2"
-            >
-              <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs"
-                >田調人員</span
-              >
+            <div v-else-if="user" class="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs">田調人員</span>
               {{ user.name }}
             </div>
             <!-- Non-Admin Logout -->

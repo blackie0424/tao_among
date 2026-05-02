@@ -70,7 +70,7 @@ describe('AppNavBar', () => {
       // 只有 desktop 的 among no tao 連結，mobile 不顯示
       const allLinks = wrapper.findAll('a')
       const backLinks = allLinks.filter(
-        (l) => l.text() === 'among no tao' && l.attributes('href') === '/',
+        (l) => l.text() === 'among no tao' && l.attributes('href') === '/'
       )
       expect(backLinks.length).toBe(0)
     })
@@ -125,10 +125,7 @@ describe('AppNavBar', () => {
 
   describe('Slots', () => {
     it('mobile-actions slot 正常渲染', () => {
-      const wrapper = mountNavBar(
-        {},
-        makeAdminUser(),
-      )
+      const wrapper = mountNavBar({}, makeAdminUser())
       // 重新掛載並帶入 slot
       mockUsePage.mockReturnValue({
         props: { auth: { user: makeAdminUser() }, fish: null },
