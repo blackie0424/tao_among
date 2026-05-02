@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4 md:p-6 max-w-7xl relative pb-20">
-    <TopNavBar
+    <FormActionBar
       :goBack="goBack"
       :title="`${fish.name} - 新增地方知識`"
       :showSubmit="true"
@@ -112,7 +112,7 @@
 <script setup>
 import { reactive, computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
-import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import LazyImage from '@/Components/LazyImage.vue'
 import { markFishStale } from '@/utils/fishListCache'
 

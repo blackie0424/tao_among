@@ -61,7 +61,7 @@ describe('CaptureRecordForm', () => {
       props: defaultProps,
     })
 
-    // 魚類資訊（fishName）由 TopNavBar 顯示；表單本身在 Step 1 顯示上傳區塊
+    // 魚類資訊（fishName）由 FormActionBar 顯示；表單本身在 Step 1 顯示上傳區塊
     expect(wrapper.text()).toContain('PNG, JPG, WEBP 最大 10MB')
   })
 

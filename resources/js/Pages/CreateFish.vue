@@ -2,7 +2,7 @@
   <Head title="新增魚類" />
 
   <div class="container mx-auto p-4 relative">
-    <TopNavBar
+    <FormActionBar
       :goBack="goBack"
       :submitNote="handleNext"
       :submitting="submitting"
@@ -29,7 +29,7 @@
 import { Head } from '@inertiajs/vue3'
 import { onMounted, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
-import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import FishImageUploader from '@/Components/FishImageUploader.vue'
 import FishNameForm from '@/Components/FishNameForm.vue'
 
@@ -44,7 +44,7 @@ const submitting = ref(false)
 const uploaderRef = ref(null)
 const nameFormRef = ref(null)
 
-// 動態計算 TopNavBar 的標題
+// 動態計算 FormActionBar 的標題
 const topNavTitle = computed(() => {
   if (step.value === 1) return '新增魚類'
   if (step.value === 2) return '新增魚類'
@@ -69,7 +69,7 @@ function goBack() {
   window.history.length > 1 ? window.history.back() : router.visit('/fishs')
 }
 
-// 統一由 TopNavBar 送出
+// 統一由 FormActionBar 送出
 function handleNext() {
   if (step.value === 1 && uploaderRef.value) {
     if (!uploaderRef.value.selectedFile) {

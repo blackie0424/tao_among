@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <TopNavBar
+    <FormActionBar
       :goBack="goBack"
       :title="`新增${fish.name}的進階知識`"
       :showSubmit="true"
@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import TopNavBar from '../Components/Global/TopNavBar.vue'
+import FormActionBar from '../Components/Global/FormActionBar.vue'
 import FishNoteForm from '../Components/FishNoteForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
@@ -44,7 +44,7 @@ function onNoteSubmitted() {
   router.visit(`/fish/${props.fish.id}/knowledge-manager`)
 }
 
-// 整合送出到 TopNavBar 的 @submit 事件
+// 整合送出到 FormActionBar 的 @submit 事件
 function submitForm() {
   if (formRef.value) {
     formRef.value.submitForm()

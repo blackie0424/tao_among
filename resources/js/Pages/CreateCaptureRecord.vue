@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <TopNavBar
+    <FormActionBar
       :goBack="goBack"
       :fishName="fish.name"
       title="新增捕獲紀錄"
@@ -26,7 +26,7 @@
 </template>
 
 <script setup>
-import TopNavBar from '../Components/Global/TopNavBar.vue'
+import FormActionBar from '../Components/Global/FormActionBar.vue'
 import CaptureRecordForm from '../Components/CaptureRecordForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref, computed, onMounted, nextTick } from 'vue'
@@ -89,7 +89,7 @@ function onRecordSubmitted() {
   router.visit(`/fish/${props.fish.id}/media-manager`)
 }
 
-// 整合送出到 TopNavBar 的 @submit 事件
+// 整合送出到 FormActionBar 的 @submit 事件
 function submitForm() {
   if (!formRef.value) return
   // 使用 computed 的 currentStepVal 來取得正確的步驟值
