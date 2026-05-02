@@ -1,8 +1,8 @@
 <template>
-    <Head title="雅美（達悟）族魚類圖鑑網" />
+  <Head title="雅美（達悟）族魚類圖鑑網" />
 
-  <div class="container mx-auto p-4">
-    <div id="index" class="flex flex-col items-center justify-center min-h-[80vh] w-full">
+  <FishAppLayout :showHeader="false" pageTitle="首頁">
+    <div id="index" class="flex flex-col items-center justify-center min-h-[70vh] w-full">
       <AnimatedText text="nivasilan ko a among" />
       <button
         v-if="showInstallBtn"
@@ -16,15 +16,14 @@
         瀏覽魚類圖鑑
       </button>
     </div>
-    <AppFooter />
-  </div>
+  </FishAppLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import AnimatedText from '@/Components/AnimatedText.vue'
-import AppFooter from '@/Components/Global/AppFooter.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 
 const headerM = '/images/header-m.png'
 const headerS = '/images/header-s.png'
