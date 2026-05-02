@@ -1,10 +1,13 @@
 <template>
   <div
-    class="min-h-screen bg-gray-50 relative pt-4"
-    :class="[user && fishId ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6']"
+    class="min-h-screen bg-gray-50 relative"
+    :class="[
+      showHeader ? 'pt-4' : 'pt-0',
+      user && fishId ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6',
+    ]"
   >
     <!-- 頂部導覽列 -->
-    <header class="sticky top-4 z-30">
+    <header v-if="showHeader" class="sticky top-4 z-30">
       <div
         class="container mx-auto max-w-7xl bg-white/90 backdrop-blur-md shadow-sm border border-gray-100 rounded-2xl"
       >
@@ -324,6 +327,10 @@ const props = defineProps({
     default: 'among no tao',
   },
   showBottomNav: {
+    type: Boolean,
+    default: true,
+  },
+  showHeader: {
     type: Boolean,
     default: true,
   },

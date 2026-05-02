@@ -1,19 +1,13 @@
 <template>
   <Head title="LINE 使用者管理" />
 
-  <div class="min-h-screen bg-gray-50">
-    <AppHeader>
-      <template #desktop-breadcrumb>LINE 使用者管理</template>
-      <template #mobile-title>LINE 使用者管理</template>
-    </AppHeader>
-
-    <main class="container mx-auto max-w-4xl px-4 py-8">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">LINE 使用者管理</h1>
-        <p class="text-sm text-gray-500 mt-1">
-          管理 LINE 使用者角色。指派 editor 後，使用者選單將立即切換為三格完整功能。
-        </p>
-      </div>
+  <FishAppLayout pageTitle="LINE 使用者管理" mobileBackUrl="/fishs">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">LINE 使用者管理</h1>
+      <p class="text-sm text-gray-500 mt-1">
+        管理 LINE 使用者角色。指派 editor 後，使用者選單將立即切換為三格完整功能。
+      </p>
+    </div>
 
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table class="w-full text-sm">
@@ -93,14 +87,13 @@
           {{ page }}
         </Link>
       </div>
-    </main>
-  </div>
+  </FishAppLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
-import AppHeader from '@/Components/Global/AppHeader.vue'
+import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import axios from 'axios'
 import { formatDate } from '@/utils/formatDate'
 
