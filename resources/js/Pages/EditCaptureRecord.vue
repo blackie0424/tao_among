@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <TopNavBar
+    <FormActionBar
       :goBack="goBack"
       title="編輯捕獲紀錄"
       :showSubmit="canSubmit && !uploading"
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import TopNavBar from '../Components/Global/TopNavBar.vue'
+import FormActionBar from '../Components/Global/FormActionBar.vue'
 import CaptureRecordEditForm from '../Components/CaptureRecordEditForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
@@ -54,7 +54,7 @@ function onRecordUpdated() {
   router.visit(`/fish/${props.fish.id}/media-manager`)
 }
 
-// 整合送出到 TopNavBar 的 @submit 事件
+// 整合送出到 FormActionBar 的 @submit 事件
 function submitForm() {
   if (formRef.value) {
     formRef.value.submitForm()

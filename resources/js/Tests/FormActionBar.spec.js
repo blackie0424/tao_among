@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import FormActionBar from '@/Components/Global/FormActionBar.vue'
 
-describe('TopNavBar', () => {
-  it('載入 TopNavBar 時，應該顯示關閉按鈕、送出按鈕與標題', () => {
-    const wrapper = mount(TopNavBar, {
+describe('FormActionBar', () => {
+  it('載入 FormActionBar 時，應該顯示關閉按鈕、送出按鈕與標題', () => {
+    const wrapper = mount(FormActionBar, {
       props: {
         title: '測試標題',
         goBack: vi.fn(),
@@ -23,8 +23,8 @@ describe('TopNavBar', () => {
     expect(submitBtn.text()).toContain('送出')
   })
 
-  it('載入 TopNavBar 時，可以自訂送出按鈕顯示的文字', () => {
-    const wrapper = mount(TopNavBar, {
+  it('載入 FormActionBar 時，可以自訂送出按鈕顯示的文字', () => {
+    const wrapper = mount(FormActionBar, {
       props: {
         title: '測試標題',
         goBack: vi.fn(),
@@ -38,8 +38,8 @@ describe('TopNavBar', () => {
     expect(buttons[1].text()).toContain('自訂送出')
   })
 
-  it('載入 TopNavBar 時，沒有給標題時，應該要顯示請新增標題文字', async () => {
-    const wrapper = mount(TopNavBar, {
+  it('載入 FormActionBar 時，沒有給標題時，應該要顯示請新增標題文字', async () => {
+    const wrapper = mount(FormActionBar, {
       props: {
         goBack: vi.fn(),
         submitNote: vi.fn(),
@@ -52,7 +52,7 @@ describe('TopNavBar', () => {
 
   it('點擊取消按鈕時，應該呼叫 goBack 方法', async () => {
     const goBack = vi.fn()
-    const wrapper = mount(TopNavBar, {
+    const wrapper = mount(FormActionBar, {
       props: {
         goBack,
         submitNote: vi.fn(),
@@ -67,7 +67,7 @@ describe('TopNavBar', () => {
 
   it('點擊送出按鈕時，應該呼叫 submitNote 方法', async () => {
     const submitNote = vi.fn()
-    const wrapper = mount(TopNavBar, {
+    const wrapper = mount(FormActionBar, {
       props: {
         goBack: vi.fn(),
         submitNote,
@@ -81,7 +81,7 @@ describe('TopNavBar', () => {
   })
 
   it('當 showLoading 為 false 時，Loading畫面不應該顯示', () => {
-    const wrapper = mount(TopNavBar, {
+    const wrapper = mount(FormActionBar, {
       props: {
         showLoading: false,
       },
@@ -91,7 +91,7 @@ describe('TopNavBar', () => {
   })
 
   it('當 showLoading 為 true 時，Loading畫面應該顯示', () => {
-    const wrapper = mount(TopNavBar, {
+    const wrapper = mount(FormActionBar, {
       props: {
         showLoading: true,
       },
@@ -101,7 +101,7 @@ describe('TopNavBar', () => {
   })
 
   it('當 submitting 為 false 時，送出按鈕應過被看到，也可以點擊', () => {
-    const wrapper = mount(TopNavBar, {
+    const wrapper = mount(FormActionBar, {
       props: {
         submitting: false,
       },
@@ -114,7 +114,7 @@ describe('TopNavBar', () => {
   })
 
   it('當 submitting 為 true 時，送出按鈕應該被禁用', () => {
-    const wrapper = mount(TopNavBar, {
+    const wrapper = mount(FormActionBar, {
       props: {
         submitting: true,
         showSubmit: true,

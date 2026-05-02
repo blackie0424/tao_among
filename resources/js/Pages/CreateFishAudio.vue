@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <TopNavBar
+    <FormActionBar
       :goBack="goBack"
       :submitNote="handleNext"
       :submitting="submitting"
@@ -66,7 +66,7 @@
 
 <script setup>
 import { ref, onBeforeUnmount, nextTick } from 'vue'
-import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import LazyImage from '../Components/LazyImage.vue'
 
 import { router } from '@inertiajs/vue3'

@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import TopNavBar from '@/Components/Global/TopNavBar.vue'
+import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import EditFishName from '@/Pages/EditFishName.vue'
 
 describe('EditFishName', () => {
-  it('載入 EditFishName 時，應該顯示 TopNavBar', () => {
+  it('載入 EditFishName 時，應該顯示 FormActionBar', () => {
     const wrapper = mount(EditFishName, {
       props: {
         fish: {},
       },
     })
-    expect(wrapper.findComponent(TopNavBar).exists()).toBe(true)
+    expect(wrapper.findComponent(FormActionBar).exists()).toBe(true)
   })
 })

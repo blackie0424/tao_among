@@ -54,7 +54,7 @@
       </div>
       <div v-if="errors.image" class="text-red-500 text-base mt-1">{{ errors.image }}</div>
 
-      <!-- 導航按鈕已改由 TopNavBar 控制 -->
+      <!-- 導航按鈕已改由 FormActionBar 控制 -->
     </div>
 
     <!-- Step 2: 部落、地點、時間 -->
@@ -103,7 +103,7 @@
         </div>
       </div>
 
-      <!-- 導航按鈕已改由 TopNavBar 控制 -->
+      <!-- 導航按鈕已改由 FormActionBar 控制 -->
     </div>
 
     <!-- Step 3: 捕獲方式 + 備註 + 送出 -->
@@ -138,7 +138,7 @@
         <div v-if="errors.notes" class="text-red-500 text-base mt-1">{{ errors.notes }}</div>
       </div>
 
-      <!-- 導航按鈕已改由 TopNavBar 控制 -->
+      <!-- 導航按鈕已改由 FormActionBar 控制 -->
     </div>
   </form>
 </template>
@@ -283,7 +283,7 @@ async function finalSubmit() {
   }
 }
 
-// 讓父元件可以透過 ref 呼叫 submitForm（TopNavBar 會呼叫）
+// 讓父元件可以透過 ref 呼叫 submitForm（FormActionBar 會呼叫）
 async function submitForm() {
   if (step.value === 1) {
     // 若在 step1，嘗試上傳並移到下一步
