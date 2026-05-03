@@ -41,7 +41,7 @@ import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
-import FishAdvancedKnowledgeSection from '@/Components/Fish/FishAdvancedKnowledgeSection.vue'
+import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue'
 
 // Removed persistent layout to support dynamic props
 // defineOptions({

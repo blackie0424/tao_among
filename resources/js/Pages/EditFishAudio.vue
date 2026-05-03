@@ -23,7 +23,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import EditFishAudioForm from '../Components/Fish/EditFishAudioForm.vue'
+import EditFishAudioForm from '../Components/FishAudio/EditFishAudioForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 
