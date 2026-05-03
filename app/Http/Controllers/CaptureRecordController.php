@@ -74,6 +74,22 @@ class CaptureRecordController extends Controller
     }
 
     /**
+     * Show the batch create form for adding multiple capture records at once.
+     */
+    public function batchCreate($fishId)
+    {
+        $fish = Fish::findOrFail($fishId);
+        $fishWithImage = $this->assignFishImage($fish);
+
+        return Inertia::render('BatchCreateCaptureRecord', [
+            'fish'            => $fishWithImage,
+            'tribes'          => config('fish_options.tribes'),
+            'capture_methods' => config('fish_options.capture_methods'),
+            'upload_limits'   => config('fish_options.batch_upload'),
+        ]);
+    }
+
+    /**
      * Store a newly created capture record in storage.
      */
     public function store(CaptureRecordRequest $request, $fishId)

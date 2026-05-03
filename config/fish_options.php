@@ -84,4 +84,18 @@ return [
         'mitokzos' => 'mitokzos',
         'mipaltog' => 'mipaltog',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | 批次上傳設定
+    |--------------------------------------------------------------------------
+    |
+    | 控制批次上傳捕獲紀錄時每批的最大照片數量。
+    | 上限為 UX 決策，圖片直接透過 signed URL 上傳至 S3，不受 PHP 限制。
+    |
+    */
+    'batch_upload' => [
+        'max_files_desktop' => env('BATCH_UPLOAD_MAX_DESKTOP', 10),
+        'max_files_mobile'  => env('BATCH_UPLOAD_MAX_MOBILE', 5),
+    ],
 ];

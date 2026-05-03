@@ -63,6 +63,7 @@ Route::middleware(['auth'])->group(function () {
     // -------------------------------------------------
     Route::get('/fish/{id}/capture-records', [CaptureRecordController::class, 'index'])->name('fish.capture-records');
     Route::get('/fish/{id}/capture-records/create', [CaptureRecordController::class, 'create'])->name('fish.capture-records.create');
+    Route::get('/fish/{id}/capture-records/batch-create', [CaptureRecordController::class, 'batchCreate'])->name('fish.capture-records.batch-create');
     Route::post('/fish/{id}/capture-records', [CaptureRecordController::class, 'store'])->name('fish.capture-records.store');
     Route::get('/fish/{id}/capture-records/{record_id}/edit', [CaptureRecordController::class, 'edit'])->name('fish.capture-records.edit');
     Route::put('/fish/{id}/capture-records/{record_id}', [CaptureRecordController::class, 'update'])->name('fish.capture-records.update');
