@@ -4,19 +4,11 @@
     <div class="flex items-center gap-3">
       <Link
         v-if="user"
-        href="/fish/create"
+        href="/fish/batch-create"
         class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
         title="新增魚類"
       >
         <span class="mr-1 text-2xl leading-none font-normal pb-1">+</span> 新增
-      </Link>
-      <Link
-        v-if="user"
-        href="/fish/batch-create"
-        class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
-        title="批次新增魚類"
-      >
-        <span class="mr-1 text-xl leading-none">⚡</span> 批次新增
       </Link>
       <SearchToggleButton @toggle="$emit('toggle')" />
     </div>
@@ -27,7 +19,7 @@
     <div class="flex items-center gap-3">
       <Link
         v-if="user"
-        href="/fish/create"
+        href="/fish/batch-create"
         class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
         title="新增魚類"
       >

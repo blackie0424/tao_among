@@ -43,9 +43,7 @@ Route::middleware(['auth'])->group(function () {
     // -------------------------------------------------
     // 魚類基本管理
     // -------------------------------------------------
-    // 注意：/fish/create 與 /fish/batch-create 必須在 /fish/{id} 之前定義
-    Route::get('/fish/create', [FishController::class, 'create'])->name('fish.create');
-    Route::post('/fish', [FishController::class, 'store'])->name('fish.store');
+    // 注意：/fish/batch-create 必須在 /fish/{id} 之前定義
     Route::get('/fish/batch-create', [FishController::class, 'batchCreate'])->name('fish.batch-create');
     Route::post('/fish/batch-create', [FishController::class, 'batchStore'])->name('fish.batch-create.store');
     Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit');

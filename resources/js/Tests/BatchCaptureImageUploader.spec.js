@@ -192,4 +192,67 @@ describe('BatchCaptureImageUploader', () => {
     const input = wrapper.find('[data-testid="file-input"]')
     expect(input.attributes('multiple')).toBeDefined()
   })
+
+  // ==================== HEIC 轉檔 ====================
+
+  it('加入 HEIC 檔案時 item.isHeic 為 true', async () => {
+    const wrapper = mount(BatchCaptureImageUploader, { props: defaultProps })
+    const heicFile = makeFile('photo.HEIC', 'image/heic')
+    await wrapper.vm.addFiles([heicFile])
+    await nextTick()
+
+    expect(wrapper.vm.items[0].isHeic).toBe(true)
+  })
+
+  it('uploadAll 時 HEIC 檔案會被轉換後再上傳', async () => {
+    const convertedBlob = new Blob(['converted'], { type: 'image/jpeg' })
+    window.heic2any = vi.fn().mockResolvedValue(convertedBlob)
+
+    const wrapper = mount(BatchCaptureImageUploader, { props: defaultProps })
+    const heicFile = makeFile('photo.heic', 'image/heic')
+    await wrapper.vm.addFiles([heicFile])
+    await nextTick()
+
+    await wrapper.vm.uploadAll()
+
+    // heic2any 應被呼叫
+    expect(window.heic2any).toHaveBeenCalledWith({ blob: heicFile, toType: 'image/jpeg' })
+    // 上傳時使用的 filename 應為 .jpg
+    const bodyArg = JSON.parse(global.fetch.mock.calls[0][1].body)
+    expect(bodyArg.filename).toBe('photo.jpg')
+    // 上傳成功後 emit uploaded
+    expect(wrapper.emitted('uploaded')).toBeTruthy()
+
+    delete window.heic2any
+  })
+
+  it('uploadAll 時若 heic2any 未載入則 emit upload-error', async () => {
+    delete window.heic2any
+
+    const wrapper = mount(BatchCaptureImageUploader, { props: defaultProps })
+    const heicFile = makeFile('photo.heic', 'image/heic')
+    await wrapper.vm.addFiles([heicFile])
+    await nextTick()
+
+    await wrapper.vm.uploadAll()
+
+    expect(wrapper.emitted('upload-error')).toBeTruthy()
+    expect(wrapper.vm.items[0].status).toBe('error')
+  })
+
+  it('uploadAll 時 heic2any 轉檔失敗則 emit upload-error', async () => {
+    window.heic2any = vi.fn().mockRejectedValue(new Error('轉檔失敗'))
+
+    const wrapper = mount(BatchCaptureImageUploader, { props: defaultProps })
+    const heicFile = makeFile('photo.heic', 'image/heic')
+    await wrapper.vm.addFiles([heicFile])
+    await nextTick()
+
+    await wrapper.vm.uploadAll()
+
+    expect(wrapper.emitted('upload-error')).toBeTruthy()
+    expect(wrapper.vm.items[0].status).toBe('error')
+
+    delete window.heic2any
+  })
 })

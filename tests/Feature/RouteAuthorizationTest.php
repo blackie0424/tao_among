@@ -66,7 +66,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
     // -------------------------------------------------
     
     it('新增魚類頁面需要登入', function () {
-        $response = $this->get('/fish/create');
+        $response = $this->get('/fish/batch-create');
         $response->assertRedirect('/login');
     });
 
@@ -86,9 +86,8 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
     // 魚類基本管理 - 寫入請求（POST/PUT/DELETE）
     // -------------------------------------------------
 
-    it('儲存魚類需要登入', function () {
-        $response = $this->post('/fish', ['name' => 'Test', 'image' => 'test.jpg']);
-        // 驗證不是 200 成功，而是被拒絕存取（302 redirect 或 401/403）
+    it('批次新增魚類需要登入', function () {
+        $response = $this->post('/fish/batch-create', ['filenames' => ['test.jpg']]);
         expect($response->status())->not->toBe(200);
         expect($response->status())->not->toBe(201);
     });
@@ -368,7 +367,7 @@ describe('登入後可存取管理路由', function () {
     it('登入後可存取新增魚類頁面', function () {
         $user = User::factory()->create();
         
-        $response = $this->actingAs($user)->get('/fish/create');
+        $response = $this->actingAs($user)->get('/fish/batch-create');
         $response->assertStatus(200);
     });
 

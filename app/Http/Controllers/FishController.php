@@ -7,7 +7,6 @@ use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
 use App\Contracts\FishSearchServiceInterface;
 use App\Http\Requests\BatchCreateFishRequest;
-use App\Http\Requests\CreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
 use Illuminate\Support\Facades\DB;
 use App\Models\Fish;
@@ -85,14 +84,6 @@ class FishController extends Controller
             'filters' => $filters,
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
-        ]);
-    }
-
-    public function create()
-    {
-        return Inertia::render('CreateFish', [
-            'tribes'          => config('fish_options.tribes'),
-            'capture_methods' => config('fish_options.capture_methods'),
         ]);
     }
 
@@ -211,37 +202,6 @@ class FishController extends Controller
             ]);
             
             return back()->with('error', '刪除魚類時發生錯誤：' . $e->getMessage());
-        }
-    }
-
-    public function store(CreateFishRequest $request)
-    {
-        try {
-            $fish = Fish::create($request->validated());
-            
-            // 自動建立首次捕獲紀錄（方案B：確保圖片有對應的 capture_record）
-            $captureRecord = CaptureRecord::create([
-                'fish_id' => $fish->id,
-                'image_path' => $request->validated()['image'],
-                'tribe' => $request->input('tribe', 'iraraley'),
-                'location' => $request->input('location', '待補充'),
-                'capture_method' => $request->input('capture_method', 'mamasil'),
-                'capture_date' => $request->input('capture_date', now()),
-                'notes' => $request->input('notes', null)
-            ]);
-            
-            // 自動設定為圖鑑主圖
-            $fish->update(['display_capture_record_id' => $captureRecord->id]);
-            
-            // 使用 redirect + flash message 統一流程
-            return redirect("/fish/{$fish->id}")
-                ->with('success', "魚類「{$fish->name}」新增成功！");
-            
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'data' => ['errors' => $e->errors()],
-            ], 422);
-            
         }
     }
 

@@ -25,14 +25,14 @@
           </label>
           <span v-if="!isLineApp" class="hidden md:inline">，或拖曳到此</span>
         </div>
-        <p class="text-xs text-gray-400">PNG、JPG、WEBP，最多 {{ maxFiles }} 張</p>
+        <p class="text-xs text-gray-400">PNG、JPG、WEBP、HEIC，最多 {{ maxFiles }} 張</p>
       </div>
 
       <input
         :id="inputId"
         data-testid="file-input"
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.HEIC"
         v-bind="inputAttrs"
         class="hidden"
         ref="fileInputRef"
@@ -90,6 +90,29 @@
           </svg>
         </div>
 
+        <!-- 轉檔中遮罩（HEIC → JPEG） -->
+        <div
+          v-if="item.status === 'converting'"
+          class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-1"
+        >
+          <svg class="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <span class="text-white text-xs">轉檔中</span>
+        </div>
+
         <!-- 上傳狀態遮罩 -->
         <div
           v-if="item.status === 'uploading'"
@@ -143,9 +166,17 @@
           </svg>
         </div>
 
+        <!-- HEIC 標籤 -->
+        <div
+          v-if="item.isHeic && item.status === 'pending'"
+          class="absolute bottom-1 left-1 bg-orange-500/80 text-white text-xs px-1 rounded leading-tight"
+        >
+          HEIC
+        </div>
+
         <!-- 移除按鈕（未上傳中才可移除） -->
         <button
-          v-if="item.status !== 'uploading'"
+          v-if="item.status !== 'uploading' && item.status !== 'converting'"
           data-testid="remove-btn"
           type="button"
           class="absolute top-1 right-1 bg-gray-800/70 hover:bg-red-600 rounded-full p-0.5 transition-colors"
@@ -194,7 +225,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 let _idCounter = 0
 
@@ -211,8 +242,18 @@ const props = defineProps({
 
 const emit = defineEmits(['uploaded', 'upload-error'])
 
+// 動態載入 heic2any CDN（HEIC 轉檔用）
+onMounted(() => {
+  if (!window.heic2any) {
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js'
+    script.async = true
+    document.head.appendChild(script)
+  }
+})
+
 const fileInputRef = ref(null)
-const items = ref([]) // { id, file, preview, status: 'pending'|'uploading'|'done'|'error', filename, error }
+const items = ref([]) // { id, file, preview, status, filename, error, isHeic }
 const isUploading = ref(false)
 
 // 唯一 input id（避免多個元件衝突）
@@ -220,6 +261,14 @@ const inputId = `batch-upload-input-${Math.random().toString(36).slice(2)}`
 
 // 根據平台決定是否帶 multiple
 const inputAttrs = computed(() => (props.isLineApp ? {} : { multiple: true }))
+
+function isHeicFile(file) {
+  return (
+    file.name.toLowerCase().endsWith('.heic') ||
+    file.type === 'image/heic' ||
+    file.type === 'image/heif'
+  )
+}
 
 function onFilesSelected(event) {
   addFiles(Array.from(event.target.files))
@@ -238,7 +287,15 @@ function addFiles(files) {
   const toAdd = files.slice(0, remaining)
   toAdd.forEach((file) => {
     const id = ++_idCounter
-    const item = { id, file, preview: null, status: 'pending', filename: null, error: null }
+    const item = {
+      id,
+      file,
+      preview: null,
+      status: 'pending',
+      filename: null,
+      error: null,
+      isHeic: isHeicFile(file),
+    }
     items.value.push(item)
 
     // 非同步產生縮圖預覽
@@ -271,15 +328,47 @@ async function uploadAll() {
 
   for (const item of items.value) {
     if (item.status === 'done') continue
-    item.status = 'uploading'
     item.error = null
+
+    // HEIC 轉檔
+    let uploadFile = item.file
+    if (isHeicFile(item.file)) {
+      item.status = 'converting'
+      if (!window.heic2any) {
+        item.status = 'error'
+        item.error = '找不到 heic2any 函式庫，請確認 CDN 已載入'
+        failedItems.push(item)
+        continue
+      }
+      try {
+        const converted = await window.heic2any({ blob: item.file, toType: 'image/jpeg' })
+        const newName = item.file.name.replace(/\.heic$/i, '.jpg')
+        uploadFile = new File([converted], newName, { type: 'image/jpeg' })
+        item.file = uploadFile
+        item.isHeic = false
+        // 更新縮圖預覽
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const found = items.value.find((i) => i.id === item.id)
+          if (found) found.preview = e.target.result
+        }
+        reader.readAsDataURL(uploadFile)
+      } catch {
+        item.status = 'error'
+        item.error = 'HEIC 轉檔失敗，請手動轉換後再上傳'
+        failedItems.push(item)
+        continue
+      }
+    }
+
+    item.status = 'uploading'
 
     try {
       // 1. 取得 signed URL
       const signedRes = await fetch('/prefix/api/storage/signed-upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: item.file.name }),
+        body: JSON.stringify({ filename: uploadFile.name }),
       })
       const signedData = await signedRes.json()
       if (!signedRes.ok) throw new Error(signedData.message || '取得上傳網址失敗')
@@ -287,7 +376,7 @@ async function uploadAll() {
       // 2. PUT 上傳至 S3
       const uploadRes = await fetch(signedData.url, {
         method: 'PUT',
-        body: item.file,
+        body: uploadFile,
       })
       if (!uploadRes.ok) throw new Error('圖片上傳失敗')
 

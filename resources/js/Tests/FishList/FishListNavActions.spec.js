@@ -34,7 +34,7 @@ describe('FishListNavActions', () => {
         props: { variant: 'desktop', user: { id: 1 } },
         ...globalStubs,
       })
-      const link = wrapper.find('a[href="/fish/create"]')
+      const link = wrapper.find('a[href="/fish/batch-create"]')
       expect(link.exists()).toBe(true)
       expect(link.text()).toContain('新增')
     })
@@ -44,7 +44,7 @@ describe('FishListNavActions', () => {
         props: { variant: 'desktop', user: null },
         ...globalStubs,
       })
-      expect(wrapper.find('a[href="/fish/create"]').exists()).toBe(false)
+      expect(wrapper.find('a[href="/fish/batch-create"]').exists()).toBe(false)
     })
 
     it('渲染 SearchToggleButton', () => {
@@ -83,7 +83,7 @@ describe('FishListNavActions', () => {
         props: { variant: 'mobile', user: { id: 1 } },
         ...globalStubs,
       })
-      const link = wrapper.find('a[href="/fish/create"]')
+      const link = wrapper.find('a[href="/fish/batch-create"]')
       expect(link.exists()).toBe(true)
       expect(link.classes()).toContain('w-9')
       expect(link.classes()).toContain('h-9')
@@ -94,7 +94,7 @@ describe('FishListNavActions', () => {
         props: { variant: 'mobile', user: null },
         ...globalStubs,
       })
-      expect(wrapper.find('a[href="/fish/create"]').exists()).toBe(false)
+      expect(wrapper.find('a[href="/fish/batch-create"]').exists()).toBe(false)
     })
 
     it('渲染 SearchToggleButton', () => {
