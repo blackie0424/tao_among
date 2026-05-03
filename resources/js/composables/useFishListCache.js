@@ -171,9 +171,22 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
     }
   }
 
+  /**
+   * 不依賴快取，直接對目前 items 處理 stale IDs（供快取未還原時呼叫）
+   * @returns {Promise<boolean>} 是否有 stale IDs 被處理
+   */
+  const processStaleItems = async () => {
+    const staleIds = getStaleIds()
+    if (staleIds.length === 0) return false
+    await refreshStaleItems(staleIds)
+    clearStaleIds()
+    return true
+  }
+
   return {
     saveStateToStorage,
     clearStateStorage,
     restoreStateFromStorage,
+    processStaleItems,
   }
 }

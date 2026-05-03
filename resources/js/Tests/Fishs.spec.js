@@ -12,7 +12,8 @@ vi.mock('@inertiajs/vue3', () => ({
 // ── Layout mock ───────────────────────────────────────────────
 vi.mock('@/Layouts/FishAppLayout.vue', () => ({
   default: {
-    template: '<div><slot /><slot name="desktop-nav" /><slot name="mobile-actions" /><slot name="header-extension" /></div>',
+    template:
+      '<div><slot /><slot name="desktop-nav" /><slot name="mobile-actions" /><slot name="header-extension" /></div>',
     props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showBottomNav'],
   },
 }))
@@ -25,7 +26,10 @@ vi.mock('@/Components/FishList/FishSearchModal.vue', () => ({
   default: { template: '<div />', props: ['show', 'filters', 'nameQuery', 'searchOptions'] },
 }))
 vi.mock('@/Components/FishList/FishSearchStatsBar.vue', () => ({
-  default: { template: '<div />', props: ['variant', 'showTotalCount', 'totalCount', 'appliedFilters'] },
+  default: {
+    template: '<div />',
+    props: ['variant', 'showTotalCount', 'totalCount', 'appliedFilters'],
+  },
 }))
 vi.mock('@/Components/FishList/FishSearchLoading.vue', () => ({
   default: { template: '<div />', props: ['show'] },
@@ -62,6 +66,7 @@ vi.mock('@/composables/useFishListCache', () => ({
     saveStateToStorage: vi.fn(),
     clearStateStorage: vi.fn(),
     restoreStateFromStorage: vi.fn().mockResolvedValue(false),
+    processStaleItems: vi.fn().mockResolvedValue(false),
   }),
 }))
 
@@ -102,8 +107,7 @@ const defaultProps = {
   searchStats: {},
 }
 
-const mountFishs = (propsData = {}) =>
-  mount(Fishs, { props: { ...defaultProps, ...propsData } })
+const mountFishs = (propsData = {}) => mount(Fishs, { props: { ...defaultProps, ...propsData } })
 
 // ──────────────────────────────────────────────
 // totalCount computed
@@ -163,7 +167,10 @@ describe('FishCard 渲染', () => {
 
   it('props.items 有資料時，watcher 同步後應渲染對應數量的 FishCard', async () => {
     const wrapper = mountFishs({
-      items: [{ id: 1, name: 'A' }, { id: 2, name: 'B' }],
+      items: [
+        { id: 1, name: 'A' },
+        { id: 2, name: 'B' },
+      ],
     })
     await wrapper.vm.$nextTick()
     expect(wrapper.findAll('[data-testid="fish-card"]').length).toBe(2)

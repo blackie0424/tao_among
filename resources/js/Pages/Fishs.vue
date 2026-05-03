@@ -119,13 +119,8 @@ const {
 } = useFishList(currentFilters, nameQuery)
 
 // ── Composable：SessionStorage 快取 ──────────────────────────
-const { saveStateToStorage, clearStateStorage, restoreStateFromStorage } = useFishListCache(
-  items,
-  pageInfo,
-  currentFilters,
-  nameQuery,
-  () => props.filters
-)
+const { saveStateToStorage, clearStateStorage, restoreStateFromStorage, processStaleItems } =
+  useFishListCache(items, pageInfo, currentFilters, nameQuery, () => props.filters)
 
 // 觸發搜尋前先清快取，再交由 useFishList 重置並 fetchPage
 const doSearch = () => performSearch(clearStateStorage)
@@ -169,6 +164,11 @@ onMounted(async () => {
   if (restored && items.value.length) {
     initObserver()
     return
+  }
+
+  // 快取未還原時，仍需處理 stale IDs（例如 Inertia 歷史快取導致 props 過期的情境）
+  if (items.value.length) {
+    await processStaleItems()
   }
 
   try {

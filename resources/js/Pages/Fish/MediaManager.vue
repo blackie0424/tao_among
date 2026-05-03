@@ -310,9 +310,17 @@ const deleteAudio = (audio) => {
 
 const setMainImage = (record) => {
   if (confirm('確定要將這張捕獲紀錄設為圖鑑首圖嗎？')) {
-    router.put(`/fish/${props.fish.id}/display-image`, {
-      capture_record_id: record.id,
-    })
+    router.put(
+      `/fish/${props.fish.id}/display-image`,
+      {
+        capture_record_id: record.id,
+      },
+      {
+        onSuccess: () => {
+          markFishStale(props.fish.id)
+        },
+      }
+    )
   }
 }
 </script>

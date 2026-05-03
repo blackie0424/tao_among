@@ -31,7 +31,7 @@ class CaptureRecordController extends Controller
     public function index($fishId)
     {
         // 取得指定魚類資訊和捕獲紀錄
-        $fish = Fish::with('captureRecords')->findOrFail($fishId);
+        $fish = Fish::with(['captureRecords', 'displayCaptureRecord'])->findOrFail($fishId);
         
         // 使用 Trait 處理魚類圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
@@ -54,7 +54,7 @@ class CaptureRecordController extends Controller
      */
     public function create(Request $request, $fishId)
     {
-        $fish = Fish::findOrFail($fishId);
+        $fish = Fish::with('displayCaptureRecord')->findOrFail($fishId);
         
         // 使用 Trait 處理圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
@@ -78,7 +78,7 @@ class CaptureRecordController extends Controller
      */
     public function batchCreate($fishId)
     {
-        $fish = Fish::findOrFail($fishId);
+        $fish = Fish::with('displayCaptureRecord')->findOrFail($fishId);
         $fishWithImage = $this->assignFishImage($fish);
 
         return Inertia::render('BatchCreateCaptureRecord', [
@@ -121,7 +121,7 @@ class CaptureRecordController extends Controller
      */
     public function edit($fishId, $recordId)
     {
-        $fish = Fish::findOrFail($fishId);
+        $fish = Fish::with('displayCaptureRecord')->findOrFail($fishId);
         $record = CaptureRecord::where('fish_id', $fishId)
             ->where('id', $recordId)
             ->firstOrFail();
