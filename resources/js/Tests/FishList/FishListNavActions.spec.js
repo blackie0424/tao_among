@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import FishListNavActions from '@/Components/Fish/FishList/FishListNavActions.vue'
+import FishListNavActions from '@/Components/FishList/FishListNavActions.vue'
 
 // stub Inertia Link（href 在 props，需明確綁定；class 等其他 attr 由 $attrs 轉發）
 const LinkStub = {

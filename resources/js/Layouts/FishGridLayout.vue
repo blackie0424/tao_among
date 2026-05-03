@@ -30,7 +30,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import FishDetailTop from '@/Components/Fish/FishDetailTop.vue'
+import FishDetailTop from '@/Components/FishDetail/FishDetailTop.vue'
 
 // 從 Inertia page props 取得資料
 const page = usePage()

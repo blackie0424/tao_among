@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import FishKnowledgeCard from '@/Components/Fish/FishKnowledgeCard.vue'
+import FishKnowledgeCard from '@/Components/FishKnowledge/FishKnowledgeCard.vue'
 import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 
 // Mock OverflowMenu component

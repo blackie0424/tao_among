@@ -43,7 +43,7 @@ vi.mock('@/Components/CaptureRecord/CaptureRecordSection.vue', () => ({
   },
 }))
 
-vi.mock('@/Components/Fish/FishAdvancedKnowledgeSection.vue', () => ({
+vi.mock('@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue', () => ({
   default: {
     template: '<div data-testid="fish-advanced-knowledge-section" />',
     props: ['fishNotes', 'isEditor', 'user'],

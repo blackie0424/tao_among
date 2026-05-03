@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
-import FishAudioCard from '@/Components/Fish/FishAudioCard.vue'
+import FishAudioCard from '@/Components/FishAudio/FishAudioCard.vue'
 import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 
 // Mock OverflowMenu component

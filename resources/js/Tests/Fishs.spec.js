@@ -18,22 +18,22 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
 }))
 
 // ── 子元件 mock（只驗證頁面層邏輯）──────────────────────────
-vi.mock('@/Components/Fish/FishList/FishListNavActions.vue', () => ({
+vi.mock('@/Components/FishList/FishListNavActions.vue', () => ({
   default: { template: '<div />', props: ['variant', 'user'], emits: ['toggle'] },
 }))
-vi.mock('@/Components/Fish/FishList/FishSearchModal.vue', () => ({
+vi.mock('@/Components/FishList/FishSearchModal.vue', () => ({
   default: { template: '<div />', props: ['show', 'filters', 'nameQuery', 'searchOptions'] },
 }))
-vi.mock('@/Components/Fish/FishList/FishSearchStatsBar.vue', () => ({
+vi.mock('@/Components/FishList/FishSearchStatsBar.vue', () => ({
   default: { template: '<div />', props: ['variant', 'showTotalCount', 'totalCount', 'appliedFilters'] },
 }))
-vi.mock('@/Components/Fish/FishList/FishSearchLoading.vue', () => ({
+vi.mock('@/Components/FishList/FishSearchLoading.vue', () => ({
   default: { template: '<div />', props: ['show'] },
 }))
-vi.mock('@/Components/Fish/FishList/FishSearchCursorErrorBanner.vue', () => ({
+vi.mock('@/Components/FishList/FishSearchCursorErrorBanner.vue', () => ({
   default: { template: '<div />', props: ['show'] },
 }))
-vi.mock('@/Components/Fish/FishList/FishCard.vue', () => ({
+vi.mock('@/Components/FishList/FishCard.vue', () => ({
   default: { template: '<li data-testid="fish-card" />', props: ['fish', 'index'] },
 }))
 
