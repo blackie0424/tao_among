@@ -1,9 +1,6 @@
 <template>
   <!-- desktop variant -->
-  <div
-    v-if="variant === 'desktop'"
-    class="flex items-center justify-end w-full px-4 h-10 gap-6"
-  >
+  <div v-if="variant === 'desktop'" class="flex items-center justify-end w-full px-4 h-10 gap-6">
     <div class="flex items-center gap-3">
       <Link
         v-if="user"
@@ -13,15 +10,20 @@
       >
         <span class="mr-1 text-2xl leading-none font-normal pb-1">+</span> 新增
       </Link>
+      <Link
+        v-if="user"
+        href="/fish/batch-create"
+        class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
+        title="批次新增魚類"
+      >
+        <span class="mr-1 text-xl leading-none">⚡</span> 批次新增
+      </Link>
       <SearchToggleButton @toggle="$emit('toggle')" />
     </div>
   </div>
 
   <!-- mobile variant -->
-  <div
-    v-else-if="variant === 'mobile'"
-    class="flex items-center justify-end px-2 w-full"
-  >
+  <div v-else-if="variant === 'mobile'" class="flex items-center justify-end px-2 w-full">
     <div class="flex items-center gap-3">
       <Link
         v-if="user"

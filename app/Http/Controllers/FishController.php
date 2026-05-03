@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
 use App\Contracts\FishSearchServiceInterface;
+use App\Http\Requests\BatchCreateFishRequest;
 use App\Http\Requests\CreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
+use Illuminate\Support\Facades\DB;
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Models\CaptureRecord;
@@ -89,9 +91,67 @@ class FishController extends Controller
     public function create()
     {
         return Inertia::render('CreateFish', [
-            'tribes' => config('fish_options.tribes'),
+            'tribes'          => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
         ]);
+    }
+
+    /**
+     * 顯示批次新增魚類頁面。
+     */
+    public function batchCreate()
+    {
+        return Inertia::render('BatchCreateFish', [
+            'tribes'          => config('fish_options.tribes'),
+            'capture_methods' => config('fish_options.capture_methods'),
+            'upload_limits'   => config('fish_options.batch_upload'),
+        ]);
+    }
+
+    /**
+     * 批次建立魚類 + 多筆捕獲紀錄（單一 transaction）。
+     */
+    public function batchStore(BatchCreateFishRequest $request)
+    {
+        $filenames     = $request->validated()['filenames'];
+        $name          = filled($request->input('name')) ? $request->input('name') : '我不知道';
+        $tribe         = $request->input('tribe', 'iraraley');
+        $location      = $request->input('location', '待補充');
+        $captureMethod = $request->input('capture_method', 'mamasil');
+        $captureDate   = $request->input('capture_date', now()->toDateString());
+        $notes         = $request->input('notes', null);
+
+        $fish = DB::transaction(function () use ($name, $filenames, $tribe, $location, $captureMethod, $captureDate, $notes) {
+            $fish = Fish::create([
+                'name'  => $name,
+                'image' => $filenames[0],
+            ]);
+
+            $firstRecordId = null;
+
+            foreach ($filenames as $index => $filename) {
+                $record = CaptureRecord::create([
+                    'fish_id'        => $fish->id,
+                    'image_path'     => $filename,
+                    'tribe'          => $tribe,
+                    'location'       => $location,
+                    'capture_method' => $captureMethod,
+                    'capture_date'   => $captureDate,
+                    'notes'          => $notes,
+                ]);
+
+                if ($index === 0) {
+                    $firstRecordId = $record->id;
+                }
+            }
+
+            $fish->update(['display_capture_record_id' => $firstRecordId]);
+
+            return $fish;
+        });
+
+        return redirect("/fish/{$fish->id}")
+            ->with('success', "魚類「{$fish->name}」批次新增成功！");
     }
 
     public function edit($id)
