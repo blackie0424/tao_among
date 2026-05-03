@@ -10,14 +10,15 @@
     />
 
     <div class="pt-16 space-y-6 max-w-2xl mx-auto">
-
       <!-- Step 1：選擇照片 -->
       <section v-if="step === 1" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h2 class="text-base font-semibold text-gray-800 mb-1">
           第一步：選擇照片
           <span class="text-sm font-normal text-gray-500 ml-1">（最多 {{ maxFiles }} 張）</span>
         </h2>
-        <p class="text-sm text-gray-500 mb-4">請選擇同一個物種的多張照片，上傳後統一填寫魚類資訊。</p>
+        <p class="text-sm text-gray-500 mb-4">
+          請選擇同一個物種的多張照片，上傳後統一填寫魚類資訊。
+        </p>
 
         <BatchCaptureImageUploader
           :maxFiles="maxFiles"
@@ -33,10 +34,15 @@
       </section>
 
       <!-- Step 2：填寫魚類 + 捕獲資訊 -->
-      <section v-if="step === 2" data-testid="step-2" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <section
+        v-if="step === 2"
+        data-testid="step-2"
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
+      >
         <h2 class="text-base font-semibold text-gray-800 mb-1">第二步：填寫資訊</h2>
         <p class="text-sm text-gray-500 mb-4">
-          已選擇 <span class="font-semibold text-gray-700">{{ uploadedFilenames.length }}</span> 張照片，
+          已選擇
+          <span class="font-semibold text-gray-700">{{ uploadedFilenames.length }}</span> 張照片，
           以下資訊將套用至所有照片的捕獲紀錄。
         </p>
 
@@ -81,7 +87,9 @@
               placeholder="請輸入捕獲地點"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p v-if="formErrors.location" class="mt-1 text-sm text-red-600">{{ formErrors.location }}</p>
+            <p v-if="formErrors.location" class="mt-1 text-sm text-red-600">
+              {{ formErrors.location }}
+            </p>
           </div>
 
           <!-- 捕獲日期 -->
@@ -96,7 +104,9 @@
               :max="today"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p v-if="formErrors.capture_date" class="mt-1 text-sm text-red-600">{{ formErrors.capture_date }}</p>
+            <p v-if="formErrors.capture_date" class="mt-1 text-sm text-red-600">
+              {{ formErrors.capture_date }}
+            </p>
           </div>
 
           <!-- 捕獲方式 -->
@@ -110,15 +120,13 @@
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">請選擇捕獲方式</option>
-              <option
-                v-for="(label, value) in capture_methods"
-                :key="value"
-                :value="value"
-              >
+              <option v-for="(label, value) in capture_methods" :key="value" :value="value">
                 {{ label }}
               </option>
             </select>
-            <p v-if="formErrors.capture_method" class="mt-1 text-sm text-red-600">{{ formErrors.capture_method }}</p>
+            <p v-if="formErrors.capture_method" class="mt-1 text-sm text-red-600">
+              {{ formErrors.capture_method }}
+            </p>
           </div>
 
           <!-- 備註 -->
@@ -134,7 +142,6 @@
           </div>
         </div>
       </section>
-
     </div>
   </div>
 </template>
@@ -144,6 +151,7 @@ import { ref, computed, reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import BatchCaptureImageUploader from '@/Components/CaptureRecord/BatchCaptureImageUploader.vue'
+import { markFishCreated } from '@/utils/fishListCache'
 
 const props = defineProps({
   tribes: Array,
@@ -156,28 +164,28 @@ const props = defineProps({
 
 // ── 平台判斷 ──────────────────────────────────────────────────────────────
 const isLineApp = /Line\//i.test(navigator.userAgent)
-const isMobile  = window.innerWidth < 768
-const maxFiles  = isMobile
+const isMobile = window.innerWidth < 768
+const maxFiles = isMobile
   ? props.upload_limits.max_files_mobile
   : props.upload_limits.max_files_desktop
 
 // ── 狀態 ──────────────────────────────────────────────────────────────────
-const step              = ref(1)
-const uploaderRef       = ref(null)
+const step = ref(1)
+const uploaderRef = ref(null)
 const uploadedFilenames = ref([])
-const uploadError       = ref('')
-const isSubmitting      = ref(false)
-const fishName          = ref('')
-const formErrors        = ref({})
+const uploadError = ref('')
+const isSubmitting = ref(false)
+const fishName = ref('')
+const formErrors = ref({})
 
 const today = computed(() => new Date().toLocaleDateString('en-CA'))
 
 const sharedForm = reactive({
-  tribe:          '',
-  location:       '',
-  capture_date:   today.value,
+  tribe: '',
+  location: '',
+  capture_date: today.value,
   capture_method: '',
-  notes:          '',
+  notes: '',
 })
 
 // ── 計算屬性 ──────────────────────────────────────────────────────────────
@@ -189,7 +197,8 @@ const canSubmit = computed(() => {
 
 const submitLabel = computed(() => {
   if (step.value === 1) return isSubmitting.value ? '上傳中...' : '下一步'
-  if (step.value === 2) return isSubmitting.value ? '送出中...' : `新增（${uploadedFilenames.value.length} 張）`
+  if (step.value === 2)
+    return isSubmitting.value ? '送出中...' : `新增（${uploadedFilenames.value.length} 張）`
   return '完成'
 })
 
@@ -213,27 +222,27 @@ async function handleSubmit() {
 async function doUpload() {
   if (!uploaderRef.value) return
   isSubmitting.value = true
-  uploadError.value  = ''
+  uploadError.value = ''
   await uploaderRef.value.uploadAll()
   isSubmitting.value = false
 }
 
 function onUploaded(filenames) {
   uploadedFilenames.value = filenames
-  isSubmitting.value      = false
-  step.value              = 2
+  isSubmitting.value = false
+  step.value = 2
 }
 
 function onUploadError(errors) {
-  uploadError.value  = `上傳失敗：${errors.join('、')}`
+  uploadError.value = `上傳失敗：${errors.join('、')}`
   isSubmitting.value = false
 }
 
 function validateForm() {
   const errors = {}
-  if (!sharedForm.tribe)          errors.tribe          = '請選擇部落'
-  if (!sharedForm.location)       errors.location       = '請輸入捕獲地點'
-  if (!sharedForm.capture_date)   errors.capture_date   = '請選擇捕獲日期'
+  if (!sharedForm.tribe) errors.tribe = '請選擇部落'
+  if (!sharedForm.location) errors.location = '請輸入捕獲地點'
+  if (!sharedForm.capture_date) errors.capture_date = '請選擇捕獲日期'
   if (!sharedForm.capture_method) errors.capture_method = '請選擇捕獲方式'
   formErrors.value = errors
   return Object.keys(errors).length === 0
@@ -247,16 +256,20 @@ async function doSubmit() {
   router.post(
     '/fish/batch-create',
     {
-      name:           fishName.value || '我不知道',
-      filenames:      uploadedFilenames.value,
-      tribe:          sharedForm.tribe,
-      location:       sharedForm.location,
-      capture_date:   sharedForm.capture_date,
+      name: fishName.value || '我不知道',
+      filenames: uploadedFilenames.value,
+      tribe: sharedForm.tribe,
+      location: sharedForm.location,
+      capture_date: sharedForm.capture_date,
       capture_method: sharedForm.capture_method,
-      notes:          sharedForm.notes,
+      notes: sharedForm.notes,
     },
     {
-      onSuccess: () => {
+      onSuccess: (page) => {
+        const fishId = page.props.fish?.id
+        if (fishId) {
+          markFishCreated(fishId)
+        }
         isSubmitting.value = false
       },
       onError: () => {

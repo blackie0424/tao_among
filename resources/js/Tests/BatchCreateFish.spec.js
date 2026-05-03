@@ -3,6 +3,11 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import BatchCreateFish from '@/Pages/BatchCreateFish.vue'
 
+// ─── fishListCache mock ──────────────────────────────────────────────────────
+vi.mock('@/utils/fishListCache', () => ({
+  markFishCreated: vi.fn(),
+}))
+
 // ─── Inertia mock ───────────────────────────────────────────────────────────
 vi.mock('@inertiajs/vue3', () => ({
   router: {
@@ -157,7 +162,7 @@ describe('BatchCreateFish', () => {
   it('步驟二送出時呼叫 router.post 並帶入正確路徑', async () => {
     const { router } = await import('@inertiajs/vue3')
     router.post.mockImplementation((path, data, options) => {
-      options?.onSuccess?.()
+      options?.onSuccess?.({ props: { fish: { id: 1 } } })
     })
 
     const wrapper = mount(BatchCreateFish, { props: defaultProps })
@@ -184,7 +189,7 @@ describe('BatchCreateFish', () => {
   it('名稱空白時送出使用「我不知道」', async () => {
     const { router } = await import('@inertiajs/vue3')
     router.post.mockImplementation((path, data, options) => {
-      options?.onSuccess?.()
+      options?.onSuccess?.({ props: { fish: { id: 1 } } })
     })
 
     const wrapper = mount(BatchCreateFish, { props: defaultProps })
@@ -204,5 +209,26 @@ describe('BatchCreateFish', () => {
       expect.objectContaining({ name: '我不知道' }),
       expect.any(Object)
     )
+  })
+
+  it('送出成功後呼叫 markFishCreated 更新魚類列表快取', async () => {
+    const { markFishCreated } = await import('@/utils/fishListCache')
+    const { router } = await import('@inertiajs/vue3')
+
+    router.post.mockImplementation((path, data, options) => {
+      options?.onSuccess?.({ props: { fish: { id: 42 } } })
+    })
+
+    const wrapper = mount(BatchCreateFish, { props: defaultProps })
+    await wrapper.vm.onUploaded(['photo.jpg'])
+    await nextTick()
+
+    wrapper.vm.sharedForm.tribe = 'iraraley'
+    wrapper.vm.sharedForm.location = '海邊'
+    wrapper.vm.sharedForm.capture_date = '2026-05-01'
+    wrapper.vm.sharedForm.capture_method = 'mamasil'
+    await wrapper.vm.doSubmit()
+
+    expect(markFishCreated).toHaveBeenCalledWith(42)
   })
 })
