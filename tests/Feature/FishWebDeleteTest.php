@@ -1,18 +1,20 @@
 <?php
 
 use App\Models\Fish;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 it('can delete a fish via web route', function () {
+    $user = User::factory()->create();
     $fish = Fish::factory()->create([
         'name' => 'Test Fish',
         'image' => 'test.jpg',
     ]);
 
     // 使用 DELETE 方法刪除魚類
-    $response = $this->delete('/fish/' . $fish->id);
+    $response = $this->actingAs($user)->delete('/fish/' . $fish->id);
 
     // 驗證重定向到魚類列表頁面
     $response->assertRedirect('/fishs');
