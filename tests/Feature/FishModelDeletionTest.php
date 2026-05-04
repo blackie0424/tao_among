@@ -112,14 +112,14 @@ describe('Fish Model Deletion - Storage File Cleanup', function () {
         // 建立音頻記錄
         FishAudio::factory()->create([
             'fish_id' => $fish->id,
-            'name' => 'Test Audio 1',
-            'locate' => 'test-audio-1.mp3'
+            'name' => 'test-audio-1.mp3',
+            'locate' => 'iraraley'
         ]);
         
         FishAudio::factory()->create([
             'fish_id' => $fish->id,
-            'name' => 'Test Audio 2',
-            'locate' => 'test-audio-2.mp3'
+            'name' => 'test-audio-2.mp3',
+            'locate' => 'imorod'
         ]);
         
         // 驗證檔案存在
@@ -232,7 +232,8 @@ describe('Fish Model Deletion - Storage File Cleanup', function () {
         // 建立關聯資料
         FishAudio::factory()->create([
             'fish_id' => $fish->id,
-            'locate' => 'fish-audio.mp3'
+            'name' => 'fish-audio.mp3',
+            'locate' => 'iraraley'
         ]);
         
         CaptureRecord::factory()->create([
@@ -284,8 +285,8 @@ describe('FishAudio Model Deletion - Storage File Cleanup', function () {
         
         $audio = FishAudio::factory()->create([
             'fish_id' => $fish->id,
-            'name' => 'Test Audio',
-            'locate' => 'test-audio.mp3'
+            'name' => 'test-audio.mp3',
+            'locate' => 'iraraley'
         ]);
         
         // 驗證檔案存在
