@@ -18,6 +18,7 @@
         :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
+        :recent_sessions="recent_sessions"
         @submitted="onRecordSubmitted"
         ref="formRef"
       />
@@ -38,6 +39,10 @@ const props = defineProps({
   prefill_image: {
     type: String,
     default: '',
+  },
+  recent_sessions: {
+    type: Array,
+    default: () => [],
   },
 })
 

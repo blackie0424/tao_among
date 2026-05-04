@@ -8,6 +8,7 @@ use App\Contracts\FishSearchServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
 use App\Contracts\RichMenuServiceInterface;
+use App\Contracts\CaptureSessionServiceInterface;
 use App\Services\FishService;
 use App\Services\FishSearchService;
 use App\Services\FishStatisticsService;
@@ -15,6 +16,7 @@ use App\Services\S3StorageService;
 use App\Services\SupabaseStorageService;
 use App\Services\LineUserService;
 use App\Services\RichMenuService;
+use App\Services\CaptureSessionService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 
@@ -46,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
         // 魚類服務 DIP 綁定
         $this->app->bind(FishServiceInterface::class, FishService::class);
         $this->app->bind(FishSearchServiceInterface::class, FishSearchService::class);
+
+        // 捕獲資訊組合服務綁定
+        $this->app->bind(CaptureSessionServiceInterface::class, CaptureSessionService::class);
     }
 
     /**

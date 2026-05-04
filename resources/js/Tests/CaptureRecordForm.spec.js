@@ -120,4 +120,94 @@ describe('CaptureRecordForm', () => {
     expect(wrapper.vm.submitForm).toBeDefined()
     expect(typeof wrapper.vm.submitForm).toBe('function')
   })
+
+  it('shows CaptureRecordSessionSelector in Step 2 when recent_sessions provided', async () => {
+    const recentSessions = [
+      {
+        tribe: 'ivalino',
+        location: '溪流A',
+        capture_method: '網捕',
+        capture_date: '2024-05-01',
+        record_count: 3,
+      },
+    ]
+
+    wrapper = mount(CaptureRecordForm, {
+      props: { ...defaultProps, recent_sessions: recentSessions },
+    })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('溪流A')
+  })
+
+  it('fills form fields when a session option is selected', async () => {
+    const recentSessions = [
+      {
+        tribe: 'iranmeilek',
+        location: '水庫B',
+        capture_method: '釣魚',
+        capture_date: '2024-04-15',
+        record_count: 1,
+      },
+    ]
+
+    wrapper = mount(CaptureRecordForm, {
+      props: { ...defaultProps, recent_sessions: recentSessions },
+    })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    await wrapper.find('[data-testid="session-option"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('#tribe').element.value).toBe('iranmeilek')
+    expect(wrapper.find('#location').element.value).toBe('水庫B')
+    expect(wrapper.find('#capture_date').element.value).toBe('2024-04-15')
+  })
+
+  it('hides selector and shows manual form when manual option clicked', async () => {
+    const recentSessions = [
+      {
+        tribe: 'ivalino',
+        location: '溪流A',
+        capture_method: '網捕',
+        capture_date: '2024-05-01',
+        record_count: 3,
+      },
+    ]
+
+    wrapper = mount(CaptureRecordForm, {
+      props: { ...defaultProps, recent_sessions: recentSessions },
+    })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    // 初始：selector 可見，表單欄位隱藏
+    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(true)
+    expect(wrapper.find('#tribe').exists()).toBe(false)
+
+    // 點選手動填寫後：selector 隱藏，表單欄位顯示
+    await wrapper.find('[data-testid="manual-option"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(false)
+    expect(wrapper.find('#tribe').exists()).toBe(true)
+  })
+
+  it('shows form fields directly when no recent_sessions provided', async () => {
+    wrapper = mount(CaptureRecordForm, {
+      props: defaultProps,
+    })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(false)
+    expect(wrapper.find('#tribe').exists()).toBe(true)
+  })
 })
