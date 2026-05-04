@@ -6,6 +6,7 @@ use App\Services\LineBotService;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
+use App\Contracts\FishServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -74,7 +75,8 @@ class LineBotCacheStateTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
             $this->app->make(StorageServiceInterface::class),
-            $mockLineUserService
+            $mockLineUserService,
+            $this->app->make(FishServiceInterface::class)
         );
     }
 
@@ -206,18 +208,18 @@ class LineBotCacheStateTest extends TestCase
 
         // 驗證 Cache 已被清除
         $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_image'));
+        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_images'));
     }
 
     /**
      * 使用者點「新增魚類」、上傳圖片後（waiting_name_choice），直接點「瀏覽資料」
-     * → 應該正常顯示部落選單，並清除殘留 Cache（含圖片暫存）
+     * → 應該正常顯示部落選單，並清除殘留 Cache（含圖片暂存）
      */
     public function test_browse_tribes_menu_clears_waiting_name_choice_state(): void
     {
         // 預置：使用者已上傳圖片、等待名稱選擇
         Cache::put('line_user_' . self::USER_ID . '_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put('line_user_' . self::USER_ID . '_create_fish_image', 'some-image.jpg', now()->addMinutes(5));
+        Cache::put('line_user_' . self::USER_ID . '_create_fish_images', ['some-image.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService
             ->shouldReceive('replyMessage')
@@ -231,7 +233,7 @@ class LineBotCacheStateTest extends TestCase
 
         // 驗證兩個 Cache 都被清除
         $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_image'));
+        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_images'));
     }
 
     /**
@@ -241,7 +243,7 @@ class LineBotCacheStateTest extends TestCase
     public function test_browse_tribes_menu_clears_waiting_custom_name_state(): void
     {
         Cache::put('line_user_' . self::USER_ID . '_create_fish_state', 'waiting_custom_name', now()->addMinutes(5));
-        Cache::put('line_user_' . self::USER_ID . '_create_fish_image', 'some-image.jpg', now()->addMinutes(5));
+        Cache::put('line_user_' . self::USER_ID . '_create_fish_images', ['some-image.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService
             ->shouldReceive('replyMessage')
@@ -254,7 +256,7 @@ class LineBotCacheStateTest extends TestCase
         );
 
         $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_image'));
+        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_images'));
     }
 
     // =========================================================
@@ -281,7 +283,7 @@ class LineBotCacheStateTest extends TestCase
         );
 
         $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_image'));
+        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_images'));
     }
 
     // =========================================================
@@ -360,7 +362,7 @@ class LineBotCacheStateTest extends TestCase
     public function test_text_message_during_waiting_name_choice_shows_options(): void
     {
         Cache::put('line_user_' . self::USER_ID . '_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put('line_user_' . self::USER_ID . '_create_fish_image', 'some-image.jpg', now()->addMinutes(5));
+        Cache::put('line_user_' . self::USER_ID . '_create_fish_images', ['some-image.jpg'], now()->addMinutes(5));
 
         $repliedMessages = [];
         $this->mockLineBotService
@@ -401,7 +403,7 @@ class LineBotCacheStateTest extends TestCase
     {
         // 預置：已有暫存圖片與 waiting_custom_name 狀態
         Cache::put('line_user_' . self::USER_ID . '_create_fish_state', 'waiting_custom_name', now()->addMinutes(5));
-        Cache::put('line_user_' . self::USER_ID . '_create_fish_image', 'some-fish-image.jpg', now()->addMinutes(5));
+        Cache::put('line_user_' . self::USER_ID . '_create_fish_images', ['some-fish-image.jpg'], now()->addMinutes(5));
 
         // Mock StorageService 回傳圖片 URL
         $mockStorageService = \Mockery::mock(StorageServiceInterface::class);
@@ -416,7 +418,8 @@ class LineBotCacheStateTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
             $mockStorageService,
-            $mockLineUserService4
+            $mockLineUserService4,
+            $this->app->make(FishServiceInterface::class)
         );
 
         $this->mockLineBotService
@@ -433,7 +436,7 @@ class LineBotCacheStateTest extends TestCase
 
         // 驗證 Cache 已被清除
         $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_image'));
+        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_images'));
     }
 
     // =========================================================
@@ -526,7 +529,7 @@ class LineBotCacheStateTest extends TestCase
     {
         // 預置：已上傳圖片、等待選擇名稱
         Cache::put('line_user_' . self::USER_ID . '_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put('line_user_' . self::USER_ID . '_create_fish_image', 'uploaded-img.jpg', now()->addMinutes(5));
+        Cache::put('line_user_' . self::USER_ID . '_create_fish_images', ['uploaded-img.jpg'], now()->addMinutes(5));
 
         // Step 1：點「瀏覽資料」清除狀態
         $this->mockLineBotService

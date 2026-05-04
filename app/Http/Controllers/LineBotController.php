@@ -22,6 +22,7 @@ use LINE\Webhook\Model\ImageMessageContent;
 use LINE\Webhook\Model\PostbackEvent;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
+use App\Contracts\FishServiceInterface;
 
 class LineBotController extends Controller
 {
@@ -30,19 +31,22 @@ class LineBotController extends Controller
     protected $uploadService;
     protected $storageService;
     protected LineUserServiceInterface $lineUserService;
+    protected FishServiceInterface $fishService;
 
     public function __construct(
         LineBotService $lineBotService,
         ApiFishController $apiFishController,
         UploadService $uploadService,
         StorageServiceInterface $storageService,
-        LineUserServiceInterface $lineUserService
+        LineUserServiceInterface $lineUserService,
+        FishServiceInterface $fishService
     ) {
         $this->lineBotService = $lineBotService;
         $this->apiFishController = $apiFishController;
         $this->uploadService = $uploadService;
         $this->storageService = $storageService;
         $this->lineUserService = $lineUserService;
+        $this->fishService = $fishService;
     }
 
     /**
@@ -185,6 +189,39 @@ class LineBotController extends Controller
             return;
         }
 
+        if ($createFishState === 'waiting_more_images') {
+            $count = count(Cache::get("line_user_{$userId}_create_fish_images", []));
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "📷 已收到 {$count} 張圖片。\n請繼續傳送更多圖片，或點選「✅ 完成上傳」。",
+                    'quickReply' => [
+                        'items' => [
+                            [
+                                'type' => 'action',
+                                'action' => [
+                                    'type' => 'postback',
+                                    'label' => '✅ 完成上傳',
+                                    'data' => 'action=finish_upload_fish_images',
+                                    'displayText' => '完成上傳',
+                                ],
+                            ],
+                            [
+                                'type' => 'action',
+                                'action' => [
+                                    'type' => 'postback',
+                                    'label' => '❌ 取消',
+                                    'data' => 'action=cancel_create_fish',
+                                    'displayText' => '取消新增',
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            ]);
+            return;
+        }
+
         if ($createFishState === 'waiting_name_choice') {
             // 正在等待名稱選擇（Quick Reply），文字訊息應被忽略並提示
             $this->lineBotService->replyMessage($replyToken, [
@@ -290,15 +327,15 @@ class LineBotController extends Controller
     }
 
     /**
-     * 處理圖片訊息（新增魚類流程）
+     * 處理圖片訊息（新增魚類流程，支援批次上傳）
      */
     protected function handleImageMessage(MessageEvent $event, string $replyToken): void
     {
         $userId = $event->getSource()->getUserId();
         $state = Cache::get("line_user_{$userId}_create_fish_state");
-        
-        // 只有在 waiting_image 狀態才接受圖片
-        if ($state !== 'waiting_image') {
+
+        // 只有在 waiting_image 或 waiting_more_images 狀態才接受圖片
+        if ($state !== 'waiting_image' && $state !== 'waiting_more_images') {
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
@@ -307,60 +344,25 @@ class LineBotController extends Controller
             ]);
             return;
         }
-        
-        try {
-            // 下載圖片
-            $messageId = $event->getMessage()->getId();
-            $imageBlob = $this->lineBotService->getMessageContent($messageId);
-            
-            // 上傳到 S3
-            $filename = $this->uploadService->uploadImageFromBlob($imageBlob);
-            
-            if (!$filename) {
-                throw new \Exception('Failed to upload image');
-            }
-            
-            // 儲存圖片檔名到 Cache（5 分鐘）
-            Cache::put("line_user_{$userId}_create_fish_image", $filename, now()->addMinutes(5));
-            Cache::put("line_user_{$userId}_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-            
-            Log::info('LINE Bot image uploaded for fish creation', [
-                'userId' => $userId,
-                'filename' => $filename,
-            ]);
-            
-            // 回覆選項
+
+        $maxImages = config('fish_options.batch_upload.max_files_mobile', 5);
+        $existingImages = Cache::get("line_user_{$userId}_create_fish_images", []);
+
+        // 已達上限，提示完成
+        if (count($existingImages) >= $maxImages) {
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
-                    'text' => "✅ 圖片已上傳\n\n請選擇魚類名稱：",
+                    'text' => "📷 已達上限（{$maxImages} 張），請點選「✅ 完成上傳」繼續。",
                     'quickReply' => [
                         'items' => [
                             [
                                 'type' => 'action',
                                 'action' => [
                                     'type' => 'postback',
-                                    'label' => '🔤 使用預設名稱',
-                                    'data' => 'action=create_fish_with_default_name',
-                                    'displayText' => '使用預設名稱',
-                                ],
-                            ],
-                            [
-                                'type' => 'action',
-                                'action' => [
-                                    'type' => 'postback',
-                                    'label' => '✏️ 輸入自訂名稱',
-                                    'data' => 'action=create_fish_need_name',
-                                    'displayText' => '輸入自訂名稱',
-                                ],
-                            ],
-                            [
-                                'type' => 'action',
-                                'action' => [
-                                    'type' => 'postback',
-                                    'label' => '🔄 重新上傳圖片',
-                                    'data' => 'action=reupload_fish_image',
-                                    'displayText' => '重新上傳圖片',
+                                    'label' => '✅ 完成上傳',
+                                    'data' => 'action=finish_upload_fish_images',
+                                    'displayText' => '完成上傳',
                                 ],
                             ],
                             [
@@ -376,13 +378,111 @@ class LineBotController extends Controller
                     ],
                 ]),
             ]);
-            
+            return;
+        }
+
+        try {
+            // 下載圖片
+            $messageId = $event->getMessage()->getId();
+            $imageBlob = $this->lineBotService->getMessageContent($messageId);
+
+            // 上傳到 S3（使用 LineUploadService，與音訊上傳一致）
+            $lineUploadService = app(\App\Services\LineUploadService::class);
+            $filename = $lineUploadService->uploadLineImage($imageBlob);
+
+            if (!$filename) {
+                throw new \Exception('Failed to upload image');
+            }
+
+            // 累積圖片陣列（TTL 15 分鐘，批次流程時間較長）
+            $images = Cache::get("line_user_{$userId}_create_fish_images", []);
+            $images[] = $filename;
+            $count = count($images);
+            Cache::put("line_user_{$userId}_create_fish_images", $images, now()->addMinutes(15));
+            Cache::put("line_user_{$userId}_create_fish_state", 'waiting_more_images', now()->addMinutes(15));
+
+            Log::info('LINE Bot image uploaded for fish creation', [
+                'userId' => $userId,
+                'filename' => $filename,
+                'totalImages' => $count,
+            ]);
+
+            $remaining = $maxImages - $count;
+            $countLabel = $count === 1 ? '已收第 1 張圖片' : "已收 {$count} 張圖片";
+            $subText = $remaining > 0
+                ? "還可再加 {$remaining} 張，或點「✅ 完成上傳」進入命名"
+                : "已達上限 {$maxImages} 張，請點「✅ 完成上傳」繼續";
+
+            // 使用 Flex Message 卡片，按鈕內嵌在訊息泡泡中
+            // 避免 Quick Reply 在 LINE 相冊 UI 下被遮擋、需要上滑才能看到的問題
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\FlexMessage([
+                    'type'     => 'flex',
+                    'altText'  => "{$countLabel}，請點選完成上傳或繼續傳送",
+                    'contents' => [
+                        'type' => 'bubble',
+                        'size' => 'kilo',
+                        'body' => [
+                            'type'       => 'box',
+                            'layout'     => 'vertical',
+                            'paddingAll' => 'lg',
+                            'contents'   => [
+                                [
+                                    'type'   => 'text',
+                                    'text'   => "📷 {$countLabel}",
+                                    'weight' => 'bold',
+                                    'size'   => 'md',
+                                ],
+                                [
+                                    'type'   => 'text',
+                                    'text'   => $subText,
+                                    'size'   => 'sm',
+                                    'color'  => '#888888',
+                                    'margin' => 'sm',
+                                    'wrap'   => true,
+                                ],
+                            ],
+                        ],
+                        'footer' => [
+                            'type'     => 'box',
+                            'layout'   => 'vertical',
+                            'spacing'  => 'sm',
+                            'contents' => [
+                                [
+                                    'type'   => 'button',
+                                    'action' => [
+                                        'type'        => 'postback',
+                                        'label'       => '✅ 完成上傳',
+                                        'data'        => 'action=finish_upload_fish_images',
+                                        'displayText' => '完成上傳',
+                                    ],
+                                    'style'  => 'primary',
+                                    'color'  => '#00B900',
+                                    'height' => 'sm',
+                                ],
+                                [
+                                    'type'   => 'button',
+                                    'action' => [
+                                        'type'        => 'postback',
+                                        'label'       => '❌ 取消',
+                                        'data'        => 'action=cancel_create_fish',
+                                        'displayText' => '取消新增',
+                                    ],
+                                    'style'  => 'secondary',
+                                    'height' => 'sm',
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            ]);
+
         } catch (\Exception $e) {
             Log::error('LINE Bot handle image message failed', [
                 'userId' => $userId,
                 'error' => $e->getMessage(),
             ]);
-            
+
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
@@ -947,7 +1047,7 @@ class LineBotController extends Controller
             if ($action === 'browse_tribes_menu') {
                 // 清除新增魚類流程的殘留狀態，避免污染後續操作
                 Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_images");
 
                 $messages = $this->lineBotService->buildBrowseTribesCarousel();
 
@@ -959,7 +1059,7 @@ class LineBotController extends Controller
             if ($action === 'browse_tribe_data') {
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_images");
 
                 $tribe = $params['tribe'] ?? 'iraraley';
                 $validTribes = config('fish_options.tribes', []);
@@ -975,7 +1075,7 @@ class LineBotController extends Controller
             if ($action === 'random_browse') {
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_images");
 
                 $this->handleRandomBrowse($replyToken, $isEditor);
                 return;
@@ -985,7 +1085,7 @@ class LineBotController extends Controller
             if ($action === 'provide_clue') {
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_images");
 
                 $this->handleRandomUnknownFish($replyToken, $isEditor);
                 return;
@@ -1053,11 +1153,10 @@ class LineBotController extends Controller
                 return;
             }
 
-            // 重新上傳圖片
+            // 重新上傳圖片（清除所有已累積圖片，重新開始）
             if ($action === 'reupload_fish_image') {
-                // 清除已上傳的圖片
-                Cache::forget("line_user_{$userId}_create_fish_image");
-                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
+                Cache::forget("line_user_{$userId}_create_fish_images");
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(15));
                 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1081,11 +1180,79 @@ class LineBotController extends Controller
                 return;
             }
 
+            // 完成圖片上傳，進入名稱選擇
+            if ($action === 'finish_upload_fish_images') {
+                $images = Cache::get("line_user_{$userId}_create_fish_images", []);
+                if (empty($images)) {
+                    Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(15));
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '尚未收到任何圖片，請先傳送魚類圖片。',
+                            'quickReply' => [
+                                'items' => [
+                                    [
+                                        'type' => 'action',
+                                        'action' => [
+                                            'type' => 'postback',
+                                            'label' => '❌ 取消',
+                                            'data' => 'action=cancel_create_fish',
+                                            'displayText' => '取消新增',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ]),
+                    ]);
+                    return;
+                }
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_name_choice', now()->addMinutes(10));
+                $count = count($images);
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "已收到 {$count} 張圖片，請選擇魚類名稱：",
+                        'quickReply' => [
+                            'items' => [
+                                [
+                                    'type' => 'action',
+                                    'action' => [
+                                        'type' => 'postback',
+                                        'label' => '🔤 使用預設名稱',
+                                        'data' => 'action=create_fish_with_default_name',
+                                        'displayText' => '使用預設名稱',
+                                    ],
+                                ],
+                                [
+                                    'type' => 'action',
+                                    'action' => [
+                                        'type' => 'postback',
+                                        'label' => '✏️ 輸入自訂名稱',
+                                        'data' => 'action=create_fish_need_name',
+                                        'displayText' => '輸入自訂名稱',
+                                    ],
+                                ],
+                                [
+                                    'type' => 'action',
+                                    'action' => [
+                                        'type' => 'postback',
+                                        'label' => '❌ 取消',
+                                        'data' => 'action=cancel_create_fish',
+                                        'displayText' => '取消新增',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ]),
+                ]);
+                return;
+            }
+
             // 取消新增魚類
             if ($action === 'cancel_create_fish') {
                 // 清除所有相關狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_image");
+                Cache::forget("line_user_{$userId}_create_fish_images");
                 
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1494,10 +1661,10 @@ class LineBotController extends Controller
     private function createFish(string $userId, string $replyToken, ?string $customName): void
     {
         try {
-            // 取得暫存的圖片
-            $filename = Cache::get("line_user_{$userId}_create_fish_image");
-            
-            if (!$filename) {
+            // 取得批次暫存圖片陣列
+            $filenames = Cache::get("line_user_{$userId}_create_fish_images", []);
+
+            if (empty($filenames)) {
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
@@ -1506,73 +1673,48 @@ class LineBotController extends Controller
                 ]);
                 return;
             }
-            
-            // 決定名稱
-            $fishName = $customName ?: '我不知道';
-            
-            // 建立魚類記錄
-            $fish = Fish::create([
-                'name'  => $fishName,
-                'image' => $filename,
-            ]);
 
             // 立即清除所有流程狀態，確保即使後續步驟失敗也不殘留
             Cache::forget("line_user_{$userId}_create_fish_state");
-            Cache::forget("line_user_{$userId}_create_fish_image");
-            
-            // 建立捕獲記錄（LINE Bot 上傳的圖片無法提供完整捕獲資訊，填入佔位預設值）
-            try {
-                $imageUrl = $this->storageService->getUrl('images', $filename);
-                \App\Models\CaptureRecord::create([
-                    'fish_id'        => $fish->id,
-                    'image_path'     => $imageUrl,
-                    'tribe'          => 'iraraley',   // LINE Bot 預設部落，可由後台修改
-                    'location'       => 'LINE Bot',
-                    'capture_method' => '未知',
-                    'capture_date'   => now()->toDateString(),
-                ]);
-            } catch (\Exception $captureEx) {
-                // 捕獲記錄建立失敗不影響魚類本身的建立，記錄警告即可
-                Log::warning('LINE Bot createFish: failed to create capture record', [
-                    'userId'  => $userId,
-                    'fishId'  => $fish->id,
-                    'error'   => $captureEx->getMessage(),
-                ]);
-                $imageUrl = $this->storageService->getUrl('images', $filename);
-            }
-            
+            Cache::forget("line_user_{$userId}_create_fish_images");
+
+            // 委派商業邏輯給 FishService（SRP：Controller 只協調流程）
+            $fish = $this->fishService->createFishFromLine($customName, $filenames);
+
             Log::info('LINE Bot fish created successfully', [
-                'userId'   => $userId,
-                'fishId'   => $fish->id,
-                'fishName' => $fishName,
+                'userId'     => $userId,
+                'fishId'     => $fish->id,
+                'fishName'   => $fish->name,
+                'imageCount' => count($filenames),
             ]);
-            
-            // 組裝成功訊息
-            $imageUrl = $this->storageService->getUrl('images', $filename);
-            
+
+            // 回覆成功訊息（附第一張圖片預覽）
+            $previewUrl = $this->storageService->getUrl('images', $filenames[0]);
+            $countNote  = count($filenames) > 1 ? '（共 ' . count($filenames) . ' 張圖片）' : '';
+
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
-                    'text' => "✅ 成功新增魚類「{$fishName}」",
+                    'text' => "✅ 成功新增魚類「{$fish->name}」{$countNote}",
                 ]),
                 new \LINE\Clients\MessagingApi\Model\ImageMessage([
                     'type'               => 'image',
-                    'originalContentUrl' => $imageUrl,
-                    'previewImageUrl'    => $imageUrl,
+                    'originalContentUrl' => $previewUrl,
+                    'previewImageUrl'    => $previewUrl,
                 ]),
             ]);
-            
+
         } catch (\Exception $e) {
-            // 確保即使 Fish::create 失敗，也要清除 Cache 狀態避免使用者卡住
+            // 確保即使建立失敗，也要清除 Cache 狀態避免使用者卡住
             Cache::forget("line_user_{$userId}_create_fish_state");
-            Cache::forget("line_user_{$userId}_create_fish_image");
+            Cache::forget("line_user_{$userId}_create_fish_images");
 
             Log::error('LINE Bot create fish failed', [
                 'userId' => $userId,
                 'error'  => $e->getMessage(),
                 'trace'  => $e->getTraceAsString(),
             ]);
-            
+
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',

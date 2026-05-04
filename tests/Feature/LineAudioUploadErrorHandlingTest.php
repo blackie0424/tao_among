@@ -76,7 +76,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -139,7 +140,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -206,7 +208,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -266,7 +269,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 使用反射調用 protected 方法
@@ -389,7 +393,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                     $this->app->make(ApiFishController::class),
                     $this->app->make(\App\Services\UploadService::class),
                     $this->app->make(\App\Contracts\StorageServiceInterface::class),
-                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+                    $this->app->make(\App\Contracts\FishServiceInterface::class)
                 );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('handleAudioMessage');
@@ -411,7 +416,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                     $this->app->make(ApiFishController::class),
                     $this->app->make(\App\Services\UploadService::class),
                     $this->app->make(\App\Contracts\StorageServiceInterface::class),
-                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+                    $this->app->make(\App\Contracts\FishServiceInterface::class)
                 );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('saveFishAudio');
@@ -439,7 +445,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                     $this->app->make(ApiFishController::class),
                     $this->app->make(\App\Services\UploadService::class),
                     $this->app->make(\App\Contracts\StorageServiceInterface::class),
-                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                    \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+                    $this->app->make(\App\Contracts\FishServiceInterface::class)
                 );
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('handleAudioMessage');

@@ -5,6 +5,7 @@ namespace App\Services;
 use \Carbon\Carbon;
 
 use App\Models\Fish;
+use App\Models\CaptureRecord;
 use App\Http\Resources\FishResource;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
@@ -128,5 +129,43 @@ class FishService implements FishServiceInterface
             'captureRecords' => $fish->captureRecords,
             'fishNotes' => $groupedFishNotes,
         ];
+    }
+
+    /**
+     * 從 LINE Bot 建立魚類記錄（含批次捕獲記錄）
+     *
+     * @param string|null $name 魚類名稱，null 時使用預設值「我不知道」
+     * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
+     */
+    public function createFishFromLine(?string $name, array $filenames): Fish
+    {
+        $fishName = $name ?: '我不知道';
+
+        $fish = Fish::create([
+            'name'  => $fishName,
+            'image' => $filenames[0],
+        ]);
+
+        $firstRecordId = null;
+        foreach ($filenames as $index => $filename) {
+            $record = CaptureRecord::create([
+                'fish_id'        => $fish->id,
+                'image_path'     => $filename,
+                'tribe'          => 'iraraley',
+                'location'       => 'LINE Bot',
+                'capture_method' => '未知',
+                'capture_date'   => now()->toDateString(),
+            ]);
+            if ($index === 0) {
+                $firstRecordId = $record->id;
+            }
+        }
+
+        if ($firstRecordId) {
+            $fish->update(['display_capture_record_id' => $firstRecordId]);
+            $fish->display_capture_record_id = $firstRecordId;
+        }
+
+        return $fish;
     }
 }

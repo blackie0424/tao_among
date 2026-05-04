@@ -1,13 +1,10 @@
 <template>
   <!-- desktop variant -->
-  <div
-    v-if="variant === 'desktop'"
-    class="flex items-center justify-end w-full px-4 h-10 gap-6"
-  >
+  <div v-if="variant === 'desktop'" class="flex items-center justify-end w-full px-4 h-10 gap-6">
     <div class="flex items-center gap-3">
       <Link
         v-if="user"
-        href="/fish/create"
+        href="/fish/batch-create"
         class="hidden md:inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all hover:scale-105 font-bold text-lg tracking-wide"
         title="新增魚類"
       >
@@ -18,14 +15,11 @@
   </div>
 
   <!-- mobile variant -->
-  <div
-    v-else-if="variant === 'mobile'"
-    class="flex items-center justify-end px-2 w-full"
-  >
+  <div v-else-if="variant === 'mobile'" class="flex items-center justify-end px-2 w-full">
     <div class="flex items-center gap-3">
       <Link
         v-if="user"
-        href="/fish/create"
+        href="/fish/batch-create"
         class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
         title="新增魚類"
       >
