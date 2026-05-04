@@ -53,9 +53,9 @@
           bgClass="bg-blue-600"
           hoverClass="hover:bg-blue-700"
           textClass="text-white"
-          label="新增捕獲紀錄"
+          label="批次新增捕獲紀錄"
           icon="+"
-          :to="`/fish/${fish.id}/capture-records/create`"
+          :to="`/fish/${fish.id}/capture-records/batch-create`"
           position="right-bottom"
         />
       </div>

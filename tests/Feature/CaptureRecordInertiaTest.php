@@ -38,16 +38,25 @@ describe('Capture Record Inertia Endpoints', function () {
         $response->assertStatus(404);
     });
 
-    it('can view create capture record page', function () {
+    it('redirects the legacy single create route to batch create', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create(['name' => 'Test Fish']);
 
         $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/create");
 
+        $response->assertRedirect("/fish/{$fish->id}/capture-records/batch-create");
+    });
+
+    it('can view batch create capture record page', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create(['name' => 'Test Fish']);
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create");
+
         $response->assertStatus(200)
             ->assertInertia(
                 fn (Assert $page) => $page
-                ->component('CreateCaptureRecord')
+                ->component('BatchCreateCaptureRecord')
                 ->has('fish')
                 ->where('fish.id', $fish->id)
                 ->where('fish.name', 'Test Fish')
@@ -322,8 +331,8 @@ describe('Capture Record Inertia Endpoints', function () {
             ->where('tribes', $expectedTribes)
         );
 
-        // Test create page
-        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/create");
+        // Test batch create page
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create");
         $response->assertInertia(
             fn (Assert $page) => $page
             ->where('tribes', $expectedTribes)
