@@ -11,6 +11,7 @@
           </h2>
           <div class="flex items-center gap-2">
             <Link
+              v-if="isEditor"
               :href="`/fish/${fish.id}/capture-records/batch-create`"
               class="flex items-center gap-1 text-sm bg-green-100 text-green-700 px-3 py-1.5 rounded-md font-medium hover:bg-green-200 transition"
             >
@@ -261,6 +262,7 @@ const props = defineProps({
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
 const fish = computed(() => props.fish)
 const selectedImage = ref(null)
 

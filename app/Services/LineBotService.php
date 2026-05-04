@@ -323,6 +323,16 @@ class LineBotService
                 'style'  => 'secondary',
                 'height' => 'sm',
                 'action' => [
+                    'type'  => 'uri',
+                    'label' => '⚡ 批次捕獲紀錄',
+                    'uri'   => route('fish.capture-records.batch-create', ['id' => $fish['id']]),
+                ],
+            ];
+            $footerContents[] = [
+                'type'   => 'button',
+                'style'  => 'secondary',
+                'height' => 'sm',
+                'action' => [
                     'type'        => 'postback',
                     'label'       => '🎤 提供發音',
                     'data'        => "action=start_add_audio&fish_id={$fish['id']}",

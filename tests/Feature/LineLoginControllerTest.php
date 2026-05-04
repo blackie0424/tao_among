@@ -128,6 +128,20 @@ it('complete_有效_token_登入成功並導向_fishs', function () {
     $this->assertAuthenticatedAs($user);
 });
 
+it('complete_若有_intended_url_則導向原始受保護頁面', function () {
+    $user = User::factory()->lineViewer()->create();
+    Cache::put('line_login_token:intended_token', $user->id, now()->addMinutes(5));
+
+    $this->withSession([
+        'url.intended' => '/fish/88/capture-records/batch-create',
+    ]);
+
+    $response = $this->get('/auth/line/complete?token=intended_token');
+
+    $response->assertRedirect('/fish/88/capture-records/batch-create');
+    $this->assertAuthenticatedAs($user);
+});
+
 it('complete_無效_token_拒絕並導向_login', function () {
     $response = $this->get('/auth/line/complete?token=invalid_token');
 

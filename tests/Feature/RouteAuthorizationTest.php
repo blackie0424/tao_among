@@ -150,6 +150,12 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $response->assertRedirect('/login');
     });
 
+    it('批次新增捕獲紀錄頁面需要登入', function () {
+        $fish = Fish::factory()->create();
+        $response = $this->get("/fish/{$fish->id}/capture-records/batch-create");
+        $response->assertRedirect('/login');
+    });
+
     it('編輯捕獲紀錄頁面需要登入', function () {
         $fish = Fish::factory()->create();
         $record = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
@@ -387,5 +393,29 @@ describe('登入後可存取管理路由', function () {
         
         $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
         $response->assertStatus(200);
+    });
+
+    it('editor 可存取批次新增捕獲紀錄頁面', function () {
+        $user = User::factory()->lineEditor()->create();
+        $fish = Fish::factory()->create();
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create");
+        $response->assertStatus(200);
+    });
+
+    it('admin 可存取批次新增捕獲紀錄頁面', function () {
+        $user = User::factory()->admin()->create();
+        $fish = Fish::factory()->create();
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create");
+        $response->assertStatus(200);
+    });
+
+    it('viewer 不可存取批次新增捕獲紀錄頁面', function () {
+        $user = User::factory()->lineViewer()->create();
+        $fish = Fish::factory()->create();
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create");
+        $response->assertForbidden();
     });
 });
