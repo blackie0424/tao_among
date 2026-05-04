@@ -93,6 +93,7 @@ class CaptureRecordController extends Controller
             'tribes'          => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
             'upload_limits'   => config('fish_options.batch_upload'),
+            'recent_sessions' => $this->captureSessionService->getRecentSessions(),
         ]);
     }
 

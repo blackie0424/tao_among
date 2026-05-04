@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
 use App\Contracts\FishSearchServiceInterface;
+use App\Contracts\CaptureSessionServiceInterface;
 use App\Http\Requests\BatchCreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
 use Illuminate\Support\Facades\DB;
@@ -24,12 +25,18 @@ class FishController extends Controller
     protected $fishService;
     protected $storageService;
     protected $fishSearchService;
+    protected $captureSessionService;
 
-    public function __construct(FishServiceInterface $fishService, StorageServiceInterface $storageService, FishSearchServiceInterface $fishSearchService)
-    {
+    public function __construct(
+        FishServiceInterface $fishService,
+        StorageServiceInterface $storageService,
+        FishSearchServiceInterface $fishSearchService,
+        CaptureSessionServiceInterface $captureSessionService
+    ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
         $this->fishSearchService = $fishSearchService;
+        $this->captureSessionService = $captureSessionService;
     }
 
     public function index()
@@ -96,6 +103,7 @@ class FishController extends Controller
             'tribes'          => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
             'upload_limits'   => config('fish_options.batch_upload'),
+            'recent_sessions' => $this->captureSessionService->getRecentSessions(),
         ]);
     }
 
