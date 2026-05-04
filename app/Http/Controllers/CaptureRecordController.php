@@ -60,23 +60,11 @@ class CaptureRecordController extends Controller
      */
     public function create(Request $request, $fishId)
     {
-        $fish = Fish::with('displayCaptureRecord')->findOrFail($fishId);
-        
-        // 使用 Trait 處理圖片 URL
-        $fishWithImage = $this->assignFishImage($fish);
-        
-        // 定義部落選項
-        $tribes = config('fish_options.tribes');
+        Fish::query()->findOrFail($fishId);
 
-        // 定義捕獲方式選項
-        $capture_methods = config('fish_options.capture_methods');
-        
-        return Inertia::render('CreateCaptureRecord', [
-            'fish'            => $fishWithImage,
-            'tribes'          => $tribes,
-            'capture_methods' => $capture_methods,
-            'prefill_image'   => $request->query('prefill_image', ''),
-            'recent_sessions' => $this->captureSessionService->getRecentSessions(),
+        return redirect()->route('fish.capture-records.batch-create', [
+            'id' => $fishId,
+            ...$request->query(),
         ]);
     }
 
