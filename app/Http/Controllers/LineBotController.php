@@ -22,6 +22,7 @@ use LINE\Webhook\Model\ImageMessageContent;
 use LINE\Webhook\Model\PostbackEvent;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
+use App\Contracts\FishServiceInterface;
 
 class LineBotController extends Controller
 {
@@ -30,19 +31,22 @@ class LineBotController extends Controller
     protected $uploadService;
     protected $storageService;
     protected LineUserServiceInterface $lineUserService;
+    protected FishServiceInterface $fishService;
 
     public function __construct(
         LineBotService $lineBotService,
         ApiFishController $apiFishController,
         UploadService $uploadService,
         StorageServiceInterface $storageService,
-        LineUserServiceInterface $lineUserService
+        LineUserServiceInterface $lineUserService,
+        FishServiceInterface $fishService
     ) {
         $this->lineBotService = $lineBotService;
         $this->apiFishController = $apiFishController;
         $this->uploadService = $uploadService;
         $this->storageService = $storageService;
         $this->lineUserService = $lineUserService;
+        $this->fishService = $fishService;
     }
 
     /**
@@ -1670,53 +1674,17 @@ class LineBotController extends Controller
                 return;
             }
 
-            // 決定名稱
-            $fishName = $customName ?: '我不知道';
-
-            // 建立魚類記錄（以第一張圖片作為代表圖）
-            $fish = Fish::create([
-                'name'  => $fishName,
-                'image' => $filenames[0],
-            ]);
-
             // 立即清除所有流程狀態，確保即使後續步驟失敗也不殘留
             Cache::forget("line_user_{$userId}_create_fish_state");
             Cache::forget("line_user_{$userId}_create_fish_images");
 
-            // 為每張圖片建立捕獲記錄
-            $firstRecordId = null;
-            foreach ($filenames as $index => $filename) {
-                try {
-                    $record = \App\Models\CaptureRecord::create([
-                        'fish_id'        => $fish->id,
-                        'image_path'     => $filename,  // 只儲存檔名，CaptureRecord::image_url 會自動轉換完整 URL
-                        'tribe'          => 'iraraley',
-                        'location'       => 'LINE Bot',
-                        'capture_method' => '未知',
-                        'capture_date'   => now()->toDateString(),
-                    ]);
-                    if ($index === 0) {
-                        $firstRecordId = $record->id;
-                    }
-                } catch (\Exception $captureEx) {
-                    Log::warning('LINE Bot createFish: failed to create capture record', [
-                        'userId'   => $userId,
-                        'fishId'   => $fish->id,
-                        'filename' => $filename,
-                        'error'    => $captureEx->getMessage(),
-                    ]);
-                }
-            }
-
-            // 設定代表捕獲記錄
-            if ($firstRecordId) {
-                $fish->update(['display_capture_record_id' => $firstRecordId]);
-            }
+            // 委派商業邏輯給 FishService（SRP：Controller 只協調流程）
+            $fish = $this->fishService->createFishFromLine($customName, $filenames);
 
             Log::info('LINE Bot fish created successfully', [
                 'userId'     => $userId,
                 'fishId'     => $fish->id,
-                'fishName'   => $fishName,
+                'fishName'   => $fish->name,
                 'imageCount' => count($filenames),
             ]);
 
@@ -1727,7 +1695,7 @@ class LineBotController extends Controller
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
-                    'text' => "✅ 成功新增魚類「{$fishName}」{$countNote}",
+                    'text' => "✅ 成功新增魚類「{$fish->name}」{$countNote}",
                 ]),
                 new \LINE\Clients\MessagingApi\Model\ImageMessage([
                     'type'               => 'image',
@@ -1737,7 +1705,7 @@ class LineBotController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            // 確保即使 Fish::create 失敗，也要清除 Cache 狀態避免使用者卡住
+            // 確保即使建立失敗，也要清除 Cache 狀態避免使用者卡住
             Cache::forget("line_user_{$userId}_create_fish_state");
             Cache::forget("line_user_{$userId}_create_fish_images");
 
@@ -1746,7 +1714,7 @@ class LineBotController extends Controller
                 'error'  => $e->getMessage(),
                 'trace'  => $e->getTraceAsString(),
             ]);
-            
+
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',

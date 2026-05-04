@@ -4,6 +4,7 @@ use App\Http\Controllers\LineBotController;
 use App\Services\LineBotService;
 use App\Http\Controllers\ApiFishController;
 use App\Contracts\LineUserServiceInterface;
+use App\Contracts\FishServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -345,7 +346,8 @@ class LineBotControllerTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            $mockLineUserService
+            $mockLineUserService,
+            $this->app->make(FishServiceInterface::class)
         );
 
         // 使用反射來測試 protected 方法
@@ -408,7 +410,8 @@ class LineBotControllerTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            $mockLineUserService
+            $mockLineUserService,
+            $this->app->make(FishServiceInterface::class)
         );
 
         // 使用反射來測試 protected 方法
@@ -473,7 +476,8 @@ class LineBotControllerTest extends TestCase
                 $this->app->make(ApiFishController::class),
                 $this->app->make(\App\Services\UploadService::class),
                 $this->app->make(\App\Contracts\StorageServiceInterface::class),
-                $mockLineUserService2
+                $mockLineUserService2,
+                $this->app->make(FishServiceInterface::class)
             );
 
             // 使用反射來測試 protected 方法
@@ -542,7 +546,8 @@ class LineBotControllerTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            $mockLineUserService3
+            $mockLineUserService3,
+            $this->app->make(FishServiceInterface::class)
         );
 
         // 使用反射來測試 protected 方法

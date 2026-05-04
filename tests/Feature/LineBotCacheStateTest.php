@@ -6,6 +6,7 @@ use App\Services\LineBotService;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
+use App\Contracts\FishServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -74,7 +75,8 @@ class LineBotCacheStateTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
             $this->app->make(StorageServiceInterface::class),
-            $mockLineUserService
+            $mockLineUserService,
+            $this->app->make(FishServiceInterface::class)
         );
     }
 
@@ -416,7 +418,8 @@ class LineBotCacheStateTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
             $mockStorageService,
-            $mockLineUserService4
+            $mockLineUserService4,
+            $this->app->make(FishServiceInterface::class)
         );
 
         $this->mockLineBotService

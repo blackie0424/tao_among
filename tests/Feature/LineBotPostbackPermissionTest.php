@@ -6,6 +6,7 @@ use App\Services\LineBotService;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
+use App\Contracts\FishServiceInterface;
 use App\Models\Fish;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -62,7 +63,8 @@ class LineBotPostbackPermissionTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
             $this->app->make(StorageServiceInterface::class),
-            $this->mockLineUserService
+            $this->mockLineUserService,
+            $this->app->make(FishServiceInterface::class)
         );
     }
 

@@ -140,7 +140,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 5. 建立 mock event
@@ -229,7 +230,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         $reflection = new \ReflectionClass($controller);
@@ -327,7 +329,8 @@ class LineAudioUploadIntegrationTest extends TestCase
                 $this->app->make(ApiFishController::class),
                 $this->app->make(\App\Services\UploadService::class),
                 $this->app->make(\App\Contracts\StorageServiceInterface::class),
-                \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+                $this->app->make(\App\Contracts\FishServiceInterface::class)
             );
             
             // 建立 mock event
@@ -427,7 +430,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 建立 mock event
@@ -493,7 +497,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 建立 mock event
@@ -546,7 +551,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 執行儲存
@@ -614,7 +620,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 建立 mock event
@@ -716,7 +723,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
-            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+            \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+            $this->app->make(\App\Contracts\FishServiceInterface::class)
         );
         
         // 執行儲存
@@ -796,7 +804,8 @@ class LineAudioUploadIntegrationTest extends TestCase
                 $this->app->make(ApiFishController::class),
                 $this->app->make(\App\Services\UploadService::class),
                 $this->app->make(\App\Contracts\StorageServiceInterface::class),
-                \Mockery::mock(\App\Contracts\LineUserServiceInterface::class)
+                \Mockery::mock(\App\Contracts\LineUserServiceInterface::class),
+                $this->app->make(\App\Contracts\FishServiceInterface::class)
             );
             
             // 執行儲存
