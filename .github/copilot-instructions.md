@@ -13,7 +13,7 @@
 
 ## 專案架構與開發重點
 
-- **全端魚類資料管理系統**，後端採 Laravel (PHP) + PostgreSQL，前端為 Vue 3 SPA（Inertia.js），Tailwind CSS 主題，採用AWS EB 搭配 AWS S3進行後端伺服器運作及檔案儲存服務。
+- **全端魚類資料管理系統**，後端採 Laravel (PHP) + SQLite，前端為 Vue 3 SPA（Inertia.js），Tailwind CSS 主題，採用AWS EB 搭配 AWS S3進行後端伺服器運作及檔案儲存服務。
 - **API 設計**：RESTful，路由集中於 `routes/api.php`、`routes/web.php`，控制器於 `app/Http/Controllers/`，資料驗證於 `app/Http/Requests/`。
 - **資料流**：前端透過 Inertia.js 呼叫 API，資料模型集中於 `app/Models/`，圖片/音檔上傳整合 S3。
 - **元件化前端**：`resources/js/Components/` 為 UI 元件，`Pages/` 為頁面，`Tests/` 用 Vitest 撰寫單元測試。
@@ -58,18 +58,7 @@
 - **效能**：避免 N+1 查詢，前端圖片 lazy loading。
 - **分支策略**：遵循 Git Flow，feature 分支合併前需通過所有測試。
 
----
-
-如需更細節範例，請參考 `README.md` 及各目錄內註解。若有不明確處，請回報以利持續優化本指令。
-
 ## Active Technologies
 
-- PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試） (001-media-url-refactor)
-- PostgreSQL、Supabase Storage（public bucket） (001-media-url-refactor)
-- PHP 8.x（Laravel）, JavaScript/TypeScript（Vue 3 + Inertia.js） + Laravel Eloquent、Inertia.js、Tailwind CSS、Pest（後端測試）、Vitest（前端測試） (005-fishs-incremental-loading)
-- PostgreSQL（prod），SQLite（tests） (005-fishs-incremental-loading)
-- PHP 8.x（Laravel） + Laravel Framework（Eloquent、Validation、Routing）、Inertia.js（前端呼叫與渲染） (006-backend-search)
-
-## Recent Changes
-
-- 001-media-url-refactor: Added PHP 8.x（Laravel） + Laravel、Inertia.js（前端 SPA）、Pest（後端測試）
+- PHP 8.x（Laravel）, JavaScript/TypeScript（Vue 3 + Inertia.js） + Laravel Eloquent、Inertia.js、Tailwind CSS、Pest（後端測試）、Vitest（前端測試）
+- SQLite（tests,prod）
