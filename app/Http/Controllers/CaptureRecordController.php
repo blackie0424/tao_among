@@ -7,6 +7,7 @@ use App\Models\Fish;
 use App\Models\CaptureRecord;
 use App\Services\FishService;
 use App\Contracts\StorageServiceInterface;
+use App\Contracts\CaptureSessionServiceInterface;
 use App\Traits\HasFishImageUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,11 +19,16 @@ class CaptureRecordController extends Controller
 
     protected $fishService;
     protected $storageService;
+    protected $captureSessionService;
 
-    public function __construct(FishService $fishService, StorageServiceInterface $storageService)
-    {
+    public function __construct(
+        FishService $fishService,
+        StorageServiceInterface $storageService,
+        CaptureSessionServiceInterface $captureSessionService
+    ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
+        $this->captureSessionService = $captureSessionService;
     }
 
     /**
@@ -66,10 +72,11 @@ class CaptureRecordController extends Controller
         $capture_methods = config('fish_options.capture_methods');
         
         return Inertia::render('CreateCaptureRecord', [
-            'fish' => $fishWithImage,
-            'tribes' => $tribes,
+            'fish'            => $fishWithImage,
+            'tribes'          => $tribes,
             'capture_methods' => $capture_methods,
-            'prefill_image' => $request->query('prefill_image', '')
+            'prefill_image'   => $request->query('prefill_image', ''),
+            'recent_sessions' => $this->captureSessionService->getRecentSessions(),
         ]);
     }
 
@@ -86,6 +93,7 @@ class CaptureRecordController extends Controller
             'tribes'          => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
             'upload_limits'   => config('fish_options.batch_upload'),
+            'recent_sessions' => $this->captureSessionService->getRecentSessions(),
         ]);
     }
 

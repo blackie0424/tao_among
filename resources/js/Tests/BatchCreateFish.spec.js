@@ -231,4 +231,69 @@ describe('BatchCreateFish', () => {
 
     expect(markFishCreated).toHaveBeenCalledWith(42)
   })
+
+  // ── 過去捕獲資訊選擇器 ──────────────────────────────────────────────────
+  const recentSessions = [
+    {
+      tribe: 'iraraley',
+      location: '溪流A',
+      capture_method: 'mamasil',
+      capture_date: '2024-05-01',
+      record_count: 3,
+    },
+  ]
+
+  it('shows CaptureRecordSessionSelector in Step 2 when recent_sessions provided', async () => {
+    const wrapper = mount(BatchCreateFish, {
+      props: { ...defaultProps, recent_sessions: recentSessions },
+    })
+
+    await wrapper.vm.onUploaded(['photo.jpg'])
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('溪流A')
+  })
+
+  it('fills sharedForm fields when a session option is selected', async () => {
+    const wrapper = mount(BatchCreateFish, {
+      props: { ...defaultProps, recent_sessions: recentSessions },
+    })
+
+    await wrapper.vm.onUploaded(['photo.jpg'])
+    await nextTick()
+
+    await wrapper.find('[data-testid="session-option"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.vm.sharedForm.tribe).toBe('iraraley')
+    expect(wrapper.vm.sharedForm.location).toBe('溪流A')
+    expect(wrapper.vm.sharedForm.capture_date).toBe('2024-05-01')
+    expect(wrapper.vm.sharedForm.capture_method).toBe('mamasil')
+  })
+
+  it('shows form fields directly when no recent_sessions provided', async () => {
+    const wrapper = mount(BatchCreateFish, { props: defaultProps })
+
+    await wrapper.vm.onUploaded(['photo.jpg'])
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="tribe-select"]').exists()).toBe(true)
+  })
+
+  it('hides selector and shows form after manual option clicked', async () => {
+    const wrapper = mount(BatchCreateFish, {
+      props: { ...defaultProps, recent_sessions: recentSessions },
+    })
+
+    await wrapper.vm.onUploaded(['photo.jpg'])
+    await nextTick()
+
+    await wrapper.find('[data-testid="manual-option"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="tribe-select"]').exists()).toBe(true)
+  })
 })

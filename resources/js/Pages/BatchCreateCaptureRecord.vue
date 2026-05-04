@@ -53,7 +53,14 @@
           張照片
         </p>
 
-        <div class="space-y-4">
+        <!-- 過去捕獲資訊選擇器 -->
+        <CaptureRecordSessionSelector
+          v-if="sessionSelectorVisible"
+          :sessions="recent_sessions"
+          @select="onSessionSelect"
+        />
+
+        <div v-if="!sessionSelectorVisible" class="space-y-4">
           <!-- 部落 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -205,6 +212,7 @@ import { ref, computed, reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import BatchCaptureImageUploader from '@/Components/CaptureRecord/BatchCaptureImageUploader.vue'
+import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 
 const props = defineProps({
   fish: Object,
@@ -213,6 +221,10 @@ const props = defineProps({
   upload_limits: {
     type: Object,
     default: () => ({ max_files_desktop: 10, max_files_mobile: 5 }),
+  },
+  recent_sessions: {
+    type: Array,
+    default: () => [],
   },
 })
 
@@ -225,6 +237,7 @@ const maxFiles = isMobile
 
 // ==================== 步驟狀態 ====================
 const step = ref(1)
+const sessionSelectorVisible = ref(false)
 const uploaderRef = ref(null)
 const uploadedFilenames = ref([])
 const uploadError = ref('')
@@ -291,6 +304,20 @@ async function doUpload() {
 function onUploaded(filenames) {
   uploadedFilenames.value = filenames
   step.value = 2
+  // 若有過去捕獲資訊，先顯示 selector
+  if (props.recent_sessions && props.recent_sessions.length > 0) {
+    sessionSelectorVisible.value = true
+  }
+}
+
+function onSessionSelect(session) {
+  if (session) {
+    sharedForm.tribe = session.tribe
+    sharedForm.location = session.location
+    sharedForm.capture_date = session.capture_date
+    sharedForm.capture_method = session.capture_method
+  }
+  sessionSelectorVisible.value = false
 }
 
 function onUploadError(errors) {
@@ -348,4 +375,6 @@ async function doSubmitAll() {
 
   isSubmitting.value = false
 }
+
+defineExpose({ sharedForm, onUploaded })
 </script>

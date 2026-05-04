@@ -59,6 +59,13 @@
 
     <!-- Step 2: 部落、地點、時間 -->
     <div v-if="step === 2" class="space-y-6">
+      <!-- 過往捕獲資訊選擇器 -->
+      <CaptureRecordSessionSelector
+        v-if="sessionSelectorVisible"
+        :sessions="recent_sessions"
+        @select="onSessionSelect"
+      />
+      <template v-if="!sessionSelectorVisible">
       <div>
         <label for="tribe" class="block text-xl font-medium text-gray-700 mb-2">
           捕獲部落 <span class="text-red-500">*</span>
@@ -104,6 +111,7 @@
       </div>
 
       <!-- 導航按鈕已改由 FormActionBar 控制 -->
+      </template>
     </div>
 
     <!-- Step 3: 捕獲方式 + 備註 + 送出 -->
@@ -144,9 +152,10 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import LazyImage from '@/Components/UI/LazyImage.vue'
+import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 
 const props = defineProps({
   tribes: Array,
@@ -154,11 +163,16 @@ const props = defineProps({
   fishId: Number,
   fishName: String,
   fishImage: String,
+  recent_sessions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['submitted'])
 
 const step = ref(1)
+const sessionSelectorVisible = ref(false)
 const form = reactive({
   image: null,
   tribe: '',
@@ -305,9 +319,21 @@ function setPrefillImage(filename) {
     // 跳過 Step 1（上傳照片），直接進入 Step 2
     step.value = 2
     console.log('[CaptureRecordForm] step set to:', step.value)
-    // 可選：顯示預覽圖（需要從 Storage 取得 URL）
-    // 因為我們只有檔名，無法直接顯示預覽，所以這裡不設定 imagePreview
+    // 若有過去捕獲資訊，先顯示 selector
+    if (props.recent_sessions && props.recent_sessions.length > 0) {
+      sessionSelectorVisible.value = true
+    }
   }
+}
+
+function onSessionSelect(session) {
+  if (session) {
+    form.tribe = session.tribe
+    form.location = session.location
+    form.capture_date = session.capture_date
+    form.capture_method = session.capture_method
+  }
+  sessionSelectorVisible.value = false
 }
 
 defineExpose({

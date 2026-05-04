@@ -46,7 +46,14 @@
           以下資訊將套用至所有照片的捕獲紀錄。
         </p>
 
-        <div class="space-y-4">
+        <!-- 過去捕獲資訊選擇器 -->
+        <CaptureRecordSessionSelector
+          v-if="sessionSelectorVisible"
+          :sessions="recent_sessions"
+          @select="onSessionSelect"
+        />
+
+        <div v-if="!sessionSelectorVisible" class="space-y-4">
           <!-- 魚類名稱 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">魚類名稱</label>
@@ -151,6 +158,7 @@ import { ref, computed, reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import BatchCaptureImageUploader from '@/Components/CaptureRecord/BatchCaptureImageUploader.vue'
+import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 import { markFishCreated } from '@/utils/fishListCache'
 
 const props = defineProps({
@@ -159,6 +167,10 @@ const props = defineProps({
   upload_limits: {
     type: Object,
     default: () => ({ max_files_desktop: 10, max_files_mobile: 5 }),
+  },
+  recent_sessions: {
+    type: Array,
+    default: () => [],
   },
 })
 
@@ -171,6 +183,7 @@ const maxFiles = isMobile
 
 // ── 狀態 ──────────────────────────────────────────────────────────────────
 const step = ref(1)
+const sessionSelectorVisible = ref(false)
 const uploaderRef = ref(null)
 const uploadedFilenames = ref([])
 const uploadError = ref('')
@@ -231,6 +244,19 @@ function onUploaded(filenames) {
   uploadedFilenames.value = filenames
   isSubmitting.value = false
   step.value = 2
+  if (props.recent_sessions && props.recent_sessions.length > 0) {
+    sessionSelectorVisible.value = true
+  }
+}
+
+function onSessionSelect(session) {
+  if (session) {
+    sharedForm.tribe = session.tribe
+    sharedForm.location = session.location
+    sharedForm.capture_date = session.capture_date
+    sharedForm.capture_method = session.capture_method
+  }
+  sessionSelectorVisible.value = false
 }
 
 function onUploadError(errors) {
