@@ -44,8 +44,11 @@ it('loads fish details with eager relations and groups notes', function () {
     expect($details['tribalClassifications']->count())->toBe(1);
     expect($details['captureRecords']->count())->toBe(1);
 
-    // Grouped notes keys
-    expect(array_keys($details['fishNotes']))->toEqualCanonicalizing(['A', 'B']);
-    expect($details['fishNotes']['A'])->toHaveCount(2);
-    expect($details['fishNotes']['B'])->toHaveCount(1);
+    // Grouped notes: array of {name, notes} objects
+    $names = array_column($details['fishNotes'], 'name');
+    expect($names)->toEqualCanonicalizing(['A', 'B']);
+    $groupA = collect($details['fishNotes'])->firstWhere('name', 'A');
+    $groupB = collect($details['fishNotes'])->firstWhere('name', 'B');
+    expect($groupA['notes'])->toHaveCount(2);
+    expect($groupB['notes'])->toHaveCount(1);
 });

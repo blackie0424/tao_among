@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Services\FishService;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Exception;
 
-class FishManagementController extends Controller
+class FishManagementController extends BaseController
 {
     protected $fishService;
 
@@ -20,8 +21,12 @@ class FishManagementController extends Controller
      */
     public function mediaManager($id)
     {
-        $details = $this->fishService->getFishDetails((int) $id);
-        return Inertia::render('Fish/MediaManager', $details);
+        try {
+            $details = $this->fishService->getFishDetails((int) $id);
+            return Inertia::render('Fish/MediaManager', $details);
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '無法載入媒體管理頁面');
+        }
     }
 
     /**
@@ -29,8 +34,12 @@ class FishManagementController extends Controller
      */
     public function knowledgeManager($id)
     {
-        $details = $this->fishService->getFishDetails((int) $id);
-        $details['tribes'] = config('fish_options.tribes');
-        return Inertia::render('Fish/KnowledgeManager', $details);
+        try {
+            $details = $this->fishService->getFishDetails((int) $id);
+            $details['tribes'] = config('fish_options.tribes');
+            return Inertia::render('Fish/KnowledgeManager', $details);
+        } catch (Exception $e) {
+            return $this->handleControllerError($e, '無法載入知識管理頁面');
+        }
     }
 }

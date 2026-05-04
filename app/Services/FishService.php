@@ -109,18 +109,33 @@ class FishService implements FishServiceInterface
      */
     public function getFishDetails(int $id): array
     {
-        $fish = Fish::with(['tribalClassifications', 'captureRecords', 'notes', 'audios', 'displayCaptureRecord'])
-            ->findOrFail($id);
+        $fish = Fish::with([
+            'tribalClassifications',
+            'captureRecords',
+            'notes' => fn ($q) => $q->orderBy('created_at', 'desc'),
+            'audios',
+            'displayCaptureRecord',
+        ])->findOrFail($id);
 
         // 套用媒體 URL 規則
         $fish = $this->decorateFishMedia($fish);
 
-        // 分組 notes
+        // 取得預定義的分類排序順序
+        $noteTypeOrder = config('fish_options.note_types', []);
+
+        // 分組 notes：空 note_type 映射為 '未分類'，按預定義順序排序，組內按 created_at DESC
         $groupedFishNotes = $fish->notes
-            ->groupBy('note_type')
-            ->map(function ($items) {
-                return $items->values()->toArray();
-            })->toArray();
+            ->groupBy(fn ($note) => $note->note_type ?: '未分類')
+            ->map(fn ($items, $type) => [
+                'name' => $type,
+                'notes' => $items->values()->toArray(),
+            ])
+            ->sortBy(function ($group) use ($noteTypeOrder) {
+                $index = array_search($group['name'], $noteTypeOrder);
+                return $index === false ? PHP_INT_MAX : $index;
+            })
+            ->values()
+            ->toArray();
 
         // Inertia 需要陣列，確保關聯輸出一致
         return [

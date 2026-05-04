@@ -188,7 +188,7 @@ abstract class BaseController extends Controller
             }
             
             return redirect()->back()
-                ->with('error', $e->getMessage() ?: '找不到指定的資源');
+                ->withErrors(['error' => $e->getMessage() ?: '找不到指定的資源']);
         }
 
         if ($e instanceof ValidationException) {
