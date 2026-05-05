@@ -64,6 +64,19 @@ class LineBotServiceEditorButtonsTest extends TestCase
     }
 
     /**
+     * editor 看圖卡時，footer 應包含「批次捕獲紀錄」按鈕
+     */
+    public function test_build_fish_card_editor_sees_batch_capture_button_in_footer(): void
+    {
+        $message = $this->service->buildFishCard($this->baseFish, null, true);
+
+        $json = $this->extractBubbleJson($message);
+        $footerLabels = $this->extractFooterButtonLabels($json);
+
+        $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels, 'editor 應能在 footer 看到「批次捕獲紀錄」按鈕');
+    }
+
+    /**
      * viewer（非 editor）看圖卡時，footer 不應包含「修改名稱」按鈕
      */
     public function test_build_fish_card_viewer_does_not_see_rename_button(): void
@@ -90,6 +103,19 @@ class LineBotServiceEditorButtonsTest extends TestCase
     }
 
     /**
+     * viewer 看圖卡時，footer 不應包含「批次捕獲紀錄」按鈕
+     */
+    public function test_build_fish_card_viewer_does_not_see_batch_capture_button(): void
+    {
+        $message = $this->service->buildFishCard($this->baseFish, null, false);
+
+        $json = $this->extractBubbleJson($message);
+        $footerLabels = $this->extractFooterButtonLabels($json);
+
+        $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels, 'viewer 不應看到「批次捕獲紀錄」按鈕');
+    }
+
+    /**
      * 預設（不傳 isEditor）等同 viewer，不含 editor 按鈕
      */
     public function test_build_fish_card_defaults_to_viewer_behavior(): void
@@ -101,6 +127,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
 
         $this->assertNotContains('✏️ 修改名稱', $footerLabels);
         $this->assertNotContains('🎤 提供發音', $footerLabels);
+        $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels);
     }
 
     /**
@@ -116,12 +143,17 @@ class LineBotServiceEditorButtonsTest extends TestCase
 
         $renameAction = $this->findActionByLabel($footerActions, '✏️ 修改名稱');
         $audioAction  = $this->findActionByLabel($footerActions, '🎤 提供發音');
+        $batchCaptureAction = $this->findActionByLabel($footerActions, '⚡ 批次捕獲紀錄');
 
         $this->assertNotNull($renameAction, '應找到修改名稱 action');
         $this->assertStringContainsString('fish_id=42', $renameAction['data'] ?? '', 'postback data 應含 fish_id=42');
 
         $this->assertNotNull($audioAction, '應找到提供發音 action');
         $this->assertStringContainsString('fish_id=42', $audioAction['data'] ?? '', 'postback data 應含 fish_id=42');
+
+        $this->assertNotNull($batchCaptureAction, '應找到批次捕獲紀錄 action');
+        $this->assertSame('uri', $batchCaptureAction['type'] ?? null);
+        $this->assertStringContainsString('/fish/42/capture-records/batch-create', $batchCaptureAction['uri'] ?? '');
     }
 
     /**
@@ -137,6 +169,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
         $this->assertContains('🎤 提供發音', $footerLabels);
+        $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
         // 捕獲紀錄按鈕也應保留
         $captureButton = array_filter($footerLabels, fn ($l) => str_contains($l, '查看捕獲紀錄'));
         $this->assertNotEmpty($captureButton, '有捕獲紀錄時應顯示查看捕獲紀錄按鈕');
@@ -181,6 +214,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
 
         $this->assertNotContains('✏️ 修改名稱', $qrLabels);
         $this->assertNotContains('🎤 提供發音', $qrLabels);
+        $this->assertNotContains('⚡ 批次捕獲紀錄', $qrLabels);
     }
 
     /**
@@ -238,6 +272,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertContains('✏️ 修改名稱', $footerLabels, "第 {$i} 張卡片應有修改名稱");
             $this->assertContains('🎤 提供發音', $footerLabels, "第 {$i} 張卡片應有提供發音");
+            $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels, "第 {$i} 張卡片應有批次捕獲紀錄");
         }
     }
 
@@ -264,6 +299,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertNotContains('✏️ 修改名稱', $footerLabels, "第 {$i} 張卡片不應有修改名稱");
             $this->assertNotContains('🎤 提供發音', $footerLabels, "第 {$i} 張卡片不應有提供發音");
+            $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels, "第 {$i} 張卡片不應有批次捕獲紀錄");
         }
     }
 
@@ -286,6 +322,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
         $this->assertContains('🎤 提供發音', $footerLabels);
+        $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
     }
 
     /**
@@ -301,6 +338,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
 
         $this->assertNotContains('✏️ 修改名稱', $footerLabels);
         $this->assertNotContains('🎤 提供發音', $footerLabels);
+        $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels);
     }
 
     /**
@@ -323,6 +361,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
         foreach ($bubbles as $i => $bubble) {
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertContains('✏️ 修改名稱', $footerLabels, "Carousel 第 {$i} 張應有修改名稱");
+            $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels, "Carousel 第 {$i} 張應有批次捕獲紀錄");
         }
     }
 
