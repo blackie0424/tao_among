@@ -64,6 +64,29 @@ describe('Capture Record Inertia Endpoints', function () {
             );
     });
 
+    it('denies viewer from batch create capture record page', function () {
+        $user = User::factory()->lineViewer()->create();
+        $fish = Fish::factory()->create(['name' => 'Test Fish']);
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create");
+
+        $response->assertStatus(403);
+    });
+
+    it('allows line editor to view batch create capture record page', function () {
+        $user = User::factory()->lineEditor()->create();
+        $fish = Fish::factory()->create(['name' => 'Test Fish']);
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create");
+
+        $response->assertStatus(200)
+            ->assertInertia(
+                fn (Assert $page) => $page
+                ->component('BatchCreateCaptureRecord')
+                ->where('fish.id', $fish->id)
+            );
+    });
+
     it('can store a capture record', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create();

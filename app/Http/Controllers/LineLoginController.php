@@ -74,6 +74,6 @@ class LineLoginController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        return redirect('/fishs');
+        return redirect()->intended('/fishs');
     }
 }
