@@ -11,6 +11,7 @@
 - 在進行變更時，前、後端都要確實遵守SOLID原則，並使用TDD進行開發。
 - 在進行變更時，檔案、程式碼都需要符合前端、後端框架的coding style。
 
+
 ## 專案架構與開發重點
 
 - **全端魚類資料管理系統**，後端採 Laravel (PHP) + SQLite，前端為 Vue 3 SPA（Inertia.js），Tailwind CSS 主題，採用AWS EB 搭配 AWS S3進行後端伺服器運作及檔案儲存服務。
@@ -57,6 +58,14 @@
 - **安全性**：API 驗證用 Laravel Sanctum，前端表單嚴格驗證，避免 XSS/CSRF。
 - **效能**：避免 N+1 查詢，前端圖片 lazy loading。
 - **分支策略**：遵循 Git Flow，feature 分支合併前需通過所有測試。
+
+## Git Flow 規則
+
+1. 所有新功能必須從 `develop` 開分支
+2. 分支命名規則：`feature/xxx` 或 `fix/xxx`
+3. 完成後發 PR 目標一律是 `develop`
+4. 禁止直接 PR 到 `main`
+5. `main` 只接受來自 `develop` 的 PR，由人工審查後合併
 
 ## Active Technologies
 
