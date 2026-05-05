@@ -35,13 +35,14 @@
 </template>
 
 <script setup>
-import { Head, Link, usePage } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue'
+import { hasEditorAccess } from '@/utils/userPermissions'
 
 // Removed persistent layout to support dynamic props
 // defineOptions({
@@ -58,7 +59,7 @@ const props = defineProps({
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
-const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
+const isEditor = computed(() => hasEditorAccess(user.value))
 // 動態決定手機版麵包屑中間層級文字
 // 若魚名太長 (> 12 字元)，則縮減中間層級為 "..." 以爭取空間
 const mobileBackText = computed(() => {

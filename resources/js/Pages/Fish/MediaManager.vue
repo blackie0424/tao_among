@@ -17,6 +17,7 @@
               <span class="text-lg leading-none">+</span> 新增捕獲紀錄
             </Link>
             <Link
+              v-if="canBatchCreateCaptureRecords"
               :href="`/fish/${fish.id}/capture-records/batch-create`"
               class="flex items-center gap-1 text-sm bg-green-100 text-green-700 px-3 py-1.5 rounded-md font-medium hover:bg-green-200 transition"
             >
@@ -239,6 +240,7 @@
 import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { markFishStale } from '@/utils/fishListCache'
+import { hasEditorAccess } from '@/utils/userPermissions'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import LazyImage from '@/Components/UI/LazyImage.vue'
@@ -267,6 +269,7 @@ const props = defineProps({
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+const canBatchCreateCaptureRecords = computed(() => hasEditorAccess(user.value))
 const fish = computed(() => props.fish)
 const selectedImage = ref(null)
 
