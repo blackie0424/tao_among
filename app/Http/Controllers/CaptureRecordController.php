@@ -73,6 +73,8 @@ class CaptureRecordController extends Controller
      */
     public function batchCreate($fishId)
     {
+        abort_unless(request()->user()?->isEditor(), 403);
+
         $fish = Fish::with('displayCaptureRecord')->findOrFail($fishId);
         $fishWithImage = $this->assignFishImage($fish);
 
