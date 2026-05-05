@@ -27,4 +27,14 @@ interface FishServiceInterface
      * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
      */
     public function createFishFromLine(?string $name, array $filenames): Fish;
+
+    /**
+     * 從 LINE Bot 對既有魚種批次建立捕獲紀錄
+     *
+     * @param int $fishId 既有魚種 ID
+     * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
+     * @param array{tribe:string, location:string, capture_method:string, capture_date:string, notes:string} $captureData
+     * @return array<int, \App\Models\CaptureRecord>
+     */
+    public function createCaptureRecordsFromLine(int $fishId, array $filenames, array $captureData): array;
 }

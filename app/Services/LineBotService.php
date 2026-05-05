@@ -323,9 +323,10 @@ class LineBotService
                 'style'  => 'secondary',
                 'height' => 'sm',
                 'action' => [
-                    'type'  => 'uri',
-                    'label' => '⚡ 批次捕獲紀錄',
-                    'uri'   => route('fish.capture-records.batch-create', ['id' => $fish['id']]),
+                    'type'        => 'postback',
+                    'label'       => '⚡ 批次捕獲紀錄',
+                    'data'        => "action=start_batch_capture&fish_id={$fish['id']}",
+                    'displayText' => '批次新增捕獲紀錄',
                 ],
             ];
             $footerContents[] = [

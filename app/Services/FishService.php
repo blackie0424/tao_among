@@ -9,6 +9,7 @@ use App\Models\CaptureRecord;
 use App\Http\Resources\FishResource;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
+use Illuminate\Support\Facades\DB;
 
 class FishService implements FishServiceInterface
 {
@@ -182,5 +183,35 @@ class FishService implements FishServiceInterface
         }
 
         return $fish;
+    }
+
+    /**
+     * 對既有魚種建立多筆 LINE 批次捕獲紀錄
+     *
+     * @param string[] $filenames
+     * @param array{tribe:string, location:string, capture_method:string, capture_date:string, notes:string} $captureData
+     * @return array<int, CaptureRecord>
+     */
+    public function createCaptureRecordsFromLine(int $fishId, array $filenames, array $captureData): array
+    {
+        $fish = Fish::findOrFail($fishId);
+
+        return DB::transaction(function () use ($fish, $filenames, $captureData) {
+            $records = [];
+
+            foreach ($filenames as $filename) {
+                $records[] = CaptureRecord::create([
+                    'fish_id'        => $fish->id,
+                    'image_path'     => $filename,
+                    'tribe'          => $captureData['tribe'],
+                    'location'       => $captureData['location'],
+                    'capture_method' => $captureData['capture_method'],
+                    'capture_date'   => $captureData['capture_date'],
+                    'notes'          => $captureData['notes'],
+                ]);
+            }
+
+            return $records;
+        });
     }
 }

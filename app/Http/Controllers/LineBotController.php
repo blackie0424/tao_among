@@ -154,6 +154,77 @@ class LineBotController extends Controller
         // 判斷是否為 editor 角色（用於圖卡 editor 按鈕顯示）
         $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
 
+        $batchCaptureState = Cache::get("line_user_{$userId}_batch_capture_state");
+
+        if (in_array($batchCaptureState, ['waiting_batch_capture_image', 'waiting_batch_capture_more_images'], true)) {
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '📷 請直接上傳捕獲照片，最多 5 張；完成後點選「✅ 完成上傳」。',
+                ]),
+            ]);
+            return;
+        }
+
+        if ($batchCaptureState === 'waiting_batch_capture_source_choice') {
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '請點選「套用最近一次資料」或「手動填寫」。',
+                ]),
+            ]);
+            return;
+        }
+
+        if ($batchCaptureState === 'waiting_batch_capture_manual_tribe') {
+            $this->sendBatchCaptureTribeSelector($replyToken);
+            return;
+        }
+
+        if ($batchCaptureState === 'waiting_batch_capture_manual_location') {
+            if ($text === '') {
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入捕獲地點。',
+                    ]),
+                ]);
+                return;
+            }
+
+            $form = Cache::get("line_user_{$userId}_batch_capture_form", []);
+            $form['location'] = $text;
+            Cache::put("line_user_{$userId}_batch_capture_form", $form, now()->addMinutes(15));
+            Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_manual_capture_method', now()->addMinutes(15));
+
+            $this->sendBatchCaptureMethodSelector($replyToken);
+            return;
+        }
+
+        if ($batchCaptureState === 'waiting_batch_capture_manual_capture_method') {
+            $this->sendBatchCaptureMethodSelector($replyToken);
+            return;
+        }
+
+        if ($batchCaptureState === 'waiting_batch_capture_manual_notes') {
+            if ($text === '') {
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入備註內容。',
+                    ]),
+                ]);
+                return;
+            }
+
+            $form = Cache::get("line_user_{$userId}_batch_capture_form", []);
+            $form['notes'] = $text;
+            Cache::put("line_user_{$userId}_batch_capture_form", $form, now()->addMinutes(15));
+
+            $this->finalizeBatchCaptureFromForm($userId, $replyToken);
+            return;
+        }
+
         // 空白訊息，回傳使用說明
         if (empty($text)) {
             $this->lineBotService->replyMessage($replyToken, [
@@ -332,6 +403,12 @@ class LineBotController extends Controller
     protected function handleImageMessage(MessageEvent $event, string $replyToken): void
     {
         $userId = $event->getSource()->getUserId();
+        $batchCaptureState = Cache::get("line_user_{$userId}_batch_capture_state");
+        if (in_array($batchCaptureState, ['waiting_batch_capture_image', 'waiting_batch_capture_more_images'], true)) {
+            $this->handleBatchCaptureImageMessage($event, $replyToken);
+            return;
+        }
+
         $state = Cache::get("line_user_{$userId}_create_fish_state");
 
         // 只有在 waiting_image 或 waiting_more_images 狀態才接受圖片
@@ -1016,7 +1093,7 @@ class LineBotController extends Controller
             // 需要 editor/admin 角色的受保護 action
             // 注意：start_rename 與 start_add_audio 亦需保護，
             // 防止 viewer 透過舊訊息的按鈕繞過 UI 限制直接觸發後端操作。
-            $protectedActions = ['start_create_fish', 'provide_clue', 'start_rename', 'start_add_audio'];
+            $protectedActions = ['start_create_fish', 'provide_clue', 'start_rename', 'start_add_audio', 'start_batch_capture'];
             if (in_array($action, $protectedActions) && !$isEditor) {
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1033,12 +1110,14 @@ class LineBotController extends Controller
 
             // A: 瀏覽 oyod 類魚（food_category 篩選）
             if ($action === 'browse_oyod') {
+                $this->clearBatchCaptureState($userId);
                 $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚', $isEditor);
                 return;
             }
 
             // B: 瀏覽 rahet 類魚（food_category 篩選）
             if ($action === 'browse_rahet') {
+                $this->clearBatchCaptureState($userId);
                 $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚', $isEditor);
                 return;
             }
@@ -1048,6 +1127,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態，避免污染後續操作
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $messages = $this->lineBotService->buildBrowseTribesCarousel();
 
@@ -1060,6 +1140,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $tribe = $params['tribe'] ?? 'iraraley';
                 $validTribes = config('fish_options.tribes', []);
@@ -1076,6 +1157,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $this->handleRandomBrowse($replyToken, $isEditor);
                 return;
@@ -1086,6 +1168,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $this->handleRandomUnknownFish($replyToken, $isEditor);
                 return;
@@ -1097,6 +1180,7 @@ class LineBotController extends Controller
 
             // G: 開始新增魚類流程（Rich Menu 觸發）
             if ($action === 'start_create_fish') {
+                $this->clearBatchCaptureState($userId);
                 Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
                 
                 $this->lineBotService->replyMessage($replyToken, [
@@ -1116,6 +1200,188 @@ class LineBotController extends Controller
                                 ],
                             ],
                         ],
+                    ]),
+                ]);
+                return;
+            }
+
+            if ($action === 'start_batch_capture') {
+                $fishId = (int) ($params['fish_id'] ?? 0);
+                $fish = Fish::find($fishId);
+
+                if (!$fish) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 找不到魚類資料，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                $this->clearBatchCaptureState($userId);
+                Cache::put("line_user_{$userId}_batch_capture_fish", $fish->id, now()->addMinutes(15));
+                Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_image', now()->addMinutes(15));
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "⚡ 批次新增捕獲紀錄\n\n魚種：{$fish->name}\n請直接上傳捕獲照片，最多 5 張。",
+                    ]),
+                ]);
+                return;
+            }
+
+            if ($action === 'finish_batch_capture_images') {
+                $images = Cache::get("line_user_{$userId}_batch_capture_images", []);
+
+                if (empty($images)) {
+                    Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_image', now()->addMinutes(15));
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '尚未收到任何捕獲照片，請先上傳圖片。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                $recentSessions = app(\App\Contracts\CaptureSessionServiceInterface::class)->getRecentSessions();
+                if (!empty($recentSessions)) {
+                    Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_source_choice', now()->addMinutes(15));
+                    $latest = $recentSessions[0];
+                    $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => "已收到 " . count($images) . " 張照片。\n\n最近一次資料：\n部落：{$latest['tribe']}\n地點：{$latest['location']}\n方式：{$latest['capture_method']}\n備註：" . ($latest['notes'] ?: '（無）') . "\n\n要套用最近一次資料，還是手動填寫？",
+                    ]);
+                    $message->setQuickReply([
+                        'items' => [
+                            [
+                                'type' => 'action',
+                                'action' => [
+                                    'type' => 'postback',
+                                    'label' => '📋 套用最近一次',
+                                    'data' => 'action=use_recent_batch_capture_session',
+                                    'displayText' => '套用最近一次資料',
+                                ],
+                            ],
+                            [
+                                'type' => 'action',
+                                'action' => [
+                                    'type' => 'postback',
+                                    'label' => '✏️ 手動填寫',
+                                    'data' => 'action=start_manual_batch_capture',
+                                    'displayText' => '手動填寫',
+                                ],
+                            ],
+                            [
+                                'type' => 'action',
+                                'action' => [
+                                    'type' => 'postback',
+                                    'label' => '❌ 取消',
+                                    'data' => 'action=cancel_batch_capture',
+                                    'displayText' => '取消批次新增捕獲紀錄',
+                                ],
+                            ],
+                        ],
+                    ]);
+                    $this->lineBotService->replyMessage($replyToken, [$message]);
+                    return;
+                }
+
+                $this->beginManualBatchCapture($userId, $replyToken);
+                return;
+            }
+
+            if ($action === 'use_recent_batch_capture_session') {
+                $recentSessions = app(\App\Contracts\CaptureSessionServiceInterface::class)->getRecentSessions();
+                $latest = $recentSessions[0] ?? null;
+
+                if (!$latest) {
+                    $this->beginManualBatchCapture($userId, $replyToken);
+                    return;
+                }
+
+                $form = [
+                    'tribe' => $latest['tribe'],
+                    'location' => $latest['location'],
+                    'capture_method' => $latest['capture_method'],
+                    'notes' => $latest['notes'] ?? '',
+                ];
+                Cache::put("line_user_{$userId}_batch_capture_form", $form, now()->addMinutes(15));
+
+                if (trim((string) ($form['notes'] ?? '')) === '') {
+                    Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_manual_notes', now()->addMinutes(15));
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '最近一次資料沒有備註，請輸入本批備註。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                $this->finalizeBatchCaptureFromForm($userId, $replyToken);
+                return;
+            }
+
+            if ($action === 'start_manual_batch_capture') {
+                $this->beginManualBatchCapture($userId, $replyToken);
+                return;
+            }
+
+            if ($action === 'select_batch_capture_tribe') {
+                $tribe = $params['tribe'] ?? null;
+                $validTribes = config('fish_options.tribes', []);
+
+                if (!$tribe || !in_array($tribe, $validTribes, true)) {
+                    $this->sendBatchCaptureTribeSelector($replyToken);
+                    return;
+                }
+
+                $form = Cache::get("line_user_{$userId}_batch_capture_form", []);
+                $form['tribe'] = $tribe;
+                Cache::put("line_user_{$userId}_batch_capture_form", $form, now()->addMinutes(15));
+                Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_manual_location', now()->addMinutes(15));
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入捕獲地點。',
+                    ]),
+                ]);
+                return;
+            }
+
+            if ($action === 'select_batch_capture_method') {
+                $captureMethod = $params['capture_method'] ?? null;
+                $validMethods = array_keys(config('fish_options.capture_methods', []));
+
+                if (!$captureMethod || !in_array($captureMethod, $validMethods, true)) {
+                    $this->sendBatchCaptureMethodSelector($replyToken);
+                    return;
+                }
+
+                $form = Cache::get("line_user_{$userId}_batch_capture_form", []);
+                $form['capture_method'] = $captureMethod;
+                Cache::put("line_user_{$userId}_batch_capture_form", $form, now()->addMinutes(15));
+                Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_manual_notes', now()->addMinutes(15));
+
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入本批次捕獲紀錄的備註。',
+                    ]),
+                ]);
+                return;
+            }
+
+            if ($action === 'cancel_batch_capture') {
+                $this->clearBatchCaptureState($userId);
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '✅ 已取消批次新增捕獲紀錄。',
                     ]),
                 ]);
                 return;
@@ -1719,6 +1985,245 @@ class LineBotController extends Controller
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '❌ 新增魚類失敗，請稍後再試',
+                ]),
+            ]);
+        }
+    }
+
+    private function clearBatchCaptureState(string $userId): void
+    {
+        Cache::forget("line_user_{$userId}_batch_capture_state");
+        Cache::forget("line_user_{$userId}_batch_capture_fish");
+        Cache::forget("line_user_{$userId}_batch_capture_images");
+        Cache::forget("line_user_{$userId}_batch_capture_form");
+    }
+
+    private function beginManualBatchCapture(string $userId, string $replyToken): void
+    {
+        Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_manual_tribe', now()->addMinutes(15));
+        Cache::put("line_user_{$userId}_batch_capture_form", [], now()->addMinutes(15));
+        $this->sendBatchCaptureTribeSelector($replyToken);
+    }
+
+    private function sendBatchCaptureTribeSelector(string $replyToken): void
+    {
+        $tribes = config('fish_options.tribes', []);
+        $items = array_map(fn ($tribe) => [
+            'type' => 'action',
+            'action' => [
+                'type' => 'postback',
+                'label' => ucfirst($tribe),
+                'data' => "action=select_batch_capture_tribe&tribe={$tribe}",
+                'displayText' => "選擇部落：" . ucfirst($tribe),
+            ],
+        ], $tribes);
+
+        $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+            'type' => 'text',
+            'text' => '請選擇捕獲部落。',
+        ]);
+        $message->setQuickReply(['items' => $items]);
+
+        $this->lineBotService->replyMessage($replyToken, [$message]);
+    }
+
+    private function sendBatchCaptureMethodSelector(string $replyToken): void
+    {
+        $methods = config('fish_options.capture_methods', []);
+        $items = [];
+        foreach ($methods as $value => $label) {
+            $items[] = [
+                'type' => 'action',
+                'action' => [
+                    'type' => 'postback',
+                    'label' => $label,
+                    'data' => "action=select_batch_capture_method&capture_method={$value}",
+                    'displayText' => "選擇捕獲方式：{$label}",
+                ],
+            ];
+        }
+
+        $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+            'type' => 'text',
+            'text' => '請選擇捕獲方式。',
+        ]);
+        $message->setQuickReply(['items' => $items]);
+
+        $this->lineBotService->replyMessage($replyToken, [$message]);
+    }
+
+    private function handleBatchCaptureImageMessage(MessageEvent $event, string $replyToken): void
+    {
+        $userId = $event->getSource()->getUserId();
+        $maxImages = config('fish_options.batch_upload.max_files_mobile', 5);
+        $existingImages = Cache::get("line_user_{$userId}_batch_capture_images", []);
+
+        if (count($existingImages) >= $maxImages) {
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "📷 已達上限（{$maxImages} 張），請點選「✅ 完成上傳」繼續。",
+                ]),
+            ]);
+            return;
+        }
+
+        try {
+            $messageId = $event->getMessage()->getId();
+            $imageBlob = $this->lineBotService->getMessageContent($messageId);
+            $lineUploadService = app(\App\Services\LineUploadService::class);
+            $filename = $lineUploadService->uploadLineImage($imageBlob);
+
+            $images = Cache::get("line_user_{$userId}_batch_capture_images", []);
+            $images[] = $filename;
+            $count = count($images);
+
+            Cache::put("line_user_{$userId}_batch_capture_images", $images, now()->addMinutes(15));
+            Cache::put("line_user_{$userId}_batch_capture_state", 'waiting_batch_capture_more_images', now()->addMinutes(15));
+
+            $remaining = $maxImages - $count;
+            $countLabel = $count === 1 ? '已收第 1 張圖片' : "已收 {$count} 張圖片";
+            $subText = $remaining > 0
+                ? "還可再加 {$remaining} 張，或點「✅ 完成上傳」進入填寫資料"
+                : "已達上限 {$maxImages} 張，請點「✅ 完成上傳」繼續";
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\FlexMessage([
+                    'type' => 'flex',
+                    'altText' => "{$countLabel}，請點選完成上傳或繼續傳送",
+                    'contents' => [
+                        'type' => 'bubble',
+                        'size' => 'kilo',
+                        'body' => [
+                            'type' => 'box',
+                            'layout' => 'vertical',
+                            'paddingAll' => 'lg',
+                            'contents' => [
+                                [
+                                    'type' => 'text',
+                                    'text' => "📷 {$countLabel}",
+                                    'weight' => 'bold',
+                                    'size' => 'md',
+                                ],
+                                [
+                                    'type' => 'text',
+                                    'text' => $subText,
+                                    'size' => 'sm',
+                                    'color' => '#888888',
+                                    'margin' => 'sm',
+                                    'wrap' => true,
+                                ],
+                            ],
+                        ],
+                        'footer' => [
+                            'type' => 'box',
+                            'layout' => 'vertical',
+                            'spacing' => 'sm',
+                            'contents' => [
+                                [
+                                    'type' => 'button',
+                                    'action' => [
+                                        'type' => 'postback',
+                                        'label' => '✅ 完成上傳',
+                                        'data' => 'action=finish_batch_capture_images',
+                                        'displayText' => '完成上傳',
+                                    ],
+                                    'style' => 'primary',
+                                    'color' => '#00B900',
+                                    'height' => 'sm',
+                                ],
+                                [
+                                    'type' => 'button',
+                                    'action' => [
+                                        'type' => 'postback',
+                                        'label' => '❌ 取消',
+                                        'data' => 'action=cancel_batch_capture',
+                                        'displayText' => '取消批次新增捕獲紀錄',
+                                    ],
+                                    'style' => 'secondary',
+                                    'height' => 'sm',
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('LINE Bot handle batch capture image failed', [
+                'userId' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 圖片處理失敗，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    private function finalizeBatchCaptureFromForm(string $userId, string $replyToken): void
+    {
+        try {
+            $fishId = (int) Cache::get("line_user_{$userId}_batch_capture_fish");
+            $images = Cache::get("line_user_{$userId}_batch_capture_images", []);
+            $form = Cache::get("line_user_{$userId}_batch_capture_form", []);
+
+            if (!$fishId || empty($images)) {
+                $this->clearBatchCaptureState($userId);
+                $this->lineBotService->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '❌ 批次捕獲資料已過期，請重新開始。',
+                    ]),
+                ]);
+                return;
+            }
+
+            foreach (['tribe', 'location', 'capture_method', 'notes'] as $field) {
+                if (empty(trim((string) ($form[$field] ?? '')))) {
+                    $this->lineBotService->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 捕獲資料不完整，請重新填寫。',
+                        ]),
+                    ]);
+                    return;
+                }
+            }
+
+            $fish = Fish::findOrFail($fishId);
+            $captureData = [
+                'tribe' => $form['tribe'],
+                'location' => $form['location'],
+                'capture_method' => $form['capture_method'],
+                'capture_date' => now()->toDateString(),
+                'notes' => $form['notes'],
+            ];
+
+            $records = $this->fishService->createCaptureRecordsFromLine($fish->id, $images, $captureData);
+            $this->clearBatchCaptureState($userId);
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "✅ 已為「{$fish->name}」新增 " . count($records) . " 筆捕獲紀錄。\n日期：{$captureData['capture_date']}",
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            $this->clearBatchCaptureState($userId);
+
+            Log::error('LINE Bot finalize batch capture failed', [
+                'userId' => $userId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->lineBotService->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 批次新增捕獲紀錄失敗，請稍後再試。',
                 ]),
             ]);
         }

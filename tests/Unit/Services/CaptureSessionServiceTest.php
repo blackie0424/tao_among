@@ -20,6 +20,7 @@ it('returns distinct capture session combinations ordered by date descending', f
         'location'       => '大武溪',
         'capture_method' => 'mamasil',
         'capture_date'   => '2026-05-04',
+        'notes'          => '同一批次備註',
     ]);
     CaptureRecord::factory()->create([
         'fish_id'        => $fish->id,
@@ -27,6 +28,7 @@ it('returns distinct capture session combinations ordered by date descending', f
         'location'       => '大武溪',
         'capture_method' => 'mamasil',
         'capture_date'   => '2026-05-04',
+        'notes'          => '同一批次備註',
     ]);
     CaptureRecord::factory()->create([
         'fish_id'        => $fish->id,
@@ -34,6 +36,7 @@ it('returns distinct capture session combinations ordered by date descending', f
         'location'       => '新武呂溪',
         'capture_method' => 'mapazat',
         'capture_date'   => '2026-04-20',
+        'notes'          => '另一批次備註',
     ]);
 
     $sessions = $this->service->getRecentSessions();
@@ -52,14 +55,16 @@ it('each session contains tribe, location, capture_method, capture_date and reco
         'location'       => '知本溪',
         'capture_method' => 'mapazat',
         'capture_date'   => '2026-05-01',
+        'notes'          => '測試備註',
     ]);
 
     $sessions = $this->service->getRecentSessions();
 
-    expect($sessions[0])->toHaveKeys(['tribe', 'location', 'capture_method', 'capture_date', 'record_count']);
+    expect($sessions[0])->toHaveKeys(['tribe', 'location', 'capture_method', 'capture_date', 'notes', 'record_count']);
     expect($sessions[0]['tribe'])->toBe('ivalino');
     expect($sessions[0]['location'])->toBe('知本溪');
     expect($sessions[0]['capture_method'])->toBe('mapazat');
+    expect($sessions[0]['notes'])->toBe('測試備註');
     expect($sessions[0]['record_count'])->toBe(1);
 });
 
@@ -72,6 +77,7 @@ it('excludes sessions where location is LINE Bot', function () {
         'location'       => 'LINE Bot',
         'capture_method' => '未知',
         'capture_date'   => '2026-05-04',
+        'notes'          => 'LINE 暫存',
     ]);
     CaptureRecord::factory()->create([
         'fish_id'        => $fish->id,
@@ -79,6 +85,7 @@ it('excludes sessions where location is LINE Bot', function () {
         'location'       => '大武溪',
         'capture_method' => 'mamasil',
         'capture_date'   => '2026-05-03',
+        'notes'          => '真實紀錄',
     ]);
 
     $sessions = $this->service->getRecentSessions();
@@ -103,6 +110,7 @@ it('limits results to 20 sessions', function () {
             'location'       => "地點{$i}",
             'capture_method' => 'mamasil',
             'capture_date'   => '2026-05-01',
+            'notes'          => "備註{$i}",
         ]);
     }
 

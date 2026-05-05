@@ -152,8 +152,9 @@ class LineBotServiceEditorButtonsTest extends TestCase
         $this->assertStringContainsString('fish_id=42', $audioAction['data'] ?? '', 'postback data 應含 fish_id=42');
 
         $this->assertNotNull($batchCaptureAction, '應找到批次捕獲紀錄 action');
-        $this->assertSame('uri', $batchCaptureAction['type'] ?? null);
-        $this->assertStringContainsString('/fish/42/capture-records/batch-create', $batchCaptureAction['uri'] ?? '');
+        $this->assertSame('postback', $batchCaptureAction['type'] ?? null);
+        $this->assertStringContainsString('action=start_batch_capture', $batchCaptureAction['data'] ?? '');
+        $this->assertStringContainsString('fish_id=42', $batchCaptureAction['data'] ?? '');
     }
 
     /**
