@@ -179,14 +179,33 @@ it('builds paged structure requests with only heading blocks styled as headings 
         fn ($request) => $request->getUpdateTextStyle() !== null
     ));
 
+    $namedStyles = array_map(
+        fn ($request) => $request->getUpdateParagraphStyle()->getParagraphStyle()->getNamedStyleType(),
+        $paragraphStyles
+    );
+
     expect($pageBreaks)->toHaveCount(3)
-        ->and($paragraphStyles)->toHaveCount(4)
-        ->and(array_map(
-            fn ($request) => $request->getUpdateParagraphStyle()->getParagraphStyle()->getNamedStyleType(),
-            $paragraphStyles
-        ))->toBe(['HEADING_1', 'HEADING_1', 'HEADING_1', 'HEADING_1'])
+        ->and($paragraphStyles)->toHaveCount(10)
+        ->and(array_count_values($namedStyles))->toBe([
+            'NORMAL_TEXT' => 6,
+            'HEADING_1' => 4,
+        ])
         ->and($fontSizes)->not->toBeEmpty()
         ->and(collect($fontSizes)->every(fn ($request) => $request->getUpdateTextStyle()->getTextStyle()->getFontSize()->getMagnitude() === 14))->toBeTrue();
+});
+
+it('marks positioned table text as normal text', function () {
+    $service = makeGoogleDocsServiceWithoutConstructor();
+
+    $requests = invokeGoogleDocsServiceMethod($service, 'buildPositionedTextRequests', 10, 'Imowrod');
+
+    $paragraphStyleRequests = array_values(array_filter(
+        $requests,
+        fn ($request) => $request->getUpdateParagraphStyle() !== null
+    ));
+
+    expect($paragraphStyleRequests)->toHaveCount(1)
+        ->and($paragraphStyleRequests[0]->getUpdateParagraphStyle()->getParagraphStyle()->getNamedStyleType())->toBe('NORMAL_TEXT');
 });
 
 it('uses google docs page break requests instead of form feed text', function () {

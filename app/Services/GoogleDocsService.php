@@ -28,6 +28,8 @@ class GoogleDocsService
     ];
 
     private const DEFAULT_FONT_SIZE_PT = 14;
+    private const PARAGRAPH_STYLE_NORMAL = 'NORMAL_TEXT';
+    private const PARAGRAPH_STYLE_HEADING = 'HEADING_1';
 
     private Docs $docsService;
 
@@ -288,7 +290,9 @@ class GoogleDocsService
 
     private function resolveParagraphStyle(string $style): ?string
     {
-        return $style === self::TEXT_STYLE_HEADING ? 'HEADING_1' : null;
+        return $style === self::TEXT_STYLE_HEADING
+            ? self::PARAGRAPH_STYLE_HEADING
+            : self::PARAGRAPH_STYLE_NORMAL;
     }
 
     private function makeTextBlock(string $content, string $style = self::TEXT_STYLE_NORMAL): array
@@ -387,6 +391,7 @@ class GoogleDocsService
     {
         $start = 1;
         $end = $start + mb_strlen($text);
+        $paragraphStyle ??= self::PARAGRAPH_STYLE_NORMAL;
 
         $requests = [
             new DocsRequest([
@@ -397,15 +402,7 @@ class GoogleDocsService
             ]),
         ];
 
-        if ($paragraphStyle) {
-            $requests[] = new DocsRequest([
-                'updateParagraphStyle' => [
-                    'range' => ['startIndex' => $start, 'endIndex' => $end],
-                    'paragraphStyle' => ['namedStyleType' => $paragraphStyle],
-                    'fields' => 'namedStyleType',
-                ],
-            ]);
-        }
+        $requests[] = $this->buildParagraphStyleRequest($start, $end, $paragraphStyle);
 
         $requests[] = $this->buildFontSizeRequest($start, $end);
 
@@ -423,6 +420,7 @@ class GoogleDocsService
                     'text' => $text,
                 ],
             ]),
+            $this->buildParagraphStyleRequest($position, $end, self::PARAGRAPH_STYLE_NORMAL),
             $this->buildFontSizeRequest($position, $end),
         ];
     }
@@ -485,6 +483,17 @@ class GoogleDocsService
                     ],
                 ],
                 'fields' => 'fontSize',
+            ],
+        ]);
+    }
+
+    private function buildParagraphStyleRequest(int $start, int $end, string $paragraphStyle): DocsRequest
+    {
+        return new DocsRequest([
+            'updateParagraphStyle' => [
+                'range' => ['startIndex' => $start, 'endIndex' => $end],
+                'paragraphStyle' => ['namedStyleType' => $paragraphStyle],
+                'fields' => 'namedStyleType',
             ],
         ]);
     }
