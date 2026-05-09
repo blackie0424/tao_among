@@ -13,6 +13,16 @@ use Illuminate\Support\Facades\Storage;
 
 class GoogleDocsService
 {
+    private const BLOCK_TYPE_TEXT = 'text';
+    private const BLOCK_TYPE_IMAGE = 'image';
+    private const BLOCK_TYPE_TABLE = 'table';
+    private const TEXT_STYLE_NORMAL = 'normal';
+    private const TEXT_STYLE_HEADING = 'heading';
+    private const PAGE_SIDE_FRONT = 'front';
+    private const PAGE_SIDE_BACK = 'back';
+    private const IMAGE_SOURCE_FISH = 'fish';
+    private const IMAGE_SOURCE_DIRECT = 'direct';
+
     private const SUPPORTED_IMAGE_EXTENSIONS = [
         'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 'svg',
     ];
@@ -80,21 +90,21 @@ class GoogleDocsService
             ]);
         }
 
-        $layoutList = $layouts->values()->all();
-        $lastIndex = count($layoutList) - 1;
+        $pages = $this->buildPageBlueprints($layouts);
+        $lastPageIndex = count($pages) - 1;
 
-        for ($i = $lastIndex; $i >= 0; $i--) {
-            $fishRequests = $this->buildFishRequests($layoutList[$i], $i === $lastIndex);
+        for ($i = $lastPageIndex; $i >= 0; $i--) {
+            $pageRequests = $this->buildPageRequests($pages[$i], $i < $lastPageIndex);
 
-            if (empty($fishRequests)) {
+            if (empty($pageRequests)) {
                 continue;
             }
 
             try {
-                $this->executeBatchUpdate($docId, $fishRequests);
+                $this->executeBatchUpdate($docId, $pageRequests);
             } catch (\Google\Service\Exception $e) {
                 $fallbackRequests = array_values(array_filter(
-                    $fishRequests,
+                    $pageRequests,
                     fn (DocsRequest $request) => $request->getInsertInlineImage() === null
                 ));
 
@@ -105,67 +115,181 @@ class GoogleDocsService
         }
     }
 
-    private function buildFishRequests(array $layout, bool $isLastFish): array
+    private function buildPageBlueprints(Collection $layouts): array
+    {
+        $pages = [];
+
+        foreach ($layouts->values() as $layout) {
+            $pages[] = $this->buildFrontPageBlueprint($layout['front']);
+            $pages[] = $this->buildBackPageBlueprint($layout['back']);
+        }
+
+        return $pages;
+    }
+
+    private function buildPagedStructureRequests(Collection $layouts): array
+    {
+        $pages = $this->buildPageBlueprints($layouts);
+        $requests = [];
+        $lastPageIndex = count($pages) - 1;
+
+        for ($i = $lastPageIndex; $i >= 0; $i--) {
+            $requests = array_merge(
+                $requests,
+                $this->buildPageRequests($pages[$i], $i < $lastPageIndex)
+            );
+        }
+
+        return $requests;
+    }
+
+    private function buildFrontPageBlueprint(array $frontLayout): array
+    {
+        $blocks = [
+            $this->makeTextBlock("{$frontLayout['heading']}\n", self::TEXT_STYLE_HEADING),
+        ];
+
+        if (filled($frontLayout['image_filename'])) {
+            $blocks[] = $this->makeFishImageBlock($frontLayout['image_filename'], 220, 220);
+        }
+
+        $blocks[] = $this->makeTextBlock("{$frontLayout['name_line']}\n");
+
+        if (filled($frontLayout['qr_code_url'])) {
+            $blocks[] = $this->makeDirectImageBlock($frontLayout['qr_code_url'], 160, 160);
+        }
+
+        $blocks[] = $this->makeTextBlock("{$frontLayout['capture_method_line']}\n");
+        $blocks[] = $this->makeTextBlock("{$frontLayout['knowledge_heading']}\n", self::TEXT_STYLE_HEADING);
+        $blocks[] = $this->makeTableBlock(3, 3);
+
+        return [
+            'side' => self::PAGE_SIDE_FRONT,
+            'blocks' => $blocks,
+        ];
+    }
+
+    private function buildBackPageBlueprint(array $backLayout): array
+    {
+        $blocks = [];
+
+        if (filled($backLayout['image_filename'])) {
+            $blocks[] = $this->makeFishImageBlock($backLayout['image_filename'], 220, 220);
+        }
+
+        $blocks[] = $this->makeTextBlock(implode("\n", $backLayout['lines']) . "\n");
+
+        return [
+            'side' => self::PAGE_SIDE_BACK,
+            'blocks' => $blocks,
+        ];
+    }
+
+    private function buildPageRequests(array $page, bool $insertPageBreakAfter): array
     {
         $requests = [];
 
-        if (!$isLastFish) {
+        if ($insertPageBreakAfter) {
             $requests = array_merge($requests, $this->buildPageBreakRequests());
         }
 
-        $backImageUrl = $this->getAccessibleImageUrl(
-            $this->storage->getImageFolder(),
-            $layout['back']['image_filename']
-        );
+        return array_merge($requests, $this->buildBlockRequests($page['blocks']));
+    }
 
-        $requests = array_merge($requests, $this->buildBackRequests($layout['back'], $backImageUrl));
-        $requests = array_merge($requests, $this->buildPageBreakRequests());
+    private function buildBlockRequests(array $blocks): array
+    {
+        $requests = [];
 
-        $frontImageUrl = $this->getAccessibleImageUrl(
-            $this->storage->getImageFolder(),
-            $layout['front']['image_filename']
-        );
-
-        $requests = array_merge($requests, $this->buildFrontRequests($layout['front'], $frontImageUrl));
+        foreach (array_reverse($blocks) as $block) {
+            $requests = array_merge($requests, $this->buildRequestsForBlock($block));
+        }
 
         return $requests;
     }
 
-    private function buildFrontRequests(array $frontLayout, ?string $frontImageUrl): array
+    private function buildRequestsForBlock(array $block): array
     {
-        $requests = [];
-
-        $requests = array_merge($requests, $this->buildTableInsertRequests(3, 3));
-        $requests = array_merge($requests, $this->buildTextRequests("{$frontLayout['knowledge_heading']}\n", 'HEADING_1'));
-        $requests = array_merge($requests, $this->buildTextRequests("{$frontLayout['capture_method_line']}\n"));
-
-        if ($frontLayout['qr_code_url']) {
-            $requests = array_merge($requests, $this->buildInlineImageRequests($frontLayout['qr_code_url'], 160, 160));
-        }
-
-        $requests = array_merge($requests, $this->buildTextRequests("{$frontLayout['name_line']}\n"));
-
-        if ($frontImageUrl) {
-            $requests = array_merge($requests, $this->buildInlineImageRequests($frontImageUrl, 220, 220));
-        }
-
-        $requests = array_merge($requests, $this->buildTextRequests("{$frontLayout['heading']}\n", 'HEADING_1'));
-
-        return $requests;
+        return match ($block['type']) {
+            self::BLOCK_TYPE_TEXT => $this->buildTextRequests(
+                $block['content'],
+                $this->resolveParagraphStyle($block['style'])
+            ),
+            self::BLOCK_TYPE_TABLE => $this->buildTableInsertRequests($block['rows'], $block['columns']),
+            self::BLOCK_TYPE_IMAGE => $this->buildImageBlockRequests($block),
+            default => [],
+        };
     }
 
-    private function buildBackRequests(array $backLayout, ?string $backImageUrl): array
+    private function buildImageBlockRequests(array $block): array
     {
-        $requests = [];
-        $backText = implode("\n", $backLayout['lines']) . "\n";
+        $uri = $this->resolveBlockImageUri($block);
 
-        $requests = array_merge($requests, $this->buildTextRequests($backText));
-
-        if ($backImageUrl) {
-            $requests = array_merge($requests, $this->buildInlineImageRequests($backImageUrl, 220, 220));
+        if (!$uri) {
+            return [];
         }
 
-        return $requests;
+        return $this->buildInlineImageRequests($uri, $block['width'], $block['height']);
+    }
+
+    private function resolveBlockImageUri(array $block): ?string
+    {
+        if (($block['source'] ?? null) === self::IMAGE_SOURCE_DIRECT) {
+            return $block['uri'] ?? null;
+        }
+
+        if (($block['source'] ?? null) !== self::IMAGE_SOURCE_FISH) {
+            return null;
+        }
+
+        return $this->getAccessibleImageUrl(
+            $this->storage->getImageFolder(),
+            $block['filename'] ?? null
+        );
+    }
+
+    private function resolveParagraphStyle(string $style): ?string
+    {
+        return $style === self::TEXT_STYLE_HEADING ? 'HEADING_1' : null;
+    }
+
+    private function makeTextBlock(string $content, string $style = self::TEXT_STYLE_NORMAL): array
+    {
+        return [
+            'type' => self::BLOCK_TYPE_TEXT,
+            'content' => $content,
+            'style' => $style,
+        ];
+    }
+
+    private function makeTableBlock(int $rows, int $columns): array
+    {
+        return [
+            'type' => self::BLOCK_TYPE_TABLE,
+            'rows' => $rows,
+            'columns' => $columns,
+        ];
+    }
+
+    private function makeFishImageBlock(string $filename, int $width, int $height): array
+    {
+        return [
+            'type' => self::BLOCK_TYPE_IMAGE,
+            'source' => self::IMAGE_SOURCE_FISH,
+            'filename' => $filename,
+            'width' => $width,
+            'height' => $height,
+        ];
+    }
+
+    private function makeDirectImageBlock(string $uri, int $width, int $height): array
+    {
+        return [
+            'type' => self::BLOCK_TYPE_IMAGE,
+            'source' => self::IMAGE_SOURCE_DIRECT,
+            'uri' => $uri,
+            'width' => $width,
+            'height' => $height,
+        ];
     }
 
     private function buildTableFillRequests(Docs\Document $doc, Collection $layouts): array
