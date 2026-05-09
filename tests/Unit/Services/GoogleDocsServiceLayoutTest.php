@@ -164,11 +164,10 @@ it('builds paged structure requests with only heading blocks styled as headings 
 
     $requests = invokeGoogleDocsServiceMethod($service, 'buildPagedStructureRequests', makeFishLayoutsForDocExport());
 
-    $pageBreaks = array_values(array_filter($requests, function ($request) {
-        $insertText = $request->getInsertText();
-
-        return $insertText !== null && $insertText->getText() === "\f";
-    }));
+    $pageBreaks = array_values(array_filter(
+        $requests,
+        fn ($request) => $request->getInsertPageBreak() !== null
+    ));
 
     $paragraphStyles = array_values(array_filter(
         $requests,
@@ -188,6 +187,17 @@ it('builds paged structure requests with only heading blocks styled as headings 
         ))->toBe(['HEADING_1', 'HEADING_1', 'HEADING_1', 'HEADING_1'])
         ->and($fontSizes)->not->toBeEmpty()
         ->and(collect($fontSizes)->every(fn ($request) => $request->getUpdateTextStyle()->getTextStyle()->getFontSize()->getMagnitude() === 14))->toBeTrue();
+});
+
+it('uses google docs page break requests instead of form feed text', function () {
+    $service = makeGoogleDocsServiceWithoutConstructor();
+
+    $pageBreakRequests = invokeGoogleDocsServiceMethod($service, 'buildPageBreakRequests');
+
+    expect($pageBreakRequests)->toHaveCount(1)
+        ->and($pageBreakRequests[0]->getInsertPageBreak())->not->toBeNull()
+        ->and($pageBreakRequests[0]->getInsertText())->toBeNull()
+        ->and($pageBreakRequests[0]->getInsertPageBreak()->getLocation()->getIndex())->toBe(1);
 });
 
 it('batches structure writes across many fish pages to stay well below one write per page', function () {

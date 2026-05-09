@@ -466,9 +466,8 @@ class GoogleDocsService
     {
         return [
             new DocsRequest([
-                'insertText' => [
+                'insertPageBreak' => [
                     'location' => ['index' => 1],
-                    'text' => "\f",
                 ],
             ]),
         ];
