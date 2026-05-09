@@ -1,6 +1,8 @@
 <?php
 
 use App\Services\GoogleDocsService;
+use Google\Service\Docs;
+use Google\Service\Docs\Document;
 use Illuminate\Support\Collection;
 
 function invokeGoogleDocsServiceMethod(object $service, string $method, mixed ...$arguments): mixed
@@ -70,6 +72,27 @@ function makeFishLayoutsForDocExport(): Collection
     ]);
 }
 
+function makeRepeatedFishLayoutsForDocExport(int $count): Collection
+{
+    $baseLayout = makeFishLayoutsForDocExport()->first();
+
+    return collect(range(1, $count))
+        ->map(function (int $index) use ($baseLayout) {
+            $layout = $baseLayout;
+            $layout['front']['name_line'] = "名稱：測試魚 {$index}";
+            $layout['back']['lines'][0] = "生態：測試 {$index}";
+
+            return $layout;
+        });
+}
+
+function setGoogleDocsServiceProperty(object $service, string $property, mixed $value): void
+{
+    $reflection = new ReflectionProperty($service, $property);
+    $reflection->setAccessible(true);
+    $reflection->setValue($service, $value);
+}
+
 it('builds front and back pages in pairs for each fish layout', function () {
     $service = makeGoogleDocsServiceWithoutConstructor();
 
@@ -133,4 +156,58 @@ it('builds paged structure requests with only heading blocks styled as headings 
         ))->toBe(['HEADING_1', 'HEADING_1', 'HEADING_1', 'HEADING_1'])
         ->and($fontSizes)->not->toBeEmpty()
         ->and(collect($fontSizes)->every(fn ($request) => $request->getUpdateTextStyle()->getTextStyle()->getFontSize()->getMagnitude() === 14))->toBeTrue();
+});
+
+it('batches structure writes across many fish pages to stay well below one write per page', function () {
+    $service = makeGoogleDocsServiceWithoutConstructor();
+    $document = new Document([
+        'body' => [
+            'content' => [
+                ['endIndex' => 2],
+            ],
+        ],
+    ]);
+
+    $documentsResource = new class($document)
+    {
+        public array $batchUpdateCalls = [];
+
+        public function __construct(private Document $document)
+        {
+        }
+
+        public function get(string $docId): Document
+        {
+            return $this->document;
+        }
+
+        public function batchUpdate(string $docId, $batchRequest): void
+        {
+            $this->batchUpdateCalls[] = [
+                'docId' => $docId,
+                'requestCount' => count($batchRequest->getRequests()),
+            ];
+        }
+    };
+
+    $docsService = new class($documentsResource) extends Docs
+    {
+        public function __construct(object $documentsResource)
+        {
+            $this->documents = $documentsResource;
+        }
+    };
+
+    setGoogleDocsServiceProperty($service, 'docsService', $docsService);
+
+    $layouts = makeRepeatedFishLayoutsForDocExport(38);
+
+    invokeGoogleDocsServiceMethod($service, 'buildAndApplyStructure', 'doc-123', $layouts);
+
+    $pageCount = $layouts->count() * 2;
+
+    expect($documentsResource->batchUpdateCalls)->not->toBeEmpty()
+        ->and(count($documentsResource->batchUpdateCalls))->toBeLessThan($pageCount)
+        ->and(count($documentsResource->batchUpdateCalls))->toBeLessThanOrEqual(3)
+        ->and(collect($documentsResource->batchUpdateCalls)->every(fn (array $call) => $call['requestCount'] <= 400))->toBeTrue();
 });

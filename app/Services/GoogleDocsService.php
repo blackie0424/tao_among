@@ -90,29 +90,8 @@ class GoogleDocsService
             ]);
         }
 
-        $pages = $this->buildPageBlueprints($layouts);
-        $lastPageIndex = count($pages) - 1;
-
-        for ($i = $lastPageIndex; $i >= 0; $i--) {
-            $pageRequests = $this->buildPageRequests($pages[$i], $i < $lastPageIndex);
-
-            if (empty($pageRequests)) {
-                continue;
-            }
-
-            try {
-                $this->executeBatchUpdate($docId, $pageRequests);
-            } catch (\Google\Service\Exception $e) {
-                $fallbackRequests = array_values(array_filter(
-                    $pageRequests,
-                    fn (DocsRequest $request) => $request->getInsertInlineImage() === null
-                ));
-
-                if (!empty($fallbackRequests)) {
-                    $this->executeBatchUpdate($docId, $fallbackRequests);
-                }
-            }
-        }
+        $requestGroups = $this->buildStructureRequestGroups($layouts);
+        $this->executeRequestGroups($docId, $requestGroups);
     }
 
     private function buildPageBlueprints(Collection $layouts): array
@@ -129,18 +108,87 @@ class GoogleDocsService
 
     private function buildPagedStructureRequests(Collection $layouts): array
     {
-        $pages = $this->buildPageBlueprints($layouts);
         $requests = [];
-        $lastPageIndex = count($pages) - 1;
 
-        for ($i = $lastPageIndex; $i >= 0; $i--) {
-            $requests = array_merge(
-                $requests,
-                $this->buildPageRequests($pages[$i], $i < $lastPageIndex)
-            );
+        foreach ($this->buildStructureRequestGroups($layouts) as $requestGroup) {
+            $requests = array_merge($requests, $requestGroup);
         }
 
         return $requests;
+    }
+
+    private function buildStructureRequestGroups(Collection $layouts): array
+    {
+        $pages = $this->buildPageBlueprints($layouts);
+        $requestGroups = [];
+        $lastPageIndex = count($pages) - 1;
+
+        for ($i = $lastPageIndex; $i >= 0; $i--) {
+            $pageRequests = $this->buildPageRequests($pages[$i], $i < $lastPageIndex);
+
+            if (!empty($pageRequests)) {
+                $requestGroups[] = $pageRequests;
+            }
+        }
+
+        return $requestGroups;
+    }
+
+    private function executeRequestGroups(string $docId, array $requestGroups, int $maxRequestsPerWrite = 400): void
+    {
+        $pendingGroups = [];
+        $pendingCount = 0;
+
+        foreach ($requestGroups as $requestGroup) {
+            $groupCount = count($requestGroup);
+
+            if ($pendingCount > 0 && ($pendingCount + $groupCount) > $maxRequestsPerWrite) {
+                $this->executeRequestGroupBatch($docId, $pendingGroups);
+                $pendingGroups = [];
+                $pendingCount = 0;
+            }
+
+            $pendingGroups[] = $requestGroup;
+            $pendingCount += $groupCount;
+        }
+
+        if (!empty($pendingGroups)) {
+            $this->executeRequestGroupBatch($docId, $pendingGroups);
+        }
+    }
+
+    private function executeRequestGroupBatch(string $docId, array $requestGroups): void
+    {
+        $requests = [];
+
+        foreach ($requestGroups as $requestGroup) {
+            $requests = array_merge($requests, $requestGroup);
+        }
+
+        if (empty($requests)) {
+            return;
+        }
+
+        try {
+            $this->executeBatchUpdate($docId, $requests);
+        } catch (\Google\Service\Exception $e) {
+            if (count($requestGroups) > 1) {
+                foreach ($requestGroups as $requestGroup) {
+                    $this->executeRequestGroupBatch($docId, [$requestGroup]);
+                }
+
+                return;
+            }
+
+            $fallbackRequests = array_values(array_filter(
+                $requests,
+                fn (DocsRequest $request) => $request->getInsertInlineImage() === null
+            ));
+
+            if (!empty($fallbackRequests)) {
+                $this->executeBatchUpdate($docId, $fallbackRequests);
+            }
+        }
     }
 
     private function buildFrontPageBlueprint(array $frontLayout): array
