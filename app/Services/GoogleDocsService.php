@@ -24,11 +24,10 @@ class GoogleDocsService
     public function __construct(
         ?StorageServiceInterface $storage = null,
         ?FishCatalogLayoutBuilder $layoutBuilder = null,
-        ?Docs $docsService = null,
     ) {
         $this->storage = $storage ?? app(StorageServiceInterface::class);
         $this->layoutBuilder = $layoutBuilder ?? app(FishCatalogLayoutBuilder::class);
-        $this->docsService = $docsService ?? $this->makeDocsService();
+        $this->docsService = $this->makeDocsService();
     }
 
     public function exportFishes(string $docId, Collection $fishes): void
