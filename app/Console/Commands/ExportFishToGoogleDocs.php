@@ -37,13 +37,14 @@ class ExportFishToGoogleDocs extends Command
         ));
         $fishes = Fish::with([
             'tribalClassifications' => fn ($q) => $q->whereIn('tribe', $exportTribes),
-            'captureRecords' => fn ($q) => $q->latest('capture_date'),
+            'captureRecords' => fn ($q) => $q->latest('capture_date')->latest('id'),
+            'displayCaptureRecord',
         ])->orderBy('name')->get();
 
         $this->info("正在匯出 {$fishes->count()} 筆魚類資料...");
 
         try {
-            $service = new GoogleDocsService();
+            $service = app(GoogleDocsService::class);
             $service->exportFishes($docId, $fishes);
         } catch (\Exception $e) {
             $this->error('匯出失敗：' . $e->getMessage());
