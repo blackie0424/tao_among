@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\StorageServiceInterface;
 use App\Services\GoogleDocsService;
 use Google\Service\Docs;
 use Google\Service\Docs\Document;
@@ -83,6 +84,37 @@ function makeRepeatedFishLayoutsForDocExport(int $count): Collection
             $layout['back']['lines'][0] = "生態：測試 {$index}";
 
             return $layout;
+        });
+}
+
+function makeHeavyFishLayoutsForDocExport(int $count): Collection
+{
+    return collect(range(1, $count))
+        ->map(function (int $index) {
+            return [
+                'front' => [
+                    'heading' => '基本資料',
+                    'image_filename' => "front-{$index}.jpg",
+                    'name_line' => "名稱：測試魚 {$index}",
+                    'qr_code_url' => "https://example.com/qr/{$index}",
+                    'capture_method_line' => "捕獲方式：方式 {$index}",
+                    'knowledge_heading' => '地方知識',
+                    'knowledge_table' => [
+                        ['部落', '食用類別', '處理方式'],
+                        ['Imowrod', "類別 {$index}", "處理 {$index}"],
+                        ['Iraraley', "類別 {$index}", "處理 {$index}"],
+                    ],
+                ],
+                'back' => [
+                    'image_filename' => "back-{$index}.jpg",
+                    'lines' => [
+                        "生態：測試 {$index}",
+                        "分布：區域 {$index}",
+                        "傳統價值：價值 {$index}",
+                        "魚餌：餌 {$index}",
+                    ],
+                ],
+            ];
         });
 }
 
@@ -209,5 +241,122 @@ it('batches structure writes across many fish pages to stay well below one write
     expect($documentsResource->batchUpdateCalls)->not->toBeEmpty()
         ->and(count($documentsResource->batchUpdateCalls))->toBeLessThan($pageCount)
         ->and(count($documentsResource->batchUpdateCalls))->toBeLessThanOrEqual(3)
+        ->and(collect($documentsResource->batchUpdateCalls)->every(fn (array $call) => $call['requestCount'] <= 400))->toBeTrue();
+});
+
+it('keeps 200 fish structure writes below quota even when batched image inserts fail', function () {
+    $service = makeGoogleDocsServiceWithoutConstructor();
+    $document = new Document([
+        'body' => [
+            'content' => [
+                ['endIndex' => 2],
+            ],
+        ],
+    ]);
+
+    $documentsResource = new class($document)
+    {
+        public array $batchUpdateCalls = [];
+
+        public function __construct(private Document $document)
+        {
+        }
+
+        public function get(string $docId): Document
+        {
+            return $this->document;
+        }
+
+        public function batchUpdate(string $docId, $batchRequest): void
+        {
+            $requests = $batchRequest->getRequests();
+
+            $this->batchUpdateCalls[] = [
+                'docId' => $docId,
+                'requestCount' => count($requests),
+                'containsImage' => collect($requests)->contains(
+                    fn ($request) => $request->getInsertInlineImage() !== null
+                ),
+            ];
+
+            if (collect($requests)->contains(fn ($request) => $request->getInsertInlineImage() !== null)) {
+                throw new Google\Service\Exception('image failure', 400);
+            }
+        }
+    };
+
+    $docsService = new class($documentsResource) extends Docs
+    {
+        public function __construct(object $documentsResource)
+        {
+            $this->documents = $documentsResource;
+        }
+    };
+
+    setGoogleDocsServiceProperty($service, 'docsService', $docsService);
+    setGoogleDocsServiceProperty($service, 'storage', new class implements StorageServiceInterface
+    {
+        public function createSignedUploadUrl(string $filePath, int $expiresIn = 60): ?string
+        {
+            return null;
+        }
+
+        public function createSignedUploadUrlForPendingAudio(int $fishId, string $ext = 'm4a', int $expiresIn = 300): ?array
+        {
+            return null;
+        }
+
+        public function moveObject(string $sourcePath, string $destPath): ?string
+        {
+            return null;
+        }
+
+        public function delete(string $filePath): bool
+        {
+            return true;
+        }
+
+        public function deleteWithValidation(string $filePath): array
+        {
+            return ['success' => true];
+        }
+
+        public function getImageFolder(): string
+        {
+            return 'images';
+        }
+
+        public function getAudioFolder(): string
+        {
+            return 'audio';
+        }
+
+        public function getWebpFolder(): string
+        {
+            return 'webp';
+        }
+
+        public function getUrl(string $type, string $filename, ?bool $hasWebp = null): string
+        {
+            return "https://example.com/{$type}/{$filename}";
+        }
+
+        public function uploadFile($file, string $path): string
+        {
+            return "https://example.com/{$path}";
+        }
+    });
+
+    $layouts = makeHeavyFishLayoutsForDocExport(200);
+    $requestGroups = invokeGoogleDocsServiceMethod($service, 'buildStructureRequestGroups', $layouts);
+    $requestBatches = invokeGoogleDocsServiceMethod($service, 'buildRequestBatches', $requestGroups, 400);
+
+    invokeGoogleDocsServiceMethod($service, 'buildAndApplyStructure', 'doc-200', $layouts);
+
+    $expectedMaxCalls = count($requestBatches) * 2;
+
+    expect(count($requestBatches))->toBeLessThan(60)
+        ->and(count($documentsResource->batchUpdateCalls))->toBe($expectedMaxCalls)
+        ->and($expectedMaxCalls)->toBeLessThan(60)
         ->and(collect($documentsResource->batchUpdateCalls)->every(fn (array $call) => $call['requestCount'] <= 400))->toBeTrue();
 });

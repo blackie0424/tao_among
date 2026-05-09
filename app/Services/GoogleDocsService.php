@@ -136,35 +136,34 @@ class GoogleDocsService
 
     private function executeRequestGroups(string $docId, array $requestGroups, int $maxRequestsPerWrite = 400): void
     {
-        $pendingGroups = [];
-        $pendingCount = 0;
-
-        foreach ($requestGroups as $requestGroup) {
-            $groupCount = count($requestGroup);
-
-            if ($pendingCount > 0 && ($pendingCount + $groupCount) > $maxRequestsPerWrite) {
-                $this->executeRequestGroupBatch($docId, $pendingGroups);
-                $pendingGroups = [];
-                $pendingCount = 0;
-            }
-
-            $pendingGroups[] = $requestGroup;
-            $pendingCount += $groupCount;
-        }
-
-        if (!empty($pendingGroups)) {
-            $this->executeRequestGroupBatch($docId, $pendingGroups);
+        foreach ($this->buildRequestBatches($requestGroups, $maxRequestsPerWrite) as $requestBatch) {
+            $this->executeRequestBatch($docId, $requestBatch);
         }
     }
 
-    private function executeRequestGroupBatch(string $docId, array $requestGroups): void
+    private function buildRequestBatches(array $requestGroups, int $maxRequestsPerWrite = 400): array
     {
-        $requests = [];
+        $requestBatches = [];
+        $pendingRequests = [];
 
         foreach ($requestGroups as $requestGroup) {
-            $requests = array_merge($requests, $requestGroup);
+            if (!empty($pendingRequests) && (count($pendingRequests) + count($requestGroup)) > $maxRequestsPerWrite) {
+                $requestBatches[] = $pendingRequests;
+                $pendingRequests = [];
+            }
+
+            $pendingRequests = array_merge($pendingRequests, $requestGroup);
         }
 
+        if (!empty($pendingRequests)) {
+            $requestBatches[] = $pendingRequests;
+        }
+
+        return $requestBatches;
+    }
+
+    private function executeRequestBatch(string $docId, array $requests): void
+    {
         if (empty($requests)) {
             return;
         }
@@ -172,14 +171,6 @@ class GoogleDocsService
         try {
             $this->executeBatchUpdate($docId, $requests);
         } catch (\Google\Service\Exception $e) {
-            if (count($requestGroups) > 1) {
-                foreach ($requestGroups as $requestGroup) {
-                    $this->executeRequestGroupBatch($docId, [$requestGroup]);
-                }
-
-                return;
-            }
-
             $fallbackRequests = array_values(array_filter(
                 $requests,
                 fn (DocsRequest $request) => $request->getInsertInlineImage() === null
