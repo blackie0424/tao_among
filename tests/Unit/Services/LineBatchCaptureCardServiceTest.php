@@ -48,7 +48,7 @@ it('builds progressive summary card with actual filled values', function () {
     expect($buttons)->toContain('❌ 取消');
 });
 
-it('builds option selector card with buttons in flex footer', function () {
+it('builds option selector card with buttons in flex body', function () {
     $message = $this->service->buildOptionSelectorCard(
         '請選擇捕獲方式',
         '選好後會回到摘要卡片繼續填寫。',
@@ -61,8 +61,12 @@ it('builds option selector card with buttons in flex footer', function () {
     expect($message)->toBeInstanceOf(FlexMessage::class);
 
     $json = json_decode(json_encode($message), true);
-    $bodyTexts = collect($json['contents']['body']['contents'])->pluck('text')->all();
-    $buttons = collect($json['contents']['footer']['contents'])->map(fn ($item) => $item['action']['label'])->all();
+    $bodyContents = collect($json['contents']['body']['contents']);
+    $bodyTexts = $bodyContents->pluck('text')->filter()->all();
+    $buttons = $bodyContents
+        ->filter(fn ($item) => ($item['type'] ?? null) === 'button')
+        ->map(fn ($item) => $item['action']['label'])
+        ->all();
 
     expect($bodyTexts)->toContain('請選擇捕獲方式');
     expect($bodyTexts)->toContain('選好後會回到摘要卡片繼續填寫。');

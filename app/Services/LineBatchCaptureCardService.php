@@ -85,6 +85,46 @@ class LineBatchCaptureCardService
      */
     public function buildOptionSelectorCard(string $title, string $description, array $actions): FlexMessage
     {
+        $bodyContents = [
+            [
+                'type' => 'text',
+                'text' => $title,
+                'weight' => 'bold',
+                'size' => 'lg',
+                'wrap' => true,
+            ],
+            [
+                'type' => 'text',
+                'text' => $description,
+                'size' => 'sm',
+                'margin' => 'md',
+                'color' => '#666666',
+                'wrap' => true,
+            ],
+        ];
+
+        foreach ($actions as $index => $action) {
+            $button = [
+                'type' => 'button',
+                'style' => $action['style'] ?? ($index === 0 ? 'primary' : 'secondary'),
+                'height' => 'sm',
+                'margin' => 'md',
+                'action' => [
+                    'type' => 'postback',
+                    'label' => $action['label'],
+                    'data' => $action['data'],
+                    'displayText' => $action['display_text'] ?? $action['label'],
+                ],
+            ];
+
+            $color = $action['color'] ?? ($index === 0 ? '#00B900' : null);
+            if ($color) {
+                $button['color'] = $color;
+            }
+
+            $bodyContents[] = $button;
+        }
+
         return new FlexMessage([
             'type' => 'flex',
             'altText' => $title,
@@ -93,48 +133,7 @@ class LineBatchCaptureCardService
                 'body' => [
                     'type' => 'box',
                     'layout' => 'vertical',
-                    'contents' => [
-                        [
-                            'type' => 'text',
-                            'text' => $title,
-                            'weight' => 'bold',
-                            'size' => 'lg',
-                            'wrap' => true,
-                        ],
-                        [
-                            'type' => 'text',
-                            'text' => $description,
-                            'size' => 'sm',
-                            'margin' => 'md',
-                            'color' => '#666666',
-                            'wrap' => true,
-                        ],
-                    ],
-                ],
-                'footer' => [
-                    'type' => 'box',
-                    'layout' => 'vertical',
-                    'spacing' => 'sm',
-                    'contents' => array_map(function ($action, $index) {
-                        $button = [
-                            'type' => 'button',
-                            'style' => $action['style'] ?? ($index === 0 ? 'primary' : 'secondary'),
-                            'height' => 'sm',
-                            'action' => [
-                                'type' => 'postback',
-                                'label' => $action['label'],
-                                'data' => $action['data'],
-                                'displayText' => $action['display_text'] ?? $action['label'],
-                            ],
-                        ];
-
-                        $color = $action['color'] ?? ($index === 0 ? '#00B900' : null);
-                        if ($color) {
-                            $button['color'] = $color;
-                        }
-
-                        return $button;
-                    }, $actions, array_keys($actions)),
+                    'contents' => $bodyContents,
                 ],
             ],
         ]);

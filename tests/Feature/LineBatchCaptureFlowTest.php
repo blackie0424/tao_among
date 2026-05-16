@@ -218,6 +218,31 @@ class LineBatchCaptureFlowTest extends TestCase
         );
     }
 
+    private function allButtonLabels(array $node): array
+    {
+        $labels = [];
+
+        if (($node['type'] ?? null) === 'button' && isset($node['action']['label'])) {
+            $labels[] = $node['action']['label'];
+        }
+
+        foreach ($node as $value) {
+            if (is_array($value)) {
+                if (array_is_list($value)) {
+                    foreach ($value as $item) {
+                        if (is_array($item)) {
+                            $labels = array_merge($labels, $this->allButtonLabels($item));
+                        }
+                    }
+                } else {
+                    $labels = array_merge($labels, $this->allButtonLabels($value));
+                }
+            }
+        }
+
+        return $labels;
+    }
+
     public function test_batch_capture_image_upload_returns_summary_flex_card_with_placeholders(): void
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
@@ -275,7 +300,7 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
 
         $json = $this->flexToArray($replied[0]);
-        $labels = $this->footerLabels($json);
+        $labels = $this->allButtonLabels($json['contents']);
 
         $this->assertContains('Ivalino', $labels);
         $this->assertContains('Iranmeilek', $labels);
@@ -327,7 +352,7 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
 
         $json = $this->flexToArray($replied[0]);
-        $labels = $this->footerLabels($json);
+        $labels = $this->allButtonLabels($json['contents']);
 
         $this->assertContains('mapazat 網魚', $labels);
         $this->assertContains('mamasil 白天釣魚', $labels);
