@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CaptureRecordRequest;
 use App\Models\Fish;
 use App\Models\CaptureRecord;
+use App\Services\CaptureRecordBatchService;
 use App\Services\FishService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\CaptureSessionServiceInterface;
@@ -20,15 +21,18 @@ class CaptureRecordController extends Controller
     protected $fishService;
     protected $storageService;
     protected $captureSessionService;
+    protected CaptureRecordBatchService $captureRecordBatchService;
 
     public function __construct(
         FishService $fishService,
         StorageServiceInterface $storageService,
-        CaptureSessionServiceInterface $captureSessionService
+        CaptureSessionServiceInterface $captureSessionService,
+        ?CaptureRecordBatchService $captureRecordBatchService = null
     ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
         $this->captureSessionService = $captureSessionService;
+        $this->captureRecordBatchService = $captureRecordBatchService ?? app(CaptureRecordBatchService::class);
     }
 
     /**
@@ -101,15 +105,7 @@ class CaptureRecordController extends Controller
             return redirect()->back()->withErrors(['image' => '請上傳捕獲照片'])->withInput();
         }
 
-        CaptureRecord::create([
-            'fish_id' => $fish->id,
-            'image_path' => $validated['image_filename'],
-            'tribe' => $validated['tribe'],
-            'location' => $validated['location'],
-            'capture_method' => $validated['capture_method'],
-            'capture_date' => $validated['capture_date'],
-            'notes' => $validated['notes']
-        ]);
+        $this->captureRecordBatchService->createForFish($fish, [$validated['image_filename']], $validated);
 
         return redirect()->route('fish.media-manager', $fishId)->with('success', '捕獲紀錄新增成功');
     }
