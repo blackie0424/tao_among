@@ -12,8 +12,20 @@ use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureTribePostbac
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureUploadPostbackHandler;
 use App\Services\LineBatchCapture\Postback\LineBatchCapturePostbackContext;
 use App\Services\LineBatchCapture\Postback\LineBatchCapturePostbackHandler;
+use App\Services\LineBatchCapture\State\Image\Handlers\LineBatchCaptureLockedImageStateHandler;
+use App\Services\LineBatchCapture\State\Image\Handlers\LineBatchCaptureWaitingImagesImageStateHandler;
+use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageContext;
+use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureDateSelectorTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureDateTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureLocationTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureMethodSelectorTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureNotesTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureSummaryTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureTribeSelectorTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextContext;
+use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextStateHandler;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use LINE\Clients\MessagingApi\Model\TextMessage;
@@ -25,19 +37,43 @@ class LineBatchCaptureFlowService
      */
     private array $postbackHandlers;
 
+    /**
+     * @var array<string, LineBatchCaptureTextStateHandler>
+     */
+    private array $textStateHandlers;
+
+    /**
+     * @var array<string, LineBatchCaptureImageStateHandler>
+     */
+    private array $imageStateHandlers;
+
     public function __construct(
         private readonly LineBotService $lineBotService,
         private readonly CaptureRecordBatchService $captureRecordBatchService,
         private readonly LineBatchCaptureCardService $lineBatchCaptureCardService,
         private readonly ?LineUploadService $lineUploadService = null,
         iterable $postbackHandlers = [],
+        iterable $textStateHandlers = [],
+        iterable $imageStateHandlers = [],
     ) {
         $resolvedHandlers = is_array($postbackHandlers)
             ? $postbackHandlers
             : iterator_to_array($postbackHandlers, false);
+        $resolvedTextHandlers = is_array($textStateHandlers)
+            ? $textStateHandlers
+            : iterator_to_array($textStateHandlers, false);
+        $resolvedImageHandlers = is_array($imageStateHandlers)
+            ? $imageStateHandlers
+            : iterator_to_array($imageStateHandlers, false);
 
         $this->postbackHandlers = $this->indexPostbackHandlers(
             $resolvedHandlers !== [] ? $resolvedHandlers : $this->defaultPostbackHandlers()
+        );
+        $this->textStateHandlers = $this->indexTextStateHandlers(
+            $resolvedTextHandlers !== [] ? $resolvedTextHandlers : $this->defaultTextStateHandlers()
+        );
+        $this->imageStateHandlers = $this->indexImageStateHandlers(
+            $resolvedImageHandlers !== [] ? $resolvedImageHandlers : $this->defaultImageStateHandlers()
         );
     }
 
@@ -95,66 +131,13 @@ class LineBatchCaptureFlowService
             return false;
         }
 
-        if ($state === 'waiting_images') {
+        $handler = $this->textStateHandlers[$state] ?? null;
+        if (!$handler) {
             $this->replySummary($replyToken, $userId);
             return true;
         }
 
-        if ($state === 'waiting_tribe_selection') {
-            $this->replyTribeSelectionCard($replyToken);
-            return true;
-        }
-
-        if (in_array($state, ['awaiting_location_prompt', 'awaiting_location_input'], true)) {
-            [$validated, $error] = $this->validateLocation($text);
-            if (!$validated) {
-                $this->replyText($replyToken, $error);
-                return true;
-            }
-
-            $this->updateForm($userId, ['location' => $validated['location']]);
-            $this->putState($userId, 'awaiting_method_prompt');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if ($state === 'waiting_method_selection') {
-            $this->replyMethodSelectionCard($replyToken);
-            return true;
-        }
-
-        if ($state === 'waiting_date_selection') {
-            $this->replyDateSelectionCard($replyToken);
-            return true;
-        }
-
-        if (in_array($state, ['awaiting_date_prompt', 'awaiting_date_manual_input'], true)) {
-            [$validated, $error] = $this->validateCaptureDate($text);
-            if (!$validated) {
-                $this->replyText($replyToken, $error);
-                return true;
-            }
-
-            $this->updateForm($userId, ['capture_date' => $validated['capture_date']]);
-            $this->putState($userId, 'awaiting_notes_prompt');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if (in_array($state, ['awaiting_notes_prompt', 'awaiting_notes_input'], true)) {
-            [$validated, $error] = $this->validateNotes($text);
-            if ($validated === null) {
-                $this->replyText($replyToken, $error);
-                return true;
-            }
-
-            $this->updateForm($userId, ['notes' => $validated['notes']]);
-            $this->putState($userId, 'waiting_confirm');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        $this->replySummary($replyToken, $userId);
+        $handler->handle($this, new LineBatchCaptureTextContext($state, $userId, $replyToken, $text));
         return true;
     }
 
@@ -165,40 +148,13 @@ class LineBatchCaptureFlowService
             return false;
         }
 
-        if ($state !== 'waiting_images') {
+        $handler = $this->imageStateHandlers[$state] ?? null;
+        if (!$handler) {
             $this->replyText($replyToken, '目前已進入欄位填寫流程，請先完成部落、地點與捕獲方式等資料。');
             return true;
         }
 
-        $maxImages = config('fish_options.batch_upload.max_files_mobile', 5);
-        $images = $this->getImages($userId);
-
-        if (count($images) >= $maxImages) {
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        try {
-            $imageBlob = $this->lineBotService->getMessageContent($messageId);
-            $filename = $this->lineUploadService()->uploadLineImage($imageBlob);
-
-            if (!$filename) {
-                throw new \RuntimeException('Failed to upload batch capture image');
-            }
-
-            $images[] = $filename;
-            $this->putImages($userId, $images);
-            $this->putState($userId, 'waiting_images');
-            $this->replySummary($replyToken, $userId);
-        } catch (\Exception $e) {
-            Log::error('LINE Bot batch capture image upload failed', [
-                'userId' => $userId,
-                'error' => $e->getMessage(),
-            ]);
-
-            $this->replyText($replyToken, '❌ 捕獲照片處理失敗，請稍後再試。');
-        }
-
+        $handler->handle($this, new LineBatchCaptureImageContext($state, $userId, $replyToken, $messageId));
         return true;
     }
 
@@ -264,7 +220,7 @@ class LineBatchCaptureFlowService
         return Cache::get($this->batchCaptureKey($userId, 'images'), []);
     }
 
-    private function putImages(string $userId, array $images, int $minutes = 15): void
+    public function putImages(string $userId, array $images, int $minutes = 15): void
     {
         Cache::put($this->batchCaptureKey($userId, 'images'), $images, now()->addMinutes($minutes));
     }
@@ -289,7 +245,7 @@ class LineBatchCaptureFlowService
         $this->putForm($userId, array_merge($this->getForm($userId), $values));
     }
 
-    private function validateLocation(string $text): array
+    public function validateLocation(string $text): array
     {
         $validator = Validator::make(
             ['location' => $text],
@@ -307,7 +263,7 @@ class LineBatchCaptureFlowService
         return [$validator->validated(), null];
     }
 
-    private function validateCaptureDate(string $text): array
+    public function validateCaptureDate(string $text): array
     {
         $validator = Validator::make(
             ['capture_date' => $text],
@@ -326,7 +282,7 @@ class LineBatchCaptureFlowService
         return [$validator->validated(), null];
     }
 
-    private function validateNotes(string $text): array
+    public function validateNotes(string $text): array
     {
         $validator = Validator::make(
             ['notes' => $text],
@@ -479,6 +435,18 @@ class LineBatchCaptureFlowService
         ]);
     }
 
+    public function uploadLineImage(string $messageId): string
+    {
+        $imageBlob = $this->lineBotService->getMessageContent($messageId);
+        $filename = $this->lineUploadService()->uploadLineImage($imageBlob);
+
+        if (!$filename) {
+            throw new \RuntimeException('Failed to upload batch capture image');
+        }
+
+        return $filename;
+    }
+
     private function lineUploadService(): LineUploadService
     {
         return $this->lineUploadService ?? app(LineUploadService::class);
@@ -501,6 +469,33 @@ class LineBatchCaptureFlowService
     }
 
     /**
+     * @return LineBatchCaptureTextStateHandler[]
+     */
+    private function defaultTextStateHandlers(): array
+    {
+        return [
+            new LineBatchCaptureSummaryTextStateHandler(),
+            new LineBatchCaptureTribeSelectorTextStateHandler(),
+            new LineBatchCaptureLocationTextStateHandler(),
+            new LineBatchCaptureMethodSelectorTextStateHandler(),
+            new LineBatchCaptureDateSelectorTextStateHandler(),
+            new LineBatchCaptureDateTextStateHandler(),
+            new LineBatchCaptureNotesTextStateHandler(),
+        ];
+    }
+
+    /**
+     * @return LineBatchCaptureImageStateHandler[]
+     */
+    private function defaultImageStateHandlers(): array
+    {
+        return [
+            new LineBatchCaptureWaitingImagesImageStateHandler(),
+            new LineBatchCaptureLockedImageStateHandler(),
+        ];
+    }
+
+    /**
      * @param iterable<LineBatchCapturePostbackHandler> $handlers
      * @return array<string, LineBatchCapturePostbackHandler>
      */
@@ -511,6 +506,40 @@ class LineBatchCaptureFlowService
         foreach ($handlers as $handler) {
             foreach ($handler->actions() as $action) {
                 $indexed[$action] = $handler;
+            }
+        }
+
+        return $indexed;
+    }
+
+    /**
+     * @param iterable<LineBatchCaptureTextStateHandler> $handlers
+     * @return array<string, LineBatchCaptureTextStateHandler>
+     */
+    private function indexTextStateHandlers(iterable $handlers): array
+    {
+        $indexed = [];
+
+        foreach ($handlers as $handler) {
+            foreach ($handler->states() as $state) {
+                $indexed[$state] = $handler;
+            }
+        }
+
+        return $indexed;
+    }
+
+    /**
+     * @param iterable<LineBatchCaptureImageStateHandler> $handlers
+     * @return array<string, LineBatchCaptureImageStateHandler>
+     */
+    private function indexImageStateHandlers(iterable $handlers): array
+    {
+        $indexed = [];
+
+        foreach ($handlers as $handler) {
+            foreach ($handler->states() as $state) {
+                $indexed[$state] = $handler;
             }
         }
 
