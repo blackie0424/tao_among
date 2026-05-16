@@ -437,13 +437,14 @@ class LineBatchCaptureFlowTest extends TestCase
 
         $this->invokeHandlePostback($this->makePostbackEvent('action=confirm_batch_capture_record'));
 
+        $expectedDate = now()->subDay()->toDateString();
+
         $this->assertDatabaseHas('capture_records', [
             'fish_id' => $fish->id,
             'image_path' => 'capture-1.jpg',
             'tribe' => 'ivalino',
             'location' => 'Vanes',
             'capture_method' => 'mapazat',
-            'capture_date' => now()->subDay()->toDateString(),
             'notes' => '金鰲跟魯凱',
         ]);
         $this->assertDatabaseHas('capture_records', [
@@ -452,9 +453,19 @@ class LineBatchCaptureFlowTest extends TestCase
             'tribe' => 'ivalino',
             'location' => 'Vanes',
             'capture_method' => 'mapazat',
-            'capture_date' => now()->subDay()->toDateString(),
             'notes' => '金鰲跟魯凱',
         ]);
+
+        $records = \App\Models\CaptureRecord::query()
+            ->where('fish_id', $fish->id)
+            ->orderBy('image_path')
+            ->get();
+
+        $this->assertCount(2, $records);
+        $this->assertSame(['capture-1.jpg', 'capture-2.jpg'], $records->pluck('image_path')->all());
+        $this->assertSame([$expectedDate, $expectedDate], $records->map(
+            fn ($record) => $record->capture_date->format('Y-m-d')
+        )->all());
 
         $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
         $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_batch_capture_fish'));
