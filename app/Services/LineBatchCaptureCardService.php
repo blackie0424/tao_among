@@ -111,10 +111,10 @@ class LineBatchCaptureCardService
             ],
         ];
 
-        foreach ($actions as $index => $action) {
+        foreach ($actions as $action) {
             $button = [
                 'type' => 'button',
-                'style' => $action['style'] ?? ($index === 0 ? 'primary' : 'secondary'),
+                'style' => $action['style'] ?? 'secondary',
                 'height' => 'sm',
                 'margin' => 'md',
                 'action' => [
@@ -125,7 +125,7 @@ class LineBatchCaptureCardService
                 ],
             ];
 
-            $color = $action['color'] ?? ($index === 0 ? '#00B900' : null);
+            $color = $action['color'] ?? null;
             if ($color) {
                 $button['color'] = $color;
             }

@@ -65,11 +65,15 @@ it('builds option selector card with buttons in flex body', function () {
     $bodyTexts = $bodyContents->pluck('text')->filter()->all();
     $buttons = $bodyContents
         ->filter(fn ($item) => ($item['type'] ?? null) === 'button')
-        ->map(fn ($item) => $item['action']['label'])
-        ->all();
+        ->values();
+    $buttonLabels = $buttons->map(fn ($item) => $item['action']['label'])->all();
+    $buttonStyles = $buttons->map(fn ($item) => $item['style'] ?? null)->all();
+    $buttonColors = $buttons->map(fn ($item) => $item['color'] ?? null)->all();
 
     expect($bodyTexts)->toContain('請選擇捕獲方式');
     expect($bodyTexts)->toContain('選好後會回到摘要卡片繼續填寫。');
-    expect($buttons)->toContain('mapazat 網魚');
-    expect($buttons)->toContain('mamasil 白天釣魚');
+    expect($buttonLabels)->toContain('mapazat 網魚');
+    expect($buttonLabels)->toContain('mamasil 白天釣魚');
+    expect($buttonStyles)->toBe(['secondary', 'secondary']);
+    expect($buttonColors)->toBe([null, null]);
 });
