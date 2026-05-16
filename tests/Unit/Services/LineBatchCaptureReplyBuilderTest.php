@@ -43,9 +43,11 @@ it('builds selector and text replies through dedicated builder methods', functio
 
     $tribeJson = json_decode(json_encode($tribeMessage), true);
     $bodyTexts = collect($tribeJson['contents']['body']['contents'])->pluck('text')->filter()->all();
+    $descriptionText = $bodyTexts[1] ?? '';
     $textJson = json_decode(json_encode($textMessage), true);
 
     expect($bodyTexts)->toContain('請選擇捕獲部落')
-        ->and($bodyTexts)->toContain('❌ 部落資料無效，請重新選擇。')
+        ->and($descriptionText)->toContain('❌ 部落資料無效，請重新選擇。')
+        ->and($descriptionText)->toContain('點選後會回到摘要卡片繼續填寫。')
         ->and($textJson['text'])->toBe('測試文字');
 });
