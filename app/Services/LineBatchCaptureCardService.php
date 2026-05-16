@@ -12,7 +12,7 @@ class LineBatchCaptureCardService
      * @param array{tribe?:?string,location?:?string,capture_method?:?string,capture_date?:?string,notes?:?string} $form
      * @param array<int, array{label:string,data:string,display_text?:?string,style?:?string,color?:?string}> $actions
      */
-    public function buildSummaryCard(Fish $fish, array $images, array $form, array $actions): FlexMessage
+    public function buildSummaryCard(Fish $fish, array $images, array $form, array $actions, ?string $notice = null): FlexMessage
     {
         $captureMethodLabel = filled($form['capture_method'] ?? null)
             ? config('fish_options.capture_methods.' . $form['capture_method'], $form['capture_method'])
@@ -43,6 +43,14 @@ class LineBatchCaptureCardService
                             'weight' => 'bold',
                             'size' => 'lg',
                         ],
+                        ...($notice ? [[
+                            'type' => 'text',
+                            'text' => $notice,
+                            'size' => 'sm',
+                            'margin' => 'md',
+                            'wrap' => true,
+                            'color' => '#666666',
+                        ]] : []),
                     ], array_map(fn ($text) => [
                         'type' => 'text',
                         'text' => $text,

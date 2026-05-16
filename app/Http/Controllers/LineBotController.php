@@ -1190,6 +1190,7 @@ class LineBotController extends Controller
                 'start_batch_capture_record',
                 'continue_batch_capture_upload',
                 'open_batch_capture_tribe_selector',
+                'finish_batch_capture_upload',
                 'select_batch_capture_tribe',
                 'prompt_batch_capture_location',
                 'open_batch_capture_method_selector',
@@ -1489,6 +1490,20 @@ class LineBotController extends Controller
             if ($action === 'continue_batch_capture_upload') {
                 $this->putBatchCaptureState($userId, 'waiting_images');
                 $this->replyBatchCaptureSummary($replyToken, $userId);
+                return;
+            }
+
+            if ($action === 'finish_batch_capture_upload') {
+                $images = Cache::get($this->batchCaptureKey($userId, 'images'), []);
+
+                if (empty($images)) {
+                    $this->putBatchCaptureState($userId, 'waiting_images');
+                    $this->replyBatchCaptureSummary($replyToken, $userId);
+                    return;
+                }
+
+                $this->putBatchCaptureState($userId, 'waiting_tribe_selection');
+                $this->replyBatchCaptureTribeSelectionCard($replyToken);
                 return;
             }
 
@@ -2250,12 +2265,25 @@ class LineBotController extends Controller
         $state = $this->getBatchCaptureState($userId) ?? 'waiting_images';
         $images = Cache::get($this->batchCaptureKey($userId, 'images'), []);
         $form = $this->getBatchCaptureForm($userId);
+        $notice = match ($state) {
+            'waiting_images' => count($images) > 0
+                ? '請確認照片數量；全部圖片都上傳完成後，按「圖片上傳完成」進入下一步。'
+                : '請先上傳至少 1 張捕獲照片，全部上傳完成後再進入下一步。',
+            'awaiting_location_prompt' => '已完成部落選擇，請輸入捕獲地點。',
+            'awaiting_method_prompt' => '地點已填寫，請選擇捕獲方式。',
+            'awaiting_date_prompt' => '捕獲方式已選擇，請選擇捕獲日期。',
+            'awaiting_notes_prompt' => '日期已選擇，請輸入備註或略過。',
+            'waiting_confirm' => '請確認資料無誤後再送出。',
+            default => null,
+        };
 
         $actions = match ($state) {
-            'waiting_images' => [
-                ['label' => '選擇捕獲部落', 'data' => 'action=open_batch_capture_tribe_selector', 'display_text' => '選擇捕獲部落'],
-                ['label' => '➕ 繼續上傳', 'data' => 'action=continue_batch_capture_upload', 'display_text' => '繼續上傳照片', 'style' => 'secondary'],
+            'waiting_images' => count($images) > 0 ? [
+                ['label' => '➕ 繼續上傳', 'data' => 'action=continue_batch_capture_upload', 'display_text' => '繼續上傳照片'],
+                ['label' => '✅ 圖片上傳完成', 'data' => 'action=finish_batch_capture_upload', 'display_text' => '圖片上傳完成', 'style' => 'secondary'],
                 ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
+            ] : [
+                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄'],
             ],
             'awaiting_location_prompt', 'awaiting_location_input' => [
                 ['label' => '輸入捕獲地點', 'data' => 'action=prompt_batch_capture_location', 'display_text' => '輸入捕獲地點'],
@@ -2283,13 +2311,13 @@ class LineBotController extends Controller
                 ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
             ],
             default => [
-                ['label' => '選擇捕獲部落', 'data' => 'action=open_batch_capture_tribe_selector', 'display_text' => '選擇捕獲部落'],
+                ['label' => '➕ 繼續上傳', 'data' => 'action=continue_batch_capture_upload', 'display_text' => '繼續上傳照片'],
                 ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
             ],
         };
 
         $this->lineBotService->replyMessage($replyToken, [
-            $this->lineBatchCaptureCardService->buildSummaryCard($fish, $images, $form, $actions),
+            $this->lineBatchCaptureCardService->buildSummaryCard($fish, $images, $form, $actions, $notice),
         ]);
     }
 
