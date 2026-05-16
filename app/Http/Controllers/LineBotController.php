@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\LineBotService;
 use App\Services\LineBatchCaptureCardService;
+use App\Services\LineBatchCaptureFlowService;
 use App\Services\CaptureRecordBatchService;
 use App\Http\Controllers\ApiFishController;
 use App\Contracts\LineUserServiceInterface;
@@ -25,8 +26,6 @@ use LINE\Webhook\Model\PostbackEvent;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 class LineBotController extends Controller
 {
@@ -36,8 +35,7 @@ class LineBotController extends Controller
     protected $storageService;
     protected LineUserServiceInterface $lineUserService;
     protected FishServiceInterface $fishService;
-    protected CaptureRecordBatchService $captureRecordBatchService;
-    protected LineBatchCaptureCardService $lineBatchCaptureCardService;
+    protected LineBatchCaptureFlowService $lineBatchCaptureFlowService;
 
     public function __construct(
         LineBotService $lineBotService,
@@ -46,8 +44,7 @@ class LineBotController extends Controller
         StorageServiceInterface $storageService,
         LineUserServiceInterface $lineUserService,
         FishServiceInterface $fishService,
-        ?CaptureRecordBatchService $captureRecordBatchService = null,
-        ?LineBatchCaptureCardService $lineBatchCaptureCardService = null
+        ?LineBatchCaptureFlowService $lineBatchCaptureFlowService = null
     ) {
         $this->lineBotService = $lineBotService;
         $this->apiFishController = $apiFishController;
@@ -55,8 +52,12 @@ class LineBotController extends Controller
         $this->storageService = $storageService;
         $this->lineUserService = $lineUserService;
         $this->fishService = $fishService;
-        $this->captureRecordBatchService = $captureRecordBatchService ?? app(CaptureRecordBatchService::class);
-        $this->lineBatchCaptureCardService = $lineBatchCaptureCardService ?? app(LineBatchCaptureCardService::class);
+        $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
+            ?? new LineBatchCaptureFlowService(
+                $lineBotService,
+                app(CaptureRecordBatchService::class),
+                app(LineBatchCaptureCardService::class)
+            );
     }
 
     /**
@@ -279,131 +280,12 @@ class LineBotController extends Controller
             return;
         }
 
-        $batchCaptureState = $this->getBatchCaptureState($userId);
-
-        if ($batchCaptureState && !$isEditor) {
-            $this->clearBatchCaptureState($userId);
-            $this->lineBotService->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '⚠️ 您沒有此功能的使用權限。',
-                ]),
-            ]);
+        if ($this->lineBatchCaptureFlowService->hasActiveState($userId) && !$isEditor) {
+            $this->lineBatchCaptureFlowService->handleUnauthorizedAccess($userId, $replyToken);
             return;
         }
 
-        if ($batchCaptureState === 'waiting_images') {
-            $this->replyBatchCaptureSummary($replyToken, $userId);
-            return;
-        }
-
-        if ($batchCaptureState === 'waiting_tribe_selection') {
-            $this->replyBatchCaptureTribeSelectionCard($replyToken);
-            return;
-        }
-
-        if (in_array($batchCaptureState, ['awaiting_location_prompt', 'awaiting_location_input'])) {
-            $validator = Validator::make(
-                ['location' => $text],
-                ['location' => 'required|string|max:255'],
-                [
-                    'location.required' => '請輸入捕獲地點',
-                    'location.max' => '捕獲地點不能超過 255 個字元',
-                ]
-            );
-
-            if ($validator->fails()) {
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => $validator->errors()->first(),
-                    ]),
-                ]);
-                return;
-            }
-
-            $validated = $validator->validated();
-
-            $form = $this->getBatchCaptureForm($userId);
-            $form['location'] = $validated['location'];
-            $this->putBatchCaptureForm($userId, $form);
-            $this->putBatchCaptureState($userId, 'awaiting_method_prompt');
-            $this->replyBatchCaptureSummary($replyToken, $userId);
-            return;
-        }
-
-        if ($batchCaptureState === 'waiting_method_selection') {
-            $this->replyBatchCaptureMethodSelectionCard($replyToken);
-            return;
-        }
-
-        if ($batchCaptureState === 'waiting_date_selection') {
-            $this->replyBatchCaptureDateSelectionCard($replyToken);
-            return;
-        }
-
-        if (in_array($batchCaptureState, ['awaiting_date_prompt', 'awaiting_date_manual_input'])) {
-            $validator = Validator::make(
-                ['capture_date' => $text],
-                ['capture_date' => 'required|date|before_or_equal:today'],
-                [
-                    'capture_date.required' => '請輸入捕獲日期',
-                    'capture_date.date' => '請輸入 YYYY-MM-DD 格式的有效日期',
-                    'capture_date.before_or_equal' => '捕獲日期不能是未來日期',
-                ]
-            );
-
-            if ($validator->fails()) {
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => $validator->errors()->first(),
-                    ]),
-                ]);
-                return;
-            }
-
-            $validated = $validator->validated();
-
-            $form = $this->getBatchCaptureForm($userId);
-            $form['capture_date'] = $validated['capture_date'];
-            $this->putBatchCaptureForm($userId, $form);
-            $this->putBatchCaptureState($userId, 'awaiting_notes_prompt');
-            $this->replyBatchCaptureSummary($replyToken, $userId);
-            return;
-        }
-
-        if (in_array($batchCaptureState, ['awaiting_notes_prompt', 'awaiting_notes_input'])) {
-            $validator = Validator::make(
-                ['notes' => $text],
-                ['notes' => 'nullable|string|max:65535'],
-                [
-                    'notes.max' => '備註內容過長，請縮短至65535字元以內',
-                ]
-            );
-
-            if ($validator->fails()) {
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => $validator->errors()->first(),
-                    ]),
-                ]);
-                return;
-            }
-
-            $validated = $validator->validated();
-
-            $form = $this->getBatchCaptureForm($userId);
-            $form['notes'] = $validated['notes'];
-            $this->putBatchCaptureForm($userId, $form);
-            $this->putBatchCaptureState($userId, 'waiting_confirm');
-            $this->replyBatchCaptureSummary($replyToken, $userId);
-            return;
-        }
-
-        if ($batchCaptureState === 'waiting_confirm') {
-            $this->replyBatchCaptureSummary($replyToken, $userId);
+        if ($this->lineBatchCaptureFlowService->handleTextMessage($userId, $text, $replyToken)) {
             return;
         }
 
@@ -470,31 +352,14 @@ class LineBotController extends Controller
     protected function handleImageMessage(MessageEvent $event, string $replyToken): void
     {
         $userId = $event->getSource()->getUserId();
-        $batchCaptureState = $this->getBatchCaptureState($userId);
+        $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
 
-        if ($batchCaptureState && !in_array($this->lineUserService->getRole($userId), ['editor', 'admin'])) {
-            $this->clearBatchCaptureState($userId);
-            $this->lineBotService->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '⚠️ 您沒有此功能的使用權限。',
-                ]),
-            ]);
+        if ($this->lineBatchCaptureFlowService->hasActiveState($userId) && !$isEditor) {
+            $this->lineBatchCaptureFlowService->handleUnauthorizedAccess($userId, $replyToken);
             return;
         }
 
-        if ($batchCaptureState === 'waiting_images') {
-            $this->handleBatchCaptureImageMessage($event, $replyToken, $userId);
-            return;
-        }
-
-        if ($batchCaptureState) {
-            $this->lineBotService->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '目前已進入欄位填寫流程，請先完成部落、地點與捕獲方式等資料。',
-                ]),
-            ]);
+        if ($this->lineBatchCaptureFlowService->handleImageMessage($userId, $replyToken, $event->getMessage()->getId())) {
             return;
         }
 
@@ -1187,21 +1052,7 @@ class LineBotController extends Controller
                 'provide_clue',
                 'start_rename',
                 'start_add_audio',
-                'start_batch_capture_record',
-                'continue_batch_capture_upload',
-                'open_batch_capture_tribe_selector',
-                'finish_batch_capture_upload',
-                'select_batch_capture_tribe',
-                'prompt_batch_capture_location',
-                'open_batch_capture_method_selector',
-                'select_batch_capture_method',
-                'open_batch_capture_date_selector',
-                'set_batch_capture_date',
-                'request_manual_batch_capture_date',
-                'prompt_batch_capture_notes',
-                'skip_batch_capture_notes',
-                'reset_batch_capture_form',
-                'confirm_batch_capture_record',
+                ...$this->lineBatchCaptureFlowService->protectedActions(),
             ];
             if (in_array($action, $protectedActions) && !$isEditor) {
                 $this->lineBotService->replyMessage($replyToken, [
@@ -1456,258 +1307,7 @@ class LineBotController extends Controller
                 return;
             }
 
-            // ==========================================
-            // 批次新增捕獲紀錄
-            // ==========================================
-
-            if ($action === 'start_batch_capture_record') {
-                $fishId = (int) ($params['fish_id'] ?? 0);
-                $fish = Fish::find($fishId);
-
-                if (!$fish) {
-                    $this->lineBotService->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => '❌ 找不到魚類資料，請重新操作。',
-                        ]),
-                    ]);
-                    return;
-                }
-
-                Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_images");
-                $this->clearBatchCaptureState($userId);
-
-                Cache::put($this->batchCaptureKey($userId, 'fish'), $fish->id, now()->addMinutes(15));
-                Cache::put($this->batchCaptureKey($userId, 'images'), [], now()->addMinutes(15));
-                Cache::put($this->batchCaptureKey($userId, 'form'), [], now()->addMinutes(15));
-                $this->putBatchCaptureState($userId, 'waiting_images');
-
-                $this->replyBatchCaptureSummary($replyToken, $userId, $fish);
-                return;
-            }
-
-            if ($action === 'continue_batch_capture_upload') {
-                $this->putBatchCaptureState($userId, 'waiting_images');
-                $this->replyBatchCaptureSummary($replyToken, $userId);
-                return;
-            }
-
-            if ($action === 'finish_batch_capture_upload') {
-                $images = Cache::get($this->batchCaptureKey($userId, 'images'), []);
-
-                if (empty($images)) {
-                    $this->putBatchCaptureState($userId, 'waiting_images');
-                    $this->replyBatchCaptureSummary($replyToken, $userId);
-                    return;
-                }
-
-                $this->putBatchCaptureState($userId, 'waiting_tribe_selection');
-                $this->replyBatchCaptureTribeSelectionCard($replyToken);
-                return;
-            }
-
-            if ($action === 'open_batch_capture_tribe_selector') {
-                $images = Cache::get($this->batchCaptureKey($userId, 'images'), []);
-
-                if (empty($images)) {
-                    $this->replyBatchCaptureSummary($replyToken, $userId);
-                    return;
-                }
-
-                $this->putBatchCaptureState($userId, 'waiting_tribe_selection');
-                $this->replyBatchCaptureTribeSelectionCard($replyToken);
-                return;
-            }
-
-            if ($action === 'select_batch_capture_tribe') {
-                $tribe = $params['tribe'] ?? null;
-                $validTribes = config('fish_options.tribes', []);
-
-                if (!$tribe || !in_array($tribe, $validTribes)) {
-                    $this->replyBatchCaptureTribeSelectionCard($replyToken, '❌ 部落資料無效，請重新選擇。');
-                    return;
-                }
-
-                $form = $this->getBatchCaptureForm($userId);
-                $form['tribe'] = $tribe;
-                $this->putBatchCaptureForm($userId, $form);
-                $this->putBatchCaptureState($userId, 'awaiting_location_prompt');
-                $this->replyBatchCaptureSummary($replyToken, $userId);
-                return;
-            }
-
-            if ($action === 'prompt_batch_capture_location') {
-                $form = $this->getBatchCaptureForm($userId);
-                if (empty($form['tribe'])) {
-                    $this->replyBatchCaptureSummary($replyToken, $userId);
-                    return;
-                }
-
-                $this->putBatchCaptureState($userId, 'awaiting_location_input');
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '請輸入捕獲地點：',
-                    ]),
-                ]);
-                return;
-            }
-
-            if ($action === 'open_batch_capture_method_selector') {
-                $form = $this->getBatchCaptureForm($userId);
-                if (empty($form['tribe']) || empty($form['location'])) {
-                    $this->replyBatchCaptureSummary($replyToken, $userId);
-                    return;
-                }
-
-                $this->putBatchCaptureState($userId, 'waiting_method_selection');
-                $this->replyBatchCaptureMethodSelectionCard($replyToken);
-                return;
-            }
-
-            if ($action === 'select_batch_capture_method') {
-                $captureMethod = $params['capture_method'] ?? null;
-                $validMethods = array_keys(config('fish_options.capture_methods', []));
-
-                if (!$captureMethod || !in_array($captureMethod, $validMethods)) {
-                    $this->replyBatchCaptureMethodSelectionCard($replyToken, '❌ 捕獲方式無效，請重新選擇。');
-                    return;
-                }
-
-                $form = $this->getBatchCaptureForm($userId);
-                $form['capture_method'] = $captureMethod;
-                $this->putBatchCaptureForm($userId, $form);
-                $this->putBatchCaptureState($userId, 'awaiting_date_prompt');
-                $this->replyBatchCaptureSummary($replyToken, $userId);
-                return;
-            }
-
-            if ($action === 'open_batch_capture_date_selector') {
-                $form = $this->getBatchCaptureForm($userId);
-                if (empty($form['capture_method'])) {
-                    $this->replyBatchCaptureSummary($replyToken, $userId);
-                    return;
-                }
-
-                $this->putBatchCaptureState($userId, 'waiting_date_selection');
-                $this->replyBatchCaptureDateSelectionCard($replyToken);
-                return;
-            }
-
-            if ($action === 'set_batch_capture_date') {
-                $value = $params['value'] ?? null;
-                $captureDate = match ($value) {
-                    'today' => now()->toDateString(),
-                    'yesterday' => now()->subDay()->toDateString(),
-                    default => null,
-                };
-
-                if (!$captureDate) {
-                    $this->replyBatchCaptureDateSelectionCard($replyToken, '❌ 日期選項無效，請重新選擇。');
-                    return;
-                }
-
-                $form = $this->getBatchCaptureForm($userId);
-                $form['capture_date'] = $captureDate;
-                $this->putBatchCaptureForm($userId, $form);
-                $this->putBatchCaptureState($userId, 'awaiting_notes_prompt');
-                $this->replyBatchCaptureSummary($replyToken, $userId);
-                return;
-            }
-
-            if ($action === 'request_manual_batch_capture_date') {
-                $this->putBatchCaptureState($userId, 'awaiting_date_manual_input');
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '請輸入捕獲日期，格式為 YYYY-MM-DD：',
-                    ]),
-                ]);
-                return;
-            }
-
-            if ($action === 'prompt_batch_capture_notes') {
-                $form = $this->getBatchCaptureForm($userId);
-                if (empty($form['capture_date'])) {
-                    $this->replyBatchCaptureSummary($replyToken, $userId);
-                    return;
-                }
-
-                $this->putBatchCaptureState($userId, 'awaiting_notes_input');
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '請輸入備註，若沒有可直接輸入或點選略過。',
-                    ]),
-                ]);
-                return;
-            }
-
-            if ($action === 'skip_batch_capture_notes') {
-                $form = $this->getBatchCaptureForm($userId);
-                $form['notes'] = null;
-                $this->putBatchCaptureForm($userId, $form);
-                $this->putBatchCaptureState($userId, 'waiting_confirm');
-                $this->replyBatchCaptureSummary($replyToken, $userId);
-                return;
-            }
-
-            if ($action === 'reset_batch_capture_form') {
-                Cache::put($this->batchCaptureKey($userId, 'form'), [], now()->addMinutes(15));
-                $this->putBatchCaptureState($userId, 'waiting_images');
-                $this->replyBatchCaptureSummary($replyToken, $userId);
-                return;
-            }
-
-            if ($action === 'confirm_batch_capture_record') {
-                $fishId = Cache::get($this->batchCaptureKey($userId, 'fish'));
-                $images = Cache::get($this->batchCaptureKey($userId, 'images'), []);
-                $form = $this->getBatchCaptureForm($userId);
-                $fish = Fish::find($fishId);
-
-                if (!$fish) {
-                    $this->clearBatchCaptureState($userId);
-                    $this->lineBotService->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => '❌ 魚類資料已不存在，請重新操作。',
-                        ]),
-                    ]);
-                    return;
-                }
-
-                try {
-                    $records = $this->captureRecordBatchService->createForFish($fish, $images, $form);
-                    $this->clearBatchCaptureState($userId);
-
-                    $this->lineBotService->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => '✅ 已成功新增 ' . count($records) . ' 筆捕獲紀錄',
-                        ]),
-                    ]);
-                } catch (ValidationException $e) {
-                    $message = collect($e->errors())->flatten()->first() ?? '❌ 捕獲紀錄資料有誤，請重新確認。';
-
-                    $this->lineBotService->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => $message,
-                        ]),
-                    ]);
-                }
-                return;
-            }
-
-            if ($action === 'cancel_batch_capture_record') {
-                $this->clearBatchCaptureState($userId);
-                $this->lineBotService->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '✅ 已取消批次新增捕獲紀錄',
-                    ]),
-                ]);
+            if ($this->lineBatchCaptureFlowService->handlePostback($userId, $replyToken, $action, $params)) {
                 return;
             }
 
@@ -2174,206 +1774,8 @@ class LineBotController extends Controller
         }
     }
 
-    private function handleBatchCaptureImageMessage(MessageEvent $event, string $replyToken, string $userId): void
-    {
-        $maxImages = config('fish_options.batch_upload.max_files_mobile', 5);
-        $existingImages = Cache::get($this->batchCaptureKey($userId, 'images'), []);
-
-        if (count($existingImages) >= $maxImages) {
-            $this->replyBatchCaptureSummary($replyToken, $userId);
-            return;
-        }
-
-        try {
-            $messageId = $event->getMessage()->getId();
-            $imageBlob = $this->lineBotService->getMessageContent($messageId);
-            $lineUploadService = app(\App\Services\LineUploadService::class);
-            $filename = $lineUploadService->uploadLineImage($imageBlob);
-
-            if (!$filename) {
-                throw new \Exception('Failed to upload batch capture image');
-            }
-
-            $existingImages[] = $filename;
-            Cache::put($this->batchCaptureKey($userId, 'images'), $existingImages, now()->addMinutes(15));
-            $this->putBatchCaptureState($userId, 'waiting_images');
-
-            $this->replyBatchCaptureSummary($replyToken, $userId);
-        } catch (\Exception $e) {
-            Log::error('LINE Bot batch capture image upload failed', [
-                'userId' => $userId,
-                'error' => $e->getMessage(),
-            ]);
-
-            $this->lineBotService->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '❌ 捕獲照片處理失敗，請稍後再試。',
-                ]),
-            ]);
-        }
-    }
-
-    private function batchCaptureKey(string $userId, string $suffix): string
-    {
-        return "line_user_{$userId}_batch_capture_{$suffix}";
-    }
-
-    private function getBatchCaptureState(string $userId): ?string
-    {
-        return Cache::get($this->batchCaptureKey($userId, 'state'));
-    }
-
-    private function putBatchCaptureState(string $userId, string $state, int $minutes = 15): void
-    {
-        Cache::put($this->batchCaptureKey($userId, 'state'), $state, now()->addMinutes($minutes));
-    }
-
-    private function getBatchCaptureForm(string $userId): array
-    {
-        return Cache::get($this->batchCaptureKey($userId, 'form'), []);
-    }
-
-    private function putBatchCaptureForm(string $userId, array $form, int $minutes = 15): void
-    {
-        Cache::put($this->batchCaptureKey($userId, 'form'), $form, now()->addMinutes($minutes));
-    }
-
     private function clearBatchCaptureState(string $userId): void
     {
-        Cache::forget($this->batchCaptureKey($userId, 'state'));
-        Cache::forget($this->batchCaptureKey($userId, 'fish'));
-        Cache::forget($this->batchCaptureKey($userId, 'images'));
-        Cache::forget($this->batchCaptureKey($userId, 'form'));
-    }
-
-    private function replyBatchCaptureSummary(string $replyToken, string $userId, ?Fish $fish = null): void
-    {
-        $fish ??= Fish::find(Cache::get($this->batchCaptureKey($userId, 'fish')));
-
-        if (!$fish) {
-            $this->clearBatchCaptureState($userId);
-            $this->lineBotService->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '❌ 魚類資料已不存在，請重新操作。',
-                ]),
-            ]);
-            return;
-        }
-
-        $state = $this->getBatchCaptureState($userId) ?? 'waiting_images';
-        $images = Cache::get($this->batchCaptureKey($userId, 'images'), []);
-        $form = $this->getBatchCaptureForm($userId);
-        $notice = match ($state) {
-            'waiting_images' => count($images) > 0
-                ? '請確認照片數量；全部圖片都上傳完成後，按「圖片上傳完成」進入下一步。'
-                : '請先上傳至少 1 張捕獲照片，全部上傳完成後再進入下一步。',
-            'awaiting_location_prompt' => '已完成部落選擇，請輸入捕獲地點。',
-            'awaiting_method_prompt' => '地點已填寫，請選擇捕獲方式。',
-            'awaiting_date_prompt' => '捕獲方式已選擇，請選擇捕獲日期。',
-            'awaiting_notes_prompt' => '日期已選擇，請輸入備註或略過。',
-            'waiting_confirm' => '請確認資料無誤後再送出。',
-            default => null,
-        };
-
-        $actions = match ($state) {
-            'waiting_images' => count($images) > 0 ? [
-                ['label' => '➕ 繼續上傳', 'data' => 'action=continue_batch_capture_upload', 'display_text' => '繼續上傳照片'],
-                ['label' => '✅ 圖片上傳完成', 'data' => 'action=finish_batch_capture_upload', 'display_text' => '圖片上傳完成', 'style' => 'secondary'],
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
-            ] : [
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄'],
-            ],
-            'awaiting_location_prompt', 'awaiting_location_input' => [
-                ['label' => '輸入捕獲地點', 'data' => 'action=prompt_batch_capture_location', 'display_text' => '輸入捕獲地點'],
-                ['label' => '修改部落', 'data' => 'action=open_batch_capture_tribe_selector', 'display_text' => '修改捕獲部落', 'style' => 'secondary'],
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
-            ],
-            'awaiting_method_prompt', 'waiting_method_selection' => [
-                ['label' => '選擇捕獲方式', 'data' => 'action=open_batch_capture_method_selector', 'display_text' => '選擇捕獲方式'],
-                ['label' => '修改地點', 'data' => 'action=prompt_batch_capture_location', 'display_text' => '修改捕獲地點', 'style' => 'secondary'],
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
-            ],
-            'awaiting_date_prompt', 'waiting_date_selection', 'awaiting_date_manual_input' => [
-                ['label' => '選擇捕獲日期', 'data' => 'action=open_batch_capture_date_selector', 'display_text' => '選擇捕獲日期'],
-                ['label' => '修改捕獲方式', 'data' => 'action=open_batch_capture_method_selector', 'display_text' => '修改捕獲方式', 'style' => 'secondary'],
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
-            ],
-            'awaiting_notes_prompt', 'awaiting_notes_input' => [
-                ['label' => '輸入備註', 'data' => 'action=prompt_batch_capture_notes', 'display_text' => '輸入備註'],
-                ['label' => '略過備註', 'data' => 'action=skip_batch_capture_notes', 'display_text' => '略過備註', 'style' => 'secondary'],
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
-            ],
-            'waiting_confirm' => [
-                ['label' => '✅ 確認送出', 'data' => 'action=confirm_batch_capture_record', 'display_text' => '確認送出批次捕獲紀錄'],
-                ['label' => '🔁 重新填寫', 'data' => 'action=reset_batch_capture_form', 'display_text' => '重新填寫捕獲資料', 'style' => 'secondary'],
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
-            ],
-            default => [
-                ['label' => '➕ 繼續上傳', 'data' => 'action=continue_batch_capture_upload', 'display_text' => '繼續上傳照片'],
-                ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
-            ],
-        };
-
-        $this->lineBotService->replyMessage($replyToken, [
-            $this->lineBatchCaptureCardService->buildSummaryCard($fish, $images, $form, $actions, $notice),
-        ]);
-    }
-
-    private function replyBatchCaptureTribeSelectionCard(string $replyToken, ?string $prefix = null): void
-    {
-        $actions = array_map(fn ($tribe) => [
-            'label' => ucfirst($tribe),
-            'data' => "action=select_batch_capture_tribe&tribe={$tribe}",
-            'display_text' => $tribe,
-            'style' => 'secondary',
-        ], config('fish_options.tribes', []));
-
-        $this->lineBotService->replyMessage($replyToken, [
-            $this->lineBatchCaptureCardService->buildOptionSelectorCard(
-                '請選擇捕獲部落',
-                trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
-                $actions
-            ),
-        ]);
-    }
-
-    private function replyBatchCaptureMethodSelectionCard(string $replyToken, ?string $prefix = null): void
-    {
-        $actions = [];
-        foreach (config('fish_options.capture_methods', []) as $value => $label) {
-            $actions[] = [
-                'label' => $label,
-                'data' => "action=select_batch_capture_method&capture_method={$value}",
-                'display_text' => $label,
-                'style' => 'secondary',
-            ];
-        }
-
-        $this->lineBotService->replyMessage($replyToken, [
-            $this->lineBatchCaptureCardService->buildOptionSelectorCard(
-                '請選擇捕獲方式',
-                trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
-                $actions
-            ),
-        ]);
-    }
-
-    private function replyBatchCaptureDateSelectionCard(string $replyToken, ?string $prefix = null): void
-    {
-        $actions = [
-            ['label' => '今天', 'data' => 'action=set_batch_capture_date&value=today', 'display_text' => '今天'],
-            ['label' => '昨天', 'data' => 'action=set_batch_capture_date&value=yesterday', 'display_text' => '昨天', 'style' => 'secondary'],
-            ['label' => '手動輸入', 'data' => 'action=request_manual_batch_capture_date', 'display_text' => '手動輸入日期', 'style' => 'secondary'],
-        ];
-
-        $this->lineBotService->replyMessage($replyToken, [
-            $this->lineBatchCaptureCardService->buildOptionSelectorCard(
-                '請選擇捕獲日期',
-                trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
-                $actions
-            ),
-        ]);
+        $this->lineBatchCaptureFlowService->clearState($userId);
     }
 }
