@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Requests\CaptureRecordRequest;
+use App\Services\CaptureRecordFieldValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
 
@@ -346,5 +347,15 @@ describe('CaptureRecordRequest Validation', function () {
         expect($attributes['capture_method'])->toBe('捕獲方式');
         expect($attributes['capture_date'])->toBe('捕獲日期');
         expect($attributes['notes'])->toBe('備註');
+    });
+
+    it('reuses shared capture record validation definitions', function () {
+        $request = new CaptureRecordRequest();
+        $request->setMethod('POST');
+        $sharedValidator = app(CaptureRecordFieldValidator::class);
+
+        expect($request->rules())->toBe($sharedValidator->rules(true))
+            ->and($request->messages())->toBe($sharedValidator->messages())
+            ->and($request->attributes())->toBe($sharedValidator->attributes());
     });
 });

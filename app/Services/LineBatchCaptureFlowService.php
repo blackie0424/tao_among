@@ -26,7 +26,6 @@ use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureTribeSelec
 use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextContext;
 use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextStateHandler;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use LINE\Clients\MessagingApi\Model\TextMessage;
 
@@ -55,6 +54,7 @@ class LineBatchCaptureFlowService
         iterable $postbackHandlers = [],
         iterable $textStateHandlers = [],
         iterable $imageStateHandlers = [],
+        private readonly ?CaptureRecordFieldValidator $captureRecordFieldValidator = null,
     ) {
         $resolvedHandlers = is_array($postbackHandlers)
             ? $postbackHandlers
@@ -245,60 +245,6 @@ class LineBatchCaptureFlowService
         $this->putForm($userId, array_merge($this->getForm($userId), $values));
     }
 
-    public function validateLocation(string $text): array
-    {
-        $validator = Validator::make(
-            ['location' => $text],
-            ['location' => 'required|string|max:255'],
-            [
-                'location.required' => '請輸入捕獲地點',
-                'location.max' => '捕獲地點不能超過 255 個字元',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return [null, $validator->errors()->first()];
-        }
-
-        return [$validator->validated(), null];
-    }
-
-    public function validateCaptureDate(string $text): array
-    {
-        $validator = Validator::make(
-            ['capture_date' => $text],
-            ['capture_date' => 'required|date|before_or_equal:today'],
-            [
-                'capture_date.required' => '請輸入捕獲日期',
-                'capture_date.date' => '請輸入 YYYY-MM-DD 格式的有效日期',
-                'capture_date.before_or_equal' => '捕獲日期不能是未來日期',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return [null, $validator->errors()->first()];
-        }
-
-        return [$validator->validated(), null];
-    }
-
-    public function validateNotes(string $text): array
-    {
-        $validator = Validator::make(
-            ['notes' => $text],
-            ['notes' => 'nullable|string|max:65535'],
-            [
-                'notes.max' => '備註內容過長，請縮短至65535字元以內',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return [null, $validator->errors()->first()];
-        }
-
-        return [$validator->validated(), null];
-    }
-
     public function replySummary(string $replyToken, string $userId, ?Fish $fish = null): void
     {
         $fish ??= Fish::find(Cache::get($this->batchCaptureKey($userId, 'fish')));
@@ -445,6 +391,11 @@ class LineBatchCaptureFlowService
         }
 
         return $filename;
+    }
+
+    public function captureRecordFieldValidator(): CaptureRecordFieldValidator
+    {
+        return $this->captureRecordFieldValidator ?? app(CaptureRecordFieldValidator::class);
     }
 
     private function lineUploadService(): LineUploadService

@@ -2,14 +2,17 @@
 
 namespace App\Services;
 
-use App\Http\Requests\CaptureRecordRequest;
 use App\Models\CaptureRecord;
 use App\Models\Fish;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class CaptureRecordBatchService
 {
+    public function __construct(
+        private readonly ?CaptureRecordFieldValidator $captureRecordFieldValidator = null,
+    ) {
+    }
+
     /**
      * @param string[] $filenames
      * @param array{tribe:string,location:string,capture_method:string,capture_date:string,notes?:?string} $sharedData
@@ -51,14 +54,12 @@ class CaptureRecordBatchService
      */
     public function validateSharedData(array $sharedData): array
     {
-        $request = new CaptureRecordRequest();
-        $request->setMethod('POST');
+        return $this->captureRecordFieldValidator()
+            ->validateSharedData(array_merge(['image_filename' => 'line-batch-capture.jpg'], $sharedData));
+    }
 
-        return Validator::make(
-            array_merge(['image_filename' => 'line-batch-capture.jpg'], $sharedData),
-            $request->rules(),
-            $request->messages(),
-            $request->attributes()
-        )->validate();
+    private function captureRecordFieldValidator(): CaptureRecordFieldValidator
+    {
+        return $this->captureRecordFieldValidator ?? app(CaptureRecordFieldValidator::class);
     }
 }
