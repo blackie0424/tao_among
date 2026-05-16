@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\Fish;
+use App\Services\LineBatchCapture\Actions\ConfirmLineBatchCaptureAction;
+use App\Services\LineBatchCapture\Actions\StartLineBatchCaptureAction;
+use App\Services\LineBatchCapture\LineBatchCaptureStateStore;
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureDatePostbackHandler;
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureLifecyclePostbackHandler;
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureLocationPostbackHandler;
@@ -25,8 +28,6 @@ use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureSummaryTex
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureTribeSelectorTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextContext;
 use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextStateHandler;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Validation\ValidationException;
 
 class LineBatchCaptureFlowService
 {
@@ -55,6 +56,9 @@ class LineBatchCaptureFlowService
         iterable $imageStateHandlers = [],
         private readonly ?CaptureRecordFieldValidator $captureRecordFieldValidator = null,
         private readonly ?LineBatchCaptureReplyBuilder $lineBatchCaptureReplyBuilder = null,
+        private readonly ?LineBatchCaptureStateStore $lineBatchCaptureStateStore = null,
+        private readonly ?StartLineBatchCaptureAction $startLineBatchCaptureAction = null,
+        private readonly ?ConfirmLineBatchCaptureAction $confirmLineBatchCaptureAction = null,
     ) {
         $resolvedHandlers = is_array($postbackHandlers)
             ? $postbackHandlers
@@ -102,7 +106,7 @@ class LineBatchCaptureFlowService
 
     public function getState(string $userId): ?string
     {
-        return Cache::get($this->batchCaptureKey($userId, 'state'));
+        return $this->lineBatchCaptureStateStore()->getState($userId);
     }
 
     public function hasActiveState(string $userId): bool
@@ -112,10 +116,7 @@ class LineBatchCaptureFlowService
 
     public function clearState(string $userId): void
     {
-        Cache::forget($this->batchCaptureKey($userId, 'state'));
-        Cache::forget($this->batchCaptureKey($userId, 'fish'));
-        Cache::forget($this->batchCaptureKey($userId, 'images'));
-        Cache::forget($this->batchCaptureKey($userId, 'form'));
+        $this->lineBatchCaptureStateStore()->clear($userId);
     }
 
     public function handleUnauthorizedAccess(string $userId, string $replyToken): void
@@ -171,83 +172,55 @@ class LineBatchCaptureFlowService
 
     public function startCapture(string $userId, string $replyToken, int $fishId): void
     {
-        $fish = Fish::find($fishId);
+        $result = $this->startLineBatchCaptureAction()->execute($userId, $fishId);
 
-        if (!$fish) {
-            $this->replyText($replyToken, '❌ 找不到魚類資料，請重新操作。');
+        if (!$result->successful()) {
+            $this->replyText($replyToken, $result->message());
             return;
         }
 
-        Cache::forget("line_user_{$userId}_create_fish_state");
-        Cache::forget("line_user_{$userId}_create_fish_images");
-        $this->clearState($userId);
-
-        Cache::put($this->batchCaptureKey($userId, 'fish'), $fish->id, now()->addMinutes(15));
-        $this->putImages($userId, []);
-        $this->putForm($userId, []);
-        $this->putState($userId, 'waiting_images');
-
-        $this->replySummary($replyToken, $userId, $fish);
+        $this->replySummary($replyToken, $userId, $result->fish());
     }
 
     public function confirmCapture(string $userId, string $replyToken): void
     {
-        $fish = Fish::find(Cache::get($this->batchCaptureKey($userId, 'fish')));
-
-        if (!$fish) {
-            $this->clearState($userId);
-            $this->replyText($replyToken, '❌ 魚類資料已不存在，請重新操作。');
-            return;
-        }
-
-        try {
-            $records = $this->captureRecordBatchService->createForFish($fish, $this->getImages($userId), $this->getForm($userId));
-            $this->clearState($userId);
-            $this->replyText($replyToken, '✅ 已成功新增 ' . count($records) . ' 筆捕獲紀錄');
-        } catch (ValidationException $e) {
-            $message = collect($e->errors())->flatten()->first() ?? '❌ 捕獲紀錄資料有誤，請重新確認。';
-            $this->replyText($replyToken, $message);
-        }
-    }
-
-    private function batchCaptureKey(string $userId, string $suffix): string
-    {
-        return "line_user_{$userId}_batch_capture_{$suffix}";
+        $result = $this->confirmLineBatchCaptureAction()->execute($userId);
+        $this->replyText($replyToken, $result->message());
     }
 
     public function getImages(string $userId): array
     {
-        return Cache::get($this->batchCaptureKey($userId, 'images'), []);
+        return $this->lineBatchCaptureStateStore()->getImages($userId);
     }
 
     public function putImages(string $userId, array $images, int $minutes = 15): void
     {
-        Cache::put($this->batchCaptureKey($userId, 'images'), $images, now()->addMinutes($minutes));
+        $this->lineBatchCaptureStateStore()->putImages($userId, $images, $minutes);
     }
 
     public function getForm(string $userId): array
     {
-        return Cache::get($this->batchCaptureKey($userId, 'form'), []);
+        return $this->lineBatchCaptureStateStore()->getForm($userId);
     }
 
     public function putForm(string $userId, array $form, int $minutes = 15): void
     {
-        Cache::put($this->batchCaptureKey($userId, 'form'), $form, now()->addMinutes($minutes));
+        $this->lineBatchCaptureStateStore()->putForm($userId, $form, $minutes);
     }
 
     public function putState(string $userId, string $state, int $minutes = 15): void
     {
-        Cache::put($this->batchCaptureKey($userId, 'state'), $state, now()->addMinutes($minutes));
+        $this->lineBatchCaptureStateStore()->putState($userId, $state, $minutes);
     }
 
     public function updateForm(string $userId, array $values): void
     {
-        $this->putForm($userId, array_merge($this->getForm($userId), $values));
+        $this->lineBatchCaptureStateStore()->updateForm($userId, $values);
     }
 
     public function replySummary(string $replyToken, string $userId, ?Fish $fish = null): void
     {
-        $fish ??= Fish::find(Cache::get($this->batchCaptureKey($userId, 'fish')));
+        $fish ??= Fish::find($this->lineBatchCaptureStateStore()->getFishId($userId));
 
         if (!$fish) {
             $this->clearState($userId);
@@ -312,6 +285,23 @@ class LineBatchCaptureFlowService
     public function lineBatchCaptureReplyBuilder(): LineBatchCaptureReplyBuilder
     {
         return $this->lineBatchCaptureReplyBuilder ?? app(LineBatchCaptureReplyBuilder::class);
+    }
+
+    public function lineBatchCaptureStateStore(): LineBatchCaptureStateStore
+    {
+        return $this->lineBatchCaptureStateStore ?? app(LineBatchCaptureStateStore::class);
+    }
+
+    public function startLineBatchCaptureAction(): StartLineBatchCaptureAction
+    {
+        return $this->startLineBatchCaptureAction
+            ?? new StartLineBatchCaptureAction($this->lineBatchCaptureStateStore());
+    }
+
+    public function confirmLineBatchCaptureAction(): ConfirmLineBatchCaptureAction
+    {
+        return $this->confirmLineBatchCaptureAction
+            ?? new ConfirmLineBatchCaptureAction($this->lineBatchCaptureStateStore(), $this->captureRecordBatchService);
     }
 
     private function lineUploadService(): LineUploadService
