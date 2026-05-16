@@ -3,6 +3,15 @@
 namespace App\Services;
 
 use App\Models\Fish;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureDatePostbackHandler;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureLifecyclePostbackHandler;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureLocationPostbackHandler;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureMethodPostbackHandler;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureNotesPostbackHandler;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureTribePostbackHandler;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureUploadPostbackHandler;
+use App\Services\LineBatchCapture\Postback\LineBatchCapturePostbackContext;
+use App\Services\LineBatchCapture\Postback\LineBatchCapturePostbackHandler;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -12,54 +21,24 @@ use LINE\Clients\MessagingApi\Model\TextMessage;
 class LineBatchCaptureFlowService
 {
     /**
-     * @var string[]
+     * @var array<string, LineBatchCapturePostbackHandler>
      */
-    private const ACTIONS = [
-        'start_batch_capture_record',
-        'continue_batch_capture_upload',
-        'finish_batch_capture_upload',
-        'open_batch_capture_tribe_selector',
-        'select_batch_capture_tribe',
-        'prompt_batch_capture_location',
-        'open_batch_capture_method_selector',
-        'select_batch_capture_method',
-        'open_batch_capture_date_selector',
-        'set_batch_capture_date',
-        'request_manual_batch_capture_date',
-        'prompt_batch_capture_notes',
-        'skip_batch_capture_notes',
-        'reset_batch_capture_form',
-        'confirm_batch_capture_record',
-        'cancel_batch_capture_record',
-    ];
-
-    /**
-     * @var string[]
-     */
-    private const PROTECTED_ACTIONS = [
-        'start_batch_capture_record',
-        'continue_batch_capture_upload',
-        'finish_batch_capture_upload',
-        'open_batch_capture_tribe_selector',
-        'select_batch_capture_tribe',
-        'prompt_batch_capture_location',
-        'open_batch_capture_method_selector',
-        'select_batch_capture_method',
-        'open_batch_capture_date_selector',
-        'set_batch_capture_date',
-        'request_manual_batch_capture_date',
-        'prompt_batch_capture_notes',
-        'skip_batch_capture_notes',
-        'reset_batch_capture_form',
-        'confirm_batch_capture_record',
-    ];
+    private array $postbackHandlers;
 
     public function __construct(
         private readonly LineBotService $lineBotService,
         private readonly CaptureRecordBatchService $captureRecordBatchService,
         private readonly LineBatchCaptureCardService $lineBatchCaptureCardService,
         private readonly ?LineUploadService $lineUploadService = null,
+        iterable $postbackHandlers = [],
     ) {
+        $resolvedHandlers = is_array($postbackHandlers)
+            ? $postbackHandlers
+            : iterator_to_array($postbackHandlers, false);
+
+        $this->postbackHandlers = $this->indexPostbackHandlers(
+            $resolvedHandlers !== [] ? $resolvedHandlers : $this->defaultPostbackHandlers()
+        );
     }
 
     /**
@@ -67,12 +46,22 @@ class LineBatchCaptureFlowService
      */
     public function protectedActions(): array
     {
-        return self::PROTECTED_ACTIONS;
+        $actions = [];
+
+        foreach ($this->postbackHandlers as $handler) {
+            foreach ($handler->protectedActions() as $action) {
+                if (!in_array($action, $actions, true)) {
+                    $actions[] = $action;
+                }
+            }
+        }
+
+        return $actions;
     }
 
     public function handlesPostback(string $action): bool
     {
-        return in_array($action, self::ACTIONS, true);
+        return array_key_exists($action, $this->postbackHandlers);
     }
 
     public function getState(string $userId): ?string
@@ -215,200 +204,54 @@ class LineBatchCaptureFlowService
 
     public function handlePostback(string $userId, string $replyToken, string $action, array $params): bool
     {
-        if (!$this->handlesPostback($action)) {
+        $handler = $this->postbackHandlers[$action] ?? null;
+        if (!$handler) {
             return false;
         }
 
-        if ($action === 'start_batch_capture_record') {
-            $fishId = (int) ($params['fish_id'] ?? 0);
-            $fish = Fish::find($fishId);
-
-            if (!$fish) {
-                $this->replyText($replyToken, '❌ 找不到魚類資料，請重新操作。');
-                return true;
-            }
-
-            Cache::forget("line_user_{$userId}_create_fish_state");
-            Cache::forget("line_user_{$userId}_create_fish_images");
-            $this->clearState($userId);
-
-            Cache::put($this->batchCaptureKey($userId, 'fish'), $fish->id, now()->addMinutes(15));
-            $this->putImages($userId, []);
-            $this->putForm($userId, []);
-            $this->putState($userId, 'waiting_images');
-
-            $this->replySummary($replyToken, $userId, $fish);
-            return true;
-        }
-
-        if ($action === 'continue_batch_capture_upload') {
-            $this->putState($userId, 'waiting_images');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if ($action === 'finish_batch_capture_upload') {
-            if ($this->getImages($userId) === []) {
-                $this->putState($userId, 'waiting_images');
-                $this->replySummary($replyToken, $userId);
-                return true;
-            }
-
-            $this->putState($userId, 'waiting_tribe_selection');
-            $this->replyTribeSelectionCard($replyToken);
-            return true;
-        }
-
-        if ($action === 'open_batch_capture_tribe_selector') {
-            if ($this->getImages($userId) === []) {
-                $this->replySummary($replyToken, $userId);
-                return true;
-            }
-
-            $this->putState($userId, 'waiting_tribe_selection');
-            $this->replyTribeSelectionCard($replyToken);
-            return true;
-        }
-
-        if ($action === 'select_batch_capture_tribe') {
-            $tribe = $params['tribe'] ?? null;
-            if (!$tribe || !in_array($tribe, config('fish_options.tribes', []), true)) {
-                $this->replyTribeSelectionCard($replyToken, '❌ 部落資料無效，請重新選擇。');
-                return true;
-            }
-
-            $this->updateForm($userId, ['tribe' => $tribe]);
-            $this->putState($userId, 'awaiting_location_prompt');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if ($action === 'prompt_batch_capture_location') {
-            $form = $this->getForm($userId);
-            if (empty($form['tribe'])) {
-                $this->replySummary($replyToken, $userId);
-                return true;
-            }
-
-            $this->putState($userId, 'awaiting_location_input');
-            $this->replyText($replyToken, '請輸入捕獲地點：');
-            return true;
-        }
-
-        if ($action === 'open_batch_capture_method_selector') {
-            $form = $this->getForm($userId);
-            if (empty($form['tribe']) || empty($form['location'])) {
-                $this->replySummary($replyToken, $userId);
-                return true;
-            }
-
-            $this->putState($userId, 'waiting_method_selection');
-            $this->replyMethodSelectionCard($replyToken);
-            return true;
-        }
-
-        if ($action === 'select_batch_capture_method') {
-            $captureMethod = $params['capture_method'] ?? null;
-            $validMethods = array_keys(config('fish_options.capture_methods', []));
-
-            if (!$captureMethod || !in_array($captureMethod, $validMethods, true)) {
-                $this->replyMethodSelectionCard($replyToken, '❌ 捕獲方式無效，請重新選擇。');
-                return true;
-            }
-
-            $this->updateForm($userId, ['capture_method' => $captureMethod]);
-            $this->putState($userId, 'awaiting_date_prompt');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if ($action === 'open_batch_capture_date_selector') {
-            $form = $this->getForm($userId);
-            if (empty($form['capture_method'])) {
-                $this->replySummary($replyToken, $userId);
-                return true;
-            }
-
-            $this->putState($userId, 'waiting_date_selection');
-            $this->replyDateSelectionCard($replyToken);
-            return true;
-        }
-
-        if ($action === 'set_batch_capture_date') {
-            $captureDate = match ($params['value'] ?? null) {
-                'today' => now()->toDateString(),
-                'yesterday' => now()->subDay()->toDateString(),
-                default => null,
-            };
-
-            if (!$captureDate) {
-                $this->replyDateSelectionCard($replyToken, '❌ 日期選項無效，請重新選擇。');
-                return true;
-            }
-
-            $this->updateForm($userId, ['capture_date' => $captureDate]);
-            $this->putState($userId, 'awaiting_notes_prompt');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if ($action === 'request_manual_batch_capture_date') {
-            $this->putState($userId, 'awaiting_date_manual_input');
-            $this->replyText($replyToken, '請輸入捕獲日期，格式為 YYYY-MM-DD：');
-            return true;
-        }
-
-        if ($action === 'prompt_batch_capture_notes') {
-            $form = $this->getForm($userId);
-            if (empty($form['capture_date'])) {
-                $this->replySummary($replyToken, $userId);
-                return true;
-            }
-
-            $this->putState($userId, 'awaiting_notes_input');
-            $this->replyText($replyToken, '請輸入備註，若沒有可直接輸入或點選略過。');
-            return true;
-        }
-
-        if ($action === 'skip_batch_capture_notes') {
-            $this->updateForm($userId, ['notes' => null]);
-            $this->putState($userId, 'waiting_confirm');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if ($action === 'reset_batch_capture_form') {
-            $this->putForm($userId, []);
-            $this->putState($userId, 'waiting_images');
-            $this->replySummary($replyToken, $userId);
-            return true;
-        }
-
-        if ($action === 'confirm_batch_capture_record') {
-            $fish = Fish::find(Cache::get($this->batchCaptureKey($userId, 'fish')));
-
-            if (!$fish) {
-                $this->clearState($userId);
-                $this->replyText($replyToken, '❌ 魚類資料已不存在，請重新操作。');
-                return true;
-            }
-
-            try {
-                $records = $this->captureRecordBatchService->createForFish($fish, $this->getImages($userId), $this->getForm($userId));
-                $this->clearState($userId);
-                $this->replyText($replyToken, '✅ 已成功新增 ' . count($records) . ' 筆捕獲紀錄');
-            } catch (ValidationException $e) {
-                $message = collect($e->errors())->flatten()->first() ?? '❌ 捕獲紀錄資料有誤，請重新確認。';
-                $this->replyText($replyToken, $message);
-            }
-
-            return true;
-        }
-
-        $this->clearState($userId);
-        $this->replyText($replyToken, '✅ 已取消批次新增捕獲紀錄');
-
+        $handler->handle($this, new LineBatchCapturePostbackContext($action, $userId, $replyToken, $params));
         return true;
+    }
+
+    public function startCapture(string $userId, string $replyToken, int $fishId): void
+    {
+        $fish = Fish::find($fishId);
+
+        if (!$fish) {
+            $this->replyText($replyToken, '❌ 找不到魚類資料，請重新操作。');
+            return;
+        }
+
+        Cache::forget("line_user_{$userId}_create_fish_state");
+        Cache::forget("line_user_{$userId}_create_fish_images");
+        $this->clearState($userId);
+
+        Cache::put($this->batchCaptureKey($userId, 'fish'), $fish->id, now()->addMinutes(15));
+        $this->putImages($userId, []);
+        $this->putForm($userId, []);
+        $this->putState($userId, 'waiting_images');
+
+        $this->replySummary($replyToken, $userId, $fish);
+    }
+
+    public function confirmCapture(string $userId, string $replyToken): void
+    {
+        $fish = Fish::find(Cache::get($this->batchCaptureKey($userId, 'fish')));
+
+        if (!$fish) {
+            $this->clearState($userId);
+            $this->replyText($replyToken, '❌ 魚類資料已不存在，請重新操作。');
+            return;
+        }
+
+        try {
+            $records = $this->captureRecordBatchService->createForFish($fish, $this->getImages($userId), $this->getForm($userId));
+            $this->clearState($userId);
+            $this->replyText($replyToken, '✅ 已成功新增 ' . count($records) . ' 筆捕獲紀錄');
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first() ?? '❌ 捕獲紀錄資料有誤，請重新確認。';
+            $this->replyText($replyToken, $message);
+        }
     }
 
     private function batchCaptureKey(string $userId, string $suffix): string
@@ -416,7 +259,7 @@ class LineBatchCaptureFlowService
         return "line_user_{$userId}_batch_capture_{$suffix}";
     }
 
-    private function getImages(string $userId): array
+    public function getImages(string $userId): array
     {
         return Cache::get($this->batchCaptureKey($userId, 'images'), []);
     }
@@ -426,22 +269,22 @@ class LineBatchCaptureFlowService
         Cache::put($this->batchCaptureKey($userId, 'images'), $images, now()->addMinutes($minutes));
     }
 
-    private function getForm(string $userId): array
+    public function getForm(string $userId): array
     {
         return Cache::get($this->batchCaptureKey($userId, 'form'), []);
     }
 
-    private function putForm(string $userId, array $form, int $minutes = 15): void
+    public function putForm(string $userId, array $form, int $minutes = 15): void
     {
         Cache::put($this->batchCaptureKey($userId, 'form'), $form, now()->addMinutes($minutes));
     }
 
-    private function putState(string $userId, string $state, int $minutes = 15): void
+    public function putState(string $userId, string $state, int $minutes = 15): void
     {
         Cache::put($this->batchCaptureKey($userId, 'state'), $state, now()->addMinutes($minutes));
     }
 
-    private function updateForm(string $userId, array $values): void
+    public function updateForm(string $userId, array $values): void
     {
         $this->putForm($userId, array_merge($this->getForm($userId), $values));
     }
@@ -500,7 +343,7 @@ class LineBatchCaptureFlowService
         return [$validator->validated(), null];
     }
 
-    private function replySummary(string $replyToken, string $userId, ?Fish $fish = null): void
+    public function replySummary(string $replyToken, string $userId, ?Fish $fish = null): void
     {
         $fish ??= Fish::find(Cache::get($this->batchCaptureKey($userId, 'fish')));
 
@@ -570,7 +413,7 @@ class LineBatchCaptureFlowService
         ]);
     }
 
-    private function replyTribeSelectionCard(string $replyToken, ?string $prefix = null): void
+    public function replyTribeSelectionCard(string $replyToken, ?string $prefix = null): void
     {
         $actions = array_map(fn ($tribe) => [
             'label' => ucfirst($tribe),
@@ -588,7 +431,7 @@ class LineBatchCaptureFlowService
         ]);
     }
 
-    private function replyMethodSelectionCard(string $replyToken, ?string $prefix = null): void
+    public function replyMethodSelectionCard(string $replyToken, ?string $prefix = null): void
     {
         $actions = [];
         foreach (config('fish_options.capture_methods', []) as $value => $label) {
@@ -609,7 +452,7 @@ class LineBatchCaptureFlowService
         ]);
     }
 
-    private function replyDateSelectionCard(string $replyToken, ?string $prefix = null): void
+    public function replyDateSelectionCard(string $replyToken, ?string $prefix = null): void
     {
         $actions = [
             ['label' => '今天', 'data' => 'action=set_batch_capture_date&value=today', 'display_text' => '今天'],
@@ -626,7 +469,7 @@ class LineBatchCaptureFlowService
         ]);
     }
 
-    private function replyText(string $replyToken, string $text): void
+    public function replyText(string $replyToken, string $text): void
     {
         $this->lineBotService->replyMessage($replyToken, [
             new TextMessage([
@@ -639,5 +482,38 @@ class LineBatchCaptureFlowService
     private function lineUploadService(): LineUploadService
     {
         return $this->lineUploadService ?? app(LineUploadService::class);
+    }
+
+    /**
+     * @return LineBatchCapturePostbackHandler[]
+     */
+    private function defaultPostbackHandlers(): array
+    {
+        return [
+            new LineBatchCaptureLifecyclePostbackHandler(),
+            new LineBatchCaptureUploadPostbackHandler(),
+            new LineBatchCaptureTribePostbackHandler(),
+            new LineBatchCaptureLocationPostbackHandler(),
+            new LineBatchCaptureMethodPostbackHandler(),
+            new LineBatchCaptureDatePostbackHandler(),
+            new LineBatchCaptureNotesPostbackHandler(),
+        ];
+    }
+
+    /**
+     * @param iterable<LineBatchCapturePostbackHandler> $handlers
+     * @return array<string, LineBatchCapturePostbackHandler>
+     */
+    private function indexPostbackHandlers(iterable $handlers): array
+    {
+        $indexed = [];
+
+        foreach ($handlers as $handler) {
+            foreach ($handler->actions() as $action) {
+                $indexed[$action] = $handler;
+            }
+        }
+
+        return $indexed;
     }
 }
