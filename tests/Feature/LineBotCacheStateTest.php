@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\ApiFishController;
-use App\Services\LineBotService;
+use App\Contracts\LineMessagingClientInterface;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
@@ -23,7 +23,7 @@ use Tests\TestCase;
  * 測試策略：
  *   - 直接操作 Cache 預置狀態，再呼叫 handlePostback（protected），驗證行為與 Cache 清理
  *   - 使用 Reflection 存取 protected 方法
- *   - Mock LineBotService::replyMessage 捕捉實際回傳的訊息內容
+ *   - Mock LineMessagingClientInterface::replyMessage 捕捉實際回傳的訊息內容
  */
 class LineBotCacheStateTest extends TestCase
 {
@@ -33,7 +33,7 @@ class LineBotCacheStateTest extends TestCase
     protected const REPLY_TOKEN = 'test_reply_token';
 
     protected LineBotController $controller;
-    protected LineBotService|\Mockery\MockInterface $mockLineBotService;
+    protected \Mockery\MockInterface $mockLineBotService;
 
     protected function setUp(): void
     {
@@ -47,18 +47,7 @@ class LineBotCacheStateTest extends TestCase
         Cache::flush();
 
         // 預備 Mock
-        $this->mockLineBotService = \Mockery::mock(LineBotService::class);
-
-        // buildBrowseTribesCarousel 預設回傳一個假 FlexMessage（多數測試只驗證 Cache，不關心回應內容）
-        $fakeFlexMessage = new \LINE\Clients\MessagingApi\Model\FlexMessage([
-            'type'    => 'flex',
-            'altText' => '魚類圖鑑共 0 筆，請選擇部落',
-            'contents' => ['type' => 'carousel', 'contents' => []],
-        ]);
-        $this->mockLineBotService
-            ->shouldReceive('buildBrowseTribesCarousel')
-            ->andReturn([$fakeFlexMessage])
-            ->byDefault();
+        $this->mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
 
         // getUserProfile 的預設回傳（upsertLineUserByProfile 內部用）
         $this->mockLineBotService
@@ -560,20 +549,13 @@ class LineBotCacheStateTest extends TestCase
     // =========================================================
 
     /**
-     * 點擊「瀏覽資料」回覆的是 FlexMessage Carousel（各部落一張卡片）
-     * 這個測試使用真實的 LineBotService 來驗證 Flex 結構
+     * 點擊「瀏覽資料」回覆的是單一 Flex bubble，並一次列出所有部落。
+     * 這個測試驗證瀏覽部落回覆的 Flex 結構
      */
-    public function test_browse_tribes_menu_reply_contains_tribe_flex_carousel(): void
+    public function test_browse_tribes_menu_reply_contains_tribe_flex_menu(): void
     {
         // 建立一些 Fish 資料（用於計算總數）
         \App\Models\Fish::factory()->count(3)->create();
-
-        // 覆寫 byDefault mock：讓這個測試呼叫真實的 buildBrowseTribesCarousel
-        $realService = new \App\Services\LineBotService();
-        $this->mockLineBotService
-            ->shouldReceive('buildBrowseTribesCarousel')
-            ->once()
-            ->andReturnUsing(fn () => $realService->buildBrowseTribesCarousel());
 
         $repliedMessages = [];
         $this->mockLineBotService
@@ -600,9 +582,20 @@ class LineBotCacheStateTest extends TestCase
         // altText 應包含部落選擇文字
         $this->assertStringContainsString('請選擇部落', $msg->getAltText());
 
-        // contents 應是 carousel 型別，且有 6 個部落 bubble
+        // contents 應是單一 bubble，body 內包含說明與全部部落按鈕
         $contents = $msg->getContents();
-        $this->assertEquals('carousel', $contents['type']);
-        $this->assertCount(6, $contents['contents']);
+        $this->assertEquals('bubble', $contents['type']);
+
+        $bodyContents = $contents['body']['contents'] ?? [];
+        $bodyTexts = array_values(array_filter(
+            array_map(fn ($item) => ($item['type'] ?? null) === 'text' ? ($item['text'] ?? null) : null, $bodyContents)
+        ));
+        $buttonActions = array_values(array_filter(
+            array_map(fn ($item) => ($item['type'] ?? null) === 'button' ? ($item['action'] ?? null) : null, $bodyContents)
+        ));
+
+        $this->assertContains('點選下列部落，觀看該部落的魚類資訊', $bodyTexts);
+        $this->assertCount(6, $buttonActions);
+        $this->assertSame('action=browse_tribe_data&tribe=iraraley', $buttonActions[0]['data'] ?? null);
     }
 }

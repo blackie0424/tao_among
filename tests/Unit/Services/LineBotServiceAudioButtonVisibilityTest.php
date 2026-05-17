@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\LineBotService;
+use App\Services\Line\LineFishMessageBuilder;
 use LINE\Clients\MessagingApi\Model\FlexMessage;
 use Tests\TestCase;
 
@@ -12,15 +12,15 @@ use Tests\TestCase;
  * - 無音檔 → body 不顯示任何發音相關按鈕
  *   （editor 透過 footer 的「🎤 提供發音」按鈕新增錄音）
  */
-class LineBotServiceAudioButtonVisibilityTest extends TestCase
+class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
 {
-    private LineBotService $service;
+    private LineFishMessageBuilder $service;
     private array $baseFish;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new LineBotService();
+        $this->service = new LineFishMessageBuilder();
         $this->baseFish = [
             'id'                     => 10,
             'name'                   => '測試魚',

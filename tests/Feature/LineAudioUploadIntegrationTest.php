@@ -10,7 +10,7 @@
  */
 
 use App\Http\Controllers\LineBotController;
-use App\Services\LineBotService;
+use App\Contracts\LineMessagingClientInterface;
 use App\Services\LineUploadService;
 use App\Http\Controllers\ApiFishController;
 use App\Models\Fish;
@@ -117,8 +117,8 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 2. 建立有效的音檔資料
         $audioBlob = $this->createValidM4aAudioBlob(5000);
         
-        // 3. Mock LineBotService 的 getMessageContent 方法
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // 3. Mock LINE messaging client 的 getMessageContent 方法
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('getMessageContent')
             ->once()
             ->with($messageId)
@@ -222,7 +222,7 @@ class LineAudioUploadIntegrationTest extends TestCase
         $audioBlob = $this->createValidM4aAudioBlob(8000);
         
         // 2. 直接調用 saveFishAudio 方法
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')->once();
         
         $controller = new LineBotController(
@@ -299,8 +299,8 @@ class LineAudioUploadIntegrationTest extends TestCase
             // 建立音檔資料
             $audioBlob = $this->createValidM4aAudioBlob(3000);
             
-            // Mock LineBotService
-            $mockLineBotService = \Mockery::mock(LineBotService::class);
+            // Mock LINE messaging client
+            $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
             
             if ($shouldAccept) {
                 $mockLineBotService->shouldReceive('getMessageContent')
@@ -410,8 +410,8 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 建立無效的音檔資料（太小）
         $invalidAudioBlob = str_repeat('x', 50); // 只有 50 bytes
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('getMessageContent')
             ->once()
             ->with($messageId)
@@ -483,8 +483,8 @@ class LineAudioUploadIntegrationTest extends TestCase
         
         // 不設定使用者狀態（模擬使用者未點擊「新增發音」就直接發送音檔）
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')
             ->once()
             ->with($replyToken, \Mockery::on(function ($messages) {
@@ -541,8 +541,8 @@ class LineAudioUploadIntegrationTest extends TestCase
         $duration = 3500;
         $audioBlob = $this->createValidM4aAudioBlob(4000);
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')->once();
         
         // 建立 controller
@@ -605,8 +605,8 @@ class LineAudioUploadIntegrationTest extends TestCase
         // 建立音檔資料
         $audioBlob = $this->createValidM4aAudioBlob(6000);
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('getMessageContent')
             ->once()
             ->with($messageId)
@@ -713,8 +713,8 @@ class LineAudioUploadIntegrationTest extends TestCase
         $duration = 3500;
         $audioBlob = $this->createValidM4aAudioBlob(5000);
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')->once();
         
         // 建立 controller
@@ -795,7 +795,7 @@ class LineAudioUploadIntegrationTest extends TestCase
             $duration = 2000 + ($i * 500);
             
             // Mock LineBotService
-            $mockLineBotService = \Mockery::mock(LineBotService::class);
+            $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
             $mockLineBotService->shouldReceive('replyMessage')->once();
             
             // 建立 controller

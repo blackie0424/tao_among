@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\LineBotController;
-use App\Services\LineBotService;
+use App\Contracts\LineMessagingClientInterface;
 use App\Services\LineUploadService;
 use App\Http\Controllers\ApiFishController;
 use App\Models\Fish;
@@ -48,8 +48,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
         
-        // Mock LineBotService 讓 getMessageContent 拋出例外
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client 讓 getMessageContent 拋出例外
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('getMessageContent')
             ->once()
             ->with($messageId)
@@ -128,8 +128,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         $this->app->instance(LineUploadService::class, $mockUploadService);
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')
             ->once()
             ->with('test_reply_token', \Mockery::type('array'));
@@ -196,8 +196,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         $this->app->instance(LineUploadService::class, $mockUploadService);
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')
             ->once()
             ->with('test_reply_token', \Mockery::type('array'));
@@ -246,8 +246,8 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
         
-        // Mock LineBotService
-        $mockLineBotService = \Mockery::mock(LineBotService::class);
+        // Mock LINE messaging client
+        $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')
             ->once()
             ->with('test_reply_token', \Mockery::type('array'));
@@ -374,7 +374,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
             'download_failure' => function () use ($userId, $fish) {
                 Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
                 
-                $mockLineBotService = \Mockery::mock(LineBotService::class);
+                $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
                 $mockLineBotService->shouldReceive('getMessageContent')->andThrow(new \Exception('Download failed'));
                 $mockLineBotService->shouldReceive('replyMessage');
                 
@@ -408,7 +408,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $mockUploadService->shouldReceive('uploadLineAudio')->andThrow(new \Exception('Upload failed'));
                 $this->app->instance(LineUploadService::class, $mockUploadService);
                 
-                $mockLineBotService = \Mockery::mock(LineBotService::class);
+                $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
                 $mockLineBotService->shouldReceive('replyMessage');
                 
                 $controller = new LineBotController(
@@ -427,7 +427,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
             'duration_exceeded' => function () use ($userId, $fish) {
                 Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
                 
-                $mockLineBotService = \Mockery::mock(LineBotService::class);
+                $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
                 $mockLineBotService->shouldReceive('replyMessage');
                 
                 $mockEvent = \Mockery::mock(\LINE\Webhook\Model\MessageEvent::class);

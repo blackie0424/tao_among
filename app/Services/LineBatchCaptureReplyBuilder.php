@@ -9,7 +9,7 @@ use LINE\Clients\MessagingApi\Model\TextMessage;
 class LineBatchCaptureReplyBuilder
 {
     public function __construct(
-        private readonly LineBatchCaptureCardService $lineBatchCaptureCardService,
+        private readonly LineBatchCaptureMessageBuilder $lineBatchCaptureMessageBuilder,
         private readonly LineBatchCaptureSummaryPresenter $lineBatchCaptureSummaryPresenter,
     ) {
     }
@@ -22,7 +22,7 @@ class LineBatchCaptureReplyBuilder
     {
         $view = $this->lineBatchCaptureSummaryPresenter->present($state, $images, $form);
 
-        return $this->lineBatchCaptureCardService->buildSummaryCard(
+        return $this->lineBatchCaptureMessageBuilder->buildSummaryCard(
             $fish,
             $images,
             $form,
@@ -40,7 +40,7 @@ class LineBatchCaptureReplyBuilder
             'style' => 'secondary',
         ], config('fish_options.tribes', []));
 
-        return $this->lineBatchCaptureCardService->buildOptionSelectorCard(
+        return $this->lineBatchCaptureMessageBuilder->buildOptionSelectorCard(
             '請選擇捕獲部落',
             trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
             $actions
@@ -59,7 +59,7 @@ class LineBatchCaptureReplyBuilder
             ];
         }
 
-        return $this->lineBatchCaptureCardService->buildOptionSelectorCard(
+        return $this->lineBatchCaptureMessageBuilder->buildOptionSelectorCard(
             '請選擇捕獲方式',
             trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
             $actions
@@ -68,7 +68,7 @@ class LineBatchCaptureReplyBuilder
 
     public function buildDateSelectionMessage(?string $prefix = null): FlexMessage
     {
-        return $this->lineBatchCaptureCardService->buildOptionSelectorCard(
+        return $this->lineBatchCaptureMessageBuilder->buildOptionSelectorCard(
             '請選擇捕獲日期',
             trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
             [

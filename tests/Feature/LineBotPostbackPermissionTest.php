@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\ApiFishController;
-use App\Services\LineBotService;
+use App\Contracts\LineMessagingClientInterface;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
@@ -47,7 +47,7 @@ class LineBotPostbackPermissionTest extends TestCase
 
         Cache::flush();
 
-        $this->mockLineBotService = \Mockery::mock(LineBotService::class);
+        $this->mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $this->mockLineBotService
             ->shouldReceive('getUserProfile')
             ->andReturn(['displayName' => 'Test User', 'pictureUrl' => null])

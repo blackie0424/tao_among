@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\LineBotController;
-use App\Services\LineBotService;
 use App\Http\Controllers\ApiFishController;
+use App\Contracts\LineMessagingClientInterface;
 use App\Contracts\LineUserServiceInterface;
 use App\Contracts\FishServiceInterface;
+use App\Services\Line\LineFishMessageBuilder;
+use App\Services\Line\LineMenuMessageBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -58,7 +60,7 @@ class LineBotControllerTest extends TestCase
      */
     public function test_build_help_message(): void
     {
-        $service = new LineBotService();
+        $service = new LineMenuMessageBuilder();
         $message = $service->buildHelpMessage();
         
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $message);
@@ -80,7 +82,7 @@ class LineBotControllerTest extends TestCase
             ],
         ];
 
-        $service = new LineBotService();
+        $service = new LineFishMessageBuilder();
         $message = $service->buildFishCard($fishData);
 
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $message);
@@ -92,7 +94,7 @@ class LineBotControllerTest extends TestCase
      */
     public function test_build_fish_list_message_empty(): void
     {
-        $service = new LineBotService();
+        $service = new LineFishMessageBuilder();
         $messages = $service->buildFishListMessage([]);
 
         $this->assertCount(1, $messages);
@@ -114,7 +116,7 @@ class LineBotControllerTest extends TestCase
             ],
         ];
 
-        $service = new LineBotService();
+        $service = new LineFishMessageBuilder();
         $messages = $service->buildFishListMessage($fishData);
 
         $this->assertCount(1, $messages);
@@ -141,7 +143,7 @@ class LineBotControllerTest extends TestCase
             ],
         ];
 
-        $service = new LineBotService();
+        $service = new LineFishMessageBuilder();
         $messages = $service->buildFishListMessage($fishData);
 
         $this->assertCount(1, $messages);
@@ -332,9 +334,9 @@ class LineBotControllerTest extends TestCase
 
         $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
 
-        // Mock LineBotService 的 replyMessage 方法
-        $mockLineBotService = \Mockery::mock(\App\Services\LineBotService::class);
-        $mockLineBotService->shouldReceive('replyMessage')
+        // Mock LINE messaging client 的 replyMessage 方法
+        $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
+        $mockLineMessagingClient->shouldReceive('replyMessage')
             ->once()
             ->with('test_reply_token', \Mockery::type('array'));
 
@@ -342,7 +344,7 @@ class LineBotControllerTest extends TestCase
         $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
         $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
         $controller = new LineBotController(
-            $mockLineBotService,
+            $mockLineMessagingClient,
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
@@ -396,9 +398,9 @@ class LineBotControllerTest extends TestCase
         // Mock Storage to avoid S3 configuration issues
         Storage::fake('s3');
 
-        // Mock LineBotService 的 replyMessage 方法（應該回覆錯誤訊息）
-        $mockLineBotService = \Mockery::mock(\App\Services\LineBotService::class);
-        $mockLineBotService->shouldReceive('replyMessage')
+        // Mock LINE messaging client 的 replyMessage 方法（應該回覆錯誤訊息）
+        $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
+        $mockLineMessagingClient->shouldReceive('replyMessage')
             ->once()
             ->with('test_reply_token', \Mockery::type('array'));
 
@@ -406,7 +408,7 @@ class LineBotControllerTest extends TestCase
         $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
         $mockLineUserService->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
         $controller = new LineBotController(
-            $mockLineBotService,
+            $mockLineMessagingClient,
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),
@@ -462,9 +464,9 @@ class LineBotControllerTest extends TestCase
 
             $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
 
-            // Mock LineBotService
-            $mockLineBotService = \Mockery::mock(\App\Services\LineBotService::class);
-            $mockLineBotService->shouldReceive('replyMessage')
+            // Mock LINE messaging client
+            $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
+            $mockLineMessagingClient->shouldReceive('replyMessage')
                 ->once()
                 ->with('test_reply_token', \Mockery::type('array'));
 
@@ -472,7 +474,7 @@ class LineBotControllerTest extends TestCase
             $mockLineUserService2 = \Mockery::mock(LineUserServiceInterface::class);
             $mockLineUserService2->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
             $controller = new LineBotController(
-                $mockLineBotService,
+                $mockLineMessagingClient,
                 $this->app->make(ApiFishController::class),
                 $this->app->make(\App\Services\UploadService::class),
                 $this->app->make(\App\Contracts\StorageServiceInterface::class),
@@ -532,9 +534,9 @@ class LineBotControllerTest extends TestCase
 
         $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
 
-        // Mock LineBotService 的 replyMessage 方法（應該回覆錯誤訊息）
-        $mockLineBotService = \Mockery::mock(\App\Services\LineBotService::class);
-        $mockLineBotService->shouldReceive('replyMessage')
+        // Mock LINE messaging client 的 replyMessage 方法（應該回覆錯誤訊息）
+        $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
+        $mockLineMessagingClient->shouldReceive('replyMessage')
             ->once()
             ->with('test_reply_token', \Mockery::type('array'));
 
@@ -542,7 +544,7 @@ class LineBotControllerTest extends TestCase
         $mockLineUserService3 = \Mockery::mock(LineUserServiceInterface::class);
         $mockLineUserService3->shouldReceive('upsert', 'getRole')->andReturn(new \App\Models\User())->byDefault();
         $controller = new LineBotController(
-            $mockLineBotService,
+            $mockLineMessagingClient,
             $this->app->make(ApiFishController::class),
             $this->app->make(\App\Services\UploadService::class),
             $this->app->make(\App\Contracts\StorageServiceInterface::class),

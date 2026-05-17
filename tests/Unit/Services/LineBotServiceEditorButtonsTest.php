@@ -1,6 +1,7 @@
 <?php
 
-use App\Services\LineBotService;
+use App\Services\Line\LineFishMessageBuilder;
+use App\Services\Line\LineMenuMessageBuilder;
 use LINE\Clients\MessagingApi\Model\FlexMessage;
 use Tests\TestCase;
 
@@ -11,16 +12,18 @@ use Tests\TestCase;
  * 1. 「修改名稱」和「提供發音」按鈕整合到圖卡 footer（不再放 Quick Reply）
  * 2. 只有 editor/admin 才能看到這兩個按鈕（透過 isEditor 參數控制）
  */
-class LineBotServiceEditorButtonsTest extends TestCase
+class LineFishMessageBuilderEditorButtonsTest extends TestCase
 {
     private array $baseFish;
-    private LineBotService $service;
+    private LineFishMessageBuilder $fishMessageBuilder;
+    private LineMenuMessageBuilder $menuMessageBuilder;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->service = new LineBotService();
+        $this->fishMessageBuilder = new LineFishMessageBuilder();
+        $this->menuMessageBuilder = new LineMenuMessageBuilder();
 
         $this->baseFish = [
             'id'                      => 1,
@@ -42,7 +45,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_editor_sees_rename_button_in_footer(): void
     {
-        $message = $this->service->buildFishCard($this->baseFish, null, true);
+        $message = $this->fishMessageBuilder->buildFishCard($this->baseFish, null, true);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -55,7 +58,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_editor_sees_audio_button_in_footer(): void
     {
-        $message = $this->service->buildFishCard($this->baseFish, null, true);
+        $message = $this->fishMessageBuilder->buildFishCard($this->baseFish, null, true);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -68,7 +71,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_editor_sees_batch_capture_button_in_footer(): void
     {
-        $message = $this->service->buildFishCard($this->baseFish, null, true);
+        $message = $this->fishMessageBuilder->buildFishCard($this->baseFish, null, true);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -81,7 +84,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_viewer_does_not_see_rename_button(): void
     {
-        $message = $this->service->buildFishCard($this->baseFish, null, false);
+        $message = $this->fishMessageBuilder->buildFishCard($this->baseFish, null, false);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -94,7 +97,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_viewer_does_not_see_audio_button(): void
     {
-        $message = $this->service->buildFishCard($this->baseFish, null, false);
+        $message = $this->fishMessageBuilder->buildFishCard($this->baseFish, null, false);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -107,7 +110,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_viewer_does_not_see_batch_capture_button(): void
     {
-        $message = $this->service->buildFishCard($this->baseFish, null, false);
+        $message = $this->fishMessageBuilder->buildFishCard($this->baseFish, null, false);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -120,7 +123,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_defaults_to_viewer_behavior(): void
     {
-        $message = $this->service->buildFishCard($this->baseFish);
+        $message = $this->fishMessageBuilder->buildFishCard($this->baseFish);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -136,7 +139,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     public function test_build_fish_card_editor_buttons_have_correct_fish_id(): void
     {
         $fish = array_merge($this->baseFish, ['id' => 42]);
-        $message = $this->service->buildFishCard($fish, null, true);
+        $message = $this->fishMessageBuilder->buildFishCard($fish, null, true);
 
         $json = $this->extractBubbleJson($message);
         $footerActions = $this->extractFooterButtonActions($json);
@@ -163,7 +166,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     public function test_build_fish_card_editor_with_capture_records(): void
     {
         $fish = array_merge($this->baseFish, ['capture_records_count' => 5]);
-        $message = $this->service->buildFishCard($fish, null, true);
+        $message = $this->fishMessageBuilder->buildFishCard($fish, null, true);
 
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
@@ -185,7 +188,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_with_quick_reply_editor_no_rename_in_qr(): void
     {
-        $message = $this->service->buildFishCardWithQuickReply($this->baseFish, true);
+        $message = $this->fishMessageBuilder->buildFishCardWithQuickReply($this->baseFish, true);
 
         $qrLabels = $this->extractQuickReplyLabels($message);
 
@@ -197,7 +200,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_with_quick_reply_editor_no_audio_in_qr(): void
     {
-        $message = $this->service->buildFishCardWithQuickReply($this->baseFish, true);
+        $message = $this->fishMessageBuilder->buildFishCardWithQuickReply($this->baseFish, true);
 
         $qrLabels = $this->extractQuickReplyLabels($message);
 
@@ -209,7 +212,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_with_quick_reply_viewer_no_editor_buttons_in_qr(): void
     {
-        $message = $this->service->buildFishCardWithQuickReply($this->baseFish, false);
+        $message = $this->fishMessageBuilder->buildFishCardWithQuickReply($this->baseFish, false);
 
         $qrLabels = $this->extractQuickReplyLabels($message);
 
@@ -224,7 +227,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     public function test_build_fish_card_with_quick_reply_unknown_fish_keeps_swap_button(): void
     {
         $unknownFish = array_merge($this->baseFish, ['name' => '我不知道']);
-        $message = $this->service->buildFishCardWithQuickReply($unknownFish, false);
+        $message = $this->fishMessageBuilder->buildFishCardWithQuickReply($unknownFish, false);
 
         $qrLabels = $this->extractQuickReplyLabels($message);
 
@@ -236,7 +239,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_with_quick_reply_normal_fish_viewer_may_have_empty_qr(): void
     {
-        $message = $this->service->buildFishCardWithQuickReply($this->baseFish, false);
+        $message = $this->fishMessageBuilder->buildFishCardWithQuickReply($this->baseFish, false);
 
         // Quick Reply 可能為 null 或為空陣列，不應有 editor 按鈕
         $qrLabels = $this->extractQuickReplyLabels($message);
@@ -255,7 +258,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     {
         $fishes = [$this->baseFish, array_merge($this->baseFish, ['id' => 2, 'name' => '魚二'])];
 
-        [$carouselMessage] = $this->service->buildFishBrowseCarousel(
+        [$carouselMessage] = $this->fishMessageBuilder->buildFishBrowseCarousel(
             $fishes,
             false,
             'action=next_page',
@@ -284,7 +287,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     {
         $fishes = [$this->baseFish, array_merge($this->baseFish, ['id' => 2, 'name' => '魚二'])];
 
-        [$carouselMessage] = $this->service->buildFishBrowseCarousel(
+        [$carouselMessage] = $this->fishMessageBuilder->buildFishBrowseCarousel(
             $fishes,
             false,
             'action=next_page',
@@ -305,6 +308,62 @@ class LineBotServiceEditorButtonsTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // buildBrowseTribesCarousel 測試
+    // ------------------------------------------------------------------
+
+    /**
+     * 部落選單應改為單一 Flex bubble，避免使用者滑動 carousel。
+     */
+    public function test_build_browse_tribes_carousel_returns_single_flex_bubble(): void
+    {
+        config(['fish_options.tribes' => ['iraraley', 'imowrod', 'ivalino']]);
+
+        [$message] = $this->menuMessageBuilder->buildBrowseTribesMenu();
+
+        $json = $this->extractBubbleJson($message);
+
+        $this->assertSame('flex', $json['type']);
+        $this->assertSame('bubble', $json['contents']['type']);
+        $this->assertStringContainsString('請選擇部落', $message->getAltText());
+    }
+
+    /**
+     * 部落選單應顯示說明文字，讓使用者知道可直接點選部落。
+     */
+    public function test_build_browse_tribes_carousel_contains_instruction_text(): void
+    {
+        config(['fish_options.tribes' => ['iraraley', 'imowrod']]);
+
+        [$message] = $this->menuMessageBuilder->buildBrowseTribesMenu();
+
+        $json = $this->extractBubbleJson($message);
+        $bodyTexts = $this->extractBodyTextContents($json);
+
+        $this->assertContains('點選下列部落，觀看該部落的魚類資訊', $bodyTexts);
+    }
+
+    /**
+     * 部落選單應一次列出所有部落按鈕，且沿用既有 postback data。
+     */
+    public function test_build_browse_tribes_carousel_lists_all_tribes_with_existing_postback_contract(): void
+    {
+        config(['fish_options.tribes' => ['iraraley', 'imowrod', 'ivalino']]);
+
+        [$message] = $this->menuMessageBuilder->buildBrowseTribesMenu();
+
+        $json = $this->extractBubbleJson($message);
+        $actions = $this->extractBodyButtonActions($json);
+
+        $this->assertCount(3, $actions);
+        $this->assertSame('Iraraley', $actions[0]['label'] ?? null);
+        $this->assertSame('action=browse_tribe_data&tribe=iraraley', $actions[0]['data'] ?? null);
+        $this->assertSame('Imowrod', $actions[1]['label'] ?? null);
+        $this->assertSame('action=browse_tribe_data&tribe=imowrod', $actions[1]['data'] ?? null);
+        $this->assertSame('Ivalino', $actions[2]['label'] ?? null);
+        $this->assertSame('action=browse_tribe_data&tribe=ivalino', $actions[2]['data'] ?? null);
+    }
+
+    // ------------------------------------------------------------------
     // buildFishListMessage 測試
     // ------------------------------------------------------------------
 
@@ -313,7 +372,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_list_message_single_editor_has_buttons(): void
     {
-        $messages = $this->service->buildFishListMessage([$this->baseFish], true);
+        $messages = $this->fishMessageBuilder->buildFishListMessage([$this->baseFish], true);
 
         $this->assertCount(1, $messages);
         $this->assertInstanceOf(FlexMessage::class, $messages[0]);
@@ -331,7 +390,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_list_message_single_viewer_no_buttons(): void
     {
-        $messages = $this->service->buildFishListMessage([$this->baseFish], false);
+        $messages = $this->fishMessageBuilder->buildFishListMessage([$this->baseFish], false);
 
         $this->assertCount(1, $messages);
         $json = $this->extractBubbleJson($messages[0]);
@@ -351,7 +410,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
             $this->baseFish,
             array_merge($this->baseFish, ['id' => 2, 'name' => '魚二']),
         ];
-        $messages = $this->service->buildFishListMessage($fishes, true);
+        $messages = $this->fishMessageBuilder->buildFishListMessage($fishes, true);
 
         $this->assertCount(1, $messages);
         $this->assertInstanceOf(FlexMessage::class, $messages[0]);
@@ -443,5 +502,41 @@ class LineBotServiceEditorButtonsTest extends TestCase
             }
         }
         return $labels;
+    }
+
+    /**
+     * 從 bubble JSON 提取 body 內所有文字內容。
+     */
+    private function extractBodyTextContents(array $bubbleJson): array
+    {
+        $bubble = $bubbleJson['contents'] ?? $bubbleJson;
+        $bodyContents = $bubble['body']['contents'] ?? [];
+        $texts = [];
+
+        foreach ($bodyContents as $item) {
+            if (($item['type'] ?? '') === 'text' && isset($item['text'])) {
+                $texts[] = $item['text'];
+            }
+        }
+
+        return $texts;
+    }
+
+    /**
+     * 從 bubble JSON 提取 body 所有按鈕 action。
+     */
+    private function extractBodyButtonActions(array $bubbleJson): array
+    {
+        $bubble = $bubbleJson['contents'] ?? $bubbleJson;
+        $bodyContents = $bubble['body']['contents'] ?? [];
+        $actions = [];
+
+        foreach ($bodyContents as $item) {
+            if (($item['type'] ?? '') === 'button' && isset($item['action'])) {
+                $actions[] = $item['action'];
+            }
+        }
+
+        return $actions;
     }
 }

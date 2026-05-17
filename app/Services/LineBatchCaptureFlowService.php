@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\LineMessagingClientInterface;
 use App\Models\Fish;
 use App\Services\LineBatchCapture\Actions\ConfirmLineBatchCaptureAction;
 use App\Services\LineBatchCapture\Actions\StartLineBatchCaptureAction;
@@ -47,9 +48,9 @@ class LineBatchCaptureFlowService
     private array $imageStateHandlers;
 
     public function __construct(
-        private readonly LineBotService $lineBotService,
+        private readonly LineMessagingClientInterface $lineMessagingClient,
         private readonly CaptureRecordBatchService $captureRecordBatchService,
-        private readonly LineBatchCaptureCardService $lineBatchCaptureCardService,
+        private readonly LineBatchCaptureMessageBuilder $lineBatchCaptureMessageBuilder,
         private readonly ?LineUploadService $lineUploadService = null,
         iterable $postbackHandlers = [],
         iterable $textStateHandlers = [],
@@ -232,42 +233,42 @@ class LineBatchCaptureFlowService
         $images = $this->getImages($userId);
         $form = $this->getForm($userId);
 
-        $this->lineBotService->replyMessage($replyToken, [
+        $this->lineMessagingClient->replyMessage($replyToken, [
             $this->lineBatchCaptureReplyBuilder()->buildSummaryMessage($fish, $images, $form, $state),
         ]);
     }
 
     public function replyTribeSelectionCard(string $replyToken, ?string $prefix = null): void
     {
-        $this->lineBotService->replyMessage($replyToken, [
+        $this->lineMessagingClient->replyMessage($replyToken, [
             $this->lineBatchCaptureReplyBuilder()->buildTribeSelectionMessage($prefix),
         ]);
     }
 
     public function replyMethodSelectionCard(string $replyToken, ?string $prefix = null): void
     {
-        $this->lineBotService->replyMessage($replyToken, [
+        $this->lineMessagingClient->replyMessage($replyToken, [
             $this->lineBatchCaptureReplyBuilder()->buildMethodSelectionMessage($prefix),
         ]);
     }
 
     public function replyDateSelectionCard(string $replyToken, ?string $prefix = null): void
     {
-        $this->lineBotService->replyMessage($replyToken, [
+        $this->lineMessagingClient->replyMessage($replyToken, [
             $this->lineBatchCaptureReplyBuilder()->buildDateSelectionMessage($prefix),
         ]);
     }
 
     public function replyText(string $replyToken, string $text): void
     {
-        $this->lineBotService->replyMessage($replyToken, [
+        $this->lineMessagingClient->replyMessage($replyToken, [
             $this->lineBatchCaptureReplyBuilder()->buildTextMessage($text),
         ]);
     }
 
     public function uploadLineImage(string $messageId): string
     {
-        $imageBlob = $this->lineBotService->getMessageContent($messageId);
+        $imageBlob = $this->lineMessagingClient->getMessageContent($messageId);
         $filename = $this->lineUploadService()->uploadLineImage($imageBlob);
 
         if (!$filename) {
