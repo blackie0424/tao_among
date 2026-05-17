@@ -334,7 +334,7 @@ class LineBotControllerTest extends TestCase
 
         $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
 
-        // Mock LineBotService 的 replyMessage 方法
+        // Mock LINE messaging client 的 replyMessage 方法
         $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineMessagingClient->shouldReceive('replyMessage')
             ->once()
@@ -398,7 +398,7 @@ class LineBotControllerTest extends TestCase
         // Mock Storage to avoid S3 configuration issues
         Storage::fake('s3');
 
-        // Mock LineBotService 的 replyMessage 方法（應該回覆錯誤訊息）
+        // Mock LINE messaging client 的 replyMessage 方法（應該回覆錯誤訊息）
         $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineMessagingClient->shouldReceive('replyMessage')
             ->once()
@@ -464,7 +464,7 @@ class LineBotControllerTest extends TestCase
 
             $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
 
-            // Mock LineBotService
+            // Mock LINE messaging client
             $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
             $mockLineMessagingClient->shouldReceive('replyMessage')
                 ->once()
@@ -534,7 +534,7 @@ class LineBotControllerTest extends TestCase
 
         $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
 
-        // Mock LineBotService 的 replyMessage 方法（應該回覆錯誤訊息）
+        // Mock LINE messaging client 的 replyMessage 方法（應該回覆錯誤訊息）
         $mockLineMessagingClient = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineMessagingClient->shouldReceive('replyMessage')
             ->once()

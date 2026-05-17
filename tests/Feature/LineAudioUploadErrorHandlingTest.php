@@ -48,7 +48,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
         
-        // Mock LineBotService 讓 getMessageContent 拋出例外
+        // Mock LINE messaging client 讓 getMessageContent 拋出例外
         $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('getMessageContent')
             ->once()
@@ -128,7 +128,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         $this->app->instance(LineUploadService::class, $mockUploadService);
         
-        // Mock LineBotService
+        // Mock LINE messaging client
         $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')
             ->once()
@@ -196,7 +196,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         $this->app->instance(LineUploadService::class, $mockUploadService);
         
-        // Mock LineBotService
+        // Mock LINE messaging client
         $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')
             ->once()
@@ -246,7 +246,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
         
-        // Mock LineBotService
+        // Mock LINE messaging client
         $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $mockLineBotService->shouldReceive('replyMessage')
             ->once()

@@ -12,7 +12,7 @@ use Tests\TestCase;
  * 1. 「修改名稱」和「提供發音」按鈕整合到圖卡 footer（不再放 Quick Reply）
  * 2. 只有 editor/admin 才能看到這兩個按鈕（透過 isEditor 參數控制）
  */
-class LineBotServiceEditorButtonsTest extends TestCase
+class LineFishMessageBuilderEditorButtonsTest extends TestCase
 {
     private array $baseFish;
     private LineFishMessageBuilder $fishMessageBuilder;

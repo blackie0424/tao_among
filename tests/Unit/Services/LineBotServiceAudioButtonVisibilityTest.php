@@ -12,7 +12,7 @@ use Tests\TestCase;
  * - 無音檔 → body 不顯示任何發音相關按鈕
  *   （editor 透過 footer 的「🎤 提供發音」按鈕新增錄音）
  */
-class LineBotServiceAudioButtonVisibilityTest extends TestCase
+class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
 {
     private LineFishMessageBuilder $service;
     private array $baseFish;
