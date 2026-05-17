@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\ApiFishController;
-use App\Services\LineBotService;
+use App\Contracts\LineMessagingClientInterface;
 use App\Services\UploadService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\LineUserServiceInterface;
@@ -23,7 +23,7 @@ use Tests\TestCase;
  * 測試策略：
  *   - 直接操作 Cache 預置狀態，再呼叫 handlePostback（protected），驗證行為與 Cache 清理
  *   - 使用 Reflection 存取 protected 方法
- *   - Mock LineBotService::replyMessage 捕捉實際回傳的訊息內容
+ *   - Mock LineMessagingClientInterface::replyMessage 捕捉實際回傳的訊息內容
  */
 class LineBotCacheStateTest extends TestCase
 {
@@ -33,7 +33,7 @@ class LineBotCacheStateTest extends TestCase
     protected const REPLY_TOKEN = 'test_reply_token';
 
     protected LineBotController $controller;
-    protected LineBotService|\Mockery\MockInterface $mockLineBotService;
+    protected \Mockery\MockInterface $mockLineBotService;
 
     protected function setUp(): void
     {
@@ -47,7 +47,7 @@ class LineBotCacheStateTest extends TestCase
         Cache::flush();
 
         // 預備 Mock
-        $this->mockLineBotService = \Mockery::mock(LineBotService::class);
+        $this->mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
 
         // getUserProfile 的預設回傳（upsertLineUserByProfile 內部用）
         $this->mockLineBotService
@@ -550,7 +550,7 @@ class LineBotCacheStateTest extends TestCase
 
     /**
      * 點擊「瀏覽資料」回覆的是單一 Flex bubble，並一次列出所有部落。
-     * 這個測試使用真實的 LineBotService 來驗證 Flex 結構
+     * 這個測試驗證瀏覽部落回覆的 Flex 結構
      */
     public function test_browse_tribes_menu_reply_contains_tribe_flex_menu(): void
     {

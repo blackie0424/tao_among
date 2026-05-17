@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\LineBotService;
+use App\Services\Line\LineFishMessageBuilder;
 use LINE\Clients\MessagingApi\Model\FlexMessage;
 use Tests\TestCase;
 
@@ -14,13 +14,13 @@ use Tests\TestCase;
  */
 class LineBotServiceAudioButtonVisibilityTest extends TestCase
 {
-    private LineBotService $service;
+    private LineFishMessageBuilder $service;
     private array $baseFish;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new LineBotService();
+        $this->service = new LineFishMessageBuilder();
         $this->baseFish = [
             'id'                     => 10,
             'name'                   => '測試魚',

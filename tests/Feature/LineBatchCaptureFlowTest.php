@@ -1,12 +1,12 @@
 <?php
 
 use App\Contracts\FishServiceInterface;
+use App\Contracts\LineMessagingClientInterface;
 use App\Contracts\LineUserServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\LineBotController;
 use App\Models\Fish;
-use App\Services\LineBotService;
 use App\Services\LineUploadService;
 use App\Services\UploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,7 +44,7 @@ class LineBatchCaptureFlowTest extends TestCase
 
         Cache::flush();
 
-        $this->mockLineBotService = \Mockery::mock(LineBotService::class);
+        $this->mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
         $this->mockLineBotService
             ->shouldReceive('getUserProfile')
             ->andReturn(['displayName' => 'Test User', 'pictureUrl' => null])
