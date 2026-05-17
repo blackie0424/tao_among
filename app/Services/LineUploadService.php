@@ -53,7 +53,7 @@ use Illuminate\Support\Str;
  * - 拋出包含詳細資訊的例外，便於除錯
  *
  * @package App\Services
- * @see \App\Services\LineBotService 用於從 LINE API 下載媒體內容
+ * @see \App\Services\Line\LineMessagingClient 用於從 LINE API 下載媒體內容
  * @see \App\Http\Controllers\LineBotController 使用此服務處理 LINE webhook
  */
 class LineUploadService
@@ -116,7 +116,7 @@ class LineUploadService
      *                    - S3 上傳失敗（包含 AWS 錯誤碼）
      *                    - 上傳後驗證失敗
      *
-     * @see \App\Services\LineBotService::getMessageContent() 取得音檔 stream
+     * @see \App\Services\Line\LineMessagingClient::getMessageContent() 取得音檔 stream
      * @see \App\Http\Controllers\LineBotController::handleAudioMessage() 使用此方法
      */
     public function uploadLineAudio($audioStream, ?string $extension = 'm4a'): string
@@ -261,7 +261,7 @@ class LineUploadService
      *                    - S3 上傳失敗（包含 AWS 錯誤碼）
      *                    - 上傳後驗證失敗
      *
-     * @see \App\Services\LineBotService::getMessageContent() 取得圖片 stream
+     * @see \App\Services\Line\LineMessagingClient::getMessageContent() 取得圖片 stream
      * @see \App\Http\Controllers\LineBotController::handleImageMessage() 使用此方法
      */
     public function uploadLineImage($imageStream, ?string $extension = 'jpg'): string

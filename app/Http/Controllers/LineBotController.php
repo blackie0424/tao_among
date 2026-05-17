@@ -2,59 +2,67 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\FishServiceInterface;
+use App\Contracts\LineMessagingClientInterface;
+use App\Contracts\LineUserServiceInterface;
+use App\Contracts\StorageServiceInterface;
+use App\Http\Controllers\ApiFishController;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use App\Services\LineBotService;
+use App\Services\CaptureRecordBatchService;
+use App\Services\Line\LineFishMessageBuilder;
+use App\Services\Line\LineMenuMessageBuilder;
 use App\Services\LineBatchCaptureCardService;
 use App\Services\LineBatchCaptureFlowService;
-use App\Services\CaptureRecordBatchService;
-use App\Http\Controllers\ApiFishController;
-use App\Contracts\LineUserServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use LINE\Parser\EventRequestParser;
 use LINE\Parser\Exception\InvalidSignatureException;
-use LINE\Webhook\Model\MessageEvent;
 use LINE\Webhook\Model\FollowEvent;
+use LINE\Webhook\Model\ImageMessageContent;
+use LINE\Webhook\Model\MessageEvent;
+use LINE\Webhook\Model\PostbackEvent;
 use LINE\Webhook\Model\TextMessageContent;
 use LINE\Webhook\Model\AudioMessageContent;
-use LINE\Webhook\Model\ImageMessageContent;
-use LINE\Webhook\Model\PostbackEvent;
 use App\Services\UploadService;
-use App\Contracts\StorageServiceInterface;
-use App\Contracts\FishServiceInterface;
 
 class LineBotController extends Controller
 {
-    protected $lineBotService;
+    protected LineMessagingClientInterface $lineMessagingClient;
     protected $apiFishController;
     protected $uploadService;
     protected $storageService;
     protected LineUserServiceInterface $lineUserService;
     protected FishServiceInterface $fishService;
     protected LineBatchCaptureFlowService $lineBatchCaptureFlowService;
+    protected LineFishMessageBuilder $lineFishMessageBuilder;
+    protected LineMenuMessageBuilder $lineMenuMessageBuilder;
 
     public function __construct(
-        LineBotService $lineBotService,
+        LineMessagingClientInterface $lineMessagingClient,
         ApiFishController $apiFishController,
         UploadService $uploadService,
         StorageServiceInterface $storageService,
         LineUserServiceInterface $lineUserService,
         FishServiceInterface $fishService,
-        ?LineBatchCaptureFlowService $lineBatchCaptureFlowService = null
+        ?LineBatchCaptureFlowService $lineBatchCaptureFlowService = null,
+        ?LineFishMessageBuilder $lineFishMessageBuilder = null,
+        ?LineMenuMessageBuilder $lineMenuMessageBuilder = null
     ) {
-        $this->lineBotService = $lineBotService;
+        $this->lineMessagingClient = $lineMessagingClient;
         $this->apiFishController = $apiFishController;
         $this->uploadService = $uploadService;
         $this->storageService = $storageService;
         $this->lineUserService = $lineUserService;
         $this->fishService = $fishService;
+        $this->lineFishMessageBuilder = $lineFishMessageBuilder ?? app(LineFishMessageBuilder::class);
+        $this->lineMenuMessageBuilder = $lineMenuMessageBuilder ?? app(LineMenuMessageBuilder::class);
         $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
             ?? new LineBatchCaptureFlowService(
-                $lineBotService,
+                $lineMessagingClient,
                 app(CaptureRecordBatchService::class),
                 app(LineBatchCaptureCardService::class)
             );
@@ -76,7 +84,7 @@ class LineBotController extends Controller
             }
 
             // 驗證簽章
-            if (!$this->lineBotService->validateSignature($body, $signature)) {
+            if (!$this->lineMessagingClient->validateSignature($body, $signature)) {
                 Log::warning('LINE Webhook: Invalid signature');
                 return response()->json(['error' => 'Invalid signature'], 400);
             }
@@ -136,7 +144,7 @@ class LineBotController extends Controller
     protected function upsertLineUserByProfile(string $userId): void
     {
         try {
-            $profile = $this->lineBotService->getUserProfile($userId);
+            $profile = $this->lineMessagingClient->getUserProfile($userId);
             $this->lineUserService->upsert(
                 $userId,
                 $profile['displayName'] ?? $userId,
@@ -167,8 +175,8 @@ class LineBotController extends Controller
 
         // 空白訊息，回傳使用說明
         if (empty($text)) {
-            $this->lineBotService->replyMessage($replyToken, [
-                $this->lineBotService->buildHelpMessage(),
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                $this->lineMenuMessageBuilder->buildHelpMessage(),
             ]);
             return;
         }
@@ -178,7 +186,7 @@ class LineBotController extends Controller
 
         if ($createFishState === 'waiting_image') {
             // 正在等待圖片，文字訊息應被忽略並提示
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '📷 請傳送一張魚類圖片，或點選下方取消放棄新增。',
@@ -202,7 +210,7 @@ class LineBotController extends Controller
 
         if ($createFishState === 'waiting_more_images') {
             $count = count(Cache::get("line_user_{$userId}_create_fish_images", []));
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => "📷 已收到 {$count} 張圖片。\n請繼續傳送更多圖片，或點選「✅ 完成上傳」。",
@@ -235,7 +243,7 @@ class LineBotController extends Controller
 
         if ($createFishState === 'waiting_name_choice') {
             // 正在等待名稱選擇（Quick Reply），文字訊息應被忽略並提示
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '請點選上方按鈕選擇魚類名稱方式，或取消新增。',
@@ -325,10 +333,10 @@ class LineBotController extends Controller
             $fishes = $data['data'] ?? [];
 
             // 建立回應訊息
-            $messages = $this->lineBotService->buildFishListMessage($fishes, $isEditor);
+            $messages = $this->lineFishMessageBuilder->buildFishListMessage($fishes, $isEditor);
 
             // 回覆訊息
-            $this->lineBotService->replyMessage($replyToken, $messages);
+            $this->lineMessagingClient->replyMessage($replyToken, $messages);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot search fish failed', [
@@ -337,7 +345,7 @@ class LineBotController extends Controller
             ]);
 
             // 回覆錯誤訊息
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '查詢時發生錯誤，請稍後再試。',
@@ -367,7 +375,7 @@ class LineBotController extends Controller
 
         // 只有在 waiting_image 或 waiting_more_images 狀態才接受圖片
         if ($state !== 'waiting_image' && $state !== 'waiting_more_images') {
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '目前不在圖片上傳流程中。如要新增魚類，請點選圖文選單「新增魚類 ➕」；如要批次新增捕獲紀錄，請先從魚卡點擊按鈕。',
@@ -381,7 +389,7 @@ class LineBotController extends Controller
 
         // 已達上限，提示完成
         if (count($existingImages) >= $maxImages) {
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => "📷 已達上限（{$maxImages} 張），請點選「✅ 完成上傳」繼續。",
@@ -415,7 +423,7 @@ class LineBotController extends Controller
         try {
             // 下載圖片
             $messageId = $event->getMessage()->getId();
-            $imageBlob = $this->lineBotService->getMessageContent($messageId);
+            $imageBlob = $this->lineMessagingClient->getMessageContent($messageId);
 
             // 上傳到 S3（使用 LineUploadService，與音訊上傳一致）
             $lineUploadService = app(\App\Services\LineUploadService::class);
@@ -446,7 +454,7 @@ class LineBotController extends Controller
 
             // 使用 Flex Message 卡片，按鈕內嵌在訊息泡泡中
             // 避免 Quick Reply 在 LINE 相冊 UI 下被遮擋、需要上滑才能看到的問題
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\FlexMessage([
                     'type'     => 'flex',
                     'altText'  => "{$countLabel}，請點選完成上傳或繼續傳送",
@@ -514,7 +522,7 @@ class LineBotController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '❌ 圖片處理失敗，請稍後再試',
@@ -535,7 +543,7 @@ class LineBotController extends Controller
             $data = $response->getData(true);
 
             if (empty($data['data'])) {
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => '目前沒有待命名的魚類。',
@@ -547,17 +555,17 @@ class LineBotController extends Controller
             $fish = $data['data'];
 
             // 建立帶 Quick Reply 的魚類卡片
-            $card = $this->lineBotService->buildFishCardWithQuickReply($fish, $isEditor);
+            $card = $this->lineFishMessageBuilder->buildFishCardWithQuickReply($fish, $isEditor);
 
             // 回覆訊息
-            $this->lineBotService->replyMessage($replyToken, [$card]);
+            $this->lineMessagingClient->replyMessage($replyToken, [$card]);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot handle random unknown fish failed', [
                 'error' => $e->getMessage(),
             ]);
 
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '查詢時發生錯誤，請稍後再試。',
@@ -622,7 +630,7 @@ class LineBotController extends Controller
                 ]);
             }
 
-            $this->lineBotService->replyMessage($replyToken, [$message]);
+            $this->lineMessagingClient->replyMessage($replyToken, [$message]);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot rename fish failed', [
@@ -635,7 +643,7 @@ class LineBotController extends Controller
             // 清除狀態
             Cache::forget("line_user_{$userId}_renaming_fish");
 
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '❌ 更新名稱時發生錯誤，請稍後再試。',
@@ -666,7 +674,7 @@ class LineBotController extends Controller
                 'userId' => $userId,
             ]);
             
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '請先點擊「🎤 新增發音」按鈕',
@@ -711,7 +719,7 @@ class LineBotController extends Controller
                         ],
                     ],
                 ]);
-                $this->lineBotService->replyMessage($replyToken, [$retryMessage]);
+                $this->lineMessagingClient->replyMessage($replyToken, [$retryMessage]);
                 return;
             }
             
@@ -723,7 +731,7 @@ class LineBotController extends Controller
             
             // 下載語音內容
             try {
-                $audioBlob = $this->lineBotService->getMessageContent($messageId);
+                $audioBlob = $this->lineMessagingClient->getMessageContent($messageId);
             } catch (\Exception $e) {
                 // 保留狀態，讓使用者可以重試
                 Log::error('LINE Bot failed to download audio from LINE API', [
@@ -753,7 +761,7 @@ class LineBotController extends Controller
                         ],
                     ],
                 ]);
-                $this->lineBotService->replyMessage($replyToken, [$retryMessage]);
+                $this->lineMessagingClient->replyMessage($replyToken, [$retryMessage]);
                 return;
             }
             
@@ -793,7 +801,7 @@ class LineBotController extends Controller
                         ],
                     ],
                 ]);
-                $this->lineBotService->replyMessage($replyToken, [$retryMessage]);
+                $this->lineMessagingClient->replyMessage($replyToken, [$retryMessage]);
                 return;
             }
             
@@ -814,7 +822,7 @@ class LineBotController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '❌ 處理音檔時發生錯誤，請稍後再試',
@@ -994,7 +1002,7 @@ class LineBotController extends Controller
             ]);
             
             // 回覆成功訊息
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => "✅ 發音檔已成功新增！\n💡 不滿意可再次錄製覆蓋",
@@ -1014,7 +1022,7 @@ class LineBotController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '❌ 儲存音檔時發生錯誤，請稍後再試',
@@ -1055,7 +1063,7 @@ class LineBotController extends Controller
                 ...$this->lineBatchCaptureFlowService->protectedActions(),
             ];
             if (in_array($action, $protectedActions) && !$isEditor) {
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => '⚠️ 您沒有此功能的使用權限。',
@@ -1089,9 +1097,9 @@ class LineBotController extends Controller
                 Cache::forget("line_user_{$userId}_create_fish_images");
                 $this->clearBatchCaptureState($userId);
 
-                $messages = $this->lineBotService->buildBrowseTribesCarousel();
+                $messages = $this->lineMenuMessageBuilder->buildBrowseTribesMenu();
 
-                $this->lineBotService->replyMessage($replyToken, $messages);
+                $this->lineMessagingClient->replyMessage($replyToken, $messages);
                 return;
             }
 
@@ -1143,7 +1151,7 @@ class LineBotController extends Controller
                 $this->clearBatchCaptureState($userId);
                 Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
                 
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => "🐟 新增魚類\n\n請傳送一張魚類圖片",
@@ -1175,7 +1183,7 @@ class LineBotController extends Controller
             if ($action === 'create_fish_need_name') {
                 Cache::put("line_user_{$userId}_create_fish_state", 'waiting_custom_name', now()->addMinutes(5));
                 
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => "請輸入魚類名稱：",
@@ -1202,7 +1210,7 @@ class LineBotController extends Controller
                 Cache::forget("line_user_{$userId}_create_fish_images");
                 Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(15));
                 
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => "請重新傳送魚類圖片",
@@ -1229,7 +1237,7 @@ class LineBotController extends Controller
                 $images = Cache::get("line_user_{$userId}_create_fish_images", []);
                 if (empty($images)) {
                     Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(15));
-                    $this->lineBotService->replyMessage($replyToken, [
+                    $this->lineMessagingClient->replyMessage($replyToken, [
                         new \LINE\Clients\MessagingApi\Model\TextMessage([
                             'type' => 'text',
                             'text' => '尚未收到任何圖片，請先傳送魚類圖片。',
@@ -1252,7 +1260,7 @@ class LineBotController extends Controller
                 }
                 Cache::put("line_user_{$userId}_create_fish_state", 'waiting_name_choice', now()->addMinutes(10));
                 $count = count($images);
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => "已收到 {$count} 張圖片，請選擇魚類名稱：",
@@ -1298,7 +1306,7 @@ class LineBotController extends Controller
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
                 
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => '✅ 已取消新增魚類',
@@ -1324,7 +1332,7 @@ class LineBotController extends Controller
                 if ($fish && !empty($fish->audio_url)) {
                     $duration = $fish->audio_duration ?? 3000;
 
-                    $this->lineBotService->replyMessage($replyToken, [
+                    $this->lineMessagingClient->replyMessage($replyToken, [
                         new \LINE\Clients\MessagingApi\Model\TextMessage([
                             'type' => 'text',
                             'text' => "🔊 這是「{$fishName}」的發音：",
@@ -1336,7 +1344,7 @@ class LineBotController extends Controller
                         ]),
                     ]);
                 } else {
-                    $this->lineBotService->replyMessage($replyToken, [
+                    $this->lineMessagingClient->replyMessage($replyToken, [
                         new \LINE\Clients\MessagingApi\Model\TextMessage([
                             'type' => 'text',
                             'text' => "🔇 找不到「{$fishName}」的發音檔案。",
@@ -1373,7 +1381,7 @@ class LineBotController extends Controller
                     ]);
                 }
 
-                $this->lineBotService->replyMessage($replyToken, [$message]);
+                $this->lineMessagingClient->replyMessage($replyToken, [$message]);
                 return;
             }
 
@@ -1417,7 +1425,7 @@ class LineBotController extends Controller
                 $fishId = $params['fish_id'] ?? null;
 
                 if (!$fishId) {
-                    $this->lineBotService->replyMessage($replyToken, [
+                    $this->lineMessagingClient->replyMessage($replyToken, [
                         new \LINE\Clients\MessagingApi\Model\TextMessage([
                             'type' => 'text',
                             'text' => '❌ 無法取得魚類資料，請重新操作。',
@@ -1447,7 +1455,7 @@ class LineBotController extends Controller
                 ]);
                 $message->setQuickReply(['items' => $tribeItems]);
 
-                $this->lineBotService->replyMessage($replyToken, [$message]);
+                $this->lineMessagingClient->replyMessage($replyToken, [$message]);
                 return;
             }
 
@@ -1459,7 +1467,7 @@ class LineBotController extends Controller
                 // 驗證部落是否合法
                 $validTribes = config('fish_options.tribes', []);
                 if (!$fishId || !$tribe || !in_array($tribe, $validTribes)) {
-                    $this->lineBotService->replyMessage($replyToken, [
+                    $this->lineMessagingClient->replyMessage($replyToken, [
                         new \LINE\Clients\MessagingApi\Model\TextMessage([
                             'type' => 'text',
                             'text' => '❌ 部落資料無效，請重新操作。',
@@ -1474,7 +1482,7 @@ class LineBotController extends Controller
                 // 清除暫存的 pending fishId
                 Cache::forget("line_user_{$userId}_pending_audio_fish");
 
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => "✅ 已選擇部落：" . ucfirst($tribe) . "\n\n🎤 請錄製魚類發音（限 5 秒以內）\n💡 不滿意可再次錄製覆蓋",
@@ -1488,7 +1496,7 @@ class LineBotController extends Controller
                 $fishId = $params['fish_id'] ?? null;
 
                 if (!$fishId) {
-                    $this->lineBotService->replyMessage($replyToken, [
+                    $this->lineMessagingClient->replyMessage($replyToken, [
                         new \LINE\Clients\MessagingApi\Model\TextMessage([
                             'type' => 'text',
                             'text' => '❌ 無法取得魚類資料，請重新操作。',
@@ -1505,7 +1513,7 @@ class LineBotController extends Controller
                     Cache::put("line_user_{$userId}_audio_tribe", $existingTribe, now()->addMinutes(5));
                 }
 
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => "🎤 請重新錄製（限 5 秒以內）\n💡 不滿意可再次錄製覆蓋",
@@ -1522,7 +1530,7 @@ class LineBotController extends Controller
                 // 儲存狀態到 Cache（5 分鐘過期）
                 Cache::put("line_user_{$userId}_renaming_fish", $fishId, now()->addMinutes(5));
 
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => '請輸入新的魚類名稱：',
@@ -1547,16 +1555,16 @@ class LineBotController extends Controller
 
                     if ($fish && !empty($fish['capture_records'])) {
                         // 建立捕獲紀錄輪播訊息
-                        $message = $this->lineBotService->buildCaptureRecordsCarousel(
+                        $message = $this->lineFishMessageBuilder->buildCaptureRecordsCarousel(
                             $fish['capture_records'],
                             $fish['name']
                         );
 
                         // 回覆訊息
-                        $this->lineBotService->replyMessage($replyToken, [$message]);
+                        $this->lineMessagingClient->replyMessage($replyToken, [$message]);
                     } else {
                         // 沒有捕獲紀錄
-                        $this->lineBotService->replyMessage($replyToken, [
+                        $this->lineMessagingClient->replyMessage($replyToken, [
                             new \LINE\Clients\MessagingApi\Model\TextMessage([
                                 'type' => 'text',
                                 'text' => '目前沒有捕獲紀錄。',
@@ -1578,7 +1586,7 @@ class LineBotController extends Controller
             ]);
 
             // 回覆錯誤訊息
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '處理請求時發生錯誤，請稍後再試。',
@@ -1619,7 +1627,7 @@ class LineBotController extends Controller
             // 食用分類篩選：顯示兩個預設部落（iraraley + imowrod）
             $contextTribes = ($filterType === 'tribe') ? [$filterValue] : null;
 
-            $messages = $this->lineBotService->buildFishBrowseCarousel(
+            $messages = $this->lineFishMessageBuilder->buildFishBrowseCarousel(
                 $fishes,
                 $hasMore,
                 $nextPageData,
@@ -1628,7 +1636,7 @@ class LineBotController extends Controller
                 $isEditor
             );
 
-            $this->lineBotService->replyMessage($replyToken, $messages);
+            $this->lineMessagingClient->replyMessage($replyToken, $messages);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot handleBrowseByFilter failed', [
@@ -1638,7 +1646,7 @@ class LineBotController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '載入魚類資料時發生錯誤，請稍後再試。',
@@ -1659,7 +1667,7 @@ class LineBotController extends Controller
 
             $fishes = $data['data'] ?? [];
 
-            $messages = $this->lineBotService->buildFishBrowseCarousel(
+            $messages = $this->lineFishMessageBuilder->buildFishBrowseCarousel(
                 $fishes,
                 false, // 隨機瀏覽沒有「下一頁」概念，每次都重新隨機
                 'action=random_browse',
@@ -1685,14 +1693,14 @@ class LineBotController extends Controller
                 ]);
             }
 
-            $this->lineBotService->replyMessage($replyToken, $messages);
+            $this->lineMessagingClient->replyMessage($replyToken, $messages);
 
         } catch (\Exception $e) {
             Log::error('LINE Bot handleRandomBrowse failed', [
                 'error' => $e->getMessage(),
             ]);
 
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '載入隨機魚類時發生錯誤，請稍後再試。',
@@ -1715,7 +1723,7 @@ class LineBotController extends Controller
             $filenames = Cache::get("line_user_{$userId}_create_fish_images", []);
 
             if (empty($filenames)) {
-                $this->lineBotService->replyMessage($replyToken, [
+                $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
                         'text' => '❌ 圖片資料已過期，請重新上傳',
@@ -1742,7 +1750,7 @@ class LineBotController extends Controller
             $previewUrl = $this->storageService->getUrl('images', $filenames[0]);
             $countNote  = count($filenames) > 1 ? '（共 ' . count($filenames) . ' 張圖片）' : '';
 
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => "✅ 成功新增魚類「{$fish->name}」{$countNote}",
@@ -1765,7 +1773,7 @@ class LineBotController extends Controller
                 'trace'  => $e->getTraceAsString(),
             ]);
 
-            $this->lineBotService->replyMessage($replyToken, [
+            $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '❌ 新增魚類失敗，請稍後再試',

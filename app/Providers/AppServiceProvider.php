@@ -5,20 +5,22 @@ namespace App\Providers;
 use App\Contracts\FishStatisticsServiceInterface;
 use App\Contracts\FishServiceInterface;
 use App\Contracts\FishSearchServiceInterface;
-use App\Contracts\StorageServiceInterface;
+use App\Contracts\LineMessagingClientInterface;
 use App\Contracts\LineUserServiceInterface;
-use App\Contracts\RichMenuServiceInterface;
 use App\Contracts\CaptureSessionServiceInterface;
+use App\Contracts\RichMenuServiceInterface;
+use App\Contracts\StorageServiceInterface;
 use App\Services\FishService;
 use App\Services\FishSearchService;
 use App\Services\FishStatisticsService;
+use App\Services\Line\LineMessagingClient;
+use App\Services\LineUserService;
+use App\Services\CaptureSessionService;
+use App\Services\RichMenuService;
 use App\Services\S3StorageService;
 use App\Services\SupabaseStorageService;
-use App\Services\LineUserService;
-use App\Services\RichMenuService;
-use App\Services\CaptureSessionService;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
         // LINE 角色機制服務綁定
         $this->app->bind(RichMenuServiceInterface::class, RichMenuService::class);
         $this->app->bind(LineUserServiceInterface::class, LineUserService::class);
+        $this->app->bind(LineMessagingClientInterface::class, LineMessagingClient::class);
 
         // 魚類統計報告服務綁定
         $this->app->bind(FishStatisticsServiceInterface::class, FishStatisticsService::class);

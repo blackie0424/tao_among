@@ -49,17 +49,6 @@ class LineBotCacheStateTest extends TestCase
         // 預備 Mock
         $this->mockLineBotService = \Mockery::mock(LineBotService::class);
 
-        // buildBrowseTribesCarousel 預設回傳一個假 FlexMessage（多數測試只驗證 Cache，不關心回應內容）
-        $fakeFlexMessage = new \LINE\Clients\MessagingApi\Model\FlexMessage([
-            'type'    => 'flex',
-            'altText' => '魚類圖鑑共 0 筆，請選擇部落',
-            'contents' => ['type' => 'carousel', 'contents' => []],
-        ]);
-        $this->mockLineBotService
-            ->shouldReceive('buildBrowseTribesCarousel')
-            ->andReturn([$fakeFlexMessage])
-            ->byDefault();
-
         // getUserProfile 的預設回傳（upsertLineUserByProfile 內部用）
         $this->mockLineBotService
             ->shouldReceive('getUserProfile')
@@ -567,13 +556,6 @@ class LineBotCacheStateTest extends TestCase
     {
         // 建立一些 Fish 資料（用於計算總數）
         \App\Models\Fish::factory()->count(3)->create();
-
-        // 覆寫 byDefault mock：讓這個測試呼叫真實的 buildBrowseTribesCarousel
-        $realService = new \App\Services\LineBotService();
-        $this->mockLineBotService
-            ->shouldReceive('buildBrowseTribesCarousel')
-            ->once()
-            ->andReturnUsing(fn () => $realService->buildBrowseTribesCarousel());
 
         $repliedMessages = [];
         $this->mockLineBotService

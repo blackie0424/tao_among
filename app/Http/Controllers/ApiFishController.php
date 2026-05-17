@@ -534,7 +534,7 @@ class ApiFishController extends Controller
             });
         } elseif ($filterType === 'tribe') {
             // 根據需求，瀏覽特定部落時不進行過濾，回傳所有魚類
-            // 並將依靠 LineBotService 動態生成該部落的區塊，沒有該部落資料者將會顯示「尚未紀錄」
+            // 並由 LINE 魚類訊息 builder 動態生成該部落的區塊，沒有該部落資料者將會顯示「尚未紀錄」
         } else {
             return response()->json([
                 'message' => 'Invalid filter_type. Use food_category or tribe.',
