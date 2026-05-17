@@ -305,6 +305,62 @@ class LineBotServiceEditorButtonsTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // buildBrowseTribesCarousel 測試
+    // ------------------------------------------------------------------
+
+    /**
+     * 部落選單應改為單一 Flex bubble，避免使用者滑動 carousel。
+     */
+    public function test_build_browse_tribes_carousel_returns_single_flex_bubble(): void
+    {
+        config(['fish_options.tribes' => ['iraraley', 'imowrod', 'ivalino']]);
+
+        [$message] = $this->service->buildBrowseTribesCarousel();
+
+        $json = $this->extractBubbleJson($message);
+
+        $this->assertSame('flex', $json['type']);
+        $this->assertSame('bubble', $json['contents']['type']);
+        $this->assertStringContainsString('請選擇部落', $message->getAltText());
+    }
+
+    /**
+     * 部落選單應顯示說明文字，讓使用者知道可直接點選部落。
+     */
+    public function test_build_browse_tribes_carousel_contains_instruction_text(): void
+    {
+        config(['fish_options.tribes' => ['iraraley', 'imowrod']]);
+
+        [$message] = $this->service->buildBrowseTribesCarousel();
+
+        $json = $this->extractBubbleJson($message);
+        $bodyTexts = $this->extractBodyTextContents($json);
+
+        $this->assertContains('點選下列部落，觀看該部落的魚類資訊', $bodyTexts);
+    }
+
+    /**
+     * 部落選單應一次列出所有部落按鈕，且沿用既有 postback data。
+     */
+    public function test_build_browse_tribes_carousel_lists_all_tribes_with_existing_postback_contract(): void
+    {
+        config(['fish_options.tribes' => ['iraraley', 'imowrod', 'ivalino']]);
+
+        [$message] = $this->service->buildBrowseTribesCarousel();
+
+        $json = $this->extractBubbleJson($message);
+        $actions = $this->extractBodyButtonActions($json);
+
+        $this->assertCount(3, $actions);
+        $this->assertSame('Iraraley', $actions[0]['label'] ?? null);
+        $this->assertSame('action=browse_tribe_data&tribe=iraraley', $actions[0]['data'] ?? null);
+        $this->assertSame('Imowrod', $actions[1]['label'] ?? null);
+        $this->assertSame('action=browse_tribe_data&tribe=imowrod', $actions[1]['data'] ?? null);
+        $this->assertSame('Ivalino', $actions[2]['label'] ?? null);
+        $this->assertSame('action=browse_tribe_data&tribe=ivalino', $actions[2]['data'] ?? null);
+    }
+
+    // ------------------------------------------------------------------
     // buildFishListMessage 測試
     // ------------------------------------------------------------------
 
@@ -443,5 +499,41 @@ class LineBotServiceEditorButtonsTest extends TestCase
             }
         }
         return $labels;
+    }
+
+    /**
+     * 從 bubble JSON 提取 body 內所有文字內容。
+     */
+    private function extractBodyTextContents(array $bubbleJson): array
+    {
+        $bubble = $bubbleJson['contents'] ?? $bubbleJson;
+        $bodyContents = $bubble['body']['contents'] ?? [];
+        $texts = [];
+
+        foreach ($bodyContents as $item) {
+            if (($item['type'] ?? '') === 'text' && isset($item['text'])) {
+                $texts[] = $item['text'];
+            }
+        }
+
+        return $texts;
+    }
+
+    /**
+     * 從 bubble JSON 提取 body 所有按鈕 action。
+     */
+    private function extractBodyButtonActions(array $bubbleJson): array
+    {
+        $bubble = $bubbleJson['contents'] ?? $bubbleJson;
+        $bodyContents = $bubble['body']['contents'] ?? [];
+        $actions = [];
+
+        foreach ($bodyContents as $item) {
+            if (($item['type'] ?? '') === 'button' && isset($item['action'])) {
+                $actions[] = $item['action'];
+            }
+        }
+
+        return $actions;
     }
 }

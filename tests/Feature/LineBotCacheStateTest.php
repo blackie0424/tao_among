@@ -560,10 +560,10 @@ class LineBotCacheStateTest extends TestCase
     // =========================================================
 
     /**
-     * 點擊「瀏覽資料」回覆的是 FlexMessage Carousel（各部落一張卡片）
+     * 點擊「瀏覽資料」回覆的是單一 Flex bubble，並一次列出所有部落。
      * 這個測試使用真實的 LineBotService 來驗證 Flex 結構
      */
-    public function test_browse_tribes_menu_reply_contains_tribe_flex_carousel(): void
+    public function test_browse_tribes_menu_reply_contains_tribe_flex_menu(): void
     {
         // 建立一些 Fish 資料（用於計算總數）
         \App\Models\Fish::factory()->count(3)->create();
@@ -600,9 +600,20 @@ class LineBotCacheStateTest extends TestCase
         // altText 應包含部落選擇文字
         $this->assertStringContainsString('請選擇部落', $msg->getAltText());
 
-        // contents 應是 carousel 型別，且有 6 個部落 bubble
+        // contents 應是單一 bubble，body 內包含說明與全部部落按鈕
         $contents = $msg->getContents();
-        $this->assertEquals('carousel', $contents['type']);
-        $this->assertCount(6, $contents['contents']);
+        $this->assertEquals('bubble', $contents['type']);
+
+        $bodyContents = $contents['body']['contents'] ?? [];
+        $bodyTexts = array_values(array_filter(
+            array_map(fn ($item) => ($item['type'] ?? null) === 'text' ? ($item['text'] ?? null) : null, $bodyContents)
+        ));
+        $buttonActions = array_values(array_filter(
+            array_map(fn ($item) => ($item['type'] ?? null) === 'button' ? ($item['action'] ?? null) : null, $bodyContents)
+        ));
+
+        $this->assertContains('點選下列部落，觀看該部落的魚類資訊', $bodyTexts);
+        $this->assertCount(6, $buttonActions);
+        $this->assertSame('action=browse_tribe_data&tribe=iraraley', $buttonActions[0]['data'] ?? null);
     }
 }

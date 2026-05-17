@@ -165,14 +165,7 @@ class LineBotService
         // ==========================================
         // Body：指定部落區塊
         // ==========================================
-        $tribeColors = [
-            'iraraley'   => '#2c6b8a',
-            'imowrod'    => '#2c7a66',
-            'ivalino'    => '#8a2c3b',
-            'iranmeilek' => '#6b8a2c',
-            'iratay'     => '#8a6b2c',
-            'yayo'       => '#5e2c8a',
-        ];
+        $tribeColors = $this->getTribeColors();
 
         foreach ($primaryTribes as $tribeKey) {
             $data            = $tribalData[$tribeKey] ?? [];
@@ -577,82 +570,64 @@ class LineBotService
     }
 
     /**
-     * 建立「選擇部落」Carousel（瀏覽資料圖文選單用）
-     *
-     * 每個部落產生一張 FlexBubble：
-     *   header  → 部落名稱（依部落顏色上色）
-     *   body    → 該部落魚類筆數
-     *   footer  → [瀏覽魚類] 按鈕（postback: browse_tribe_data&tribe=xxx）
+     * 建立「選擇部落」Flex 選單（瀏覽資料圖文選單用）
      */
     public function buildBrowseTribesCarousel(): array
     {
         $tribes = config('fish_options.tribes', []);
+        $tribeColors = $this->getTribeColors();
 
-        $tribeColors = [
-            'iraraley'   => '#2c6b8a',
-            'imowrod'    => '#2c7a66',
-            'ivalino'    => '#8a2c3b',
-            'iranmeilek' => '#6b8a2c',
-            'iratay'     => '#8a6b2c',
-            'yayo'       => '#5e2c8a',
+        $bodyContents = [
+            [
+                'type'   => 'text',
+                'text'   => '請選擇部落',
+                'size'   => 'xl',
+                'weight' => 'bold',
+                'color'  => '#1a1a2e',
+            ],
+            [
+                'type'   => 'text',
+                'text'   => '點選下列部落，觀看該部落的魚類資訊',
+                'size'   => 'sm',
+                'color'  => '#666666',
+                'wrap'   => true,
+                'margin' => 'md',
+            ],
         ];
 
-        $bubbles = [];
         foreach ($tribes as $tribe) {
-            $color = $tribeColors[$tribe] ?? '#444444';
-            $label = ucfirst($tribe);
-
-            $bubbles[] = [
-                'type' => 'bubble',
-                'size' => 'micro',
-                'header' => [
-                    'type'            => 'box',
-                    'layout'          => 'vertical',
-                    'paddingAll'      => 'md',
-                    'backgroundColor' => $color,
-                    'contents'        => [
-                        [
-                            'type'   => 'text',
-                            'text'   => $label,
-                            'color'  => '#ffffff',
-                            'size'   => 'md',
-                            'weight' => 'bold',
-                            'wrap'   => true,
-                        ],
-                    ],
-                ],
-                'footer' => [
-                    'type'       => 'box',
-                    'layout'     => 'vertical',
-                    'paddingAll' => 'sm',
-                    'contents'   => [
-                        [
-                            'type'   => 'button',
-                            'style'  => 'primary',
-                            'height' => 'sm',
-                            'color'  => $color,
-                            'action' => [
-                                'type'        => 'postback',
-                                'label'       => '瀏覽',
-                                'data'        => "action=browse_tribe_data&tribe={$tribe}",
-                                'displayText' => '瀏覽 ' . $label . ' 部落資料',
-                            ],
-                        ],
-                    ],
+            $label = $this->formatTribeLabel($tribe);
+            $bodyContents[] = [
+                'type'   => 'button',
+                'style'  => 'primary',
+                'height' => 'sm',
+                'margin' => 'md',
+                'color'  => $tribeColors[$tribe] ?? '#444444',
+                'action' => [
+                    'type'        => 'postback',
+                    'label'       => $label,
+                    'data'        => "action=browse_tribe_data&tribe={$tribe}",
+                    'displayText' => '瀏覽 ' . $label . ' 部落資料',
                 ],
             ];
         }
 
-        $carousel = new FlexMessage([
+        $message = new FlexMessage([
             'type'    => 'flex',
             'altText' => "📖 請選擇部落",
             'contents' => [
-                'type'     => 'carousel',
-                'contents' => $bubbles,
+                'type'   => 'bubble',
+                'size'   => 'giga',
+                'body'   => [
+                    'type'     => 'box',
+                    'layout'   => 'vertical',
+                    'spacing'  => 'sm',
+                    'contents' => $bodyContents,
+                ],
             ],
         ]);
 
-        return [$carousel];
+        return [$message];
     }
 
     /**
@@ -708,6 +683,23 @@ class LineBotService
         }
 
         return [$carouselMessage];
+    }
+
+    private function getTribeColors(): array
+    {
+        return [
+            'iraraley'   => '#2c6b8a',
+            'imowrod'    => '#2c7a66',
+            'ivalino'    => '#8a2c3b',
+            'iranmeilek' => '#6b8a2c',
+            'iratay'     => '#8a6b2c',
+            'yayo'       => '#5e2c8a',
+        ];
+    }
+
+    private function formatTribeLabel(string $tribe): string
+    {
+        return ucfirst($tribe);
     }
 
     /**
