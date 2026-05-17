@@ -227,7 +227,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
     public function test_build_fish_card_with_quick_reply_unknown_fish_keeps_swap_button(): void
     {
         $unknownFish = array_merge($this->baseFish, ['name' => '我不知道']);
-        $message = $this->service->buildFishCardWithQuickReply($unknownFish, false);
+        $message = $this->fishMessageBuilder->buildFishCardWithQuickReply($unknownFish, false);
 
         $qrLabels = $this->extractQuickReplyLabels($message);
 
@@ -239,7 +239,7 @@ class LineBotServiceEditorButtonsTest extends TestCase
      */
     public function test_build_fish_card_with_quick_reply_normal_fish_viewer_may_have_empty_qr(): void
     {
-        $message = $this->service->buildFishCardWithQuickReply($this->baseFish, false);
+        $message = $this->fishMessageBuilder->buildFishCardWithQuickReply($this->baseFish, false);
 
         // Quick Reply 可能為 null 或為空陣列，不應有 editor 按鈕
         $qrLabels = $this->extractQuickReplyLabels($message);
