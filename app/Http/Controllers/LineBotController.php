@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\LineBotService;
+use App\Services\LineBatchCaptureCardService;
+use App\Services\LineBatchCaptureFlowService;
+use App\Services\CaptureRecordBatchService;
 use App\Http\Controllers\ApiFishController;
 use App\Contracts\LineUserServiceInterface;
 use App\Models\Fish;
@@ -32,6 +35,7 @@ class LineBotController extends Controller
     protected $storageService;
     protected LineUserServiceInterface $lineUserService;
     protected FishServiceInterface $fishService;
+    protected LineBatchCaptureFlowService $lineBatchCaptureFlowService;
 
     public function __construct(
         LineBotService $lineBotService,
@@ -39,7 +43,8 @@ class LineBotController extends Controller
         UploadService $uploadService,
         StorageServiceInterface $storageService,
         LineUserServiceInterface $lineUserService,
-        FishServiceInterface $fishService
+        FishServiceInterface $fishService,
+        ?LineBatchCaptureFlowService $lineBatchCaptureFlowService = null
     ) {
         $this->lineBotService = $lineBotService;
         $this->apiFishController = $apiFishController;
@@ -47,6 +52,12 @@ class LineBotController extends Controller
         $this->storageService = $storageService;
         $this->lineUserService = $lineUserService;
         $this->fishService = $fishService;
+        $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
+            ?? new LineBatchCaptureFlowService(
+                $lineBotService,
+                app(CaptureRecordBatchService::class),
+                app(LineBatchCaptureCardService::class)
+            );
     }
 
     /**
@@ -269,6 +280,15 @@ class LineBotController extends Controller
             return;
         }
 
+        if ($this->lineBatchCaptureFlowService->hasActiveState($userId) && !$isEditor) {
+            $this->lineBatchCaptureFlowService->handleUnauthorizedAccess($userId, $replyToken);
+            return;
+        }
+
+        if ($this->lineBatchCaptureFlowService->handleTextMessage($userId, $text, $replyToken)) {
+            return;
+        }
+
         // 檢查是否正在修改名稱
         $renamingFishId = Cache::get("line_user_{$userId}_renaming_fish");
         if ($renamingFishId) {
@@ -332,6 +352,17 @@ class LineBotController extends Controller
     protected function handleImageMessage(MessageEvent $event, string $replyToken): void
     {
         $userId = $event->getSource()->getUserId();
+        $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+
+        if ($this->lineBatchCaptureFlowService->hasActiveState($userId) && !$isEditor) {
+            $this->lineBatchCaptureFlowService->handleUnauthorizedAccess($userId, $replyToken);
+            return;
+        }
+
+        if ($this->lineBatchCaptureFlowService->handleImageMessage($userId, $replyToken, $event->getMessage()->getId())) {
+            return;
+        }
+
         $state = Cache::get("line_user_{$userId}_create_fish_state");
 
         // 只有在 waiting_image 或 waiting_more_images 狀態才接受圖片
@@ -339,7 +370,7 @@ class LineBotController extends Controller
             $this->lineBotService->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
-                    'text' => '目前不在新增魚類流程中。如要新增魚類，請點選圖文選單「新增魚類 ➕」。',
+                    'text' => '目前不在圖片上傳流程中。如要新增魚類，請點選圖文選單「新增魚類 ➕」；如要批次新增捕獲紀錄，請先從魚卡點擊按鈕。',
                 ]),
             ]);
             return;
@@ -1016,7 +1047,13 @@ class LineBotController extends Controller
             // 需要 editor/admin 角色的受保護 action
             // 注意：start_rename 與 start_add_audio 亦需保護，
             // 防止 viewer 透過舊訊息的按鈕繞過 UI 限制直接觸發後端操作。
-            $protectedActions = ['start_create_fish', 'provide_clue', 'start_rename', 'start_add_audio'];
+            $protectedActions = [
+                'start_create_fish',
+                'provide_clue',
+                'start_rename',
+                'start_add_audio',
+                ...$this->lineBatchCaptureFlowService->protectedActions(),
+            ];
             if (in_array($action, $protectedActions) && !$isEditor) {
                 $this->lineBotService->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1033,12 +1070,14 @@ class LineBotController extends Controller
 
             // A: 瀏覽 oyod 類魚（food_category 篩選）
             if ($action === 'browse_oyod') {
+                $this->clearBatchCaptureState($userId);
                 $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚', $isEditor);
                 return;
             }
 
             // B: 瀏覽 rahet 類魚（food_category 篩選）
             if ($action === 'browse_rahet') {
+                $this->clearBatchCaptureState($userId);
                 $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚', $isEditor);
                 return;
             }
@@ -1048,6 +1087,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態，避免污染後續操作
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $messages = $this->lineBotService->buildBrowseTribesCarousel();
 
@@ -1060,6 +1100,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $tribe = $params['tribe'] ?? 'iraraley';
                 $validTribes = config('fish_options.tribes', []);
@@ -1076,6 +1117,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $this->handleRandomBrowse($replyToken, $isEditor);
                 return;
@@ -1086,6 +1128,7 @@ class LineBotController extends Controller
                 // 清除新增魚類流程的殘留狀態
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearBatchCaptureState($userId);
 
                 $this->handleRandomUnknownFish($replyToken, $isEditor);
                 return;
@@ -1097,6 +1140,7 @@ class LineBotController extends Controller
 
             // G: 開始新增魚類流程（Rich Menu 觸發）
             if ($action === 'start_create_fish') {
+                $this->clearBatchCaptureState($userId);
                 Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
                 
                 $this->lineBotService->replyMessage($replyToken, [
@@ -1263,6 +1307,10 @@ class LineBotController extends Controller
                 return;
             }
 
+            if ($this->lineBatchCaptureFlowService->handlePostback($userId, $replyToken, $action, $params)) {
+                return;
+            }
+
             // ==========================================
             // 發音相關功能
             // ==========================================
@@ -1365,6 +1413,7 @@ class LineBotController extends Controller
 
             // 處理開始新增發音：第一步選部落
             if ($action === 'start_add_audio') {
+                $this->clearBatchCaptureState($userId);
                 $fishId = $params['fish_id'] ?? null;
 
                 if (!$fishId) {
@@ -1467,6 +1516,7 @@ class LineBotController extends Controller
 
             // 處理開始修改名稱
             if ($action === 'start_rename') {
+                $this->clearBatchCaptureState($userId);
                 $fishId = $params['fish_id'];
                 
                 // 儲存狀態到 Cache（5 分鐘過期）
@@ -1722,5 +1772,10 @@ class LineBotController extends Controller
                 ]),
             ]);
         }
+    }
+
+    private function clearBatchCaptureState(string $userId): void
+    {
+        $this->lineBatchCaptureFlowService->clearState($userId);
     }
 }

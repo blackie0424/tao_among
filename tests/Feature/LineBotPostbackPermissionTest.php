@@ -21,9 +21,10 @@ use Tests\TestCase;
  *   在降為 viewer 後仍可點選舊按鈕觸發 postback，後端若無驗證則會直接執行。
  *
  * 修正需求：
- *   - `start_rename`   → 後端須檢查 isEditor，viewer 應被拒絕
- *   - `start_add_audio`→ 後端須檢查 isEditor，viewer 應被拒絕
- *   - 已有保護的 `start_create_fish`、`provide_clue` 維持不變
+     *   - `start_rename`              → 後端須檢查 isEditor，viewer 應被拒絕
+     *   - `start_add_audio`           → 後端須檢查 isEditor，viewer 應被拒絕
+     *   - `start_batch_capture_record`→ 後端須檢查 isEditor，viewer 應被拒絕
+     *   - 已有保護的 `start_create_fish`、`provide_clue` 維持不變
  */
 class LineBotPostbackPermissionTest extends TestCase
 {
@@ -331,6 +332,54 @@ class LineBotPostbackPermissionTest extends TestCase
         );
 
         $this->assertStringContainsString('提供發音', $replied[0]->getText());
+    }
+
+    public function test_viewer_cannot_start_batch_capture_record(): void
+    {
+        $fish = Fish::factory()->create();
+
+        $this->mockLineUserService->shouldReceive('getRole')->once()->andReturn('viewer');
+
+        $replied = [];
+        $this->mockLineBotService
+            ->shouldReceive('replyMessage')
+            ->once()
+            ->andReturnUsing(function ($token, $messages) use (&$replied) {
+                $replied = $messages;
+            });
+
+        $this->invokeHandlePostback(
+            $this->makePostbackEvent("action=start_batch_capture_record&fish_id={$fish->id}")
+        );
+
+        $this->assertCount(1, $replied);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $replied[0]);
+        $this->assertStringContainsString('沒有此功能的使用權限', $replied[0]->getText());
+        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_batch_capture_fish'));
+    }
+
+    public function test_editor_can_start_batch_capture_record(): void
+    {
+        $fish = Fish::factory()->create();
+
+        $this->mockLineUserService->shouldReceive('getRole')->once()->andReturn('editor');
+
+        $replied = [];
+        $this->mockLineBotService
+            ->shouldReceive('replyMessage')
+            ->once()
+            ->andReturnUsing(function ($token, $messages) use (&$replied) {
+                $replied = $messages;
+            });
+
+        $this->invokeHandlePostback(
+            $this->makePostbackEvent("action=start_batch_capture_record&fish_id={$fish->id}")
+        );
+
+        $this->assertCount(1, $replied);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
+        $this->assertEquals((string) $fish->id, (string) Cache::get('line_user_' . self::USER_ID . '_batch_capture_fish'));
+        $this->assertEquals('waiting_images', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
     }
 
     // ------------------------------------------------------------------
