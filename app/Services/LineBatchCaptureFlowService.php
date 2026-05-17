@@ -50,7 +50,7 @@ class LineBatchCaptureFlowService
     public function __construct(
         private readonly LineMessagingClientInterface $lineMessagingClient,
         private readonly CaptureRecordBatchService $captureRecordBatchService,
-        private readonly LineBatchCaptureCardService $lineBatchCaptureCardService,
+        private readonly LineBatchCaptureMessageBuilder $lineBatchCaptureMessageBuilder,
         private readonly ?LineUploadService $lineUploadService = null,
         iterable $postbackHandlers = [],
         iterable $textStateHandlers = [],

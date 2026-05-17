@@ -1,31 +1,31 @@
 <?php
 
 use App\Services\CaptureRecordBatchService;
+use App\Contracts\LineMessagingClientInterface;
 use App\Services\LineBatchCapture\Postback\LineBatchCapturePostbackContext;
 use App\Services\LineBatchCapture\Postback\LineBatchCapturePostbackHandler;
 use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageContext;
 use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageStateHandler;
 use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextContext;
 use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextStateHandler;
-use App\Services\LineBatchCaptureCardService;
 use App\Services\LineBatchCaptureFlowService;
-use App\Services\LineBotService;
+use App\Services\LineBatchCaptureMessageBuilder;
 use Illuminate\Support\Facades\Cache;
 
 uses(Tests\TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
-    $this->lineBotService = Mockery::mock(LineBotService::class);
+    $this->lineMessagingClient = Mockery::mock(LineMessagingClientInterface::class);
     $this->captureRecordBatchService = Mockery::mock(CaptureRecordBatchService::class);
-    $this->lineBatchCaptureCardService = Mockery::mock(LineBatchCaptureCardService::class);
+    $this->lineBatchCaptureMessageBuilder = Mockery::mock(LineBatchCaptureMessageBuilder::class);
 });
 
 it('collects handled and protected actions from registered postback handlers', function () {
     $service = new LineBatchCaptureFlowService(
-        $this->lineBotService,
+        $this->lineMessagingClient,
         $this->captureRecordBatchService,
-        $this->lineBatchCaptureCardService,
+        $this->lineBatchCaptureMessageBuilder,
         null,
         [
             new class implements LineBatchCapturePostbackHandler {
@@ -68,7 +68,7 @@ it('collects handled and protected actions from registered postback handlers', f
 });
 
 it('dispatches postback handling to the matching handler', function () {
-    $this->lineBotService
+    $this->lineMessagingClient
         ->shouldReceive('replyMessage')
         ->once()
         ->andReturnUsing(function (string $replyToken, array $messages) {
@@ -78,9 +78,9 @@ it('dispatches postback handling to the matching handler', function () {
         });
 
     $service = new LineBatchCaptureFlowService(
-        $this->lineBotService,
+        $this->lineMessagingClient,
         $this->captureRecordBatchService,
-        $this->lineBatchCaptureCardService,
+        $this->lineBatchCaptureMessageBuilder,
         null,
         [
             new class implements LineBatchCapturePostbackHandler {
@@ -108,7 +108,7 @@ it('dispatches postback handling to the matching handler', function () {
 it('dispatches text handling to the matching state handler', function () {
     Cache::put('line_user_user-1_batch_capture_state', 'custom-text-state', now()->addMinutes(15));
 
-    $this->lineBotService
+    $this->lineMessagingClient
         ->shouldReceive('replyMessage')
         ->once()
         ->andReturnUsing(function (string $replyToken, array $messages) {
@@ -118,9 +118,9 @@ it('dispatches text handling to the matching state handler', function () {
         });
 
     $service = new LineBatchCaptureFlowService(
-        $this->lineBotService,
+        $this->lineMessagingClient,
         $this->captureRecordBatchService,
-        $this->lineBatchCaptureCardService,
+        $this->lineBatchCaptureMessageBuilder,
         null,
         [],
         [
@@ -144,7 +144,7 @@ it('dispatches text handling to the matching state handler', function () {
 it('dispatches image handling to the matching state handler', function () {
     Cache::put('line_user_user-1_batch_capture_state', 'custom-image-state', now()->addMinutes(15));
 
-    $this->lineBotService
+    $this->lineMessagingClient
         ->shouldReceive('replyMessage')
         ->once()
         ->andReturnUsing(function (string $replyToken, array $messages) {
@@ -154,9 +154,9 @@ it('dispatches image handling to the matching state handler', function () {
         });
 
     $service = new LineBatchCaptureFlowService(
-        $this->lineBotService,
+        $this->lineMessagingClient,
         $this->captureRecordBatchService,
-        $this->lineBatchCaptureCardService,
+        $this->lineBatchCaptureMessageBuilder,
         null,
         [],
         [],

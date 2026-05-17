@@ -12,8 +12,8 @@ use Illuminate\Http\JsonResponse;
 use App\Services\CaptureRecordBatchService;
 use App\Services\Line\LineFishMessageBuilder;
 use App\Services\Line\LineMenuMessageBuilder;
-use App\Services\LineBatchCaptureCardService;
 use App\Services\LineBatchCaptureFlowService;
+use App\Services\LineBatchCaptureMessageBuilder;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use Illuminate\Support\Facades\Cache;
@@ -64,7 +64,7 @@ class LineBotController extends Controller
             ?? new LineBatchCaptureFlowService(
                 $lineMessagingClient,
                 app(CaptureRecordBatchService::class),
-                app(LineBatchCaptureCardService::class)
+                app(LineBatchCaptureMessageBuilder::class)
             );
     }
 
