@@ -47,11 +47,11 @@ jobs:
           cp .env.testing .env
           php artisan key:generate --force
 
+      - name: Build frontend assets
+        run: npm run build
+
       - name: Run backend tests
         run: php artisan test
 
       - name: Run frontend tests
         run: npm run test -- --run
-
-      - name: Build frontend assets
-        run: npm run build
