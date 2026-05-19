@@ -197,6 +197,17 @@ class LineFishMessageBuilder
                 'height' => 'sm',
                 'action' => [
                     'type' => 'postback',
+                    'label' => '🧠 新增進階知識',
+                    'data' => "action=start_add_knowledge&fish_id={$fish['id']}",
+                    'displayText' => '新增進階知識',
+                ],
+            ];
+            $footerContents[] = [
+                'type' => 'button',
+                'style' => 'secondary',
+                'height' => 'sm',
+                'action' => [
+                    'type' => 'postback',
                     'label' => '✏️ 修改名稱',
                     'data' => "action=start_rename&fish_id={$fish['id']}",
                     'displayText' => '修改名稱',

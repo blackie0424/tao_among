@@ -11,9 +11,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\CaptureRecordBatchService;
 use App\Services\Line\LineFishMessageBuilder;
+use App\Services\Line\LineFishKnowledgeMessageBuilder;
 use App\Services\Line\LineMenuMessageBuilder;
 use App\Services\LineBatchCaptureFlowService;
 use App\Services\LineBatchCaptureMessageBuilder;
+use App\Services\FishNoteService;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use Illuminate\Support\Facades\Cache;
@@ -39,7 +41,9 @@ class LineBotController extends Controller
     protected FishServiceInterface $fishService;
     protected LineBatchCaptureFlowService $lineBatchCaptureFlowService;
     protected LineFishMessageBuilder $lineFishMessageBuilder;
+    protected LineFishKnowledgeMessageBuilder $lineFishKnowledgeMessageBuilder;
     protected LineMenuMessageBuilder $lineMenuMessageBuilder;
+    protected FishNoteService $fishNoteService;
 
     public function __construct(
         LineMessagingClientInterface $lineMessagingClient,
@@ -50,7 +54,9 @@ class LineBotController extends Controller
         FishServiceInterface $fishService,
         ?LineBatchCaptureFlowService $lineBatchCaptureFlowService = null,
         ?LineFishMessageBuilder $lineFishMessageBuilder = null,
-        ?LineMenuMessageBuilder $lineMenuMessageBuilder = null
+        ?LineMenuMessageBuilder $lineMenuMessageBuilder = null,
+        ?LineFishKnowledgeMessageBuilder $lineFishKnowledgeMessageBuilder = null,
+        ?FishNoteService $fishNoteService = null
     ) {
         $this->lineMessagingClient = $lineMessagingClient;
         $this->apiFishController = $apiFishController;
@@ -59,7 +65,9 @@ class LineBotController extends Controller
         $this->lineUserService = $lineUserService;
         $this->fishService = $fishService;
         $this->lineFishMessageBuilder = $lineFishMessageBuilder ?? app(LineFishMessageBuilder::class);
+        $this->lineFishKnowledgeMessageBuilder = $lineFishKnowledgeMessageBuilder ?? app(LineFishKnowledgeMessageBuilder::class);
         $this->lineMenuMessageBuilder = $lineMenuMessageBuilder ?? app(LineMenuMessageBuilder::class);
+        $this->fishNoteService = $fishNoteService ?? app(FishNoteService::class);
         $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
             ?? new LineBatchCaptureFlowService(
                 $lineMessagingClient,
@@ -294,6 +302,11 @@ class LineBotController extends Controller
         }
 
         if ($this->lineBatchCaptureFlowService->handleTextMessage($userId, $text, $replyToken)) {
+            return;
+        }
+
+        if (Cache::get($this->knowledgeStateKey($userId)) === 'waiting_note_input') {
+            $this->handleKnowledgeNoteInput($userId, $text, $replyToken);
             return;
         }
 
@@ -1060,6 +1073,7 @@ class LineBotController extends Controller
                 'provide_clue',
                 'start_rename',
                 'start_add_audio',
+                ...$this->knowledgeProtectedActions(),
                 ...$this->lineBatchCaptureFlowService->protectedActions(),
             ];
             if (in_array($action, $protectedActions) && !$isEditor) {
@@ -1079,6 +1093,7 @@ class LineBotController extends Controller
             // A: 瀏覽 oyod 類魚（food_category 篩選）
             if ($action === 'browse_oyod') {
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
                 $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚', $isEditor);
                 return;
             }
@@ -1086,6 +1101,7 @@ class LineBotController extends Controller
             // B: 瀏覽 rahet 類魚（food_category 篩選）
             if ($action === 'browse_rahet') {
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
                 $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚', $isEditor);
                 return;
             }
@@ -1096,6 +1112,7 @@ class LineBotController extends Controller
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
 
                 $messages = $this->lineMenuMessageBuilder->buildBrowseTribesMenu();
 
@@ -1109,6 +1126,7 @@ class LineBotController extends Controller
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
 
                 $tribe = $params['tribe'] ?? 'iraraley';
                 $validTribes = config('fish_options.tribes', []);
@@ -1126,6 +1144,7 @@ class LineBotController extends Controller
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
 
                 $this->handleRandomBrowse($replyToken, $isEditor);
                 return;
@@ -1137,6 +1156,7 @@ class LineBotController extends Controller
                 Cache::forget("line_user_{$userId}_create_fish_state");
                 Cache::forget("line_user_{$userId}_create_fish_images");
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
 
                 $this->handleRandomUnknownFish($replyToken, $isEditor);
                 return;
@@ -1149,6 +1169,7 @@ class LineBotController extends Controller
             // G: 開始新增魚類流程（Rich Menu 觸發）
             if ($action === 'start_create_fish') {
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
                 Cache::put("line_user_{$userId}_create_fish_state", 'waiting_image', now()->addMinutes(5));
                 
                 $this->lineMessagingClient->replyMessage($replyToken, [
@@ -1168,6 +1189,108 @@ class LineBotController extends Controller
                                 ],
                             ],
                         ],
+                    ]),
+                ]);
+                return;
+            }
+
+            if ($action === 'start_add_knowledge') {
+                $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
+
+                $fishId = (int) ($params['fish_id'] ?? 0);
+                $fish = Fish::find($fishId);
+
+                if (!$fish) {
+                    $this->lineMessagingClient->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 無法取得魚類資料，請重新操作。',
+                        ]),
+                    ]);
+                    return;
+                }
+
+                Cache::put($this->knowledgeStateKey($userId), 'waiting_locate_selection', now()->addMinutes(10));
+                Cache::put($this->knowledgeFormKey($userId), [
+                    'fish_id' => $fishId,
+                ], now()->addMinutes(10));
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    $this->lineFishKnowledgeMessageBuilder->buildLocateSelector(),
+                ]);
+                return;
+            }
+
+            if ($action === 'select_knowledge_locate') {
+                if (Cache::get($this->knowledgeStateKey($userId)) !== 'waiting_locate_selection') {
+                    $this->replyKnowledgeFlowExpired($replyToken);
+                    return;
+                }
+
+                $locate = $params['locate'] ?? null;
+                $form = Cache::get($this->knowledgeFormKey($userId), []);
+                $validTribes = config('fish_options.tribes', []);
+
+                if (empty($form['fish_id']) || !$locate || !in_array($locate, $validTribes, true)) {
+                    $this->lineMessagingClient->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 部落資料無效，請重新選擇。',
+                        ]),
+                        $this->lineFishKnowledgeMessageBuilder->buildLocateSelector(),
+                    ]);
+                    return;
+                }
+
+                $form['locate'] = $locate;
+                Cache::put($this->knowledgeStateKey($userId), 'waiting_note_type_selection', now()->addMinutes(10));
+                Cache::put($this->knowledgeFormKey($userId), $form, now()->addMinutes(10));
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    $this->lineFishKnowledgeMessageBuilder->buildNoteTypeSelector(),
+                ]);
+                return;
+            }
+
+            if ($action === 'select_knowledge_note_type') {
+                if (Cache::get($this->knowledgeStateKey($userId)) !== 'waiting_note_type_selection') {
+                    $this->replyKnowledgeFlowExpired($replyToken);
+                    return;
+                }
+
+                $noteType = $params['note_type'] ?? null;
+                $form = Cache::get($this->knowledgeFormKey($userId), []);
+                $validNoteTypes = config('fish_options.note_types', []);
+
+                if (empty($form['fish_id']) || empty($form['locate']) || !$noteType || !in_array($noteType, $validNoteTypes, true)) {
+                    $this->lineMessagingClient->replyMessage($replyToken, [
+                        new \LINE\Clients\MessagingApi\Model\TextMessage([
+                            'type' => 'text',
+                            'text' => '❌ 分類資料無效，請重新選擇。',
+                        ]),
+                        $this->lineFishKnowledgeMessageBuilder->buildNoteTypeSelector(),
+                    ]);
+                    return;
+                }
+
+                $form['note_type'] = $noteType;
+                Cache::put($this->knowledgeStateKey($userId), 'waiting_note_input', now()->addMinutes(10));
+                Cache::put($this->knowledgeFormKey($userId), $form, now()->addMinutes(10));
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    $this->lineFishKnowledgeMessageBuilder->buildNotePromptMessage(),
+                ]);
+                return;
+            }
+
+            if ($action === 'cancel_add_knowledge') {
+                $this->clearLineKnowledgeState($userId);
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '✅ 已取消新增進階知識',
                     ]),
                 ]);
                 return;
@@ -1422,6 +1545,7 @@ class LineBotController extends Controller
             // 處理開始新增發音：第一步選部落
             if ($action === 'start_add_audio') {
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
                 $fishId = $params['fish_id'] ?? null;
 
                 if (!$fishId) {
@@ -1525,6 +1649,7 @@ class LineBotController extends Controller
             // 處理開始修改名稱
             if ($action === 'start_rename') {
                 $this->clearBatchCaptureState($userId);
+                $this->clearLineKnowledgeState($userId);
                 $fishId = $params['fish_id'];
                 
                 // 儲存狀態到 Cache（5 分鐘過期）
@@ -1780,6 +1905,91 @@ class LineBotController extends Controller
                 ]),
             ]);
         }
+    }
+
+    private function handleKnowledgeNoteInput(string $userId, string $note, string $replyToken): void
+    {
+        $form = Cache::get($this->knowledgeFormKey($userId), []);
+
+        if (empty($form['fish_id']) || empty($form['locate']) || empty($form['note_type'])) {
+            $this->clearLineKnowledgeState($userId);
+            $this->replyKnowledgeFlowExpired($replyToken);
+            return;
+        }
+
+        try {
+            $fish = Fish::find($form['fish_id']);
+
+            if (!$fish) {
+                throw new \RuntimeException('Fish not found');
+            }
+
+            $this->fishNoteService->createForFish($fish, [
+                'note' => $note,
+                'note_type' => $form['note_type'],
+                'locate' => $form['locate'],
+            ]);
+
+            $this->clearLineKnowledgeState($userId);
+
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "✅ 已成功新增進階知識到「{$fish->name}」\n部落：{$form['locate']}\n分類：{$form['note_type']}",
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            $this->clearLineKnowledgeState($userId);
+
+            Log::error('LINE Bot create knowledge failed', [
+                'userId' => $userId,
+                'fishId' => $form['fish_id'] ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '❌ 新增進階知識失敗，請稍後再試。',
+                ]),
+            ]);
+        }
+    }
+
+    private function replyKnowledgeFlowExpired(string $replyToken): void
+    {
+        $this->lineMessagingClient->replyMessage($replyToken, [
+            new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => '⌛ 進階知識流程已過期，請重新從魚類卡片點選「新增進階知識」。',
+            ]),
+        ]);
+    }
+
+    private function knowledgeProtectedActions(): array
+    {
+        return [
+            'start_add_knowledge',
+            'select_knowledge_locate',
+            'select_knowledge_note_type',
+        ];
+    }
+
+    private function knowledgeStateKey(string $userId): string
+    {
+        return "line_user_{$userId}_knowledge_state";
+    }
+
+    private function knowledgeFormKey(string $userId): string
+    {
+        return "line_user_{$userId}_knowledge_form";
+    }
+
+    private function clearLineKnowledgeState(string $userId): void
+    {
+        Cache::forget($this->knowledgeStateKey($userId));
+        Cache::forget($this->knowledgeFormKey($userId));
     }
 
     private function clearBatchCaptureState(string $userId): void
