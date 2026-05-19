@@ -183,6 +183,17 @@ class LineFishMessageBuilder
                 'height' => 'sm',
                 'action' => [
                     'type' => 'postback',
+                    'label' => '🧠 新增進階知識',
+                    'data' => "action=start_add_knowledge&fish_id={$fish['id']}",
+                    'displayText' => '新增進階知識',
+                ],
+            ];
+            $footerContents[] = [
+                'type' => 'button',
+                'style' => 'secondary',
+                'height' => 'sm',
+                'action' => [
+                    'type' => 'postback',
                     'label' => "📸 查看捕獲紀錄（{$captureCount} 筆）",
                     'data' => "action=view_captures&fish_id={$fish['id']}&fish_name={$fish['name']}",
                     'displayText' => "查看 {$fish['name']} 的捕獲紀錄",

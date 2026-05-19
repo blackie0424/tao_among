@@ -35,6 +35,7 @@ class LineFishMessageBuilderTest extends TestCase
         $this->assertContains('✏️ 修改名稱', $footerLabels);
         $this->assertContains('🎤 提供發音', $footerLabels);
         $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
+        $this->assertContains('🧠 新增進階知識', $footerLabels);
     }
 
     public function test_build_fish_card_without_audio_has_no_audio_buttons_in_body(): void

@@ -11,15 +11,18 @@ use App\Models\Fish;
 use Inertia\Inertia;
 use App\Contracts\StorageServiceInterface;
 use App\Services\FishService;
+use App\Services\FishNoteService;
 use Exception;
 
 class FishNoteController extends BaseController
 {
     protected $fishService;
+    protected FishNoteService $fishNoteService;
 
-    public function __construct(FishService $fishService)
+    public function __construct(FishService $fishService, FishNoteService $fishNoteService)
     {
         $this->fishService = $fishService;
+        $this->fishNoteService = $fishNoteService;
     }
 
     /**
@@ -256,8 +259,7 @@ class FishNoteController extends BaseController
                 $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
                 
                 // Create the note
-                $note = FishNote::create([
-                    'fish_id' => $fish->id,
+                $note = $this->fishNoteService->createForFish($fish, [
                     'note' => $request->note,
                     'note_type' => $request->note_type,
                     'locate' => $request->locate,
@@ -331,8 +333,7 @@ class FishNoteController extends BaseController
 
     private function createFishNote(Fish $fish, FishNoteRequest $request)
     {
-        return FishNote::create([
-            'fish_id' => $fish->id,
+        return $this->fishNoteService->createForFish($fish, [
             'note' => $request->note,
             'note_type' => $request->note_type,
             'locate' => $request->locate,
