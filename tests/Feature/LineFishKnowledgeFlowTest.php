@@ -7,6 +7,7 @@ use App\Contracts\StorageServiceInterface;
 use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\LineBotController;
 use App\Models\Fish;
+use App\Models\FishNote;
 use App\Services\UploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -17,10 +18,13 @@ class LineFishKnowledgeFlowTest extends TestCase
     use RefreshDatabase;
 
     protected const USER_ID = 'line_fish_knowledge_user';
+
     protected const REPLY_TOKEN = 'line_fish_knowledge_reply_token';
 
     protected LineBotController $controller;
+
     protected \Mockery\MockInterface $mockLineBotService;
+
     protected \Mockery\MockInterface $mockLineUserService;
 
     protected function setUp(): void
@@ -45,7 +49,7 @@ class LineFishKnowledgeFlowTest extends TestCase
         $this->mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
         $this->mockLineUserService
             ->shouldReceive('upsert')
-            ->andReturn(new \App\Models\User())
+            ->andReturn(new \App\Models\User)
             ->byDefault();
         $this->mockLineUserService
             ->shouldReceive('getRole')
@@ -64,34 +68,35 @@ class LineFishKnowledgeFlowTest extends TestCase
 
     private function makePostbackEvent(string $data): object
     {
-        $source = new class(self::USER_ID) {
-            public function __construct(private string $userId)
-            {
-            }
+        $source = new class(self::USER_ID)
+        {
+            public function __construct(private string $userId) {}
+
             public function getUserId(): string
             {
                 return $this->userId;
             }
         };
 
-        $postback = new class($data) {
-            public function __construct(private string $data)
-            {
-            }
+        $postback = new class($data)
+        {
+            public function __construct(private string $data) {}
+
             public function getData(): string
             {
                 return $this->data;
             }
         };
 
-        return new class($source, $postback) {
-            public function __construct(private $source, private $postback)
-            {
-            }
+        return new class($source, $postback)
+        {
+            public function __construct(private $source, private $postback) {}
+
             public function getSource()
             {
                 return $this->source;
             }
+
             public function getPostback()
             {
                 return $this->postback;
@@ -217,7 +222,7 @@ class LineFishKnowledgeFlowTest extends TestCase
         $this->assertCount(1, $replied);
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $replied[0]);
         $this->assertStringContainsString('沒有此功能的使用權限', $replied[0]->getText());
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_knowledge_state'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_knowledge_state'));
     }
 
     public function test_start_add_knowledge_replies_with_locate_flex_card(): void
@@ -230,8 +235,8 @@ class LineFishKnowledgeFlowTest extends TestCase
             );
         });
 
-        $this->assertSame('waiting_locate_selection', Cache::get('line_user_' . self::USER_ID . '_knowledge_state'));
-        $this->assertSame(['fish_id' => $fish->id], Cache::get('line_user_' . self::USER_ID . '_knowledge_form'));
+        $this->assertSame('waiting_locate_selection', Cache::get('line_user_'.self::USER_ID.'_knowledge_state'));
+        $this->assertSame(['fish_id' => $fish->id], Cache::get('line_user_'.self::USER_ID.'_knowledge_form'));
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
 
         $json = $this->flexToArray($replied[0]);
@@ -248,8 +253,8 @@ class LineFishKnowledgeFlowTest extends TestCase
     {
         $fish = Fish::factory()->create();
 
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_state', 'waiting_locate_selection', now()->addMinutes(10));
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_form', ['fish_id' => $fish->id], now()->addMinutes(10));
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_state', 'waiting_locate_selection', now()->addMinutes(10));
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_form', ['fish_id' => $fish->id], now()->addMinutes(10));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback(
@@ -257,11 +262,11 @@ class LineFishKnowledgeFlowTest extends TestCase
             );
         });
 
-        $this->assertSame('waiting_note_type_selection', Cache::get('line_user_' . self::USER_ID . '_knowledge_state'));
+        $this->assertSame('waiting_note_type_selection', Cache::get('line_user_'.self::USER_ID.'_knowledge_state'));
         $this->assertSame([
             'fish_id' => $fish->id,
             'locate' => 'ivalino',
-        ], Cache::get('line_user_' . self::USER_ID . '_knowledge_form'));
+        ], Cache::get('line_user_'.self::USER_ID.'_knowledge_form'));
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
 
         $json = $this->flexToArray($replied[0]);
@@ -278,8 +283,8 @@ class LineFishKnowledgeFlowTest extends TestCase
     {
         $fish = Fish::factory()->create();
 
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_state', 'waiting_note_type_selection', now()->addMinutes(10));
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_form', [
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_state', 'waiting_note_type_selection', now()->addMinutes(10));
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_form', [
             'fish_id' => $fish->id,
             'locate' => 'ivalino',
         ], now()->addMinutes(10));
@@ -290,12 +295,12 @@ class LineFishKnowledgeFlowTest extends TestCase
             );
         });
 
-        $this->assertSame('waiting_note_input', Cache::get('line_user_' . self::USER_ID . '_knowledge_state'));
+        $this->assertSame('waiting_note_input', Cache::get('line_user_'.self::USER_ID.'_knowledge_state'));
         $this->assertSame([
             'fish_id' => $fish->id,
             'locate' => 'ivalino',
             'note_type' => '文化意義',
-        ], Cache::get('line_user_' . self::USER_ID . '_knowledge_form'));
+        ], Cache::get('line_user_'.self::USER_ID.'_knowledge_form'));
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $replied[0]);
         $this->assertStringContainsString('請輸入進階知識內容', $replied[0]->getText());
     }
@@ -304,8 +309,8 @@ class LineFishKnowledgeFlowTest extends TestCase
     {
         $fish = Fish::factory()->create();
 
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_state', 'waiting_note_input', now()->addMinutes(10));
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_form', [
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_state', 'waiting_note_input', now()->addMinutes(10));
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_form', [
             'fish_id' => $fish->id,
             'locate' => 'ivalino',
             'note_type' => '文化意義',
@@ -321,8 +326,8 @@ class LineFishKnowledgeFlowTest extends TestCase
             'note_type' => '文化意義',
             'note' => '祭典時會分享這種魚的故事',
         ]);
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_knowledge_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_knowledge_form'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_knowledge_state'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_knowledge_form'));
         $this->assertCount(1, $replied);
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $replied[0]);
         $this->assertStringContainsString('成功新增進階知識', $replied[0]->getText());
@@ -332,8 +337,8 @@ class LineFishKnowledgeFlowTest extends TestCase
     {
         $fish = Fish::factory()->create();
 
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_state', 'waiting_note_type_selection', now()->addMinutes(10));
-        Cache::put('line_user_' . self::USER_ID . '_knowledge_form', [
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_state', 'waiting_note_type_selection', now()->addMinutes(10));
+        Cache::put('line_user_'.self::USER_ID.'_knowledge_form', [
             'fish_id' => $fish->id,
             'locate' => 'ivalino',
         ], now()->addMinutes(10));
@@ -342,10 +347,65 @@ class LineFishKnowledgeFlowTest extends TestCase
             $this->invokeHandlePostback($this->makePostbackEvent('action=cancel_add_knowledge'));
         });
 
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_knowledge_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_knowledge_form'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_knowledge_state'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_knowledge_form'));
         $this->assertCount(1, $replied);
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $replied[0]);
         $this->assertStringContainsString('已取消新增進階知識', $replied[0]->getText());
+    }
+
+    public function test_browse_knowledge_replies_with_flex_card_for_viewer(): void
+    {
+        $fish = Fish::factory()->create(['name' => '飛魚']);
+        FishNote::factory()->create([
+            'fish_id' => $fish->id,
+            'note_type' => '生態習性',
+            'locate' => 'ivalino',
+            'note' => '常出現在近岸海域',
+        ]);
+        FishNote::factory()->create([
+            'fish_id' => $fish->id,
+            'note_type' => '文化意義',
+            'locate' => 'yayo',
+            'note' => '祭典中會分享牠的故事',
+        ]);
+
+        $this->mockLineUserService->shouldReceive('getRole')->once()->andReturn('viewer');
+
+        $replied = $this->captureSingleReply(function () use ($fish) {
+            $this->invokeHandlePostback(
+                $this->makePostbackEvent("action=browse_knowledge&fish_id={$fish->id}")
+            );
+        });
+
+        $this->assertCount(1, $replied);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
+
+        $json = $this->flexToArray($replied[0]);
+        $texts = $this->flattenTexts($json['contents']);
+
+        $this->assertContains('📚 飛魚', $texts);
+        $this->assertContains('生態習性｜Ivalino', $texts);
+        $this->assertContains('文化意義｜Yayo', $texts);
+        $this->assertContains('常出現在近岸海域', $texts);
+        $this->assertContains('祭典中會分享牠的故事', $texts);
+    }
+
+    public function test_browse_knowledge_replies_with_empty_state_when_no_note(): void
+    {
+        $fish = Fish::factory()->create(['name' => '鬼頭刀']);
+
+        $this->mockLineUserService->shouldReceive('getRole')->once()->andReturn('viewer');
+
+        $replied = $this->captureSingleReply(function () use ($fish) {
+            $this->invokeHandlePostback(
+                $this->makePostbackEvent("action=browse_knowledge&fish_id={$fish->id}")
+            );
+        });
+
+        $this->assertCount(1, $replied);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $replied[0]);
+        $this->assertStringContainsString('目前還沒有進階知識', $replied[0]->getText());
+        $this->assertStringContainsString('鬼頭刀', $replied[0]->getText());
     }
 }

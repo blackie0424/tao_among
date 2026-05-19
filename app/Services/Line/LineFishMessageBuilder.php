@@ -10,14 +10,14 @@ class LineFishMessageBuilder
 {
     public function buildFishCard(array $fish, ?array $contextTribes = null, bool $isEditor = false): FlexMessage
     {
-        $primaryTribes = (!empty($contextTribes))
+        $primaryTribes = (! empty($contextTribes))
             ? $contextTribes
             : ['iraraley', 'imowrod'];
 
         $tribalData = [];
         $otherTribeData = [];
 
-        if (!empty($fish['tribal_classifications'])) {
+        if (! empty($fish['tribal_classifications'])) {
             foreach ($fish['tribal_classifications'] as $tc) {
                 $tribe = $tc['tribe'] ?? '';
                 $entry = [
@@ -28,13 +28,13 @@ class LineFishMessageBuilder
 
                 if (in_array($tribe, $primaryTribes, true)) {
                     $tribalData[$tribe] = $entry;
-                } elseif (empty($contextTribes) && (!empty($entry['food_category']) || !empty($entry['processing_method']) || !empty($entry['notes']))) {
+                } elseif (empty($contextTribes) && (! empty($entry['food_category']) || ! empty($entry['processing_method']) || ! empty($entry['notes']))) {
                     $otherTribeData[$tribe] = $entry;
                 }
             }
         }
 
-        $hasAudio = !empty($fish['audio_url']);
+        $hasAudio = ! empty($fish['audio_url']);
 
         $bodyContents = [[
             'type' => 'text',
@@ -70,10 +70,10 @@ class LineFishMessageBuilder
 
         foreach ($primaryTribes as $tribeKey) {
             $data = $tribalData[$tribeKey] ?? [];
-            $foodCategory = !empty($data['food_category']) ? $data['food_category'] : '尚未紀錄';
-            $processingMethod = !empty($data['processing_method']) ? $data['processing_method'] : '尚未紀錄';
+            $foodCategory = ! empty($data['food_category']) ? $data['food_category'] : '尚未紀錄';
+            $processingMethod = ! empty($data['processing_method']) ? $data['processing_method'] : '尚未紀錄';
             $color = $tribeColors[$tribeKey] ?? '#333333';
-            $label = '🏘️ ' . $this->formatTribeLabel($tribeKey);
+            $label = '🏘️ '.$this->formatTribeLabel($tribeKey);
 
             $bodyContents[] = [
                 'type' => 'box',
@@ -135,7 +135,7 @@ class LineFishMessageBuilder
             ];
         }
 
-        if (!empty($otherTribeData)) {
+        if (! empty($otherTribeData)) {
             $bodyContents[] = [
                 'type' => 'separator',
                 'margin' => 'md',
@@ -152,19 +152,19 @@ class LineFishMessageBuilder
             foreach ($otherTribeData as $tribe => $data) {
                 $parts = [];
 
-                if (!empty($data['food_category'])) {
+                if (! empty($data['food_category'])) {
                     $parts[] = $data['food_category'];
                 }
-                if (!empty($data['processing_method'])) {
+                if (! empty($data['processing_method'])) {
                     $parts[] = $data['processing_method'];
                 }
-                if (!empty($data['notes'])) {
+                if (! empty($data['notes'])) {
                     $parts[] = $data['notes'];
                 }
 
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => $this->formatTribeLabel($tribe) . '：' . implode(' / ', $parts),
+                    'text' => $this->formatTribeLabel($tribe).'：'.implode(' / ', $parts),
                     'size' => 'xs',
                     'color' => '#999999',
                     'wrap' => true,
@@ -189,6 +189,18 @@ class LineFishMessageBuilder
                 ],
             ];
         }
+
+        $footerContents[] = [
+            'type' => 'button',
+            'style' => 'secondary',
+            'height' => 'sm',
+            'action' => [
+                'type' => 'postback',
+                'label' => '📚 瀏覽進階知識',
+                'data' => "action=browse_knowledge&fish_id={$fish['id']}",
+                'displayText' => "瀏覽 {$fish['name']} 的進階知識",
+            ],
+        ];
 
         if ($isEditor) {
             $footerContents[] = [
@@ -309,7 +321,7 @@ class LineFishMessageBuilder
         $nameList = array_slice(array_column($fishes, 'name'), 0, 10);
         $text = "找到 {$count} 筆符合的魚類：\n\n";
         foreach ($nameList as $index => $name) {
-            $text .= ($index + 1) . ". {$name}\n";
+            $text .= ($index + 1).". {$name}\n";
         }
         $text .= "\n請輸入更精確的名稱。";
 
@@ -343,44 +355,44 @@ class LineFishMessageBuilder
                 ],
             ];
 
-            if (!empty($record['tribe'])) {
+            if (! empty($record['tribe'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '🏘️部落:' . $record['tribe'],
+                    'text' => '🏘️部落:'.$record['tribe'],
                     'size' => 'sm',
                     'margin' => 'sm',
                 ];
             }
-            if (!empty($record['location'])) {
+            if (! empty($record['location'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '📍地點:' . $record['location'],
+                    'text' => '📍地點:'.$record['location'],
                     'size' => 'sm',
                     'wrap' => true,
                     'margin' => 'md',
                 ];
             }
-            if (!empty($record['capture_method'])) {
+            if (! empty($record['capture_method'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '🎣捕獲方式:' . $record['capture_method'],
+                    'text' => '🎣捕獲方式:'.$record['capture_method'],
                     'size' => 'sm',
                     'wrap' => true,
                     'margin' => 'sm',
                 ];
             }
-            if (!empty($record['capture_date'])) {
+            if (! empty($record['capture_date'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '📅捕獲日期:' . $record['capture_date'],
+                    'text' => '📅捕獲日期:'.$record['capture_date'],
                     'size' => 'sm',
                     'margin' => 'sm',
                 ];
             }
-            if (!empty($record['notes'])) {
+            if (! empty($record['notes'])) {
                 $bodyContents[] = [
                     'type' => 'text',
-                    'text' => '📝備註:' . $record['notes'],
+                    'text' => '📝備註:'.$record['notes'],
                     'size' => 'xs',
                     'wrap' => true,
                     'color' => '#666666',
@@ -436,7 +448,7 @@ class LineFishMessageBuilder
             ];
         }
 
-        if (!empty($quickReplyItems)) {
+        if (! empty($quickReplyItems)) {
             $card->setQuickReply(['items' => $quickReplyItems]);
         }
 
@@ -461,7 +473,7 @@ class LineFishMessageBuilder
 
         $carouselMessage = new FlexMessage([
             'type' => 'flex',
-            'altText' => $title . '（共 ' . count($fishes) . ' 筆）',
+            'altText' => $title.'（共 '.count($fishes).' 筆）',
             'contents' => [
                 'type' => 'carousel',
                 'contents' => $bubbles,

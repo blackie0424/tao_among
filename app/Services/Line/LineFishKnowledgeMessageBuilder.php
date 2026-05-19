@@ -7,6 +7,87 @@ use LINE\Clients\MessagingApi\Model\TextMessage;
 
 class LineFishKnowledgeMessageBuilder
 {
+    public function buildBrowseKnowledgeCard(string $fishName, array $notes, int $totalCount): FlexMessage
+    {
+        $displayedCount = count($notes);
+        $contents = [
+            [
+                'type' => 'text',
+                'text' => "📚 {$fishName}",
+                'weight' => 'bold',
+                'size' => 'lg',
+                'wrap' => true,
+            ],
+            [
+                'type' => 'text',
+                'text' => $totalCount > $displayedCount
+                    ? "共 {$totalCount} 筆，以下顯示前 {$displayedCount} 筆。"
+                    : "共 {$totalCount} 筆進階知識。",
+                'size' => 'sm',
+                'color' => '#666666',
+                'margin' => 'md',
+                'wrap' => true,
+            ],
+        ];
+
+        foreach ($this->groupBrowseNotes($notes) as $group) {
+            $sectionContents = [[
+                'type' => 'text',
+                'text' => $group['title'],
+                'weight' => 'bold',
+                'size' => 'sm',
+                'wrap' => true,
+                'color' => '#1a1a2e',
+            ]];
+
+            foreach ($group['notes'] as $note) {
+                $sectionContents[] = [
+                    'type' => 'text',
+                    'text' => $note,
+                    'size' => 'sm',
+                    'wrap' => true,
+                    'color' => '#333333',
+                ];
+            }
+
+            $contents[] = [
+                'type' => 'box',
+                'layout' => 'vertical',
+                'spacing' => 'sm',
+                'margin' => 'lg',
+                'paddingAll' => '12px',
+                'backgroundColor' => '#f5f7fb',
+                'cornerRadius' => 'md',
+                'contents' => $sectionContents,
+            ];
+        }
+
+        if ($totalCount > $displayedCount) {
+            $contents[] = [
+                'type' => 'text',
+                'text' => '其餘 '.($totalCount - $displayedCount).' 筆請至系統後台查看更多內容。',
+                'size' => 'xs',
+                'color' => '#666666',
+                'margin' => 'lg',
+                'wrap' => true,
+            ];
+        }
+
+        return new FlexMessage([
+            'type' => 'flex',
+            'altText' => "{$fishName} 的進階知識",
+            'contents' => [
+                'type' => 'bubble',
+                'body' => [
+                    'type' => 'box',
+                    'layout' => 'vertical',
+                    'spacing' => 'sm',
+                    'contents' => $contents,
+                ],
+            ],
+        ]);
+    }
+
     public function buildLocateSelector(): FlexMessage
     {
         $buttons = array_map(
@@ -18,7 +99,7 @@ class LineFishKnowledgeMessageBuilder
                     'type' => 'postback',
                     'label' => ucfirst($tribe),
                     'data' => "action=select_knowledge_locate&locate={$tribe}",
-                    'displayText' => '選擇部落：' . ucfirst($tribe),
+                    'displayText' => '選擇部落：'.ucfirst($tribe),
                 ],
             ],
             config('fish_options.tribes', [])
@@ -42,8 +123,8 @@ class LineFishKnowledgeMessageBuilder
                 'action' => [
                     'type' => 'postback',
                     'label' => $noteType,
-                    'data' => 'action=select_knowledge_note_type&note_type=' . urlencode($noteType),
-                    'displayText' => '選擇分類：' . $noteType,
+                    'data' => 'action=select_knowledge_note_type&note_type='.urlencode($noteType),
+                    'displayText' => '選擇分類：'.$noteType,
                 ],
             ],
             config('fish_options.note_types', [])
@@ -132,5 +213,42 @@ class LineFishKnowledgeMessageBuilder
                 ],
             ],
         ]);
+    }
+
+    /**
+     * @param  array<int, array{note: string, note_type: string, locate: string}>  $notes
+     * @return array<int, array{title: string, notes: array<int, string>}>
+     */
+    private function groupBrowseNotes(array $notes): array
+    {
+        $grouped = [];
+
+        foreach ($notes as $note) {
+            $noteType = $this->normalizeBrowseLabel($note['note_type'] ?? '', '未分類');
+            $locate = $this->normalizeBrowseLabel($note['locate'] ?? '', '未標示', true);
+            $groupKey = "{$noteType}|{$locate}";
+
+            if (! isset($grouped[$groupKey])) {
+                $grouped[$groupKey] = [
+                    'title' => "{$noteType}｜{$locate}",
+                    'notes' => [],
+                ];
+            }
+
+            $grouped[$groupKey]['notes'][] = $note['note'];
+        }
+
+        return array_values($grouped);
+    }
+
+    private function normalizeBrowseLabel(string $value, string $fallback, bool $uppercaseFirst = false): string
+    {
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return $fallback;
+        }
+
+        return $uppercaseFirst ? ucfirst($trimmed) : $trimmed;
     }
 }
