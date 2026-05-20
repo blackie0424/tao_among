@@ -5,9 +5,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase; // 加入這行
 use App\Models\Fish;
 use App\Models\FishAudio;
-use Mockery;
 use Mockery\MockInterface;
-use Exception;
 
 uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
 
