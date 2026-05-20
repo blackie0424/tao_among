@@ -9,6 +9,7 @@ use App\Models\CaptureRecord;
 use App\Http\Resources\FishResource;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
+use Illuminate\Support\Collection;
 
 class FishService implements FishServiceInterface
 {
@@ -105,7 +106,7 @@ class FishService implements FishServiceInterface
      * 載入魚類詳情（含關聯），並回傳分組後的 notes 與相關集合。
      * 目標：集中 eager loading 與分組，避免 N+1 與控制器重複。
      *
-     * @return array{fish: Fish, tribalClassifications: mixed, captureRecords: mixed, fishNotes: array}
+     * @return array{fish: Fish, tribalClassifications: mixed, captureRecords: mixed, fishNotes: array<string, array<int, array<string, mixed>>>}
      */
     public function getFishDetails(int $id): array
     {
@@ -120,30 +121,32 @@ class FishService implements FishServiceInterface
         // 套用媒體 URL 規則
         $fish = $this->decorateFishMedia($fish);
 
-        // 取得預定義的分類排序順序
-        $noteTypeOrder = config('fish_options.note_types', []);
-
-        // 分組 notes：空 note_type 映射為 '未分類'，按預定義順序排序，組內按 created_at DESC
-        $groupedFishNotes = $fish->notes
-            ->groupBy(fn ($note) => $note->note_type ?: '未分類')
-            ->map(fn ($items, $type) => [
-                'name' => $type,
-                'notes' => $items->values()->toArray(),
-            ])
-            ->sortBy(function ($group) use ($noteTypeOrder) {
-                $index = array_search($group['name'], $noteTypeOrder);
-                return $index === false ? PHP_INT_MAX : $index;
-            })
-            ->values()
-            ->toArray();
-
-        // Inertia 需要陣列，確保關聯輸出一致
         return [
             'fish' => $fish,
             'tribalClassifications' => $fish->tribalClassifications,
             'captureRecords' => $fish->captureRecords,
-            'fishNotes' => $groupedFishNotes,
+            'fishNotes' => $this->groupFishNotesByType($fish->notes),
         ];
+    }
+
+    /**
+     * 將進階知識整理成以前端頁面直接可用的 keyed object。
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function groupFishNotesByType(Collection $notes): array
+    {
+        $noteTypeOrder = config('fish_options.note_types', []);
+
+        return $notes
+            ->groupBy(fn ($note) => $note->note_type ?: '未分類')
+            ->sortBy(function ($items, $type) use ($noteTypeOrder) {
+                $index = array_search($type, $noteTypeOrder, true);
+
+                return $index === false ? PHP_INT_MAX : $index;
+            })
+            ->mapWithKeys(fn ($items, $type) => [$type => $items->values()->toArray()])
+            ->toArray();
     }
 
     /**

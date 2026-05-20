@@ -366,8 +366,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             // Should properly group all notes
             $response->assertInertia(function ($page) {
                 $fishNotes = $page->toArray()['props']['fishNotes'];
-                $habitatGroup = collect($fishNotes)->firstWhere('name', '生態習性');
-                expect(count($habitatGroup['notes']))->toBe(50);
+                expect($fishNotes['生態習性'])->toHaveCount(50);
                 return $page;
             });
         });
@@ -414,7 +413,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $response = $this->actingAs($user)->get("/fish/{$fish1->id}/knowledge-manager");
             $response->assertInertia(function ($page) {
                 $fishNotes = $page->toArray()['props']['fishNotes'];
-                $allNotes = collect($fishNotes)->flatMap(fn ($group) => $group['notes']);
+                $allNotes = collect($fishNotes)->flatten(1);
                 expect($allNotes->pluck('note')->toArray())->toBe(['Fish 1 knowledge']);
                 return $page;
             });
@@ -430,7 +429,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $response = $this->actingAs($user)->get("/fish/{$fish2->id}/knowledge-manager");
             $response->assertInertia(function ($page) {
                 $fishNotes = $page->toArray()['props']['fishNotes'];
-                $allNotes = collect($fishNotes)->flatMap(fn ($group) => $group['notes']);
+                $allNotes = collect($fishNotes)->flatten(1);
                 expect($allNotes->pluck('note')->toArray())->toBe(['Fish 2 knowledge']);
                 return $page;
             });
