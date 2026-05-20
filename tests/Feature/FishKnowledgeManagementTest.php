@@ -75,15 +75,9 @@ describe('Fish Knowledge Management', function () {
                 
                 // Should have 2 groups
                 expect(count($fishNotes))->toBe(2);
-                
-                // Find the groups by name
-                $habitatGroup = collect($fishNotes)->firstWhere('name', '生態習性');
-                $cookingGroup = collect($fishNotes)->firstWhere('name', '食用方式');
-                
-                expect($habitatGroup)->not->toBeNull();
-                expect($cookingGroup)->not->toBeNull();
-                expect(count($habitatGroup['notes']))->toBe(2);
-                expect(count($cookingGroup['notes']))->toBe(1);
+                expect(array_keys($fishNotes))->toBe(['生態習性', '食用方式']);
+                expect(count($fishNotes['生態習性']))->toBe(2);
+                expect(count($fishNotes['食用方式']))->toBe(1);
                 
                 return $page;
             });
@@ -110,10 +104,8 @@ describe('Fish Knowledge Management', function () {
                 
                 // Should have 1 group for uncategorized notes
                 expect(count($fishNotes))->toBe(1);
-                
-                $uncategorizedGroup = collect($fishNotes)->firstWhere('name', '未分類');
-                expect($uncategorizedGroup)->not->toBeNull();
-                expect(count($uncategorizedGroup['notes']))->toBe(1);
+                expect(array_keys($fishNotes))->toBe(['未分類']);
+                expect(count($fishNotes['未分類']))->toBe(1);
                 
                 return $page;
             });
@@ -352,14 +344,10 @@ describe('Fish Knowledge Management', function () {
             $response->assertInertia(function ($page) use ($oldNote, $newNote) {
                 $fishNotes = $page->toArray()['props']['fishNotes'];
                 
-                // Find the habitat group
-                $habitatGroup = collect($fishNotes)->firstWhere('name', '生態習性');
-                expect($habitatGroup)->not->toBeNull();
-                expect(count($habitatGroup['notes']))->toBe(2);
-                
                 // Check the order (should be sorted by created_at DESC - newer first)
-                expect($habitatGroup['notes'][0]['id'])->toBe($newNote->id);
-                expect($habitatGroup['notes'][1]['id'])->toBe($oldNote->id);
+                expect($fishNotes['生態習性'])->toHaveCount(2);
+                expect($fishNotes['生態習性'][0]['id'])->toBe($newNote->id);
+                expect($fishNotes['生態習性'][1]['id'])->toBe($oldNote->id);
                 
                 return $page;
             });
@@ -389,7 +377,7 @@ describe('Fish Knowledge Management', function () {
                 $fishNotes = $page->toArray()['props']['fishNotes'];
                 
                 // Extract category names from the grouped notes
-                $categoryNames = collect($fishNotes)->pluck('name')->toArray();
+                $categoryNames = array_keys($fishNotes);
                 
                 // Should be sorted according to the predefined order in controller
                 expect($categoryNames)->toBe(['生態習性', '營養價值', '烹飪方法']);
@@ -423,17 +411,11 @@ describe('Fish Knowledge Management', function () {
                 
                 // Should have 2 groups
                 expect(count($fishNotes))->toBe(2);
-                
-                // Find the groups by name
-                $categorizedGroup = collect($fishNotes)->firstWhere('name', '生態習性');
-                $uncategorizedGroup = collect($fishNotes)->firstWhere('name', '未分類');
-                
-                expect($categorizedGroup)->not->toBeNull();
-                expect($uncategorizedGroup)->not->toBeNull();
-                expect(count($categorizedGroup['notes']))->toBe(1);
-                expect(count($uncategorizedGroup['notes']))->toBe(1);
-                expect($categorizedGroup['notes'][0]['note'])->toBe('Categorized note');
-                expect($uncategorizedGroup['notes'][0]['note'])->toBe('Uncategorized note');
+                expect(array_keys($fishNotes))->toBe(['生態習性', '未分類']);
+                expect(count($fishNotes['生態習性']))->toBe(1);
+                expect(count($fishNotes['未分類']))->toBe(1);
+                expect($fishNotes['生態習性'][0]['note'])->toBe('Categorized note');
+                expect($fishNotes['未分類'][0]['note'])->toBe('Uncategorized note');
                 
                 return $page;
             });
