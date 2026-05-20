@@ -7,13 +7,14 @@ use Tests\TestCase;
 class LineFishMessageBuilderTest extends TestCase
 {
     private LineFishMessageBuilder $service;
+
     private array $baseFish;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->service = new LineFishMessageBuilder();
+        $this->service = new LineFishMessageBuilder;
         $this->baseFish = [
             'id' => 1,
             'name' => '測試魚',
@@ -51,6 +52,17 @@ class LineFishMessageBuilderTest extends TestCase
         );
 
         $this->assertEmpty($audioButtons);
+    }
+
+    public function test_build_fish_card_viewer_sees_browse_knowledge_button(): void
+    {
+        $message = $this->service->buildFishCard($this->baseFish, null, false);
+
+        $json = $this->extractBubbleJson($message);
+        $footerLabels = $this->extractFooterButtonLabels($json);
+
+        $this->assertContains('📚 瀏覽進階知識', $footerLabels);
+        $this->assertNotContains('🧠 新增進階知識', $footerLabels);
     }
 
     public function test_build_fish_list_message_multiple_returns_carousel(): void
