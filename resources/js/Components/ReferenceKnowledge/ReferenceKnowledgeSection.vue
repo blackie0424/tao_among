@@ -9,25 +9,51 @@
       </h2>
     </div>
 
-    <div v-if="hasKnowledge" class="space-y-4">
+    <div v-if="hasKnowledge" class="space-y-6">
       <article
-        v-for="item in referenceKnowledge"
-        :key="item.id"
-        class="bg-gray-50 rounded-xl p-5 border border-gray-200"
+        v-for="group in groupedReferenceKnowledge"
+        :key="group.key"
+        data-testid="reference-group"
+        class="overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
       >
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800"
+        <div class="flex items-start gap-4 border-b border-gray-200 bg-white p-4">
+          <div class="aspect-[3/4] w-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:w-20">
+            <LazyImage
+              v-if="group.reference.image_url"
+              :src="group.reference.image_url"
+              :alt="group.reference.name"
+              wrapperClass="h-full w-full"
+              imgClass="h-full w-full object-cover"
+            />
+            <div
+              v-else
+              class="flex h-full items-center justify-center px-2 text-center text-xs font-medium text-gray-400"
+            >
+              暫無封面
+            </div>
+          </div>
+          <div class="min-w-0 space-y-1">
+            <h3 class="text-lg font-bold text-gray-900">{{ group.reference.name }}</h3>
+            <p class="text-sm text-gray-500">共 {{ group.items.length }} 筆文獻知識</p>
+          </div>
+        </div>
+
+        <div class="space-y-4 p-4">
+          <div
+            v-for="item in group.items"
+            :key="item.id"
+            class="rounded-lg border border-gray-200 bg-white p-4"
           >
-            {{ item.reference?.name || '未指定文獻' }}
-          </span>
-          <span class="text-sm text-gray-500">頁碼：{{ item.pages }}</span>
-        </div>
-        <div class="text-gray-800 whitespace-pre-line leading-relaxed">
-          {{ item.content }}
-        </div>
-        <div v-if="item.note" class="mt-3 text-sm text-gray-500">
-          備註：{{ item.note }}
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+              <span class="text-sm font-medium text-gray-500">頁碼：{{ item.pages }}</span>
+            </div>
+            <div class="whitespace-pre-line leading-relaxed text-gray-800">
+              {{ item.content }}
+            </div>
+            <div v-if="item.note" class="mt-3 text-sm text-gray-500">
+              備註：{{ item.note }}
+            </div>
+          </div>
         </div>
       </article>
     </div>
@@ -42,6 +68,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 
 const props = defineProps({
   referenceKnowledge: { type: Array, default: () => [] },
@@ -50,5 +77,47 @@ const props = defineProps({
 })
 
 const hasKnowledge = computed(() => props.referenceKnowledge.length > 0)
-</script>
 
+const groupedReferenceKnowledge = computed(() => {
+  const groups = new Map()
+
+  for (const item of props.referenceKnowledge) {
+    const referenceId = item.reference?.id
+    const referenceName = item.reference?.name || '未指定文獻'
+    const key = referenceId ?? `unassigned-${referenceName}`
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        reference: {
+          id: referenceId,
+          name: referenceName,
+          image_url: item.reference?.image_url || null,
+        },
+        items: [],
+      })
+    }
+
+    groups.get(key).items.push(item)
+  }
+
+  return Array.from(groups.values()).sort((left, right) => {
+    const leftId = left.reference.id
+    const rightId = right.reference.id
+
+    if (typeof leftId === 'number' && typeof rightId === 'number') {
+      return leftId - rightId
+    }
+
+    if (leftId == null && rightId != null) {
+      return 1
+    }
+
+    if (leftId != null && rightId == null) {
+      return -1
+    }
+
+    return left.reference.name.localeCompare(right.reference.name, 'zh-Hant')
+  })
+})
+</script>

@@ -22,19 +22,24 @@
         data-testid="reference-card"
         class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
       >
-        <div class="aspect-[3/4] bg-gray-100">
-          <LazyImage
-            v-if="reference.image_url"
-            :src="reference.image_url"
-            :alt="reference.name"
-            wrapperClass="w-full h-full"
-            imgClass="w-full h-full object-cover"
-          />
+        <div class="flex justify-center bg-gray-50 px-4 pt-4">
           <div
-            v-else
-            class="flex h-full items-center justify-center text-sm font-medium text-gray-400"
+            data-testid="reference-cover"
+            class="aspect-[3/4] w-1/2 min-w-[96px] max-w-[144px] overflow-hidden rounded-xl border border-gray-200 bg-gray-100"
           >
-            暫無封面
+            <LazyImage
+              v-if="reference.image_url"
+              :src="reference.image_url"
+              :alt="reference.name"
+              wrapperClass="h-full w-full"
+              imgClass="h-full w-full object-cover"
+            />
+            <div
+              v-else
+              class="flex h-full items-center justify-center text-sm font-medium text-gray-400"
+            >
+              暫無封面
+            </div>
           </div>
         </div>
         <div class="space-y-3 p-4">
