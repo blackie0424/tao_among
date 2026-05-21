@@ -15,50 +15,65 @@
       </Link>
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">文獻名稱</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">作者</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">狀態</th>
-            <th class="px-4 py-3 text-right font-semibold text-gray-600">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="references.data.length === 0">
-            <td colspan="4" class="px-4 py-8 text-center text-gray-400">尚未建立文獻資料</td>
-          </tr>
-          <tr v-for="reference in references.data" :key="reference.id" class="border-t border-gray-100">
-            <td class="px-4 py-3">
-              <div class="font-medium text-gray-900">{{ reference.name }}</div>
-              <a
-                v-if="reference.external_url"
-                :href="reference.external_url"
-                target="_blank"
-                rel="noreferrer"
-                class="mt-1 inline-block text-xs text-blue-600 hover:text-blue-700"
-              >
-                查看連結
-              </a>
-            </td>
-            <td class="px-4 py-3 text-gray-600">{{ reference.author }}</td>
-            <td class="px-4 py-3">
-              <span
-                class="rounded-full px-2.5 py-1 text-xs font-medium"
-                :class="reference.status === 'enabled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
-              >
-                {{ reference.status === 'enabled' ? '啟用' : '停用' }}
-              </span>
-            </td>
-            <td class="px-4 py-3 text-right">
-              <Link :href="`/admin/references/${reference.id}/edit`" class="text-blue-600 hover:text-blue-700">
-                編輯
-              </Link>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-if="references.data.length" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      <article
+        v-for="reference in references.data"
+        :key="reference.id"
+        data-testid="reference-card"
+        class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+      >
+        <div class="aspect-[3/4] bg-gray-100">
+          <LazyImage
+            v-if="reference.image_url"
+            :src="reference.image_url"
+            :alt="reference.name"
+            wrapperClass="w-full h-full"
+            imgClass="w-full h-full object-cover"
+          />
+          <div
+            v-else
+            class="flex h-full items-center justify-center text-sm font-medium text-gray-400"
+          >
+            暫無封面
+          </div>
+        </div>
+        <div class="space-y-3 p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-bold text-gray-900">{{ reference.name }}</h2>
+              <p class="mt-1 text-sm text-gray-500">{{ reference.author }}</p>
+            </div>
+            <span
+              class="rounded-full px-2.5 py-1 text-xs font-medium"
+              :class="reference.status === 'enabled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+            >
+              {{ reference.status === 'enabled' ? '啟用' : '停用' }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <a
+              v-if="reference.external_url"
+              :href="reference.external_url"
+              target="_blank"
+              rel="noreferrer"
+              class="text-blue-600 hover:text-blue-700"
+            >
+              查看連結
+            </a>
+            <span v-else class="text-gray-400">無外部連結</span>
+            <Link :href="`/admin/references/${reference.id}/edit`" class="text-blue-600 hover:text-blue-700">
+              編輯
+            </Link>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div
+      v-else
+      class="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-gray-400"
+    >
+      尚未建立文獻資料
     </div>
   </FishAppLayout>
 </template>
@@ -66,9 +81,9 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
+import LazyImage from '@/Components/UI/LazyImage.vue'
 
 defineProps({
   references: Object,
 })
 </script>
-

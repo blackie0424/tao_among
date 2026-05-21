@@ -26,22 +26,30 @@
         />
       </template>
 
-      <!-- 底部：進階知識（僅 editor / admin 可見） -->
+      <!-- 底部：進階知識與文獻知識（僅 editor / admin 可見） -->
       <template #bottom>
-        <FishAdvancedKnowledgeSection :fishNotes="fishNotes" :isEditor="isEditor" :user="user" />
+        <div class="space-y-6">
+          <FishAdvancedKnowledgeSection :fishNotes="fishNotes" :isEditor="isEditor" :user="user" />
+          <ReferenceKnowledgeSection
+            :referenceKnowledge="referenceKnowledge"
+            :isEditor="isEditor"
+            :user="user"
+          />
+        </div>
       </template>
     </FishGridLayout>
   </FishAppLayout>
 </template>
 
 <script setup>
-import { Head, Link, usePage } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue'
+import ReferenceKnowledgeSection from '@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue'
 
 // Removed persistent layout to support dynamic props
 // defineOptions({
@@ -53,6 +61,7 @@ const props = defineProps({
   tribalClassifications: { type: Array, default: () => [] },
   captureRecords: { type: Array, default: () => [] },
   fishNotes: { type: Object, default: () => ({}) },
+  referenceKnowledge: { type: Array, default: () => [] },
   tribes: { type: Array, default: () => [] },
 })
 

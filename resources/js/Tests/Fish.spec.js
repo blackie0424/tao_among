@@ -2,11 +2,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Fish from '@/Pages/Fish.vue'
 
+const mockUsePage = vi.fn(() => ({ props: { auth: { user: null } } }))
+
 // Mock Inertia
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
   Link: { template: '<a><slot /></a>', props: ['href'] },
-  usePage: () => ({ props: { auth: { user: null } } }),
+  usePage: () => mockUsePage(),
 }))
 
 // Mock Layout 元件，避免遞迴渲染
@@ -50,6 +52,13 @@ vi.mock('@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue', () => ({
   },
 }))
 
+vi.mock('@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue', () => ({
+  default: {
+    template: '<div data-testid="reference-knowledge-section" />',
+    props: ['referenceKnowledge', 'isEditor', 'user'],
+  },
+}))
+
 const makeFish = (overrides = {}) => ({
   id: 1,
   name: '鯛魚',
@@ -65,6 +74,7 @@ const mountFish = (propsData = {}) =>
       tribalClassifications: [],
       captureRecords: [],
       fishNotes: {},
+      referenceKnowledge: [],
       tribes: [],
       ...propsData,
     },
@@ -106,7 +116,14 @@ describe('mobileBackText', () => {
 // ──────────────────────────────────────────────
 describe('isEditor', () => {
   it('user 為 null 時，isEditor 應為 false', () => {
+    mockUsePage.mockReturnValue({ props: { auth: { user: null } } })
     const wrapper = mountFish()
     expect(wrapper.vm.isEditor).toBe(false)
+  })
+
+  it('editor 時應渲染文獻知識區塊', () => {
+    mockUsePage.mockReturnValue({ props: { auth: { user: { id: 1, role: 'editor' } } } })
+    const wrapper = mountFish()
+    expect(wrapper.find('[data-testid="reference-knowledge-section"]').exists()).toBe(true)
   })
 })
