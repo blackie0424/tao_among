@@ -35,6 +35,15 @@
       >
         使用者管理
       </Link>
+      <Link
+        v-if="user?.role === 'admin'"
+        href="/admin/references"
+        data-testid="link-references"
+        class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition"
+        @click="$emit('close')"
+      >
+        文獻管理
+      </Link>
 
       <!-- Logout -->
       <Link

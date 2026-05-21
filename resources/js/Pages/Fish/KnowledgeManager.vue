@@ -91,60 +91,96 @@
       </section>
     </template>
 
-    <!-- 底部：進階知識 -->
+    <!-- 底部：進階知識與文獻知識 -->
     <template #bottom>
-      <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-          <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
-            <span>📖</span> 進階知識
-          </h2>
-          <Link 
-            :href="`/fish/${fish.id}/knowledge/create`" 
-            class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
-          >
-            <span class="text-lg leading-none">+</span> 新增進階知識
-          </Link>
-        </div>
-
-        <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
-          <div v-for="(items, type) in groupedNotes" :key="type">
-            <h4 class="font-medium text-gray-800 mb-2 px-1 flex items-center">
-              <span class="w-1 h-4 bg-teal-500 rounded-full mr-2"></span>
-              {{ type }}
-            </h4>
-            <ul class="space-y-3">
-              <li 
-                v-for="note in items" 
-                :key="note.id" 
-                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
-              >
-                <div class="flex justify-between items-start gap-3">
-                  <div class="flex-1">
-                    <span class="inline-flex self-start items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mb-2">
-                      {{ note.locate }}
-                    </span>
-                    <div class="text-gray-800 md:text-lg whitespace-pre-line leading-relaxed">{{ note.note }}</div>
-                  </div>
-                  <!-- 操作區 -->
-                  <div class="flex items-center gap-1 flex-shrink-0">
-                    <!-- 編輯 Action -->
-                    <a :href="`/fish/${fish.id}/knowledge/${note.id}/edit`" class="text-gray-400 hover:text-blue-600 p-1" title="編輯">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                    </a>
-                    <!-- 刪除 Action -->
-                    <button @click="confirmDeleteNote(note)" class="text-gray-400 hover:text-red-600 p-1" title="刪除">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                  </div>
-                </div>
-              </li>
-            </ul>
+      <div class="space-y-6">
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+            <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
+              <span>📖</span> 進階知識
+            </h2>
+            <Link
+              :href="`/fish/${fish.id}/knowledge/create`"
+              class="flex items-center gap-1 text-sm bg-teal-100 text-teal-700 px-3 py-1.5 rounded-md font-medium hover:bg-teal-200 transition"
+            >
+              <span class="text-lg leading-none">+</span> 新增進階知識
+            </Link>
           </div>
-        </div>
-        <div v-else class="text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg">
-          尚未建立知識筆記
-        </div>
-      </section>
+
+          <div v-if="Object.keys(groupedNotes).length" class="space-y-6">
+            <div v-for="(items, type) in groupedNotes" :key="type">
+              <h4 class="font-medium text-gray-800 mb-2 px-1 flex items-center">
+                <span class="w-1 h-4 bg-teal-500 rounded-full mr-2"></span>
+                {{ type }}
+              </h4>
+              <ul class="space-y-3">
+                <li
+                  v-for="note in items"
+                  :key="note.id"
+                  class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                >
+                  <div class="flex justify-between items-start gap-3">
+                    <div class="flex-1">
+                      <span class="inline-flex self-start items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mb-2">
+                        {{ note.locate }}
+                      </span>
+                      <div class="text-gray-800 md:text-lg whitespace-pre-line leading-relaxed">{{ note.note }}</div>
+                    </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                      <a :href="`/fish/${fish.id}/knowledge/${note.id}/edit`" class="text-gray-400 hover:text-blue-600 p-1" title="編輯">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                      </a>
+                      <button @click="confirmDeleteNote(note)" class="text-gray-400 hover:text-red-600 p-1" title="刪除">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div v-else class="text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg">
+            尚未建立知識筆記
+          </div>
+        </section>
+
+        <section
+          v-if="canManageReferenceKnowledge"
+          class="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+        >
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+            <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
+              <span>📚</span> 文獻知識
+            </h2>
+            <Link
+              :href="`/fish/${fish.id}/reference-knowledge`"
+              class="flex items-center gap-1 text-sm bg-amber-100 text-amber-700 px-3 py-1.5 rounded-md font-medium hover:bg-amber-200 transition"
+            >
+              <span class="text-lg leading-none">+</span> 管理文獻知識
+            </Link>
+          </div>
+
+          <div v-if="referenceKnowledge.length" class="space-y-3">
+            <article
+              v-for="item in referenceKnowledge"
+              :key="item.id"
+              class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+            >
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                  {{ item.reference?.name || '未指定文獻' }}
+                </span>
+                <span class="text-xs text-gray-500">頁碼：{{ item.pages }}</span>
+              </div>
+              <div class="text-gray-800 whitespace-pre-line leading-relaxed">{{ item.content }}</div>
+              <div v-if="item.note" class="mt-2 text-sm text-gray-500">備註：{{ item.note }}</div>
+            </article>
+          </div>
+          <div v-else class="text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg">
+            尚未建立文獻知識
+          </div>
+        </section>
+      </div>
     </template>
   </FishGridLayout>
 </template>
@@ -172,6 +208,7 @@ const props = defineProps({
   fish: Object,
   tribalClassifications: { type: Array, default: () => [] },
   fishNotes: { type: Object, default: () => ({}) },
+  referenceKnowledge: { type: Array, default: () => [] },
   tribes: { type: Array, default: () => [] }
 })
 
@@ -180,6 +217,8 @@ const user = computed(() => page.props.auth?.user)
 const fish = computed(() => props.fish)
 
 const groupedNotes = computed(() => props.fishNotes || {})
+const referenceKnowledge = computed(() => props.referenceKnowledge || [])
+const canManageReferenceKnowledge = computed(() => ['admin', 'editor'].includes(user.value?.role || ''))
 
 const mappedClassifications = computed(() => {
   if (!props.tribes || props.tribes.length === 0) {

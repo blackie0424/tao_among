@@ -4,7 +4,7 @@ import UserMenuDropdown from '@/Components/Global/UserMenuDropdown.vue'
 
 vi.mock('@inertiajs/vue3', () => ({
   Link: {
-    template: '<a :href="href" :data-method="method"><slot /></a>',
+    template: '<a :href="href" :data-method="method" @click.prevent><slot /></a>',
     props: ['href', 'method', 'as'],
   },
 }))
@@ -35,6 +35,11 @@ describe('管理員選單項目', () => {
     expect(wrapper.text()).toContain('使用者管理')
   })
 
+  it('管理員：應顯示文獻管理連結', () => {
+    const wrapper = mountDropdown({ user: makeAdmin() })
+    expect(wrapper.text()).toContain('文獻管理')
+  })
+
   it('管理員：應顯示登出按鈕', () => {
     const wrapper = mountDropdown({ user: makeAdmin() })
     expect(wrapper.text()).toContain('登出')
@@ -53,6 +58,11 @@ describe('非管理員選單項目', () => {
   it('非管理員：不應顯示使用者管理連結', () => {
     const wrapper = mountDropdown({ user: makeUser() })
     expect(wrapper.text()).not.toContain('使用者管理')
+  })
+
+  it('非管理員：不應顯示文獻管理連結', () => {
+    const wrapper = mountDropdown({ user: makeUser() })
+    expect(wrapper.text()).not.toContain('文獻管理')
   })
 
   it('非管理員：應顯示登出按鈕', () => {
@@ -96,6 +106,12 @@ describe('關閉行為', () => {
   it('點擊使用者管理連結應觸發 close 事件', async () => {
     const wrapper = mountDropdown({ user: makeAdmin() })
     await wrapper.find('[data-testid="link-line-users"]').trigger('click')
+    expect(wrapper.emitted('close')).toBeTruthy()
+  })
+
+  it('點擊文獻管理連結應觸發 close 事件', async () => {
+    const wrapper = mountDropdown({ user: makeAdmin() })
+    await wrapper.find('[data-testid="link-references"]').trigger('click')
     expect(wrapper.emitted('close')).toBeTruthy()
   })
 })

@@ -114,6 +114,7 @@ class FishService implements FishServiceInterface
             'tribalClassifications',
             'captureRecords',
             'notes' => fn ($q) => $q->orderBy('created_at', 'desc'),
+            'referenceKnowledge' => fn ($q) => $q->with('reference')->orderBy('created_at', 'desc'),
             'audios',
             'displayCaptureRecord',
         ])->findOrFail($id);
@@ -126,6 +127,7 @@ class FishService implements FishServiceInterface
             'tribalClassifications' => $fish->tribalClassifications,
             'captureRecords' => $fish->captureRecords,
             'fishNotes' => $this->groupFishNotesByType($fish->notes),
+            'referenceKnowledge' => $fish->referenceKnowledge,
         ];
     }
 
