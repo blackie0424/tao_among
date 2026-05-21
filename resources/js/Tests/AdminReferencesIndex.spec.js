@@ -16,7 +16,7 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
 
 vi.mock('@/Components/UI/LazyImage.vue', () => ({
   default: {
-    template: '<img :src="src" :alt="alt" />',
+    template: '<div :class="wrapperClass"><img :src="src" :alt="alt" :class="imgClass" /></div>',
     props: ['src', 'alt', 'wrapperClass', 'imgClass'],
   },
 }))
@@ -47,6 +47,7 @@ describe('Admin References Index', () => {
     expect(wrapper.text()).toContain('海洋植物圖鑑')
     expect(wrapper.text()).toContain('陳作者')
     expect(wrapper.find('img[alt="海洋植物圖鑑"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="reference-cover"]').classes()).toContain('w-1/2')
   })
 
   it('沒有圖片時顯示預設封面提示', () => {
@@ -64,4 +65,3 @@ describe('Admin References Index', () => {
     expect(wrapper.text()).toContain('暫無封面')
   })
 })
-
