@@ -11,6 +11,8 @@ use App\Http\Controllers\FishReportController;
 use App\Http\Controllers\LineUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LineLoginController;
+use App\Http\Controllers\ReferenceController;
+use App\Http\Controllers\ReferenceKnowledgeController;
 
 use App\Http\Controllers\AuthController;
 
@@ -87,6 +89,15 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/fish/{id}/knowledge/{note}', [FishNoteController::class, 'updateKnowledge'])->name('fish.knowledge.update');
     Route::delete('/fish/{id}/knowledge/{note}', [FishNoteController::class, 'destroyKnowledge'])->name('fish.knowledge.destroy');
 
+    Route::middleware(['editor'])->group(function () {
+        Route::get('/fish/{id}/reference-knowledge', [ReferenceKnowledgeController::class, 'index'])->name('fish.reference-knowledge.index');
+        Route::get('/fish/{id}/reference-knowledge/create', [ReferenceKnowledgeController::class, 'create'])->name('fish.reference-knowledge.create');
+        Route::post('/fish/{id}/reference-knowledge', [ReferenceKnowledgeController::class, 'store'])->name('fish.reference-knowledge.store');
+        Route::get('/fish/{id}/reference-knowledge/{knowledge}/edit', [ReferenceKnowledgeController::class, 'edit'])->name('fish.reference-knowledge.edit');
+        Route::put('/fish/{id}/reference-knowledge/{knowledge}', [ReferenceKnowledgeController::class, 'update'])->name('fish.reference-knowledge.update');
+        Route::delete('/fish/{id}/reference-knowledge/{knowledge}', [ReferenceKnowledgeController::class, 'destroy'])->name('fish.reference-knowledge.destroy');
+    });
+
     // -------------------------------------------------
     // 發音管理
     // -------------------------------------------------
@@ -105,6 +116,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/fish-report', [FishReportController::class, 'index'])->name('fish-report');
         Route::get('/line-users', [LineUserController::class, 'index'])->name('line-users.index');
         Route::put('/line-users/{lineUser}/role', [LineUserController::class, 'updateRole'])->name('line-users.update-role');
+        Route::get('/admin/references', [ReferenceController::class, 'index'])->name('admin.references.index');
+        Route::get('/admin/references/create', [ReferenceController::class, 'create'])->name('admin.references.create');
+        Route::post('/admin/references', [ReferenceController::class, 'store'])->name('admin.references.store');
+        Route::get('/admin/references/{reference}/edit', [ReferenceController::class, 'edit'])->name('admin.references.edit');
+        Route::put('/admin/references/{reference}', [ReferenceController::class, 'update'])->name('admin.references.update');
     });
 });
 

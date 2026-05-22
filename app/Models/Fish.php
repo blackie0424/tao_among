@@ -60,6 +60,7 @@ class Fish extends Model
             // 使用 each()->delete() 來觸發每個子模型的 deleting 事件
             // 這樣 FishAudio 和 CaptureRecord 會自動刪除各自的檔案
             $fish->notes()->delete();
+            $fish->referenceKnowledge()->delete();
             $fish->audios->each->delete();
             $fish->tribalClassifications()->delete();
             $fish->captureRecords->each->delete();
@@ -70,6 +71,11 @@ class Fish extends Model
     public function notes(): HasMany
     {
         return $this->hasMany(FishNote::class, 'fish_id');
+    }
+
+    public function referenceKnowledge(): HasMany
+    {
+        return $this->hasMany(ReferenceKnowledge::class, 'fish_id');
     }
 
     // 一對多關聯：一隻魚有多個audio
