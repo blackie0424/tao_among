@@ -17,7 +17,10 @@
         class="overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
       >
         <div class="flex items-start gap-4 border-b border-gray-200 bg-white p-4">
-          <div class="aspect-[3/4] w-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:w-20">
+          <div
+            data-testid="reference-group-cover"
+            class="aspect-[3/4] w-32 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:w-40"
+          >
             <LazyImage
               v-if="group.reference.image_url"
               :src="group.reference.image_url"
@@ -46,6 +49,12 @@
           >
             <div class="mb-3 flex flex-wrap items-center gap-2">
               <span class="text-sm font-medium text-gray-500">頁碼：{{ item.pages }}</span>
+              <span
+                v-if="item.tribe"
+                class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700"
+              >
+                部落：{{ item.tribe }}
+              </span>
             </div>
             <div class="whitespace-pre-line leading-relaxed text-gray-800">
               {{ item.content }}
@@ -69,6 +78,7 @@
 <script setup>
 import { computed } from 'vue'
 import LazyImage from '@/Components/UI/LazyImage.vue'
+import { groupReferenceKnowledgeByReference } from '@/utils/referenceKnowledge'
 
 const props = defineProps({
   referenceKnowledge: { type: Array, default: () => [] },
@@ -77,47 +87,5 @@ const props = defineProps({
 })
 
 const hasKnowledge = computed(() => props.referenceKnowledge.length > 0)
-
-const groupedReferenceKnowledge = computed(() => {
-  const groups = new Map()
-
-  for (const item of props.referenceKnowledge) {
-    const referenceId = item.reference?.id
-    const referenceName = item.reference?.name || '未指定文獻'
-    const key = referenceId ?? `unassigned-${referenceName}`
-
-    if (!groups.has(key)) {
-      groups.set(key, {
-        key,
-        reference: {
-          id: referenceId,
-          name: referenceName,
-          image_url: item.reference?.image_url || null,
-        },
-        items: [],
-      })
-    }
-
-    groups.get(key).items.push(item)
-  }
-
-  return Array.from(groups.values()).sort((left, right) => {
-    const leftId = left.reference.id
-    const rightId = right.reference.id
-
-    if (typeof leftId === 'number' && typeof rightId === 'number') {
-      return leftId - rightId
-    }
-
-    if (leftId == null && rightId != null) {
-      return 1
-    }
-
-    if (leftId != null && rightId == null) {
-      return -1
-    }
-
-    return left.reference.name.localeCompare(right.reference.name, 'zh-Hant')
-  })
-})
+const groupedReferenceKnowledge = computed(() => groupReferenceKnowledgeByReference(props.referenceKnowledge))
 </script>

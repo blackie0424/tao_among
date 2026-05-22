@@ -10,6 +10,7 @@
       <h1 class="mb-6 text-2xl font-bold text-gray-900">新增文獻知識</h1>
       <ReferenceKnowledgeForm
         :references="references"
+        :tribes="tribes"
         :submit-url="`/fish/${fish.id}/reference-knowledge`"
         :cancel-url="`/fish/${fish.id}/reference-knowledge`"
         submit-label="建立文獻知識"
@@ -26,6 +27,6 @@ import ReferenceKnowledgeForm from '@/Components/ReferenceKnowledge/ReferenceKno
 defineProps({
   fish: Object,
   references: Array,
+  tribes: Array,
 })
 </script>
-

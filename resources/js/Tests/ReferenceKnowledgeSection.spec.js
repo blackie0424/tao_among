@@ -43,19 +43,20 @@ describe('ReferenceKnowledgeSection', () => {
         },
         {
           id: 2,
-          pages: '12-15',
-          content: '甲書第一段',
+          pages: '16',
+          content: '甲書第二段',
           note: '補充備註',
           reference: {
             id: 1,
             name: '甲書',
             image_url: 'https://example.com/a-book.jpg',
           },
+          tribe: 'iraraley',
         },
         {
           id: 3,
-          pages: '16',
-          content: '甲書第二段',
+          pages: '12-15',
+          content: '甲書第一段',
           note: null,
           reference: {
             id: 1,
@@ -72,14 +73,17 @@ describe('ReferenceKnowledgeSection', () => {
     expect(wrapper.text()).toContain('12-15')
     expect(wrapper.text()).toContain('甲書第一段')
     expect(wrapper.text()).toContain('甲書第二段')
+    expect(wrapper.text()).toContain('部落：iraraley')
     expect(wrapper.find('img[alt="甲書"]').exists()).toBe(true)
     expect(wrapper.find('img[alt="乙書"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="reference-group-cover"]').classes()).toContain('w-32')
 
     const groups = wrapper.findAll('[data-testid="reference-group"]')
     expect(groups).toHaveLength(2)
     expect(groups[0].text()).toContain('甲書')
     expect(groups[0].text()).toContain('甲書第一段')
     expect(groups[0].text()).toContain('甲書第二段')
+    expect(groups[0].text().indexOf('12-15')).toBeLessThan(groups[0].text().indexOf('16'))
     expect(groups[1].text()).toContain('乙書')
     expect(groups[1].text()).toContain('乙書第一段')
   })
