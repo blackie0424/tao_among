@@ -11,6 +11,7 @@
       <ReferenceKnowledgeForm
         :knowledge="knowledge"
         :references="references"
+        :tribes="tribes"
         :submit-url="`/fish/${fish.id}/reference-knowledge/${knowledge.id}`"
         :cancel-url="`/fish/${fish.id}/reference-knowledge`"
         method="put"
@@ -29,6 +30,6 @@ defineProps({
   fish: Object,
   knowledge: Object,
   references: Array,
+  tribes: Array,
 })
 </script>
-

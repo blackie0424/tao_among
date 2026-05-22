@@ -18,13 +18,28 @@
     </div>
 
     <div>
+      <label for="tribe" class="block text-sm font-medium text-gray-700 mb-1">部落</label>
+      <select
+        id="tribe"
+        v-model="form.tribe"
+        class="w-full rounded-lg border border-gray-300 px-3 py-2"
+      >
+        <option value="">不指定部落</option>
+        <option v-for="tribe in tribes" :key="tribe" :value="tribe">
+          {{ tribe }}
+        </option>
+      </select>
+      <p v-if="form.errors.tribe" class="mt-1 text-sm text-red-600">{{ form.errors.tribe }}</p>
+    </div>
+
+    <div>
       <label for="pages" class="block text-sm font-medium text-gray-700 mb-1">頁碼</label>
       <input
         id="pages"
         v-model="form.pages"
         type="text"
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
-        placeholder="例如：12、12-15、12,18,25-27"
+        placeholder="例如：12 或 12-15，跳頁請分筆輸入"
       />
       <p v-if="form.errors.pages" class="mt-1 text-sm text-red-600">{{ form.errors.pages }}</p>
     </div>
@@ -78,6 +93,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  tribes: {
+    type: Array,
+    default: () => [],
+  },
   submitUrl: {
     type: String,
     required: true,
@@ -98,6 +117,7 @@ const props = defineProps({
 
 const form = useForm({
   reference_id: props.knowledge?.reference_id ?? '',
+  tribe: props.knowledge?.tribe ?? '',
   content: props.knowledge?.content ?? '',
   pages: props.knowledge?.pages ?? '',
   note: props.knowledge?.note ?? '',
@@ -107,4 +127,3 @@ function submitForm() {
   form[props.method](props.submitUrl)
 }
 </script>
-

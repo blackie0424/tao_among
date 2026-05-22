@@ -14,10 +14,10 @@ class StoreReferenceKnowledgeRequest extends FormRequest
                 'required',
                 Rule::exists('references', 'id')->where(fn ($query) => $query->where('status', 'enabled')),
             ],
+            'tribe' => ['nullable', 'string', Rule::in(config('fish_options.tribes', []))],
             'content' => ['required', 'string'],
             'pages' => ['required', 'string', 'max:255'],
             'note' => ['nullable', 'string'],
         ];
     }
 }
-

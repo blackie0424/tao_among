@@ -20,11 +20,13 @@ class ReferenceKnowledgeFactory extends Factory
         return [
             'fish_id' => Fish::factory(),
             'reference_id' => Reference::factory(),
+            'tribe' => fake()->optional()->randomElement(config('fish_options.tribes')),
             'content' => fake()->paragraph(),
             'pages' => '10-12',
+            'page_start' => 10,
+            'page_end' => 12,
             'note' => fake()->optional()->sentence(),
             'created_by' => User::factory()->admin(),
         ];
     }
 }
-

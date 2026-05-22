@@ -16,10 +16,18 @@ class ReferenceKnowledge extends Model
     protected $fillable = [
         'fish_id',
         'reference_id',
+        'tribe',
         'content',
         'pages',
+        'page_start',
+        'page_end',
         'note',
         'created_by',
+    ];
+
+    protected $casts = [
+        'page_start' => 'integer',
+        'page_end' => 'integer',
     ];
 
     public function fish(): BelongsTo
@@ -37,4 +45,3 @@ class ReferenceKnowledge extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 }
-

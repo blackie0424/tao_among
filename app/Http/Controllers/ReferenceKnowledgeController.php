@@ -31,7 +31,10 @@ class ReferenceKnowledgeController extends BaseController
                 'knowledge' => ReferenceKnowledge::query()
                     ->with(['reference', 'creator'])
                     ->where('fish_id', $fishId)
-                    ->orderByDesc('created_at')
+                    ->orderBy('reference_id')
+                    ->orderBy('page_start')
+                    ->orderBy('page_end')
+                    ->orderBy('id')
                     ->paginate(20)
                     ->withQueryString(),
             ]);
@@ -46,6 +49,7 @@ class ReferenceKnowledgeController extends BaseController
             return Inertia::render('ReferenceKnowledge/Create', [
                 'fish' => $this->getFish($fishId),
                 'references' => $this->getEnabledReferences(),
+                'tribes' => $this->getTribes(),
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入新增文獻知識頁面');
@@ -59,6 +63,7 @@ class ReferenceKnowledgeController extends BaseController
                 'fish' => $this->getFish($fishId),
                 'knowledge' => $this->findKnowledge($fishId, $knowledgeId)->load('reference'),
                 'references' => $this->getEnabledReferences(),
+                'tribes' => $this->getTribes(),
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入編輯文獻知識頁面');
@@ -131,6 +136,11 @@ class ReferenceKnowledgeController extends BaseController
             ->get(['id', 'name']);
     }
 
+    private function getTribes(): array
+    {
+        return config('fish_options.tribes', []);
+    }
+
     private function findKnowledge(int|string $fishId, int|string $knowledgeId): ReferenceKnowledge
     {
         $this->findResourceOrFail(Fish::class, $fishId, '魚類');
@@ -141,4 +151,3 @@ class ReferenceKnowledgeController extends BaseController
         ], '文獻知識');
     }
 }
-
