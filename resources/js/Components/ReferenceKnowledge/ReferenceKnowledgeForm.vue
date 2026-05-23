@@ -41,6 +41,7 @@
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
         placeholder="例如：12 或 12-15，跳頁請分筆輸入"
       />
+      <p class="mt-1 text-sm text-gray-500">僅接受單頁或連續頁，例如 12 或 12-15，跳頁請分筆輸入。</p>
       <p v-if="form.errors.pages" class="mt-1 text-sm text-red-600">{{ form.errors.pages }}</p>
     </div>
 
