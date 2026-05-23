@@ -171,6 +171,8 @@ return new class extends Migration {
                 ->first();
 
             if ($column !== null) {
+                $column = (object) array_change_key_case((array) $column, CASE_LOWER);
+
                 return [
                     'type' => in_array($column->data_type, ['int', 'integer'], true) ? 'int' : 'bigint',
                     'unsigned' => str_contains($column->column_type, 'unsigned'),
