@@ -7,9 +7,17 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('reference_knowledge', function (Blueprint $table) {
+        $fishIdColumnType = Schema::getColumnType('fish', 'id');
+
+        Schema::create('reference_knowledge', function (Blueprint $table) use ($fishIdColumnType) {
             $table->id();
-            $table->foreignId('fish_id')->constrained('fish')->cascadeOnDelete();
+
+            if (in_array($fishIdColumnType, ['int', 'integer'], true)) {
+                $table->unsignedInteger('fish_id');
+            } else {
+                $table->unsignedBigInteger('fish_id');
+            }
+
             $table->foreignId('reference_id')->constrained('references')->cascadeOnDelete();
             $table->text('content');
             $table->string('pages');
@@ -17,6 +25,8 @@ return new class extends Migration {
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->foreign('fish_id')->references('id')->on('fish')->cascadeOnDelete();
         });
     }
 
@@ -25,4 +35,3 @@ return new class extends Migration {
         Schema::dropIfExists('reference_knowledge');
     }
 };
-
