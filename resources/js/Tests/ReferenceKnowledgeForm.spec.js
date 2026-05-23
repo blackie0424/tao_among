@@ -52,6 +52,7 @@ describe('ReferenceKnowledgeForm', () => {
     expect(options).toHaveLength(3)
     expect(options[0].text()).toBe('不指定部落')
     expect(options[1].text()).toBe('ivalino')
+    expect(wrapper.text()).toContain('僅接受單頁或連續頁，例如 12 或 12-15，跳頁請分筆輸入。')
   })
 
   it('送出時會帶入 tribe 欄位', async () => {
