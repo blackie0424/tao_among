@@ -9,13 +9,15 @@ return new class extends Migration {
     {
         Schema::create('reference_knowledge', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('fish_id');
+            $table->integer('fish_id')->nullable();
             $table->foreign('fish_id')->references('id')->on('fish')->cascadeOnDelete();
-            $table->foreignId('reference_id')->constrained('references')->cascadeOnDelete();
+            $table->integer('reference_id')->nullable();
+            $table->foreign('reference_id')->references('id')->on('references')->cascadeOnDelete();
             $table->text('content');
             $table->string('pages');
             $table->text('note')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->integer('created_by')->nullable();
+            $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
         });
