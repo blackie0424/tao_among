@@ -21,6 +21,10 @@ return new class extends Migration {
                 $table->unsignedBigInteger('created_by')->nullable();
                 $table->timestamps();
                 $table->softDeletes();
+
+                $table->foreign('fish_id')->references('id')->on('fish')->cascadeOnDelete();
+                $table->foreign('reference_id')->references('id')->on('references')->cascadeOnDelete();
+                $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
             });
         } else {
             $missingColumns = [
@@ -104,6 +108,10 @@ return new class extends Migration {
 
     private function ensureForeignKeys(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         if (!$this->hasForeignKey('reference_knowledge', 'reference_knowledge_fish_id_foreign')) {
             Schema::table('reference_knowledge', function (Blueprint $table) {
                 $table->foreign('fish_id')->references('id')->on('fish')->cascadeOnDelete();
