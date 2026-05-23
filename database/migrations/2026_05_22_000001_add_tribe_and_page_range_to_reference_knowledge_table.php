@@ -9,9 +9,9 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('reference_knowledge', function (Blueprint $table) {
-            $table->string('tribe')->nullable()->after('reference_id');
-            $table->unsignedInteger('page_start')->nullable()->after('pages');
-            $table->unsignedInteger('page_end')->nullable()->after('page_start');
+            $table->string('tribe')->nullable();
+            $table->unsignedInteger('page_start')->nullable();
+            $table->unsignedInteger('page_end')->nullable();
             $table->index(['reference_id', 'page_start', 'page_end'], 'reference_knowledge_reference_page_index');
         });
 
