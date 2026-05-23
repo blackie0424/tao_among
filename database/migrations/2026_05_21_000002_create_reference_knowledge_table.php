@@ -9,7 +9,8 @@ return new class extends Migration {
     {
         Schema::create('reference_knowledge', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('fish_id')->constrained('fish')->cascadeOnDelete();
+            $table->unsignedInteger('fish_id');
+            $table->foreign('fish_id')->references('id')->on('fish')->cascadeOnDelete();
             $table->foreignId('reference_id')->constrained('references')->cascadeOnDelete();
             $table->text('content');
             $table->string('pages');
