@@ -9,15 +9,17 @@
   ],
   "license": "MIT",
   "require": {
-    "php": "^8.2",
+    "php": "^8.5",
     "darkaonline/l5-swagger": "^9.0",
     "google/apiclient": "^2.0",
     "inertiajs/inertia-laravel": "^2.0",
-    "laravel/framework": "^11.31",
+    "laravel/framework": "^12.0",
     "laravel/sanctum": "^4.0",
     "laravel/tinker": "*",
     "league/flysystem-aws-s3-v3": "^3.0",
     "linecorp/line-bot-sdk": "^12.4",
+    "pestphp/pest": "^3.0",
+    "pestphp/pest-plugin-laravel": "^3.0",
     "zircote/swagger-php": "^5.1"
   },
   "require-dev": {
@@ -27,9 +29,7 @@
     "laravel/pint": "^1.20",
     "laravel/sail": "^1.26",
     "mockery/mockery": "^1.6",
-    "nunomaduro/collision": "^8.1",
-    "pestphp/pest": "^3.7",
-    "pestphp/pest-plugin-laravel": "^3.0"
+    "nunomaduro/collision": "^8.1"
   },
   "autoload": {
     "psr-4": {
