@@ -9,18 +9,12 @@ return new class extends Migration {
     {
         Schema::create('reference_knowledge', function (Blueprint $table) {
             $table->id();
-            // 指向舊表 fish（int）→ 用 integer
-            $table->integer('fish_id');
-            $table->foreign('fish_id')->references('id')->on('fish')->cascadeOnDelete();
-    
-            // 指向新表 references（bigint unsigned）→ 用 foreignId
+            $table->foreignId('fish_id')->constrained('fish')->cascadeOnDelete();
             $table->foreignId('reference_id')->constrained('references')->cascadeOnDelete();
-    
             $table->text('content');
             $table->string('pages');
             $table->text('note')->nullable();
-            $table->integer('created_by')->nullable();
-            $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
         });
