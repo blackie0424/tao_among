@@ -24,7 +24,14 @@ return new class extends Migration {
     public function down()
     {
         Schema::table('fish_audios', function (Blueprint $table) {
-            $table->dropIndex(['fish_id', 'name']);
-        });
+        // 先刪除 foreign key
+        $table->dropForeign(['fish_id']);
+        // 再刪除 index
+        $table->dropIndex(['fish_id', 'name']);
+        // 重新加回 foreign key
+        $table->foreign('fish_id')->references('id')->on('fish')->cascadeOnDelete();
+        // 刪除新增的欄位
+        $table->dropColumn(['name', 'locate']);
+    });
     }
 };

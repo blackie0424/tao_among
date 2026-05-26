@@ -49,8 +49,14 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('reference_knowledge', function (Blueprint $table) {
-            $table->dropIndex('reference_knowledge_reference_page_index');
-            $table->dropColumn(['tribe', 'page_start', 'page_end']);
-        });
+        // 先刪除 foreign key constraint
+        $table->dropForeign(['reference_id']);
+        // 再刪除 index
+        $table->dropIndex('reference_knowledge_reference_page_index');
+        // 重新加回 foreign key（沒有 index 的版本）
+        $table->foreign('reference_id')->references('id')->on('references')->cascadeOnDelete();
+        // 最後刪除新增的欄位
+        $table->dropColumn(['tribe', 'page_start', 'page_end']);
+    });
     }
 };
