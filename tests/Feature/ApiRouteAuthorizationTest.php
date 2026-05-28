@@ -167,3 +167,89 @@ describe('登入後可存取 API 寫入路由', function () {
         $response->assertStatus(422);
     });
 });
+
+// =====================================================
+// viewer 角色應被拒絕（403）
+// =====================================================
+
+describe('viewer 角色無法存取寫入路由（應回傳 403）', function () {
+
+    it('viewer 無法新增魚類', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/fish', ['name' => 'test', 'image' => 'test.jpg']);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法更新魚類', function () {
+        $fish = Fish::factory()->create();
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->putJson("/prefix/api/fish/{$fish->id}", ['name' => 'hack']);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法刪除魚類', function () {
+        $fish = Fish::factory()->create();
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->deleteJson("/prefix/api/fish/{$fish->id}");
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法取得圖片 signed URL', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/storage/signed-upload-url', ['filename' => 'test.jpg']);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法上傳音訊', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/upload-audio', []);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法合併魚類', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/fish/merge', []);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法新增知識筆記', function () {
+        $fish = Fish::factory()->create();
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson("/prefix/api/fish/{$fish->id}/note", ['note' => 'test']);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法新增部落分類', function () {
+        $fish = Fish::factory()->create();
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson("/prefix/api/fish/{$fish->id}/tribal-classifications", []);
+        $response->assertStatus(403);
+    });
+});
+
+// =====================================================
+// editor/admin 角色可放行
+// =====================================================
+
+describe('editor/admin 角色可存取寫入路由', function () {
+
+    it('editor 可呼叫新增魚類（驗證通過角色層）', function () {
+        $editor = User::factory()->lineEditor()->create();
+        $response = $this->actingAs($editor)->postJson('/prefix/api/fish', []);
+        // 422 代表通過認證與角色檢查，資料驗證失敗
+        $response->assertStatus(422);
+    });
+
+    it('admin 可呼叫合併預覽（驗證通過角色層）', function () {
+        $admin = User::factory()->admin()->create();
+        $response = $this->actingAs($admin)->postJson('/prefix/api/fish/merge/preview', []);
+        $response->assertStatus(422);
+    });
+
+    it('editor 可取得圖片 signed URL（驗證通過角色層）', function () {
+        $editor = User::factory()->lineEditor()->create();
+        $response = $this->actingAs($editor)->postJson('/prefix/api/storage/signed-upload-url', ['filename' => 'test.jpg']);
+        // 非 403 代表角色層已放行（可能 400/422/200 視 service 行為而定）
+        expect($response->status())->not->toBe(403);
+    });
+});
