@@ -33,8 +33,9 @@ class LineUserService implements LineUserServiceInterface
             'name'         => $displayName,
             'picture_url'  => $pictureUrl,
             'source'       => 'line',
-            'role'         => 'viewer',
         ]);
+        $user->role = 'viewer';
+        $user->save();
 
         $viewerMenuId = config('line.viewer_rich_menu_id');
         if ($viewerMenuId) {
@@ -52,7 +53,8 @@ class LineUserService implements LineUserServiceInterface
     public function assignRole(string $lineUserId, string $role): User
     {
         $user = User::where('line_user_id', $lineUserId)->firstOrFail();
-        $user->update(['role' => $role]);
+        $user->role = $role;
+        $user->save();
 
         if (in_array($role, ['editor', 'admin'])) {
             $editorMenuId = config('line.editor_rich_menu_id');
