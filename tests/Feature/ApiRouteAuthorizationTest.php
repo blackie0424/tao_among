@@ -250,6 +250,6 @@ describe('editor/admin 角色可存取寫入路由', function () {
         $editor = User::factory()->lineEditor()->create();
         $response = $this->actingAs($editor)->postJson('/prefix/api/storage/signed-upload-url', ['filename' => 'test.jpg']);
         // 非 403 代表角色層已放行（可能 400/422/200 視 service 行為而定）
-        $response->assertStatus(fn($status) => $status !== 403);
+        expect($response->status())->not->toBe(403);
     });
 });
