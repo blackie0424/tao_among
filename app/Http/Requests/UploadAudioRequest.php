@@ -14,7 +14,7 @@ class UploadAudioRequest extends FormRequest
     public function rules()
     {
         return [
-                    'audio' => 'required|file|mimes:mp3,wav|max:10240|min:1',
+                    'audio' => 'required|file|mimes:mp3,wav,m4a|max:10240|min:1',
                 ];
     }
 
@@ -23,7 +23,7 @@ class UploadAudioRequest extends FormRequest
         return [
             'audio.required' => '請選擇要上傳的音訊檔案。',
             'audio.file' => '只能上傳單一音訊檔案。',
-            'audio.mimes' => '音訊格式僅限 mp3, wav',
+            'audio.mimes' => '音訊格式僅限 mp3, wav, m4a',
             'audio.max' => '音訊大小不可超過 10MB。',
             'audio.min' => '音訊檔案不可為空。',
         ];

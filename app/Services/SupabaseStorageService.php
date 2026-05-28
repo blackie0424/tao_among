@@ -6,6 +6,7 @@ use App\Contracts\StorageServiceInterface;
 use Exception;
 use InvalidArgumentException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class SupabaseStorageService implements StorageServiceInterface
 {
@@ -45,7 +46,7 @@ class SupabaseStorageService implements StorageServiceInterface
 
     public function uploadFile($file, string $path): string
     {
-        $fileName = time().'_'.$file->getClientOriginalName();
+        $fileName = Str::uuid().'.'.$file->extension();
         $filePath = "{$path}/{$fileName}";
 
         $response = Http::withHeaders([

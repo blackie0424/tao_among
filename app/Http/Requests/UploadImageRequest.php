@@ -11,7 +11,7 @@ class UploadImageRequest extends FormRequest
     public function rules()
     {
         return [
-            'image' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:4403', 'min:1'],
+            'image' => ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:4403', 'min:1'],
         ];
     }
 
@@ -20,7 +20,7 @@ class UploadImageRequest extends FormRequest
         return [
             'image.image' => '只能上傳單一圖片檔案。',
             'image.required' => '請選擇要上傳的圖片。',
-            'image.mimes' => '圖片格式僅限 jpeg, png, jpg, gif, svg。',
+            'image.mimes' => '圖片格式僅限 jpeg, png, jpg, gif。',
             'image.max' => '圖片大小不可超過 4403 KB。',
             'image.min' => '圖片檔案不可為空。',
             'filename.required' => '請提供檔案名稱。',
