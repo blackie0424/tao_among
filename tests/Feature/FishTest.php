@@ -11,6 +11,10 @@ use App\Models\User;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    $this->actingAs(User::factory()->create());
+});
+
 it('can get fish list', function () {
 
     // 測試資料

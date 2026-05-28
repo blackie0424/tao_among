@@ -2,12 +2,17 @@
 
 use App\Models\Fish;
 use App\Models\TribalClassification;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 describe('Tribal Classification API', function () {
-    
+
+    beforeEach(function () {
+        $this->actingAs(User::factory()->create());
+    });
+
     it('can get tribal classifications for a fish', function () {
         $fish = Fish::factory()->create();
         
