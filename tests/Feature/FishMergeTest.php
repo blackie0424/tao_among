@@ -5,9 +5,14 @@ use App\Models\FishNote;
 use App\Models\FishAudio;
 use App\Models\CaptureRecord;
 use App\Models\TribalClassification;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->create());
+});
 
 // ==================== 基礎驗證測試 ====================
 

@@ -8,8 +8,6 @@ use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\FishMergeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Log;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -23,62 +21,56 @@ Route::get('/health-check', function () {
 // LINE Bot Webhook
 Route::post('/line/webhook', [LineBotController::class, 'webhook']);
 
-// 將 fish 相關 API 路由指向 ApiFishController
+// =====================================================
+// 公開唯讀路由（不需登入）
+// =====================================================
+
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
 Route::get('/capture-records', [ApiFishController::class, 'getAllCaptureRecords']);
 Route::get('/fishs/search', [ApiFishController::class, 'search']);
 Route::get('/fishs/random-unknown', [ApiFishController::class, 'randomUnknownFish']);
 Route::get('/fishs/filter', [ApiFishController::class, 'getFishesByFilter']);
 Route::get('/fishs/random', [ApiFishController::class, 'getRandomFishes']);
-Route::post('/fish', [ApiFishController::class, 'store']);
 Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
 Route::get('/fish/{id}/compact', [ApiFishController::class, 'getCompactFishById'])->whereNumber('id');
-Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
-Route::put('/fish/{id}', [ApiFishController::class, 'update'])->whereNumber('id');
 Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotes'])->whereNumber('id');
 
-
-// 其他 API
-Route::post('/upload', [UploadController::class, 'uploadImage']);
-
-// Storage signed upload URL endpoints
-Route::post('/storage/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
-Route::post('/fish/{id}/storage/signed-upload-audio-url', [UploadController::class, 'getSignedUploadAudioUrl'])->whereNumber('id');
-
-Route::post('/upload-audio', [UploadController::class, 'uploadAudio']);
-
-// New audio two-step upload endpoints
-Route::post('/upload/audio/sign', [UploadController::class, 'signPendingAudio']);
-
-
-Route::post('/fish/{id}/note', [FishNoteController::class, 'store'])->whereNumber('id');
-Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])
-    ->whereNumber('id')
-    ->whereNumber('note_id');
-Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'])
-    ->whereNumber('id')
-    ->whereNumber('note_id');
-
-
-// Tribal Classification API routes
 Route::get('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'index'])->whereNumber('fish_id');
-Route::post('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'store'])->whereNumber('fish_id');
 Route::get('/tribal-classifications/{id}', [TribalClassificationController::class, 'show'])->whereNumber('id');
-Route::put('/tribal-classifications/{id}', [TribalClassificationController::class, 'update'])->whereNumber('id');
-Route::delete('/tribal-classifications/{id}', [TribalClassificationController::class, 'destroy'])->whereNumber('id');
 
-// Fish Merge API routes
-Route::post('/fish/merge/preview', [FishMergeController::class, 'preview']);
-Route::post('/fish/merge', [FishMergeController::class, 'merge']);
+// =====================================================
+// 需要登入的寫入路由
+// =====================================================
 
+Route::middleware(['auth:sanctum'])->group(function () {
 
+    // 魚類管理
+    Route::post('/fish', [ApiFishController::class, 'store']);
+    Route::put('/fish/{id}', [ApiFishController::class, 'update'])->whereNumber('id');
+    Route::delete('/fish/{id}', [ApiFishController::class, 'destroy'])->whereNumber('id');
 
-// Route to trigger the cron job manually
-Route::get('/schedule-run', function () {
-    Log::info('Cron job triggered at ' . now()->toDateTimeString());
-    $output = Artisan::call('fish:check-webp');
-    return response()->json([
-        'message' => 'Cron job executed successfully',
-        'output' => Artisan::output()
-    ]);
+    // 知識筆記
+    Route::post('/fish/{id}/note', [FishNoteController::class, 'store'])->whereNumber('id');
+    Route::put('/fish/{id}/note/{note_id}', [FishNoteController::class, 'update'])
+        ->whereNumber('id')
+        ->whereNumber('note_id');
+    Route::delete('/fish/{id}/note/{note_id}', [FishNoteController::class, 'destroy'])
+        ->whereNumber('id')
+        ->whereNumber('note_id');
+
+    // 部落分類
+    Route::post('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'store'])->whereNumber('fish_id');
+    Route::put('/tribal-classifications/{id}', [TribalClassificationController::class, 'update'])->whereNumber('id');
+    Route::delete('/tribal-classifications/{id}', [TribalClassificationController::class, 'destroy'])->whereNumber('id');
+
+    // 魚類合併
+    Route::post('/fish/merge/preview', [FishMergeController::class, 'preview']);
+    Route::post('/fish/merge', [FishMergeController::class, 'merge']);
+
+    // 上傳與 signed URL
+    Route::post('/upload', [UploadController::class, 'uploadImage']);
+    Route::post('/upload-audio', [UploadController::class, 'uploadAudio']);
+    Route::post('/upload/audio/sign', [UploadController::class, 'signPendingAudio']);
+    Route::post('/storage/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
+    Route::post('/fish/{id}/storage/signed-upload-audio-url', [UploadController::class, 'getSignedUploadAudioUrl'])->whereNumber('id');
 });

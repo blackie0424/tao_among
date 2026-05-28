@@ -2,10 +2,15 @@
 
 use App\Models\Fish;
 use App\Models\FishNote;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->create());
+});
 
 it('can add note to existing fish', function () {
     $fish = Fish::factory()->create(['name' => 'Salmon']);
