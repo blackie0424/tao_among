@@ -71,7 +71,7 @@ it('update_role_changes_user_role_and_returns_200', function () {
     $mockService->shouldReceive('assignRole')
         ->once()
         ->with('U123', 'editor')
-        ->andReturn($lineUser->fresh()->fill(['role' => 'editor']));
+        ->andReturn(tap($lineUser->fresh(), fn($u) => $u->role = 'editor'));
     $this->app->instance(\App\Contracts\LineUserServiceInterface::class, $mockService);
 
     $response = $this->actingAs($this->admin)

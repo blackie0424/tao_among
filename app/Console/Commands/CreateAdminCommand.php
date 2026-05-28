@@ -25,13 +25,14 @@ class CreateAdminCommand extends Command
             return self::FAILURE;
         }
 
-        User::create([
+        $user = User::create([
             'email'    => $email,
             'password' => $password,
             'name'     => $name,
             'source'   => 'web',
-            'role'     => 'admin',
         ]);
+        $user->role = 'admin';
+        $user->save();
 
         $this->info("Admin 帳號 {$email} 建立成功。");
 

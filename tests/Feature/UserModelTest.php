@@ -111,3 +111,39 @@ it('LINE 使用者 email 與 password 可為 null', function () {
     expect($user->email)->toBeNull();
     expect($user->password)->toBeNull();
 });
+
+// =====================================================
+// Mass Assignment 防護：role 不可被批量賦值
+// =====================================================
+
+it('role 不可透過 create() 批量賦值', function () {
+    $user = User::create([
+        'name'     => 'Test User',
+        'email'    => 'test@example.com',
+        'password' => bcrypt('password'),
+        'source'   => 'web',
+        'role'     => 'admin',  // 攻擊者嘗試提升為 admin
+    ]);
+
+    // role 應該是預設值（null 或不是 admin），不應被批量填入
+    expect($user->role)->not->toBe('admin');
+});
+
+it('role 不可透過 update() 批量賦值', function () {
+    $user = User::factory()->lineViewer()->create();
+
+    $user->update(['role' => 'admin']);  // 攻擊者嘗試提升為 admin
+
+    $user->refresh();
+    expect($user->role)->not->toBe('admin');
+});
+
+it('role 可透過直接屬性賦值設定', function () {
+    $user = User::factory()->lineViewer()->create();
+
+    $user->role = 'editor';
+    $user->save();
+
+    $user->refresh();
+    expect($user->role)->toBe('editor');
+});
