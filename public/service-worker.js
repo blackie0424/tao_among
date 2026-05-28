@@ -3,7 +3,7 @@
  * 採用 Stale-While-Revalidate 策略優化使用者體驗
  */
 
-const CACHE_VERSION = 'v1.1.0'
+const CACHE_VERSION = 'v1.2.0'
 const CACHE_NAME = `tao-among-${CACHE_VERSION}`
 
 // 預快取的核心資源（僅靜態資源，不包含 HTML 頁面）
@@ -30,7 +30,7 @@ const CACHEABLE_EXTENSIONS = [
 ]
 
 // 不應該快取的路徑
-const EXCLUDE_PATHS = ['/prefix/api/', '/sanctum/', '/login', '/logout', '/register']
+const EXCLUDE_PATHS = ['/prefix/api/', '/sanctum/', '/login', '/logout', '/register', '/admin/']
 
 // 允許快取的外部域名（S3/CDN 圖片）
 const EXTERNAL_CACHEABLE_ORIGINS = [
@@ -149,7 +149,7 @@ async function staleWhileRevalidate(request) {
       }
       return networkResponse
     })
-    .catch(() => cachedResponse)
+    .catch(() => cachedResponse || new Response('', { status: 503 }))
 
   return cachedResponse || fetchPromise
 }
