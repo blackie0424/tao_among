@@ -2,12 +2,17 @@
 
 use Illuminate\Http\UploadedFile;
 
-use Illuminate\Foundation\Testing\RefreshDatabase; // 加入這行
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Fish;
 use App\Models\FishAudio;
+use App\Models\User;
 use Mockery\MockInterface;
 
-uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->create());
+});
 
 
 
