@@ -149,21 +149,53 @@ describe('/schedule-run 路由已移除', function () {
 });
 
 // =====================================================
-// 登入後可存取寫入路由
+// editor/admin 可存取寫入路由
 // =====================================================
 
-describe('登入後可存取 API 寫入路由', function () {
+describe('editor/admin 可存取 API 寫入路由', function () {
 
-    it('登入後可呼叫新增魚類（驗證通過認證層）', function () {
-        $user = User::factory()->create();
+    it('editor 可呼叫新增魚類（驗證通過認證與角色層）', function () {
+        $user = User::factory()->lineEditor()->create();
         $response = $this->actingAs($user)->postJson('/prefix/api/fish', []);
-        // 422 代表通過認證但資料驗證失敗，確認認證層已放行
+        // 422 代表通過認證但資料驗證失敗，確認認證與角色層已放行
         $response->assertStatus(422);
     });
 
-    it('登入後可呼叫合併預覽（驗證通過認證層）', function () {
-        $user = User::factory()->create();
+    it('admin 可呼叫合併預覽（驗證通過認證與角色層）', function () {
+        $user = User::factory()->admin()->create();
         $response = $this->actingAs($user)->postJson('/prefix/api/fish/merge/preview', []);
         $response->assertStatus(422);
+    });
+});
+
+// =====================================================
+// viewer 無法存取寫入路由（應回傳 403）
+// =====================================================
+
+describe('viewer 角色無法存取寫入路由（應回傳 403）', function () {
+
+    it('viewer 無法新增魚類', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/fish', ['name' => 'test', 'image' => 'test.jpg']);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法刪除魚類', function () {
+        $fish = Fish::factory()->create();
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->deleteJson("/prefix/api/fish/{$fish->id}");
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法取得 signed URL', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/storage/signed-upload-url', ['filename' => 'test.jpg']);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法合併魚類', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/fish/merge', []);
+        $response->assertStatus(403);
     });
 });
