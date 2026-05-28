@@ -39,10 +39,10 @@ Route::get('/fish/{fish_id}/tribal-classifications', [TribalClassificationContro
 Route::get('/tribal-classifications/{id}', [TribalClassificationController::class, 'show'])->whereNumber('id');
 
 // =====================================================
-// 需要登入且具備 editor/admin 角色的寫入路由
+// 需要登入的寫入路由
 // =====================================================
 
-Route::middleware(['auth:sanctum', 'editor'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
 
     // 魚類管理
     Route::post('/fish', [ApiFishController::class, 'store']);
