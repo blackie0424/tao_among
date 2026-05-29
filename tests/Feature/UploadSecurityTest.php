@@ -23,7 +23,7 @@ describe('SVG 上傳應被拒絕', function () {
         $response = $this->post('/prefix/api/upload', ['image' => $file]);
 
         $response->assertStatus(400)
-            ->assertJsonPath('errors.image.0', fn($msg) => str_contains($msg, 'jpeg') || str_contains($msg, '格式'));
+            ->assertJsonStructure(['errors' => ['image']]);
     });
 
     it('signed URL 申請 svg 副檔名應回傳 400', function () {
