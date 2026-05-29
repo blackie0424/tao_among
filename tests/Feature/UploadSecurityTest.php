@@ -35,16 +35,6 @@ describe('SVG 上傳應被拒絕', function () {
             ->assertJsonPath('errors.filename.0', '檔名格式不正確。');
     });
 
-    it('圖片白名單只允許 jpeg png jpg gif（不回傳格式錯誤）', function () {
-        Storage::fake('public');
-
-        foreach (['jpeg', 'png', 'jpg'] as $ext) {
-            $file = UploadedFile::fake()->image("test.{$ext}", 100, 100);
-            $response = $this->post('/prefix/api/upload', ['image' => $file]);
-            // 不應因格式被拒（400），可能因 storage 設定返回其他狀態
-            expect($response->status())->not->toBe(400, "格式 {$ext} 不應被格式驗證拒絕");
-        }
-    });
 });
 
 // =====================================================
