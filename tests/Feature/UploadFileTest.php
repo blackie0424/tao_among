@@ -261,57 +261,48 @@ it('取得 storage audio 檔案簽名上傳網址', function () {
 
     Fish::factory()->create([
         'id' => $fishId,
+        'audio_filename' => 'test-audio.mp3',
     ]);
 
-    Http::fake([
-        // 修正 URL 模式，使用萬用字元
-            '*/object/upload/sign/*' => Http::response([
-                'url' => 'https://supabase.storage.mock/audios/test-audio.mp3?token=mocked_token',
-                'path' => 'audios/test-audio.mp3',
-                'filename' => 'test-audio.mp3',
-            ], 200),
-        ]);
+    $mockedUrl = 'https://s3.example.com/audios/uuid-audio.mp3?X-Amz-Signature=mock';
+
+    $storage = $this->mock(\App\Contracts\StorageServiceInterface::class);
+    $storage->shouldReceive('getAudioFolder')->andReturn('audios');
+    $storage->shouldReceive('createSignedUploadUrl')->andReturn($mockedUrl);
 
     $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
         'filename' => 'test-audio.mp3'
     ]);
 
     $response->assertStatus(200)
-    ->assertJson(
-        fn ($json) =>
-        $json->where('url', 'https://supabase.storage.mock/audios/test-audio.mp3?token=mocked_token')
-             // 🎯 使用 where() 方法來對動態值執行閉包檢查
-             ->where('path', fn ($path) => is_string($path) && !empty($path))
-             ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
-             // 確保沒有其他不相關的鍵影響斷言
-             ->etc()
-    );
+        ->assertJson(
+            fn ($json) =>
+            $json->where('url', $mockedUrl)
+                 ->where('path', fn ($path) => is_string($path) && !empty($path))
+                 ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
+                 ->etc()
+        );
 });
 
 it('取得 storage image 檔案簽名上傳網址', function () {
-    Http::fake([
-        // 修正 URL 模式，使用萬用字元
-            '*/object/upload/sign/*' => Http::response([
-                'url' => 'https://supabase.storage.mock/images/test-image.jpg?token=mocked_token',
-                'path' => 'images/test-image.jpg',
-                'filename' => 'test-image.jpg',
-            ], 200),
-        ]);
-    
+    $mockedUrl = 'https://s3.example.com/images/uuid-image.jpg?X-Amz-Signature=mock';
+
+    $storage = $this->mock(\App\Contracts\StorageServiceInterface::class);
+    $storage->shouldReceive('getImageFolder')->andReturn('images');
+    $storage->shouldReceive('createSignedUploadUrl')->andReturn($mockedUrl);
+
     $response = $this->postJson('/prefix/api/storage/signed-upload-url', [
         'filename' => 'test-image.jpg',
     ]);
 
     $response->assertStatus(200)
-    ->assertJson(
-        fn ($json) =>
-        $json->where('url', 'https://supabase.storage.mock/images/test-image.jpg?token=mocked_token')
-             // 🎯 使用 where() 方法來對動態值執行閉包檢查
-             ->where('path', fn ($path) => is_string($path) && !empty($path))
-             ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
-             // 確保沒有其他不相關的鍵影響斷言
-             ->etc()
-    );
+        ->assertJson(
+            fn ($json) =>
+            $json->where('url', $mockedUrl)
+                 ->where('path', fn ($path) => is_string($path) && !empty($path))
+                 ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
+                 ->etc()
+        );
 });
 
 it('取得 storage image 檔案簽名上傳網址失敗，副檔名錯誤', function () {

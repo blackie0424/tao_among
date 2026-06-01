@@ -211,7 +211,7 @@ class S3StorageService implements StorageServiceInterface
      * @param string $filePath 檔案路徑
      * @return bool
      */
-    private function fileExists(string $filePath): bool
+    public function fileExists(string $filePath): bool
     {
         try {
             return Storage::disk('s3')->exists($filePath);

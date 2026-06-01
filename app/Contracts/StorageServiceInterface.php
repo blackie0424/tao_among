@@ -88,4 +88,12 @@ interface StorageServiceInterface
      * @deprecated 建議使用 createSignedUploadUrl 替代
      */
     public function uploadFile($file, string $path): string;
+
+    /**
+     * 檢查檔案是否存在
+     *
+     * @param string $filePath 檔案路徑
+     * @return bool
+     */
+    public function fileExists(string $filePath): bool;
 }
