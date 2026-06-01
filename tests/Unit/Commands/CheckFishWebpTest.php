@@ -15,7 +15,7 @@ it('webp 存在時將 has_webp 更新為 true', function () {
 
     $this->artisan('fish:check-webp')->assertSuccessful();
 
-    expect($fish->fresh()->has_webp)->toBeTrue();
+    expect($fish->fresh()->has_webp)->toBeTruthy();
 });
 
 it('webp 不存在時將 has_webp 更新為 false', function () {
@@ -27,7 +27,7 @@ it('webp 不存在時將 has_webp 更新為 false', function () {
 
     $this->artisan('fish:check-webp')->assertSuccessful();
 
-    expect($fish->fresh()->has_webp)->toBeFalse();
+    expect($fish->fresh()->has_webp)->toBeFalsy();
 });
 
 it('image 為 null 的魚跳過不處理', function () {
@@ -40,7 +40,7 @@ it('image 為 null 的魚跳過不處理', function () {
 
     $this->artisan('fish:check-webp')->assertSuccessful();
 
-    expect($fish->fresh()->has_webp)->toBeFalse();
+    expect($fish->fresh()->has_webp)->toBeFalsy();
 });
 
 it('has_webp 未變更時不執行 save', function () {
@@ -52,6 +52,6 @@ it('has_webp 未變更時不執行 save', function () {
 
     $this->artisan('fish:check-webp')->assertSuccessful();
 
-    expect($fish->fresh()->has_webp)->toBeTrue();
+    expect($fish->fresh()->has_webp)->toBeTruthy();
     expect($fish->fresh()->updated_at->eq($fish->updated_at))->toBeTrue();
 });
