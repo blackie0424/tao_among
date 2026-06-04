@@ -5,9 +5,8 @@ import CaptureRecordForm from '@/Components/CaptureRecord/CaptureRecordForm.vue'
 
 // Mock Inertia router
 vi.mock('@inertiajs/vue3', () => ({
-  router: {
-    post: vi.fn(),
-  },
+  router: { post: vi.fn() },
+  usePage: () => ({ props: { auth: { user: null }, flash: {} } }),
 }))
 
 // Mock fetch for file upload
@@ -212,6 +211,78 @@ describe('CaptureRecordForm', () => {
   })
 
   // ==================== 上傳使用 apiFetch ====================
+
+  // ==================== Edit mode ====================
+
+  describe('edit mode（傳入 record prop）', () => {
+    const editProps = {
+      ...defaultProps,
+      record: {
+        id: 1,
+        tribe: 'ivalino',
+        location: '溪流A',
+        capture_method: '網捕',
+        capture_date: '2024-05-01',
+        notes: '備註',
+        image_url: 'https://example.com/existing.jpg',
+      },
+    }
+
+    it('有 record prop 時不顯示 wizard 步驟，直接顯示所有欄位', async () => {
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+      // 不需要 setPrefillImage，所有欄位應直接可見
+      expect(wrapper.find('#tribe').exists()).toBe(true)
+      expect(wrapper.find('#location').exists()).toBe(true)
+      expect(wrapper.find('#capture_method').exists()).toBe(true)
+      expect(wrapper.find('#capture_date').exists()).toBe(true)
+      expect(wrapper.find('#notes').exists()).toBe(true)
+    })
+
+    it('有 record prop 時以 record 資料預填欄位', async () => {
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+      await nextTick()
+      expect(wrapper.find('#tribe').element.value).toBe('ivalino')
+      expect(wrapper.find('#location').element.value).toBe('溪流A')
+      expect(wrapper.find('#capture_method').element.value).toBe('網捕')
+      expect(wrapper.find('#notes').element.value).toBe('備註')
+    })
+
+    it('edit mode 的 submitForm 送出 PUT（含 _method: PUT）', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+
+      wrapper.vm.submitForm()
+      await nextTick()
+
+      expect(router.post).toHaveBeenCalledWith(
+        expect.stringContaining('/capture-records/1'),
+        expect.objectContaining({ _method: 'PUT' }),
+        expect.any(Object)
+      )
+    })
+
+    it('edit mode 圖片上傳在選檔後自動觸發（autoUpload）', async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ url: 'https://s3.example.com/upload', filename: 'new.jpg' }),
+        })
+        .mockResolvedValueOnce({ ok: true })
+
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+      const file = new File(['x'], 'new.jpg', { type: 'image/jpeg' })
+      const input = wrapper.find('input[type="file"]')
+      Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+      await input.trigger('change')
+      const { flushPromises } = await import('@vue/test-utils')
+      await flushPromises()
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/prefix/api/storage/signed-upload-url',
+        expect.objectContaining({ method: 'POST' })
+      )
+    })
+  })
 
   it('圖片上傳透過 apiFetch 取得 signed URL（含 Accept 與 XSRF-TOKEN header）', async () => {
     // 先設定 signed URL 回應，再設定 S3 PUT 回應
