@@ -133,6 +133,114 @@ class LineFishCreateCaptureFlowTest extends TestCase
     }
 
     // =====================================================
+    // 部落選單 → Flex Message
+    // =====================================================
+
+    /** @test */
+    public function test_tribe_selection_sends_flex_message_not_text_message(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+
+        $capturedMessages = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->once()
+            ->withArgs(function ($token, $messages) use (&$capturedMessages) {
+                $capturedMessages = $messages;
+                return true;
+            });
+
+        $this->callHandlePostback(
+            $this->makePostbackEvent('action=create_fish_with_default_name'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertCount(1, $capturedMessages);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $capturedMessages[0]);
+        $this->assertStringContainsString('部落', $capturedMessages[0]->getAltText());
+    }
+
+    /** @test */
+    public function test_tribe_selection_flex_contains_all_config_tribes(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+
+        $capturedMessages = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->once()
+            ->withArgs(function ($token, $messages) use (&$capturedMessages) {
+                $capturedMessages = $messages;
+                return true;
+            });
+
+        $this->callHandlePostback(
+            $this->makePostbackEvent('action=create_fish_with_default_name'),
+            self::REPLY_TOKEN
+        );
+
+        $flex = $capturedMessages[0];
+        $bodyJson = json_encode($flex->getContents());
+
+        foreach (config('fish_options.tribes', []) as $tribe) {
+            $this->assertStringContainsString("tribe={$tribe}", $bodyJson);
+        }
+    }
+
+    // =====================================================
+    // 捕獲方式選單 → Flex Message + config 選項
+    // =====================================================
+
+    /** @test */
+    public function test_capture_method_selection_sends_flex_message_not_text_message(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_capture_location', now()->addMinutes(10));
+
+        $capturedMessages = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->once()
+            ->withArgs(function ($token, $messages) use (&$capturedMessages) {
+                $capturedMessages = $messages;
+                return true;
+            });
+
+        $this->callHandleTextMessage(
+            $this->makeTextMessageEvent('小蘭嶼南側礁石'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertCount(1, $capturedMessages);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $capturedMessages[0]);
+        $this->assertStringContainsString('捕獲方式', $capturedMessages[0]->getAltText());
+    }
+
+    /** @test */
+    public function test_capture_method_flex_contains_all_config_methods(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_capture_location', now()->addMinutes(10));
+
+        $capturedMessages = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->once()
+            ->withArgs(function ($token, $messages) use (&$capturedMessages) {
+                $capturedMessages = $messages;
+                return true;
+            });
+
+        $this->callHandleTextMessage(
+            $this->makeTextMessageEvent('小蘭嶼南側礁石'),
+            self::REPLY_TOKEN
+        );
+
+        $flex = $capturedMessages[0];
+        $bodyJson = json_encode($flex->getContents());
+
+        foreach (array_keys(config('fish_options.capture_methods', [])) as $methodKey) {
+            $this->assertStringContainsString("capture_method={$methodKey}", $bodyJson);
+        }
+    }
+
+    // =====================================================
     // 部落選擇
     // =====================================================
 

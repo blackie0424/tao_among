@@ -10,6 +10,7 @@ use App\Models\Fish;
 use App\Models\FishAudio;
 use App\Services\CaptureRecordBatchService;
 use App\Services\FishNoteService;
+use App\Services\Line\LineCreateFishReplyBuilder;
 use App\Services\Line\LineFishKnowledgeMessageBuilder;
 use App\Services\Line\LineFishMessageBuilder;
 use App\Services\Line\LineMenuMessageBuilder;
@@ -54,6 +55,8 @@ class LineBotController extends Controller
 
     protected FishNoteService $fishNoteService;
 
+    protected LineCreateFishReplyBuilder $createFishReplyBuilder;
+
     public function __construct(
         LineMessagingClientInterface $lineMessagingClient,
         ApiFishController $apiFishController,
@@ -65,7 +68,8 @@ class LineBotController extends Controller
         ?LineFishMessageBuilder $lineFishMessageBuilder = null,
         ?LineMenuMessageBuilder $lineMenuMessageBuilder = null,
         ?LineFishKnowledgeMessageBuilder $lineFishKnowledgeMessageBuilder = null,
-        ?FishNoteService $fishNoteService = null
+        ?FishNoteService $fishNoteService = null,
+        ?LineCreateFishReplyBuilder $createFishReplyBuilder = null
     ) {
         $this->lineMessagingClient = $lineMessagingClient;
         $this->apiFishController = $apiFishController;
@@ -77,6 +81,7 @@ class LineBotController extends Controller
         $this->lineFishKnowledgeMessageBuilder = $lineFishKnowledgeMessageBuilder ?? app(LineFishKnowledgeMessageBuilder::class);
         $this->lineMenuMessageBuilder = $lineMenuMessageBuilder ?? app(LineMenuMessageBuilder::class);
         $this->fishNoteService = $fishNoteService ?? app(FishNoteService::class);
+        $this->createFishReplyBuilder = $createFishReplyBuilder ?? app(LineCreateFishReplyBuilder::class);
         $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
             ?? new LineBatchCaptureFlowService(
                 $lineMessagingClient,
@@ -336,7 +341,7 @@ class LineBotController extends Controller
             Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_method', now()->addMinutes(30));
 
             $this->lineMessagingClient->replyMessage($replyToken, [
-                $this->buildCaptureMethodFlexMessage(),
+                $this->createFishReplyBuilder->buildCaptureMethodSelectionMessage(),
             ]);
 
             return;
@@ -2264,48 +2269,8 @@ class LineBotController extends Controller
     {
         Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_tribe', now()->addMinutes(30));
 
-        $actions = array_map(fn ($tribe) => [
-            'label'        => ucfirst($tribe),
-            'data'         => "action=select_create_fish_tribe&tribe={$tribe}",
-            'display_text' => $tribe,
-            'style'        => 'secondary',
-        ], config('fish_options.tribes', []));
-
-        $actions[] = [
-            'label'        => '❌ 取消',
-            'data'         => 'action=cancel_create_fish',
-            'display_text' => '取消新增',
-            'style'        => 'secondary',
-            'color'        => '#aaaaaa',
-        ];
-
         $this->lineMessagingClient->replyMessage($replyToken, [
-            app(\App\Services\LineBatchCaptureMessageBuilder::class)
-                ->buildOptionSelectorCard('請選擇捕獲部落', '請選擇本次捕獲所屬部落。', $actions),
+            $this->createFishReplyBuilder->buildTribeSelectionMessage(),
         ]);
-    }
-
-    private function buildCaptureMethodFlexMessage(): \LINE\Clients\MessagingApi\Model\FlexMessage
-    {
-        $actions = [];
-        foreach (config('fish_options.capture_methods', []) as $value => $label) {
-            $actions[] = [
-                'label'        => $label,
-                'data'         => "action=select_create_fish_method&capture_method={$value}",
-                'display_text' => $label,
-                'style'        => 'secondary',
-            ];
-        }
-
-        $actions[] = [
-            'label'        => '❌ 取消',
-            'data'         => 'action=cancel_create_fish',
-            'display_text' => '取消新增',
-            'style'        => 'secondary',
-            'color'        => '#aaaaaa',
-        ];
-
-        return app(\App\Services\LineBatchCaptureMessageBuilder::class)
-            ->buildOptionSelectorCard('請選擇捕獲方式', '請選擇本次捕獲使用的方式。', $actions);
     }
 }
