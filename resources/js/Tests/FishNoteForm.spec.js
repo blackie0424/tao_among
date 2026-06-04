@@ -81,6 +81,20 @@ describe('FishNoteForm', () => {
       expect(router.post).not.toHaveBeenCalled()
     })
 
+    it('shows error when note content is less than 10 characters', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      wrapper = mount(FishNoteForm, { props: defaultProps })
+      await wrapper.find('#locate').setValue('ivalino')
+      await wrapper.find('#note_type').setValue('生態習性')
+      await wrapper.find('#note').setValue('太短了')
+
+      wrapper.vm.submitForm()
+      await flushPromises()
+
+      expect(router.post).not.toHaveBeenCalled()
+      expect(wrapper.text()).toContain('知識內容至少需要 10 個字元')
+    })
+
     it('calls router.post to create endpoint when valid', async () => {
       const { router } = await import('@inertiajs/vue3')
       wrapper = mount(FishNoteForm, { props: defaultProps })
