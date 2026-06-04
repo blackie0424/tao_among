@@ -90,6 +90,7 @@ import LazyImage from '@/Components/UI/LazyImage.vue'
 import { markFishStale } from '@/utils/fishListCache'
 
 const props = defineProps({
+  initialData: { type: Object, default: null },
   tribes: Array,
   foodCategories: Array,
   processingMethods: Array,
@@ -98,22 +99,23 @@ const props = defineProps({
   fishImage: String,
 })
 
-// 過濾掉空值選項
-const filteredFoodCategories = computed(() => {
-  return (props.foodCategories || []).filter((category) => category !== null && category !== '')
-})
+const isEditMode = computed(() => props.initialData !== null)
 
-const filteredProcessingMethods = computed(() => {
-  return (props.processingMethods || []).filter((method) => method !== null && method !== '')
-})
+const filteredFoodCategories = computed(() =>
+  (props.foodCategories || []).filter((c) => c !== null && c !== '')
+)
+
+const filteredProcessingMethods = computed(() =>
+  (props.processingMethods || []).filter((m) => m !== null && m !== '')
+)
 
 const emit = defineEmits(['submitted'])
 
 const form = reactive({
-  tribe: '',
-  food_category: '',
-  processing_method: '',
-  notes: '',
+  tribe: props.initialData?.tribe ?? '',
+  food_category: props.initialData?.food_category ?? '',
+  processing_method: props.initialData?.processing_method ?? '',
+  notes: props.initialData?.notes ?? '',
 })
 
 const errors = ref({})
@@ -123,15 +125,21 @@ function submitForm() {
   processing.value = true
   errors.value = {}
 
-  router.post(`/fish/${props.fishId}/tribal-classifications`, form, {
+  const url = isEditMode.value
+    ? `/fish/${props.fishId}/tribal-classifications/${props.initialData.id}`
+    : `/fish/${props.fishId}/tribal-classifications`
+
+  const request = isEditMode.value ? router.put : router.post
+
+  request(url, form, {
     onSuccess: () => {
-      // 標記此魚類需要在 Fishs 頁面更新
       markFishStale(props.fishId)
-      // 重置表單
-      form.tribe = ''
-      form.food_category = ''
-      form.processing_method = ''
-      form.notes = ''
+      if (!isEditMode.value) {
+        form.tribe = ''
+        form.food_category = ''
+        form.processing_method = ''
+        form.notes = ''
+      }
       emit('submitted')
     },
     onError: (errorResponse) => {
@@ -143,8 +151,5 @@ function submitForm() {
   })
 }
 
-// 暴露 submitForm 方法給父元件
-defineExpose({
-  submitForm,
-})
+defineExpose({ submitForm })
 </script>
