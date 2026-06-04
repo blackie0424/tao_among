@@ -8,7 +8,7 @@
       :submitLabel="uploading ? '上傳中...' : '更新'"
     />
     <div class="pt-16">
-      <CaptureRecordEditForm
+      <CaptureRecordForm
         :record="record"
         :tribes="tribes"
         :capture_methods="capture_methods"
@@ -25,7 +25,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import CaptureRecordEditForm from '../Components/CaptureRecord/CaptureRecordEditForm.vue'
+import CaptureRecordForm from '../Components/CaptureRecord/CaptureRecordForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 
