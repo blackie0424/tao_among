@@ -336,20 +336,7 @@ class LineBotController extends Controller
             Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_method', now()->addMinutes(30));
 
             $this->lineMessagingClient->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '請選擇捕獲方式：',
-                    'quickReply' => [
-                        'items' => [
-                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '網捕', 'data' => 'action=select_create_fish_method&capture_method=網捕', 'displayText' => '網捕']],
-                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '釣魚', 'data' => 'action=select_create_fish_method&capture_method=釣魚', 'displayText' => '釣魚']],
-                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '陷阱', 'data' => 'action=select_create_fish_method&capture_method=陷阱', 'displayText' => '陷阱']],
-                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '徒手', 'data' => 'action=select_create_fish_method&capture_method=徒手', 'displayText' => '徒手']],
-                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '其他', 'data' => 'action=select_create_fish_method&capture_method=其他', 'displayText' => '其他']],
-                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '❌ 取消', 'data' => 'action=cancel_create_fish', 'displayText' => '取消新增']],
-                        ],
-                    ],
-                ]),
+                $this->buildCaptureMethodFlexMessage(),
             ]);
 
             return;
@@ -2275,34 +2262,50 @@ class LineBotController extends Controller
 
     private function transitionToCaptureTribe(string $userId, string $replyToken): void
     {
-        Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_tribe', now()->addMinutes(10));
+        Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_tribe', now()->addMinutes(30));
 
-        $tribes = config('fish_options.tribes', []);
-        $quickReplyItems = array_map(fn ($tribe) => [
-            'type'   => 'action',
-            'action' => [
-                'type'        => 'postback',
-                'label'       => $tribe,
-                'data'        => "action=select_create_fish_tribe&tribe={$tribe}",
-                'displayText' => $tribe,
-            ],
-        ], $tribes);
-        $quickReplyItems[] = [
-            'type'   => 'action',
-            'action' => [
-                'type'        => 'postback',
-                'label'       => '❌ 取消',
-                'data'        => 'action=cancel_create_fish',
-                'displayText' => '取消新增',
-            ],
+        $actions = array_map(fn ($tribe) => [
+            'label'        => ucfirst($tribe),
+            'data'         => "action=select_create_fish_tribe&tribe={$tribe}",
+            'display_text' => $tribe,
+            'style'        => 'secondary',
+        ], config('fish_options.tribes', []));
+
+        $actions[] = [
+            'label'        => '❌ 取消',
+            'data'         => 'action=cancel_create_fish',
+            'display_text' => '取消新增',
+            'style'        => 'secondary',
+            'color'        => '#aaaaaa',
         ];
 
         $this->lineMessagingClient->replyMessage($replyToken, [
-            new \LINE\Clients\MessagingApi\Model\TextMessage([
-                'type'         => 'text',
-                'text'         => '請選擇捕獲部落：',
-                'quickReply'   => ['items' => $quickReplyItems],
-            ]),
+            app(\App\Services\LineBatchCaptureMessageBuilder::class)
+                ->buildOptionSelectorCard('請選擇捕獲部落', '請選擇本次捕獲所屬部落。', $actions),
         ]);
+    }
+
+    private function buildCaptureMethodFlexMessage(): \LINE\Clients\MessagingApi\Model\FlexMessage
+    {
+        $actions = [];
+        foreach (config('fish_options.capture_methods', []) as $value => $label) {
+            $actions[] = [
+                'label'        => $label,
+                'data'         => "action=select_create_fish_method&capture_method={$value}",
+                'display_text' => $label,
+                'style'        => 'secondary',
+            ];
+        }
+
+        $actions[] = [
+            'label'        => '❌ 取消',
+            'data'         => 'action=cancel_create_fish',
+            'display_text' => '取消新增',
+            'style'        => 'secondary',
+            'color'        => '#aaaaaa',
+        ];
+
+        return app(\App\Services\LineBatchCaptureMessageBuilder::class)
+            ->buildOptionSelectorCard('請選擇捕獲方式', '請選擇本次捕獲使用的方式。', $actions);
     }
 }
