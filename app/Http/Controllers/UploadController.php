@@ -60,7 +60,7 @@ class UploadController extends Controller
     {
         $validated = $request->validate([
             'fish_id' => 'required|integer|min:1',
-            'ext' => 'nullable|string|in:webm,mp3,wav,m4a,mp4'
+            'ext' => 'nullable|string|in:webm,mp3,wav,m4a'
         ]);
 
         $ext = $validated['ext'] ?? 'webm';
@@ -402,11 +402,8 @@ class UploadController extends Controller
                 'string',
                 function ($attribute, $value, $fail) {
                     $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
-                    // m4a: AAC 編碼的音頻檔案（iOS、Chrome、Firefox、Edge 全支援）【推薦】
-                    // mp3: 通用音頻格式（全平台播放支援，但瀏覽器無法直接錄製）
-                    // aac: 純 AAC 格式（部分瀏覽器支援）
-                    if (!in_array($ext, ['mp3', 'wav', 'm4a', 'mp4', 'aac'])) {
-                        $fail('音訊檔案格式僅限 mp3, wav, webm, m4a, mp4, aac。');
+                    if (!in_array($ext, ['mp3', 'wav', 'm4a', 'webm'])) {
+                        $fail('音訊檔案格式僅限 mp3, wav, m4a, webm。');
                     }
                 }
             ],

@@ -78,7 +78,7 @@ it('Fish image upload failed due to an unsupported file type.', function () {
             'errors' => [
                 'image' => [
                     '只能上傳單一圖片檔案。',
-                    '圖片格式僅限 jpeg, png, jpg, gif, svg。',
+                    '圖片格式僅限 jpeg, png, jpg, gif。',
                 ],
             ],
         ]);
@@ -160,7 +160,7 @@ it('image 上傳失敗，檔案格式為 heic', function () {
             'errors' => [
                 'image' => [
                     '只能上傳單一圖片檔案。',
-                    '圖片格式僅限 jpeg, png, jpg, gif, svg。',
+                    '圖片格式僅限 jpeg, png, jpg, gif。',
                 ],
             ],
         ]);
@@ -203,7 +203,7 @@ it('audio 上傳失敗，檔案格式錯誤', function () {
         ->assertJson([
             'message' => '資料驗證失敗',
             'errors' => [
-                'audio' => ['音訊格式僅限 mp3, wav'],
+                'audio' => ['音訊格式僅限 mp3, wav, m4a'],
             ],
         ]);
 });
