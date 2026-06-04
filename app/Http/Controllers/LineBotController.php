@@ -10,6 +10,7 @@ use App\Models\Fish;
 use App\Models\FishAudio;
 use App\Services\CaptureRecordBatchService;
 use App\Services\FishNoteService;
+use App\Services\Line\LineCreateFishReplyBuilder;
 use App\Services\Line\LineFishKnowledgeMessageBuilder;
 use App\Services\Line\LineFishMessageBuilder;
 use App\Services\Line\LineMenuMessageBuilder;
@@ -54,6 +55,8 @@ class LineBotController extends Controller
 
     protected FishNoteService $fishNoteService;
 
+    protected LineCreateFishReplyBuilder $createFishReplyBuilder;
+
     public function __construct(
         LineMessagingClientInterface $lineMessagingClient,
         ApiFishController $apiFishController,
@@ -65,7 +68,8 @@ class LineBotController extends Controller
         ?LineFishMessageBuilder $lineFishMessageBuilder = null,
         ?LineMenuMessageBuilder $lineMenuMessageBuilder = null,
         ?LineFishKnowledgeMessageBuilder $lineFishKnowledgeMessageBuilder = null,
-        ?FishNoteService $fishNoteService = null
+        ?FishNoteService $fishNoteService = null,
+        ?LineCreateFishReplyBuilder $createFishReplyBuilder = null
     ) {
         $this->lineMessagingClient = $lineMessagingClient;
         $this->apiFishController = $apiFishController;
@@ -77,6 +81,7 @@ class LineBotController extends Controller
         $this->lineFishKnowledgeMessageBuilder = $lineFishKnowledgeMessageBuilder ?? app(LineFishKnowledgeMessageBuilder::class);
         $this->lineMenuMessageBuilder = $lineMenuMessageBuilder ?? app(LineMenuMessageBuilder::class);
         $this->fishNoteService = $fishNoteService ?? app(FishNoteService::class);
+        $this->createFishReplyBuilder = $createFishReplyBuilder ?? app(LineCreateFishReplyBuilder::class);
         $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
             ?? new LineBatchCaptureFlowService(
                 $lineMessagingClient,
@@ -308,8 +313,63 @@ class LineBotController extends Controller
             return;
         }
 
+        if (in_array($createFishState, ['waiting_capture_tribe', 'waiting_capture_method', 'waiting_capture_date'])) {
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '請點選上方按鈕選擇，或取消新增。',
+                    'quickReply' => [
+                        'items' => [
+                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '❌ 取消', 'data' => 'action=cancel_create_fish', 'displayText' => '取消新增']],
+                        ],
+                    ],
+                ]),
+            ]);
+
+            return;
+        }
+
         if ($createFishState === 'waiting_custom_name') {
-            $this->createFish($userId, $replyToken, $text);
+            Cache::put("line_user_{$userId}_create_fish_name", $text, now()->addMinutes(30));
+            $this->transitionToCaptureTribe($userId, $replyToken);
+
+            return;
+        }
+
+        if ($createFishState === 'waiting_capture_location') {
+            Cache::put("line_user_{$userId}_create_fish_location", $text, now()->addMinutes(30));
+            Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_method', now()->addMinutes(30));
+
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                $this->createFishReplyBuilder->buildCaptureMethodSelectionMessage(),
+            ]);
+
+            return;
+        }
+
+        if ($createFishState === 'waiting_capture_date_input') {
+            Cache::put("line_user_{$userId}_create_fish_capture_date", $text, now()->addMinutes(30));
+            Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_notes', now()->addMinutes(30));
+
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => '請輸入備註（可描述捕獲情況）：',
+                    'quickReply' => [
+                        'items' => [
+                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '略過備註', 'data' => 'action=skip_create_fish_notes', 'displayText' => '略過備註']],
+                            ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '❌ 取消', 'data' => 'action=cancel_create_fish', 'displayText' => '取消新增']],
+                        ],
+                    ],
+                ]),
+            ]);
+
+            return;
+        }
+
+        if ($createFishState === 'waiting_capture_notes') {
+            $customName = Cache::get("line_user_{$userId}_create_fish_name");
+            $this->createFish($userId, $replyToken, $customName, $text);
 
             return;
         }
@@ -1142,9 +1202,7 @@ class LineBotController extends Controller
 
             // C: 瀏覽資料總選單 (Flex Carousel 部落選擇)
             if ($action === 'browse_tribes_menu') {
-                // 清除新增魚類流程的殘留狀態，避免污染後續操作
-                Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearAllCreateFishCache($userId);
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
 
@@ -1157,9 +1215,7 @@ class LineBotController extends Controller
 
             // C-1: 瀏覽特定部落資料
             if ($action === 'browse_tribe_data') {
-                // 清除新增魚類流程的殘留狀態
-                Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearAllCreateFishCache($userId);
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
 
@@ -1176,9 +1232,7 @@ class LineBotController extends Controller
 
             // E: 隨機瀏覽魚類
             if ($action === 'random_browse') {
-                // 清除新增魚類流程的殘留狀態
-                Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearAllCreateFishCache($userId);
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
 
@@ -1190,8 +1244,7 @@ class LineBotController extends Controller
             // F: 提供線索（隨機「我不知道」魚）
             if ($action === 'provide_clue') {
                 // 清除新增魚類流程的殘留狀態
-                Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearAllCreateFishCache($userId);
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
 
@@ -1386,9 +1439,10 @@ class LineBotController extends Controller
                 return;
             }
 
-            // 使用預設名稱建立魚類
+            // 使用預設名稱，進入捕獲資料流程
             if ($action === 'create_fish_with_default_name') {
-                $this->createFish($userId, $replyToken, null);
+                Cache::put("line_user_{$userId}_create_fish_name", '我不知道', now()->addMinutes(30));
+                $this->transitionToCaptureTribe($userId, $replyToken);
 
                 return;
             }
@@ -1520,9 +1574,7 @@ class LineBotController extends Controller
 
             // 取消新增魚類
             if ($action === 'cancel_create_fish') {
-                // 清除所有相關狀態
-                Cache::forget("line_user_{$userId}_create_fish_state");
-                Cache::forget("line_user_{$userId}_create_fish_images");
+                $this->clearAllCreateFishCache($userId);
 
                 $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
@@ -1530,6 +1582,97 @@ class LineBotController extends Controller
                         'text' => '✅ 已取消新增魚類',
                     ]),
                 ]);
+
+                return;
+            }
+
+            // ==========================================
+            // 新增魚類 — 捕獲資料流程
+            // ==========================================
+
+            if ($action === 'select_create_fish_tribe') {
+                $tribe = $params['tribe'] ?? '';
+                Cache::put("line_user_{$userId}_create_fish_tribe", $tribe, now()->addMinutes(30));
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_location', now()->addMinutes(30));
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入捕獲地點：',
+                        'quickReply' => [
+                            'items' => [
+                                ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '❌ 取消', 'data' => 'action=cancel_create_fish', 'displayText' => '取消新增']],
+                            ],
+                        ],
+                    ]),
+                ]);
+
+                return;
+            }
+
+            if ($action === 'select_create_fish_method') {
+                $method = $params['capture_method'] ?? '';
+                Cache::put("line_user_{$userId}_create_fish_capture_method", $method, now()->addMinutes(30));
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_date', now()->addMinutes(30));
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請選擇捕獲日期：',
+                        'quickReply' => [
+                            'items' => [
+                                ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '今天', 'data' => 'action=select_create_fish_date_today', 'displayText' => '今天']],
+                                ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '自行輸入', 'data' => 'action=select_create_fish_date_custom', 'displayText' => '自行輸入日期']],
+                                ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '❌ 取消', 'data' => 'action=cancel_create_fish', 'displayText' => '取消新增']],
+                            ],
+                        ],
+                    ]),
+                ]);
+
+                return;
+            }
+
+            if ($action === 'select_create_fish_date_today') {
+                Cache::put("line_user_{$userId}_create_fish_capture_date", now()->toDateString(), now()->addMinutes(30));
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_notes', now()->addMinutes(30));
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入備註（可描述捕獲情況）：',
+                        'quickReply' => [
+                            'items' => [
+                                ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '略過備註', 'data' => 'action=skip_create_fish_notes', 'displayText' => '略過備註']],
+                                ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '❌ 取消', 'data' => 'action=cancel_create_fish', 'displayText' => '取消新增']],
+                            ],
+                        ],
+                    ]),
+                ]);
+
+                return;
+            }
+
+            if ($action === 'select_create_fish_date_custom') {
+                Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_date_input', now()->addMinutes(30));
+
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '請輸入捕獲日期（格式：YYYY-MM-DD，例如 2024-05-01）：',
+                        'quickReply' => [
+                            'items' => [
+                                ['type' => 'action', 'action' => ['type' => 'postback', 'label' => '❌ 取消', 'data' => 'action=cancel_create_fish', 'displayText' => '取消新增']],
+                            ],
+                        ],
+                    ]),
+                ]);
+
+                return;
+            }
+
+            if ($action === 'skip_create_fish_notes') {
+                $customName = Cache::get("line_user_{$userId}_create_fish_name");
+                $this->createFish($userId, $replyToken, $customName, null);
 
                 return;
             }
@@ -1946,9 +2089,10 @@ class LineBotController extends Controller
      *
      * @param  string  $userId  LINE 用戶 ID
      * @param  string  $replyToken  回覆 token
-     * @param  string|null  $customName  自訂名稱（null = 使用預設）
+     * @param  string|null  $customName  自訂名稱（null = 從 cache 讀取，或使用預設）
+     * @param  string|null  $notes  備註（null = 略過）
      */
-    private function createFish(string $userId, string $replyToken, ?string $customName): void
+    private function createFish(string $userId, string $replyToken, ?string $customName, ?string $notes = null): void
     {
         try {
             // 取得批次暫存圖片陣列
@@ -1965,12 +2109,20 @@ class LineBotController extends Controller
                 return;
             }
 
+            // 從 cache 讀取捕獲資料
+            $captureData = [
+                'tribe'          => Cache::get("line_user_{$userId}_create_fish_tribe"),
+                'location'       => Cache::get("line_user_{$userId}_create_fish_location"),
+                'capture_method' => Cache::get("line_user_{$userId}_create_fish_capture_method"),
+                'capture_date'   => Cache::get("line_user_{$userId}_create_fish_capture_date"),
+                'notes'          => $notes,
+            ];
+
             // 立即清除所有流程狀態，確保即使後續步驟失敗也不殘留
-            Cache::forget("line_user_{$userId}_create_fish_state");
-            Cache::forget("line_user_{$userId}_create_fish_images");
+            $this->clearAllCreateFishCache($userId);
 
             // 委派商業邏輯給 FishService（SRP：Controller 只協調流程）
-            $fish = $this->fishService->createFishFromLine($customName, $filenames);
+            $fish = $this->fishService->createFishFromLine($customName, $filenames, $captureData);
 
             Log::info('LINE Bot fish created successfully', [
                 'userId' => $userId,
@@ -1997,8 +2149,7 @@ class LineBotController extends Controller
 
         } catch (\Exception $e) {
             // 確保即使建立失敗，也要清除 Cache 狀態避免使用者卡住
-            Cache::forget("line_user_{$userId}_create_fish_state");
-            Cache::forget("line_user_{$userId}_create_fish_images");
+            $this->clearAllCreateFishCache($userId);
 
             Log::error('LINE Bot create fish failed', [
                 'userId' => $userId,
@@ -2104,5 +2255,22 @@ class LineBotController extends Controller
     private function clearBatchCaptureState(string $userId): void
     {
         $this->lineBatchCaptureFlowService->clearState($userId);
+    }
+
+    private function clearAllCreateFishCache(string $userId): void
+    {
+        $prefix = "line_user_{$userId}_create_fish_";
+        foreach (['state', 'images', 'name', 'tribe', 'location', 'capture_method', 'capture_date', 'notes'] as $key) {
+            Cache::forget("{$prefix}{$key}");
+        }
+    }
+
+    private function transitionToCaptureTribe(string $userId, string $replyToken): void
+    {
+        Cache::put("line_user_{$userId}_create_fish_state", 'waiting_capture_tribe', now()->addMinutes(30));
+
+        $this->lineMessagingClient->replyMessage($replyToken, [
+            $this->createFishReplyBuilder->buildTribeSelectionMessage(),
+        ]);
     }
 }

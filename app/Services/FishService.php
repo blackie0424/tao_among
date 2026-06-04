@@ -162,9 +162,14 @@ class FishService implements FishServiceInterface
      * @param string|null $name 魚類名稱，null 時使用預設值「我不知道」
      * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
      */
-    public function createFishFromLine(?string $name, array $filenames): Fish
+    public function createFishFromLine(?string $name, array $filenames, array $captureData = []): Fish
     {
-        $fishName = $name ?: '我不知道';
+        $fishName       = $name ?: '我不知道';
+        $tribe          = $captureData['tribe']          ?? 'iraraley';
+        $location       = $captureData['location']       ?? 'LINE Bot';
+        $captureMethod  = $captureData['capture_method'] ?? '未知';
+        $captureDate    = $captureData['capture_date']   ?? now()->toDateString();
+        $notes          = $captureData['notes']          ?? null;
 
         $fish = Fish::create([
             'name'  => $fishName,
@@ -176,10 +181,11 @@ class FishService implements FishServiceInterface
             $record = CaptureRecord::create([
                 'fish_id'        => $fish->id,
                 'image_path'     => $filename,
-                'tribe'          => 'iraraley',
-                'location'       => 'LINE Bot',
-                'capture_method' => '未知',
-                'capture_date'   => now()->toDateString(),
+                'tribe'          => $tribe,
+                'location'       => $location,
+                'capture_method' => $captureMethod,
+                'capture_date'   => $captureDate,
+                'notes'          => $notes,
             ]);
             if ($index === 0) {
                 $firstRecordId = $record->id;

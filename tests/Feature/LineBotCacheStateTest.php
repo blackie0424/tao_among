@@ -385,19 +385,14 @@ class LineBotCacheStateTest extends TestCase
     // =========================================================
 
     /**
-     * 使用者在 waiting_custom_name 狀態輸入魚名 → 應正確建立魚類
-     * （這是正常的合法流程，確保修改後仍正常運作）
+     * 使用者在 waiting_custom_name 狀態輸入魚名 → 儲存名稱並轉換到 waiting_capture_tribe
+     * （新流程：命名後繼續收集捕獲資料，不直接建立 Fish）
      */
     public function test_text_message_during_waiting_custom_name_creates_fish(): void
     {
         // 預置：已有暫存圖片與 waiting_custom_name 狀態
         Cache::put('line_user_' . self::USER_ID . '_create_fish_state', 'waiting_custom_name', now()->addMinutes(5));
         Cache::put('line_user_' . self::USER_ID . '_create_fish_images', ['some-fish-image.jpg'], now()->addMinutes(5));
-
-        // Mock StorageService 回傳圖片 URL
-        $mockStorageService = \Mockery::mock(StorageServiceInterface::class);
-        $mockStorageService->shouldReceive('getUrl')
-            ->andReturn('https://example.com/some-fish-image.jpg');
 
         $mockLineUserService4 = \Mockery::mock(LineUserServiceInterface::class);
         $mockLineUserService4->shouldReceive('upsert')->andReturn(new \App\Models\User())->byDefault();
@@ -406,7 +401,7 @@ class LineBotCacheStateTest extends TestCase
             $this->mockLineBotService,
             $this->app->make(ApiFishController::class),
             $this->app->make(UploadService::class),
-            $mockStorageService,
+            $this->app->make(StorageServiceInterface::class),
             $mockLineUserService4,
             $this->app->make(FishServiceInterface::class)
         );
@@ -420,12 +415,10 @@ class LineBotCacheStateTest extends TestCase
         $method->setAccessible(true);
         $method->invoke($controller, $this->makeTextMessageEvent('黑鯛'), self::REPLY_TOKEN);
 
-        // 驗證 Fish 被建立且名稱正確
-        $this->assertDatabaseHas('fish', ['name' => '黑鯛']);
-
-        // 驗證 Cache 已被清除
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_images'));
+        // 新流程：名稱存入 cache，轉換到 waiting_capture_tribe，不直接建立 Fish
+        $this->assertEquals('黑鯛', Cache::get('line_user_' . self::USER_ID . '_create_fish_name'));
+        $this->assertEquals('waiting_capture_tribe', Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
+        $this->assertDatabaseCount('fish', 0);
     }
 
     // =========================================================
