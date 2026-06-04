@@ -282,6 +282,141 @@ describe('CaptureRecordForm', () => {
         expect.objectContaining({ method: 'POST' })
       )
     })
+
+    it('edit mode 上傳前顯示 record 現有圖片', () => {
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+      // record.image_url 存在且尚未選新圖片，應顯示當前照片區塊
+      const currentPhoto = wrapper.find('img[alt="當前捕獲照片"]')
+      expect(currentPhoto.exists()).toBe(true)
+    })
+
+    it('edit mode 點擊 × 移除預覽圖片後恢復顯示現有圖片', async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ url: 'https://s3.example.com/upload', filename: 'new.jpg' }),
+        })
+        .mockResolvedValueOnce({ ok: true })
+
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+      const file = new File(['x'], 'new.jpg', { type: 'image/jpeg' })
+      const input = wrapper.find('input[type="file"]')
+      Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+      await input.trigger('change')
+      const { flushPromises } = await import('@vue/test-utils')
+      await flushPromises()
+      // FileReader onload fires as macrotask; drain it
+      await new Promise((r) => setTimeout(r, 10))
+      await nextTick()
+
+      // 預覽圖片出現，× 按鈕可見
+      expect(wrapper.find('button[type="button"]').exists()).toBe(true)
+
+      // 點擊 × 移除
+      await wrapper.find('button[type="button"]').trigger('click')
+      await nextTick()
+
+      // 預覽消失，恢復顯示現有圖片
+      expect(wrapper.find('img[alt="當前捕獲照片"]').exists()).toBe(true)
+    })
+
+    it('edit mode 上傳失敗時顯示錯誤訊息', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: '伺服器錯誤' }),
+      })
+
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+      const file = new File(['x'], 'new.jpg', { type: 'image/jpeg' })
+      const input = wrapper.find('input[type="file"]')
+      Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+      await input.trigger('change')
+      const { flushPromises } = await import('@vue/test-utils')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('伺服器錯誤')
+    })
+
+    it('edit mode 上傳中 emit statusChange canSubmit:false，完成後 emit canSubmit:true', async () => {
+      let resolveUpload
+      global.fetch
+        .mockImplementationOnce(() => new Promise((resolve) => {
+          resolveUpload = () => resolve({
+            ok: true,
+            json: async () => ({ url: 'https://s3.example.com/upload', filename: 'new.jpg' }),
+          })
+        }))
+        .mockResolvedValueOnce({ ok: true })
+
+      const wrapper = mount(CaptureRecordForm, { props: editProps })
+      const file = new File(['x'], 'new.jpg', { type: 'image/jpeg' })
+      const input = wrapper.find('input[type="file"]')
+      Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+      await input.trigger('change')
+
+      // 上傳中：第一個 statusChange 應 canSubmit:false
+      const emitted = wrapper.emitted('statusChange')
+      expect(emitted?.[0]?.[0]).toMatchObject({ canSubmit: false, uploading: true })
+
+      // 完成上傳
+      resolveUpload()
+      const { flushPromises } = await import('@vue/test-utils')
+      await flushPromises()
+
+      // 完成後：最後一個 statusChange 應 canSubmit:true
+      const lastEmit = wrapper.emitted('statusChange')?.at(-1)?.[0]
+      expect(lastEmit).toMatchObject({ canSubmit: true, uploading: false })
+    })
+  })
+
+  // ── Create mode 補充測試 ──
+
+  it('C9: prevStep 返回上一步時表單資料保留', async () => {
+    wrapper = mount(CaptureRecordForm, { props: defaultProps })
+
+    // 跳過 Step 1
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    // Step 2 填入資料
+    await wrapper.find('#tribe').setValue('ivalino')
+    await wrapper.find('#location').setValue('小蘭嶼')
+    await wrapper.find('#capture_date').setValue('2026-05-01')
+
+    // 進入 Step 3
+    wrapper.vm.nextStep()
+    await nextTick()
+    expect(wrapper.vm.step).toBe(3)
+
+    // 返回 Step 2
+    wrapper.vm.prevStep()
+    await nextTick()
+    expect(wrapper.vm.step).toBe(2)
+
+    // 欄位資料仍在
+    expect(wrapper.find('#tribe').element.value).toBe('ivalino')
+    expect(wrapper.find('#location').element.value).toBe('小蘭嶼')
+  })
+
+  it('create mode 上傳失敗時顯示錯誤訊息，不進入 Step 2', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ message: '上傳失敗' }),
+    })
+
+    wrapper = mount(CaptureRecordForm, { props: defaultProps })
+    const file = new File(['x'], 'fish.jpg', { type: 'image/jpeg' })
+    const input = wrapper.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+    await input.trigger('change')
+    await nextTick()
+
+    wrapper.vm.nextStep()
+    const { flushPromises } = await import('@vue/test-utils')
+    await flushPromises()
+
+    expect(wrapper.vm.step).toBe(1)
+    expect(wrapper.text()).toContain('上傳失敗')
   })
 
   it('圖片上傳透過 apiFetch 取得 signed URL（含 Accept 與 XSRF-TOKEN header）', async () => {
