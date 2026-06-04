@@ -488,6 +488,27 @@ it('handles ajax fish deletion errors gracefully', function () {
         ]);
 });
 
+it('GET /prefix/api/fishs/latest-at 回傳最新 updated_at（Unix ms）', function () {
+    Fish::factory()->create(['updated_at' => now()->subHour()]);
+    $latest = Fish::factory()->create(['updated_at' => now()]);
+
+    $response = $this->getJson('/prefix/api/fishs/latest-at');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure(['data' => ['latest_at']]);
+
+    $latestAt = $response->json('data.latest_at');
+    expect($latestAt)->toBeInt();
+    expect($latestAt)->toBe((int) ($latest->fresh()->updated_at->getPreciseTimestamp(3)));
+});
+
+it('GET /prefix/api/fishs/latest-at 無資料時回傳 null', function () {
+    $response = $this->getJson('/prefix/api/fishs/latest-at');
+
+    $response->assertStatus(200)
+        ->assertJson(['data' => ['latest_at' => null]]);
+});
+
 it('logs fish deletion errors properly', function () {
     $user = User::factory()->create();
     // 這個測試需要模擬刪除過程中的錯誤

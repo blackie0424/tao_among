@@ -15,4 +15,6 @@ interface FishSearchServiceInterface
     public function getCompactFishById(int $id): ?array;
 
     public function paginate(array $filters): array;
+
+    public function getLatestAt(): ?int;
 }
