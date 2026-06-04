@@ -15,7 +15,7 @@ class SignedUploadUrlRequest extends FormRequest
                 'string',
                 function ($attribute, $value, $fail) {
                     $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
-                    if (!in_array($ext, ['jpeg', 'png', 'jpg', 'gif', 'svg'])) {
+                    if (!in_array($ext, ['jpeg', 'png', 'jpg', 'gif'])) {
                         $fail('檔名格式不正確。');
                     }
                 }
