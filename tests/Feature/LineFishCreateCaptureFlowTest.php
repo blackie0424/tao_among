@@ -370,7 +370,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $this->assertEquals('ivalino', $record->tribe);
         $this->assertEquals('小蘭嶼南側礁石', $record->location);
         $this->assertEquals('mapazat', $record->capture_method);
-        $this->assertEquals('2026-05-20', $record->capture_date);
+        $this->assertEquals('2026-05-20', $record->capture_date->toDateString());
         $this->assertEquals('礁石旁發現，體型較大', $record->notes);
     }
 
@@ -475,7 +475,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $this->assertEquals('ivalino', $record->tribe);
         $this->assertEquals('小蘭嶼南側礁石', $record->location);
         $this->assertEquals('mapazat', $record->capture_method);
-        $this->assertEquals('2026-05-20', $record->capture_date);
+        $this->assertEquals('2026-05-20', $record->capture_date->toDateString());
         $this->assertEquals('體型較大', $record->notes);
     }
 
