@@ -188,10 +188,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { apiFetch } from '@/utils/apiFetch'
 import LazyImage from '@/Components/UI/LazyImage.vue'
+import { useImageUpload } from '@/composables/useImageUpload'
+import { useCaptureFormFields } from '@/composables/useCaptureFormFields'
 
 const props = defineProps({
   record: Object,
@@ -204,35 +205,28 @@ const props = defineProps({
 
 const emit = defineEmits(['submitted', 'statusChange'])
 
-const form = reactive({
-  tribe: '',
-  location: '',
-  capture_method: '',
-  capture_date: '',
-  notes: '',
-  image: null,
-})
-
-const errors = ref({})
 const processing = ref(false)
-const imagePreview = ref(null)
 const selectedFileName = ref('')
-const uploading = ref(false)
-const uploadedImageFilename = ref(null)
 const canSubmit = ref(true)
 
-// 今天的日期（用於限制日期選擇）
-const today = computed(() => {
-  return new Date().toISOString().split('T')[0]
-})
+const today = computed(() => new Date().toISOString().split('T')[0])
 
-// 初始化表單資料
+const {
+  imagePreview,
+  uploading,
+  uploadedFilename: uploadedImageFilename,
+  imageError,
+  handleImageChange: baseHandleImageChange,
+  removeImage: baseRemoveImage,
+} = useImageUpload({ autoUpload: true })
+
+const { form, errors, buildFormData } = useCaptureFormFields()
+
 onMounted(() => {
   if (props.record) {
     form.tribe = props.record.tribe || ''
     form.location = props.record.location || ''
     form.capture_method = props.record.capture_method || ''
-    // 將日期時間格式轉換為 YYYY-MM-DD 格式
     form.capture_date = props.record.capture_date
       ? new Date(props.record.capture_date).toISOString().split('T')[0]
       : ''
@@ -241,66 +235,28 @@ onMounted(() => {
 })
 
 async function handleImageChange(event) {
-  const file = event.target.files[0]
-  if (file) {
-    form.image = file
-    selectedFileName.value = file.name
-    canSubmit.value = false // 禁用送出按鈕
-    uploading.value = true
-    errors.value = {}
-    emit('statusChange', { canSubmit: false, uploading: true })
+  const file = event.target.files?.[0]
+  if (!file) return
+  selectedFileName.value = file.name
+  canSubmit.value = false
+  errors.value = {}
+  emit('statusChange', { canSubmit: false, uploading: true })
 
-    // 建立預覽
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      imagePreview.value = e.target.result
-    }
-    reader.readAsDataURL(file)
-
-    // 自動上傳圖片
-    try {
-      // 1. 取得簽名上傳 URL
-      const signedUrlResponse = await apiFetch('/prefix/api/storage/signed-upload-url', {
-        method: 'POST',
-        body: JSON.stringify({ filename: file.name }),
-      })
-
-      const signedUrlData = await signedUrlResponse.json()
-      if (!signedUrlResponse.ok) {
-        throw new Error(signedUrlData.message || '取得上傳網址失敗')
-      }
-
-      // 2. 直接上傳檔案到 Supabase
-      const uploadResponse = await fetch(signedUrlData.url, {
-        method: 'PUT',
-        body: file,
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error('圖片上傳失敗')
-      }
-
-      // 3. 上傳成功，儲存檔案名稱
-      uploadedImageFilename.value = signedUrlData.filename
-      canSubmit.value = true // 重新啟用送出按鈕
-      emit('statusChange', { canSubmit: true, uploading: false })
-    } catch (uploadError) {
-      errors.value = { image: uploadError.message }
-      canSubmit.value = true // 發生錯誤時也要啟用送出按鈕
-      emit('statusChange', { canSubmit: true, uploading: false })
-    } finally {
-      uploading.value = false
-    }
+  try {
+    await baseHandleImageChange(event)
+    canSubmit.value = true
+    emit('statusChange', { canSubmit: true, uploading: false })
+  } catch {
+    errors.value = { image: imageError.value }
+    canSubmit.value = true
+    emit('statusChange', { canSubmit: true, uploading: false })
   }
 }
 
 function removeImage() {
-  form.image = null
-  imagePreview.value = null
+  baseRemoveImage()
   selectedFileName.value = ''
-  uploadedImageFilename.value = null
   canSubmit.value = true
-  // 清除 input 的值
   const input = document.getElementById('image')
   if (input) input.value = ''
 }
@@ -309,42 +265,17 @@ function submitForm() {
   processing.value = true
   errors.value = {}
 
-  // 準備表單資料
-  const formData = {
-    tribe: form.tribe,
-    location: form.location,
-    capture_method: form.capture_method,
-    capture_date: form.capture_date,
-    notes: form.notes,
-  }
-
-  // 如果有上傳新圖片，加入檔案名稱
+  const formData = { ...buildFormData(), _method: 'PUT' }
   if (uploadedImageFilename.value) {
     formData.image_filename = uploadedImageFilename.value
   }
 
-  const updateUrl = `/fish/${props.fishId}/capture-records/${props.record.id}`
-
-  // 使用 POST 配合 _method 來模擬 PUT
-  formData._method = 'PUT'
-
-  router.post(updateUrl, formData, {
-    onSuccess: () => {
-      // 後端會處理重定向
-    },
-    onError: (errorResponse) => {
-      errors.value = errorResponse
-    },
-    onFinish: () => {
-      processing.value = false
-    },
+  router.post(`/fish/${props.fishId}/capture-records/${props.record.id}`, formData, {
+    onSuccess: () => {},
+    onError: (e) => { errors.value = e },
+    onFinish: () => { processing.value = false },
   })
 }
 
-// 暴露 submitForm 方法和狀態給父元件
-defineExpose({
-  submitForm,
-  canSubmit,
-  uploading,
-})
+defineExpose({ submitForm, canSubmit, uploading })
 </script>

@@ -44,7 +44,7 @@
                 type="file"
                 accept="image/*"
                 class="sr-only"
-                @change="handleImageChange"
+                @change="onImageChange"
                 :disabled="uploading"
               />
             </label>
@@ -152,11 +152,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { apiFetch } from '@/utils/apiFetch'
-import LazyImage from '@/Components/UI/LazyImage.vue'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
+import { useImageUpload } from '@/composables/useImageUpload'
+import { useCaptureFormFields } from '@/composables/useCaptureFormFields'
 
 const props = defineProps({
   tribes: Array,
@@ -174,86 +174,41 @@ const emit = defineEmits(['submitted'])
 
 const step = ref(1)
 const sessionSelectorVisible = ref(false)
-const form = reactive({
-  image: null,
-  tribe: '',
-  capture_method: '',
-  location: '',
-  capture_date: '',
-  notes: '',
-  image_filename: null,
-})
-
-const errors = ref({})
 const processing = ref(false)
-const uploading = ref(false)
-const imagePreview = ref(null)
+const imageFilename = ref(null)
 
-function handleImageChange(event) {
-  const file = event.target.files[0]
-  if (file) {
-    form.image = file
-    // 建立預覽
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      imagePreview.value = e.target.result
-    }
-    reader.readAsDataURL(file)
-  }
-}
+const { imagePreview, uploading, uploadedFilename, imageError, handleImageChange, uploadImage } =
+  useImageUpload()
 
-async function uploadImage() {
-  if (!form.image) {
+const { form, errors, validateCaptureFields, buildFormData } = useCaptureFormFields()
+
+async function doUploadStep() {
+  if (!imageFilename.value && !form.image) {
     errors.value.image = '請先選擇圖片'
     return false
   }
-  uploading.value = true
-  errors.value.image = null
+  if (imageFilename.value) return true
   try {
-    const signedUrlResponse = await apiFetch('/prefix/api/storage/signed-upload-url', {
-      method: 'POST',
-      body: JSON.stringify({ filename: form.image.name }),
-    })
-    const signedUrlData = await signedUrlResponse.json()
-    if (!signedUrlResponse.ok) {
-      throw new Error(signedUrlData.message || '取得上傳網址失敗')
-    }
-
-    const uploadResponse = await fetch(signedUrlData.url, {
-      method: 'PUT',
-      body: form.image,
-    })
-    if (!uploadResponse.ok) {
-      throw new Error('圖片上傳失敗')
-    }
-
-    form.image_filename = signedUrlData.filename
-    uploading.value = false
+    errors.value.image = null
+    const filename = await uploadImage(form.image)
+    imageFilename.value = filename
     return true
   } catch (e) {
-    errors.value.image = e.message || '上傳失敗'
-    uploading.value = false
+    errors.value.image = imageError.value
     return false
   }
 }
 
 function nextStep() {
-  errors.value = {}
   if (step.value === 1) {
-    // 上傳圖片才進下一步
-    uploadImage().then((ok) => {
-      if (ok) step.value = 2
-    })
+    doUploadStep().then((ok) => { if (ok) step.value = 2 })
   } else if (step.value === 2) {
-    // 驗證 tribe/location/date
     const e = {}
     if (!form.tribe) e.tribe = '請選擇部落'
     if (!form.location) e.location = '請輸入地點'
     if (!form.capture_date) e.capture_date = '請選擇日期'
-    if (Object.keys(e).length) {
-      errors.value = e
-      return
-    }
+    if (Object.keys(e).length) { errors.value = e; return }
+    errors.value = {}
     step.value = 3
   }
 }
@@ -263,45 +218,24 @@ function prevStep() {
 }
 
 async function finalSubmit() {
-  // 驗證捕獲方式
-  errors.value = {}
   if (!form.capture_method) {
-    errors.value.capture_method = '請選擇捕獲方式'
+    errors.value = { capture_method: '請選擇捕獲方式' }
     return
   }
   processing.value = true
-  try {
-    const formData = {
-      tribe: form.tribe,
-      location: form.location,
-      capture_method: form.capture_method,
-      capture_date: form.capture_date,
-      notes: form.notes,
-      image_filename: form.image_filename,
-    }
-
-    router.post(`/fish/${props.fishId}/capture-records`, formData, {
-      onSuccess: () => {
-        emit('submitted')
-      },
-      onError: (errorResponse) => {
-        errors.value = errorResponse || { general: '新增失敗' }
-      },
-      onFinish: () => {
-        processing.value = false
-      },
-    })
-  } catch (e) {
-    errors.value = { general: e.message }
-    processing.value = false
-  }
+  router.post(`/fish/${props.fishId}/capture-records`, {
+    ...buildFormData(),
+    image_filename: imageFilename.value,
+  }, {
+    onSuccess: () => emit('submitted'),
+    onError: (e) => { errors.value = e || { general: '新增失敗' } },
+    onFinish: () => { processing.value = false },
+  })
 }
 
-// 讓父元件可以透過 ref 呼叫 submitForm（FormActionBar 會呼叫）
 async function submitForm() {
   if (step.value === 1) {
-    // 若在 step1，嘗試上傳並移到下一步
-    const ok = await uploadImage()
+    const ok = await doUploadStep()
     if (ok) step.value = 2
   } else if (step.value === 2) {
     nextStep()
@@ -310,16 +244,10 @@ async function submitForm() {
   }
 }
 
-// 設定預填圖片（從建立魚類頁面傳來）
 function setPrefillImage(filename) {
-  console.log('[CaptureRecordForm] setPrefillImage called with:', filename)
-  console.log('[CaptureRecordForm] current step before:', step.value)
   if (filename) {
-    form.image_filename = filename
-    // 跳過 Step 1（上傳照片），直接進入 Step 2
+    imageFilename.value = filename
     step.value = 2
-    console.log('[CaptureRecordForm] step set to:', step.value)
-    // 若有過去捕獲資訊，先顯示 selector
     if (props.recent_sessions && props.recent_sessions.length > 0) {
       sessionSelectorVisible.value = true
     }
@@ -334,6 +262,13 @@ function onSessionSelect(session) {
     form.capture_method = session.capture_method
   }
   sessionSelectorVisible.value = false
+}
+
+// handleImageChange 需要同步更新 form.image
+function onImageChange(event) {
+  const file = event.target.files?.[0]
+  if (file) form.image = file
+  handleImageChange(event)
 }
 
 defineExpose({
