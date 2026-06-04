@@ -3,7 +3,7 @@
     <FormActionBar
       :goBack="goBack"
       :title="`編輯${fish.name}的進階知識`"
-      :showSubmit="canSubmit && !processing"
+      :showSubmit="!processing"
       :submitNote="submitForm"
       :submitLabel="processing ? '更新中...' : '更新'"
     />
@@ -12,11 +12,9 @@
         :initialData="note"
         :noteTypes="noteTypes"
         :tribes="tribes"
-        :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
-        @submitted="onNoteUpdated"
-        @statusChange="onStatusChange"
+        @submit="onFormSubmit"
         ref="formRef"
       />
     </div>
@@ -37,21 +35,19 @@ const props = defineProps({
 })
 
 const formRef = ref(null)
-const canSubmit = ref(true)
 const processing = ref(false)
-
-function onStatusChange(status) {
-  canSubmit.value = status.canSubmit
-  processing.value = status.processing
-}
 
 function goBack() {
   router.visit(`/fish/${props.fish.id}/knowledge-manager`)
 }
 
-function onNoteUpdated() {
-  // 返回進階知識列表頁面
-  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
+function onFormSubmit(formData) {
+  processing.value = true
+  router.post(`/fish/${props.fish.id}/knowledge/${props.note.id}`, formData, {
+    onSuccess: () => router.visit(`/fish/${props.fish.id}/knowledge-manager`),
+    onError: (e) => { formRef.value?.setErrors?.(e) },
+    onFinish: () => { processing.value = false },
+  })
 }
 
 // 整合送出到 FormActionBar 的 @submit 事件
