@@ -8,8 +8,8 @@
       :submitLabel="processing ? '更新中...' : '更新'"
     />
     <div class="pt-16">
-      <EditFishNoteForm
-        :note="note"
+      <FishNoteForm
+        :initialData="note"
         :noteTypes="noteTypes"
         :tribes="tribes"
         :fishId="fish.id"
@@ -25,7 +25,7 @@
 
 <script setup>
 import FormActionBar from '../Components/Global/FormActionBar.vue'
-import EditFishNoteForm from '../Components/FishNote/EditFishNoteForm.vue'
+import FishNoteForm from '../Components/FishNote/FishNoteForm.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 

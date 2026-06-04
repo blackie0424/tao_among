@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto p-4 relative">
-    <EditFishNoteForm
-      :note="note"
+    <FishNoteForm
+      :initialData="note"
       :noteTypes="noteTypes"
       :tribes="tribes"
       :fishId="fish.id"
@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import EditFishNoteForm from '../../Components/FishNote/EditFishNoteForm.vue'
+import FishNoteForm from '../../Components/FishNote/FishNoteForm.vue'
 
 defineProps({
   fish: Object,

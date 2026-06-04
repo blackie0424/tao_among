@@ -190,6 +190,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { apiFetch } from '@/utils/apiFetch'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 
 const props = defineProps({
@@ -259,9 +260,8 @@ async function handleImageChange(event) {
     // 自動上傳圖片
     try {
       // 1. 取得簽名上傳 URL
-      const signedUrlResponse = await fetch('/prefix/api/storage/signed-upload-url', {
+      const signedUrlResponse = await apiFetch('/prefix/api/storage/signed-upload-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name }),
       })
 
