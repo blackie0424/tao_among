@@ -4,6 +4,7 @@ import { ref } from 'vue'
 // ─── Mock 相依模組 ─────────────────────────────────────────────────────────────
 vi.mock('@/api/fishApi', () => ({
   getFishCompact: vi.fn(),
+  getFishLatestAt: vi.fn(),
 }))
 
 vi.mock('@/utils/fishListCache', () => ({
@@ -15,7 +16,7 @@ vi.mock('@/utils/fishListCache', () => ({
   clearCreatedIds: vi.fn(),
 }))
 
-import { getFishCompact } from '@/api/fishApi'
+import { getFishCompact, getFishLatestAt } from '@/api/fishApi'
 import {
   getStaleIds,
   clearStaleIds,
@@ -94,6 +95,7 @@ beforeEach(() => {
   getStaleIds.mockReturnValue([])
   getDeletedIds.mockReturnValue([])
   getCreatedIds.mockReturnValue([])
+  getFishLatestAt.mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -307,6 +309,63 @@ describe('useFishListCache', () => {
 
       expect(items.value[0].id).toBe(99)
       expect(clearCreatedIds).toHaveBeenCalled()
+    })
+
+    it('後端 latest_at 比快取新時清除快取並回傳 false', async () => {
+      const cacheTimestamp = Date.now() - 5000
+      setCachedState({ timestamp: cacheTimestamp })
+      getFishLatestAt.mockResolvedValue(cacheTimestamp + 1000) // 後端較新
+
+      const { items, pageInfo, currentFilters, nameQuery } = makeRefs()
+      const { restoreStateFromStorage } = useFishListCache(
+        items,
+        pageInfo,
+        currentFilters,
+        nameQuery,
+        () => ({})
+      )
+
+      const result = await restoreStateFromStorage()
+
+      expect(result).toBe(false)
+      expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(STORAGE_KEY)
+    })
+
+    it('後端 latest_at 與快取相同時正常還原', async () => {
+      const cacheTimestamp = Date.now()
+      setCachedState({ timestamp: cacheTimestamp })
+      getFishLatestAt.mockResolvedValue(cacheTimestamp)
+
+      const { items, pageInfo, currentFilters, nameQuery } = makeRefs()
+      const { restoreStateFromStorage } = useFishListCache(
+        items,
+        pageInfo,
+        currentFilters,
+        nameQuery,
+        () => ({})
+      )
+
+      const result = await restoreStateFromStorage()
+
+      expect(result).toBe(true)
+    })
+
+    it('getFishLatestAt 失敗時仍正常還原快取（降級處理）', async () => {
+      setCachedState()
+      getFishLatestAt.mockResolvedValue(null)
+
+      const { items, pageInfo, currentFilters, nameQuery } = makeRefs()
+      const { restoreStateFromStorage } = useFishListCache(
+        items,
+        pageInfo,
+        currentFilters,
+        nameQuery,
+        () => ({})
+      )
+
+      const result = await restoreStateFromStorage()
+
+      expect(result).toBe(true)
     })
 
     it('created ID 已存在於 items 時不重複插入', async () => {

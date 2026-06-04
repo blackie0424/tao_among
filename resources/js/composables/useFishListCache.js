@@ -14,7 +14,7 @@
  */
 
 import { nextTick } from 'vue'
-import { getFishCompact } from '@/api/fishApi'
+import { getFishCompact, getFishLatestAt } from '@/api/fishApi'
 import {
   getStaleIds,
   clearStaleIds,
@@ -104,6 +104,13 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
 
       const state = JSON.parse(raw)
       if (Date.now() - state.timestamp > CACHE_TTL) {
+        sessionStorage.removeItem(STORAGE_KEY)
+        return false
+      }
+
+      // 比對後端最新 updated_at，若有比快取更新的資料則強制重取
+      const latestAt = await getFishLatestAt()
+      if (latestAt !== null && latestAt > state.timestamp) {
         sessionStorage.removeItem(STORAGE_KEY)
         return false
       }
