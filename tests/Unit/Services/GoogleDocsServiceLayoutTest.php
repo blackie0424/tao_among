@@ -374,6 +374,11 @@ it('keeps 200 fish structure writes below quota even when batched image inserts 
         {
             return "https://example.com/{$path}";
         }
+
+        public function fileExists(string $filePath): bool
+        {
+            return false;
+        }
     });
 
     $layouts = makeHeavyFishLayoutsForDocExport(200);

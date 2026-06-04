@@ -96,11 +96,6 @@ it('can get 0 fishes by time condition', function () {
         return $fish->updated_at->timestamp > $since;
     })->values();
 
-    // 構建完整的圖片路徑
-    $expectedFishs->map(function ($fish) {
-        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-    });
-
     $expectedLastUpdateTime = $expectedFishs->isNotEmpty()
         ? $expectedFishs->max('updated_at')->timestamp
         : null;

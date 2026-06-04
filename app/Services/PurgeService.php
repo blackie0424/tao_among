@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use Exception;
-use Illuminate\Support\Facades\Http;
+use App\Contracts\StorageServiceInterface;
 
 class PurgeService
 {
     public function __construct(
-        private readonly SupabaseStorageService $storage
+        private readonly StorageServiceInterface $storage
     ) {}
 
     /**
