@@ -324,7 +324,7 @@ function finalSubmit() {
 
 function submitForm() {
   if (isEditMode.value) {
-    errors.value = {}
+    if (!validateCaptureFields()) return
     const formData = { ...buildFormData(), _method: 'PUT' }
     if (uploadedFilename.value) formData.image_filename = uploadedFilename.value
     emit('submit', formData)

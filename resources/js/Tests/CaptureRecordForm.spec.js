@@ -483,4 +483,67 @@ describe('CaptureRecordForm', () => {
       })
     )
   })
+
+  // ── 驗證錯誤測試 ──
+
+  it('C10: Step 2 未填必填欄位時顯示驗證錯誤，不進入 Step 3', async () => {
+    wrapper = mount(CaptureRecordForm, { props: defaultProps })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    // 不填任何欄位直接呼叫 nextStep
+    wrapper.vm.nextStep()
+    await nextTick()
+
+    expect(wrapper.vm.step).toBe(2)
+    expect(wrapper.text()).toContain('請選擇部落')
+    expect(wrapper.text()).toContain('請輸入地點')
+    expect(wrapper.text()).toContain('請選擇日期')
+  })
+
+  it('C11: Step 3 未選捕獲方式時顯示驗證錯誤，不 emit submit', async () => {
+    wrapper = mount(CaptureRecordForm, { props: defaultProps })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    await wrapper.find('#tribe').setValue('ivalino')
+    await wrapper.find('#location').setValue('小蘭嶼')
+    await wrapper.find('#capture_date').setValue('2026-05-01')
+    wrapper.vm.nextStep()
+    await nextTick()
+
+    // 不填捕獲方式直接送出
+    wrapper.vm.finalSubmit()
+    await nextTick()
+
+    expect(wrapper.emitted('submit')).toBeFalsy()
+    expect(wrapper.text()).toContain('請選擇捕獲方式')
+  })
+
+  it('E9: edit mode 未填必填欄位送出時顯示驗證錯誤，不 emit submit', async () => {
+    const editPropsEmpty = {
+      ...defaultProps,
+      record: {
+        id: 1,
+        tribe: '',
+        location: '',
+        capture_method: '',
+        capture_date: '',
+        notes: '',
+      },
+    }
+    const wrapper = mount(CaptureRecordForm, { props: editPropsEmpty })
+    await nextTick()
+
+    wrapper.vm.submitForm()
+    await nextTick()
+
+    expect(wrapper.emitted('submit')).toBeFalsy()
+    expect(wrapper.text()).toContain('請選擇部落')
+    expect(wrapper.text()).toContain('請輸入地點')
+    expect(wrapper.text()).toContain('請選擇日期')
+    expect(wrapper.text()).toContain('請選擇捕獲方式')
+  })
 })
