@@ -15,11 +15,10 @@
       <CaptureRecordForm
         :tribes="tribes"
         :capture_methods="capture_methods"
-        :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
         :recent_sessions="recent_sessions"
-        @submitted="onRecordSubmitted"
+        @submit="onFormSubmit"
         ref="formRef"
       />
     </div>
@@ -89,9 +88,11 @@ function goBack() {
   router.visit(`/fish/${props.fish.id}/media-manager`)
 }
 
-function onRecordSubmitted() {
-  // 返回捕獲紀錄列表頁面
-  router.visit(`/fish/${props.fish.id}/media-manager`)
+function onFormSubmit(formData) {
+  router.post(`/fish/${props.fish.id}/capture-records`, formData, {
+    onSuccess: () => router.visit(`/fish/${props.fish.id}/media-manager`),
+    onError: (e) => { if (formRef.value) formRef.value.setErrors?.(e) },
+  })
 }
 
 // 整合送出到 FormActionBar 的 @submit 事件

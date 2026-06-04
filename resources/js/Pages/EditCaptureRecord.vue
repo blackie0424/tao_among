@@ -12,10 +12,9 @@
         :record="record"
         :tribes="tribes"
         :capture_methods="capture_methods"
-        :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
-        @submitted="onRecordUpdated"
+        @submit="onFormSubmit"
         @statusChange="onStatusChange"
         ref="formRef"
       />
@@ -49,9 +48,11 @@ function goBack() {
   router.visit(`/fish/${props.fish.id}/media-manager`)
 }
 
-function onRecordUpdated() {
-  // 返回捕獲紀錄列表頁面
-  router.visit(`/fish/${props.fish.id}/media-manager`)
+function onFormSubmit(formData) {
+  router.post(`/fish/${props.fish.id}/capture-records/${props.record.id}`, formData, {
+    onSuccess: () => router.visit(`/fish/${props.fish.id}/media-manager`),
+    onError: (e) => { formRef.value?.setErrors?.(e) },
+  })
 }
 
 // 整合送出到 FormActionBar 的 @submit 事件
