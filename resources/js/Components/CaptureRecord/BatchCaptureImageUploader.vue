@@ -226,6 +226,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { apiFetch } from '@/utils/apiFetch'
 
 let _idCounter = 0
 
@@ -365,9 +366,8 @@ async function uploadAll() {
 
     try {
       // 1. 取得 signed URL
-      const signedRes = await fetch('/prefix/api/storage/signed-upload-url', {
+      const signedRes = await apiFetch('/prefix/api/storage/signed-upload-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: uploadFile.name }),
       })
       const signedData = await signedRes.json()

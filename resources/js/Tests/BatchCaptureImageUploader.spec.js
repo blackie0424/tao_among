@@ -124,6 +124,23 @@ describe('BatchCaptureImageUploader', () => {
     )
   })
 
+  it('signed URL 請求包含 Accept: application/json header', async () => {
+    const wrapper = mount(BatchCaptureImageUploader, { props: defaultProps })
+    await wrapper.vm.addFiles([makeFile('a.jpg')])
+    await nextTick()
+
+    await wrapper.vm.uploadAll()
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/prefix/api/storage/signed-upload-url',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Accept': 'application/json',
+        }),
+      })
+    )
+  })
+
   it('uploadAll 成功後 emit uploaded 事件並帶入檔名陣列', async () => {
     // signed URL 請求
     global.fetch

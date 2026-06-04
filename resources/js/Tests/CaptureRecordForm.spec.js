@@ -210,4 +210,42 @@ describe('CaptureRecordForm', () => {
     expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(false)
     expect(wrapper.find('#tribe').exists()).toBe(true)
   })
+
+  // ==================== 上傳使用 apiFetch ====================
+
+  it('圖片上傳透過 apiFetch 取得 signed URL（含 Accept 與 XSRF-TOKEN header）', async () => {
+    // 先設定 signed URL 回應，再設定 S3 PUT 回應
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: 'https://s3.example.com/upload', filename: 'uploaded.jpg' }),
+      })
+      .mockResolvedValueOnce({ ok: true })
+
+    wrapper = mount(CaptureRecordForm, { props: defaultProps })
+
+    // 透過 file input change 觸發 handleImageChange，設定 form.image
+    const file = new File(['x'], 'fish.jpg', { type: 'image/jpeg' })
+    const input = wrapper.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+    await input.trigger('change')
+    await nextTick()
+
+    // 呼叫 nextStep 觸發 uploadImage → apiFetch → global.fetch
+    wrapper.vm.nextStep()
+    const { flushPromises } = await import('@vue/test-utils')
+    await flushPromises()
+
+    // apiFetch 內部呼叫 global.fetch，第一次呼叫是 signed URL 請求
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/prefix/api/storage/signed-upload-url',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Accept': 'application/json',
+          'X-XSRF-TOKEN': expect.any(String),
+        }),
+      })
+    )
+  })
 })
