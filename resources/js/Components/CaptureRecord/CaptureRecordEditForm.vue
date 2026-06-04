@@ -261,7 +261,7 @@ async function handleImageChange(event) {
       // 1. 取得簽名上傳 URL
       const signedUrlResponse = await fetch('/prefix/api/storage/signed-upload-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ filename: file.name }),
       })
 

@@ -211,7 +211,7 @@ async function uploadImage() {
   try {
     const signedUrlResponse = await fetch('/prefix/api/storage/signed-upload-url', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ filename: form.image.name }),
     })
     const signedUrlData = await signedUrlResponse.json()

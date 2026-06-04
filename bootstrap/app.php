@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->api(prepend: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
@@ -64,6 +67,18 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return redirect()->back()->withErrors($e->errors())->withInput();
+        });
+
+        // Handle authentication exceptions — always return JSON on API routes
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->is('prefix/api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => '請先登入',
+                    'error' => 'unauthenticated'
+                ], 401);
+            }
+
+            return redirect()->guest(route('login'));
         });
 
         // Handle authorization exceptions

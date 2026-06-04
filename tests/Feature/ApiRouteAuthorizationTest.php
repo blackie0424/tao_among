@@ -134,6 +134,19 @@ describe('API 寫入路由（未登入應回傳 401）', function () {
         $response = $this->postJson('/prefix/api/upload/audio/sign', []);
         $response->assertStatus(401);
     });
+
+    // 模擬 browser fetch（無 Accept: application/json）
+    it('未登入 + 無 Accept 標頭：POST /upload 回傳 JSON 401 而非 HTML 重導向', function () {
+        $response = $this->post('/prefix/api/upload', []);
+        $response->assertStatus(401);
+        expect($response->getContent())->not->toContain('<!DOCTYPE');
+    });
+
+    it('未登入 + 無 Accept 標頭：POST /storage/signed-upload-url 回傳 JSON 401 而非 HTML 重導向', function () {
+        $response = $this->post('/prefix/api/storage/signed-upload-url', ['filename' => 'test.jpg']);
+        $response->assertStatus(401);
+        expect($response->getContent())->not->toContain('<!DOCTYPE');
+    });
 });
 
 // =====================================================
