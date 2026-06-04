@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TribalClassificationForm from '@/Components/TribalClassification/TribalClassificationForm.vue'
 
-// Mock Inertia router
 vi.mock('@inertiajs/vue3', () => ({
   router: {
     post: vi.fn(),
+    put: vi.fn(),
   },
   usePage: () => ({
     props: {
@@ -15,6 +15,10 @@ vi.mock('@inertiajs/vue3', () => ({
       flash: {},
     },
   }),
+}))
+
+vi.mock('@/utils/fishListCache', () => ({
+  markFishStale: vi.fn(),
 }))
 
 describe('TribalClassificationForm', () => {
@@ -28,69 +32,167 @@ describe('TribalClassificationForm', () => {
     fishImage: 'test-image.jpg',
   }
 
+  const classificationData = {
+    id: 42,
+    tribe: 'ivalino',
+    food_category: 'oyod',
+    processing_method: '去魚鱗',
+    notes: '既有備註',
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('renders correctly with all required elements', () => {
-    wrapper = mount(TribalClassificationForm, {
-      props: defaultProps,
+  // --- 新增模式（不傳 initialData）---
+
+  describe('新增模式', () => {
+    it('renders correctly with all required elements', () => {
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+
+      expect(wrapper.find('form').exists()).toBe(true)
+      expect(wrapper.find('#tribe').exists()).toBe(true)
+      expect(wrapper.find('#food_category').exists()).toBe(true)
+      expect(wrapper.find('#processing_method').exists()).toBe(true)
+      expect(wrapper.find('#notes').exists()).toBe(true)
     })
 
-    expect(wrapper.find('form').exists()).toBe(true)
-    expect(wrapper.find('#tribe').exists()).toBe(true)
-    expect(wrapper.find('#food_category').exists()).toBe(true)
-    expect(wrapper.find('#processing_method').exists()).toBe(true)
-    expect(wrapper.find('#notes').exists()).toBe(true)
+    it('displays fish information correctly', () => {
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+      expect(wrapper.find('img').attributes('alt')).toBe('Test Fish')
+    })
+
+    it('renders all tribe options', () => {
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+      const options = wrapper.find('#tribe').findAll('option')
+      expect(options).toHaveLength(7)
+      expect(options[0].text()).toBe('請選擇部落')
+      expect(options[1].text()).toBe('ivalino')
+    })
+
+    it('initializes form with empty values', () => {
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+      expect(wrapper.find('#tribe').element.value).toBe('')
+      expect(wrapper.find('#food_category').element.value).toBe('')
+      expect(wrapper.find('#processing_method').element.value).toBe('')
+      expect(wrapper.find('#notes').element.value).toBe('')
+    })
+
+    it('updates form data when user selects options', async () => {
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+
+      await wrapper.find('#tribe').setValue('iraraley')
+      await wrapper.find('#food_category').setValue('oyod')
+      await wrapper.find('#notes').setValue('Test notes')
+
+      expect(wrapper.find('#tribe').element.value).toBe('iraraley')
+      expect(wrapper.find('#food_category').element.value).toBe('oyod')
+      expect(wrapper.find('#notes').element.value).toBe('Test notes')
+    })
+
+    it('calls router.post on submit', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+
+      wrapper.vm.submitForm()
+
+      expect(router.post).toHaveBeenCalledWith(
+        '/fish/1/tribal-classifications',
+        expect.any(Object),
+        expect.any(Object)
+      )
+      expect(router.put).not.toHaveBeenCalled()
+    })
+
+    it('resets form after successful submission', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      const { flushPromises } = await import('@vue/test-utils')
+      router.post.mockImplementationOnce((url, data, callbacks) => {
+        callbacks.onSuccess()
+      })
+
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+      await wrapper.find('#tribe').setValue('ivalino')
+      wrapper.vm.submitForm()
+      await flushPromises()
+
+      expect(wrapper.find('#tribe').element.value).toBe('')
+    })
+
+    it('emits submitted after successful submission', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      router.post.mockImplementationOnce((url, data, callbacks) => {
+        callbacks.onSuccess()
+      })
+
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+      wrapper.vm.submitForm()
+
+      expect(wrapper.emitted('submitted')).toHaveLength(1)
+    })
+
+    it('exposes submitForm method', () => {
+      wrapper = mount(TribalClassificationForm, { props: defaultProps })
+      expect(typeof wrapper.vm.submitForm).toBe('function')
+    })
   })
 
-  it('displays fish information correctly', () => {
-    wrapper = mount(TribalClassificationForm, {
-      props: defaultProps,
+  // --- 編輯模式（傳入 initialData）---
+
+  describe('編輯模式', () => {
+    it('pre-fills form with initialData values', () => {
+      wrapper = mount(TribalClassificationForm, {
+        props: { ...defaultProps, initialData: classificationData },
+      })
+
+      expect(wrapper.find('#tribe').element.value).toBe('ivalino')
+      expect(wrapper.find('#food_category').element.value).toBe('oyod')
+      expect(wrapper.find('#processing_method').element.value).toBe('去魚鱗')
+      expect(wrapper.find('#notes').element.value).toBe('既有備註')
     })
 
-    // fishName 作為 img alt 屬性傳入 LazyImage
-    expect(wrapper.find('img').attributes('alt')).toBe('Test Fish')
-  })
+    it('calls router.put with correct URL on submit', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      wrapper = mount(TribalClassificationForm, {
+        props: { ...defaultProps, initialData: classificationData },
+      })
 
-  it('renders all tribe options', () => {
-    wrapper = mount(TribalClassificationForm, {
-      props: defaultProps,
+      wrapper.vm.submitForm()
+
+      expect(router.put).toHaveBeenCalledWith(
+        '/fish/1/tribal-classifications/42',
+        expect.any(Object),
+        expect.any(Object)
+      )
+      expect(router.post).not.toHaveBeenCalled()
     })
 
-    const tribeSelect = wrapper.find('#tribe')
-    const options = tribeSelect.findAll('option')
+    it('does not reset form after successful edit submission', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      router.put.mockImplementationOnce((url, data, callbacks) => {
+        callbacks.onSuccess()
+      })
 
-    expect(options).toHaveLength(7) // 6 tribes + 1 default option
-    expect(options[0].text()).toBe('請選擇部落')
-    expect(options[1].text()).toBe('ivalino')
-  })
+      wrapper = mount(TribalClassificationForm, {
+        props: { ...defaultProps, initialData: classificationData },
+      })
+      wrapper.vm.submitForm()
 
-  it('updates form data when user selects options', async () => {
-    wrapper = mount(TribalClassificationForm, {
-      props: defaultProps,
+      expect(wrapper.find('#tribe').element.value).toBe('ivalino')
     })
 
-    const tribeSelect = wrapper.find('#tribe')
-    await tribeSelect.setValue('iraraley')
+    it('emits submitted after successful edit', async () => {
+      const { router } = await import('@inertiajs/vue3')
+      router.put.mockImplementationOnce((url, data, callbacks) => {
+        callbacks.onSuccess()
+      })
 
-    const foodCategorySelect = wrapper.find('#food_category')
-    await foodCategorySelect.setValue('oyod')
+      wrapper = mount(TribalClassificationForm, {
+        props: { ...defaultProps, initialData: classificationData },
+      })
+      wrapper.vm.submitForm()
 
-    const notesTextarea = wrapper.find('#notes')
-    await notesTextarea.setValue('Test notes')
-
-    expect(tribeSelect.element.value).toBe('iraraley')
-    expect(foodCategorySelect.element.value).toBe('oyod')
-    expect(notesTextarea.element.value).toBe('Test notes')
-  })
-
-  it('exposes submitForm method', () => {
-    wrapper = mount(TribalClassificationForm, {
-      props: defaultProps,
+      expect(wrapper.emitted('submitted')).toHaveLength(1)
     })
-
-    expect(wrapper.vm.submitForm).toBeDefined()
-    expect(typeof wrapper.vm.submitForm).toBe('function')
   })
 })
