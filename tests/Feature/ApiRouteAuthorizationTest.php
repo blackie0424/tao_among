@@ -147,6 +147,18 @@ describe('API 寫入路由（未登入應回傳 401）', function () {
         $response->assertStatus(401);
         expect($response->getContent())->not->toContain('<!DOCTYPE');
     });
+
+    it('未登入 + 無 Accept 標頭：POST /upload-audio 回傳 JSON 401 而非 HTML 重導向', function () {
+        $response = $this->post('/prefix/api/upload-audio', []);
+        $response->assertStatus(401);
+        expect($response->getContent())->not->toContain('<!DOCTYPE');
+    });
+
+    it('未登入 + 無 Accept 標頭：POST /upload/audio/sign 回傳 JSON 401 而非 HTML 重導向', function () {
+        $response = $this->post('/prefix/api/upload/audio/sign', []);
+        $response->assertStatus(401);
+        expect($response->getContent())->not->toContain('<!DOCTYPE');
+    });
 });
 
 // =====================================================
@@ -207,9 +219,22 @@ describe('viewer 角色無法存取寫入路由（應回傳 403）', function ()
         $response->assertStatus(403);
     });
 
+    it('viewer 無法上傳圖片', function () {
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson('/prefix/api/upload', ['name' => 'test', 'image' => 'test.jpg']);
+        $response->assertStatus(403);
+    });
+
     it('viewer 無法取得圖片 signed URL', function () {
         $viewer = User::factory()->lineViewer()->create();
         $response = $this->actingAs($viewer)->postJson('/prefix/api/storage/signed-upload-url', ['filename' => 'test.jpg']);
+        $response->assertStatus(403);
+    });
+
+    it('viewer 無法取得音訊 signed URL', function () {
+        $fish = Fish::factory()->create();
+        $viewer = User::factory()->lineViewer()->create();
+        $response = $this->actingAs($viewer)->postJson("/prefix/api/fish/{$fish->id}/storage/signed-upload-audio-url", ['filename' => 'test.mp3']);
         $response->assertStatus(403);
     });
 
