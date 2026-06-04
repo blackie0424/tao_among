@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,7 @@ use Exception;
 class AudioConfirmService
 {
     public function __construct(
-        private readonly SupabaseStorageService $storage
+        private readonly StorageServiceInterface $storage
     ) {}
 
     /**

@@ -3,7 +3,6 @@
 use App\Models\Fish;
 use App\Models\FishAudio;
 use App\Services\FishService;
-use App\Services\SupabaseStorageService;
 use App\Contracts\StorageServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery as m;
@@ -22,7 +21,7 @@ it('assigns default image when image filename is empty and leaves audio url null
     $fish->setRelation('audios', collect([$audio]));
 
     // assignImageUrls 只處理 audios.url，不覆蓋 $fish->image（accessor 負責）
-    $storage = m::mock(SupabaseStorageService::class);
+    $storage = m::mock(StorageServiceInterface::class);
     // name 為 null 時 assignImageUrls 跳過，不呼叫 getUrl
     $storage->shouldReceive('getUrl')->never();
 
@@ -49,7 +48,7 @@ it('assigns image and audio urls only when names are non-empty', function () {
     $audio = new FishAudio(['name' => 'voice.mp3']);
     $fish->setRelation('audios', collect([$audio]));
 
-    $storage = m::mock(SupabaseStorageService::class);
+    $storage = m::mock(StorageServiceInterface::class);
     // assignImageUrls 只處理 audios.url（不處理 $fish->image）
     // FishAudio::url accessor 從 container 讀取，需同時 bind mock 至 container
     $storage->shouldReceive('getUrl')

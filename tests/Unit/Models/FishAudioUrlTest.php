@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Fish;
-use App\Services\SupabaseStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -16,8 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
-    // 不需要 mock，使用真實的 SupabaseStorageService
-    // .env.testing 中已設定測試用的 Supabase 配置
 });
 
 // 測試情境 A：新增魚類時，audio_filename 欄位不存在
