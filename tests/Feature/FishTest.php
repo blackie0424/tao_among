@@ -23,11 +23,6 @@ it('can get fish list', function () {
     // 按照 id 降序排序，與 API 行為一致
     $fishs = $fishs->sortByDesc('id')->values();
 
-    // 構建完整的圖片路徑
-    $fishs->map(function ($fish) {
-        $fish->image = env('SUPABASE_STORAGE_URL').'/object/public/'.env('SUPABASE_BUCKET') . '/images/' . $fish->image;
-    });
-
     // 設定auduio_filename以測試API不回傳audio_filename的情況
     $fishs->map(function ($fish) {
         $fish->audio_filename = null; // since API does not return audio_filename
