@@ -154,6 +154,7 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { apiFetch } from '@/utils/apiFetch'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 
@@ -209,9 +210,8 @@ async function uploadImage() {
   uploading.value = true
   errors.value.image = null
   try {
-    const signedUrlResponse = await fetch('/prefix/api/storage/signed-upload-url', {
+    const signedUrlResponse = await apiFetch('/prefix/api/storage/signed-upload-url', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ filename: form.image.name }),
     })
     const signedUrlData = await signedUrlResponse.json()

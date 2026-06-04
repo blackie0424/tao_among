@@ -303,6 +303,7 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { apiFetch } from '@/utils/apiFetch'
 import { markFishStale } from '@/utils/fishListCache'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import { useFormValidation, validationRules } from '@/composables/useFormValidation.js'
@@ -417,9 +418,8 @@ async function uploadAudioFile(file) {
     }
 
     // 1. 取得簽名上傳 URL
-    const signedUrlResponse = await fetch('/prefix/api/storage/signed-upload-url', {
+    const signedUrlResponse = await apiFetch('/prefix/api/storage/signed-upload-url', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ filename: file.name }),
     })
 
