@@ -396,4 +396,13 @@ class FishSearchService implements FishSearchServiceInterface
             ],
         ];
     }
+
+    public function getLatestAt(): ?int
+    {
+        $latest = Fish::max('updated_at');
+        if ($latest === null) {
+            return null;
+        }
+        return (int) \Carbon\Carbon::parse($latest)->getPreciseTimestamp(3);
+    }
 }

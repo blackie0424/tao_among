@@ -128,6 +128,16 @@ class ApiFishController extends Controller
     }
 
 
+    public function getLatestAt(): JsonResponse
+    {
+        $latestAt = $this->fishSearchService->getLatestAt();
+
+        return response()->json([
+            'message' => 'success',
+            'data' => ['latest_at' => $latestAt],
+        ]);
+    }
+
     /**
      * @OA\Get(
      *     path="/prefix/api/capture-records",

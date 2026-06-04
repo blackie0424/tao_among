@@ -20,3 +20,19 @@ export async function getFishCompact(id) {
   const result = await response.json()
   return result.data ?? null
 }
+
+/**
+ * 取得所有魚類中最新的 updated_at（Unix ms），供快取驗證使用
+ *
+ * @returns {Promise<number|null>} Unix ms 時間戳，無資料或失敗時回傳 null
+ */
+export async function getFishLatestAt() {
+  try {
+    const response = await fetch(`${BASE_URL}/fishs/latest-at`)
+    if (!response.ok) return null
+    const result = await response.json()
+    return result.data?.latest_at ?? null
+  } catch {
+    return null
+  }
+}
