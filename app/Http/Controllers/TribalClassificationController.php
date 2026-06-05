@@ -61,7 +61,7 @@ class TribalClassificationController extends Controller
         $foodCategories = config('fish_options.food_categories');
         $processingMethods = config('fish_options.processing_methods');
         
-        return Inertia::render('CreateTribalClassification', [
+        return Inertia::render('ManageTribalClassification', [
             'fish' => $fishWithImage,
             'tribes' => $tribes,
             'foodCategories' => $foodCategories,
