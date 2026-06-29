@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Cache;
 
 class LineBatchCaptureStateStore
 {
+    public function __construct(private readonly string $prefix = 'batch_capture') {}
+
     public function getState(string $userId): ?string
     {
         return Cache::get($this->key($userId, 'state'));
@@ -118,6 +120,6 @@ class LineBatchCaptureStateStore
 
     private function key(string $userId, string $suffix): string
     {
-        return "line_user_{$userId}_batch_capture_{$suffix}";
+        return "line_user_{$userId}_{$this->prefix}_{$suffix}";
     }
 }

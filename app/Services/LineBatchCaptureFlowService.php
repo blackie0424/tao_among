@@ -279,6 +279,11 @@ class LineBatchCaptureFlowService
         return $filename;
     }
 
+    public function captureRecordBatchService(): CaptureRecordBatchService
+    {
+        return $this->captureRecordBatchService;
+    }
+
     public function captureRecordFieldValidator(): CaptureRecordFieldValidator
     {
         return $this->captureRecordFieldValidator ?? app(CaptureRecordFieldValidator::class);

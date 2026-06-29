@@ -21,6 +21,14 @@ interface FishServiceInterface
     public function getFishDetails(int $id): array;
 
     /**
+     * 從 LINE Bot 建立魚類資料（不含捕獲紀錄），供後續填寫表單使用
+     *
+     * @param string|null $name 魚類名稱，null 時使用預設名稱
+     * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
+     */
+    public function createFishWithImages(?string $name, array $filenames): Fish;
+
+    /**
      * 從 LINE Bot 建立魚類記錄（含批次捕獲記錄）
      *
      * @param string|null $name 魚類名稱，null 時使用預設名稱
