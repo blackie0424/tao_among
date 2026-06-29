@@ -33,7 +33,8 @@ beforeEach(function () {
 });
 
 it('uploads image and shows summary without imageSet', function () {
-    $this->lineUploadService->shouldReceive('uploadLineImage')->with('msg-1')->andReturn('a.jpg');
+    $this->lineMessagingClient->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob');
+    $this->lineUploadService->shouldReceive('uploadLineImage')->with('blob')->andReturn('a.jpg');
     $this->lineMessagingClient->shouldReceive('replyMessage')->once();
 
     $this->handler->handle($this->flow, new LineBatchCaptureImageContext(
@@ -45,7 +46,8 @@ it('uploads image and shows summary without imageSet', function () {
 });
 
 it('stores image by index when imageSet is present but not yet complete', function () {
-    $this->lineUploadService->shouldReceive('uploadLineImage')->with('msg-1')->andReturn('a.jpg');
+    $this->lineMessagingClient->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob');
+    $this->lineUploadService->shouldReceive('uploadLineImage')->with('blob')->andReturn('a.jpg');
     $this->lineMessagingClient->shouldReceive('replyMessage')->once();
 
     $imageSet = new LineImageSet('set-abc', 1, 3);
@@ -63,7 +65,8 @@ it('stores image by index when imageSet is present but not yet complete', functi
 });
 
 it('auto-transitions to tribe selection when imageSet is complete', function () {
-    $this->lineUploadService->shouldReceive('uploadLineImage')->andReturn('c.jpg');
+    $this->lineMessagingClient->shouldReceive('getMessageContent')->with('msg-3')->andReturn('blob3');
+    $this->lineUploadService->shouldReceive('uploadLineImage')->with('blob3')->andReturn('c.jpg');
     $this->store->putIndexedImages('user-1', ['set-abc', [1 => 'a.jpg', 2 => 'b.jpg'], 3]);
 
     $this->lineMessagingClient->shouldReceive('replyMessage')->once();
