@@ -1,6 +1,7 @@
 <?php
 
 use App\Contracts\LineMessagingClientInterface;
+use App\Models\Fish;
 use App\Services\CaptureRecordBatchService;
 use App\Services\LineBatchCapture\LineBatchCaptureStateStore;
 use App\Services\LineBatchCapture\State\Image\Handlers\LineBatchCaptureWaitingImagesImageStateHandler;
@@ -9,9 +10,10 @@ use App\Services\LineBatchCapture\State\Image\LineImageSet;
 use App\Services\LineBatchCaptureFlowService;
 use App\Services\LineBatchCaptureMessageBuilder;
 use App\Services\LineUploadService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 
-uses(Tests\TestCase::class);
+uses(Tests\TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -28,7 +30,8 @@ beforeEach(function () {
         $this->lineUploadService,
     );
 
-    $this->store->startSession('user-1', 1);
+    $fish = Fish::factory()->create();
+    $this->store->startSession('user-1', $fish->id);
     $this->handler = new LineBatchCaptureWaitingImagesImageStateHandler();
 });
 
