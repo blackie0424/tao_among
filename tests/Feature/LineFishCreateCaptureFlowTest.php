@@ -571,4 +571,126 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $method->setAccessible(true);
         $method->invoke($this->controller, $event, $replyToken);
     }
+
+    private function callHandleImageMessage(\LINE\Webhook\Model\MessageEvent $event, string $replyToken): void
+    {
+        $method = (new \ReflectionClass($this->controller))->getMethod('handleImageMessage');
+        $method->setAccessible(true);
+        $method->invoke($this->controller, $event, $replyToken);
+    }
+
+    /**
+     * @param array{id:string,index:int,total:int}|null $imageSet
+     */
+    private function makeImageMessageEvent(string $messageId, ?array $imageSet = null): \LINE\Webhook\Model\MessageEvent
+    {
+        $source = \Mockery::mock(\LINE\Webhook\Model\UserSource::class)
+            ->shouldReceive('getUserId')->andReturn(self::USER_ID)->getMock();
+
+        $sdkImageSet = null;
+        if ($imageSet !== null) {
+            $sdkImageSet = \Mockery::mock(\LINE\Webhook\Model\ImageSet::class);
+            $sdkImageSet->shouldReceive('getId')->andReturn($imageSet['id']);
+            $sdkImageSet->shouldReceive('getIndex')->andReturn($imageSet['index']);
+            $sdkImageSet->shouldReceive('getTotal')->andReturn($imageSet['total']);
+        }
+
+        $message = \Mockery::mock(\LINE\Webhook\Model\ImageMessageContent::class);
+        $message->shouldReceive('getId')->andReturn($messageId);
+        $message->shouldReceive('getImageSet')->andReturn($sdkImageSet);
+
+        return \Mockery::mock(\LINE\Webhook\Model\MessageEvent::class)
+            ->shouldReceive('getSource')->andReturn($source)
+            ->shouldReceive('getMessage')->andReturn($message)
+            ->shouldReceive('getReplyToken')->andReturn(self::REPLY_TOKEN)
+            ->getMock();
+    }
+
+    // =====================================================
+    // imageSet 多圖自動完成流程
+    // =====================================================
+
+    /** @test */
+    public function test_imageset_partial_upload_shows_progress_and_stays_in_waiting_state(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_image', now()->addMinutes(5));
+
+        $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob1');
+        $mockUploadService = \Mockery::mock(\App\Services\LineUploadService::class);
+        $mockUploadService->shouldReceive('uploadLineImage')->with('blob1')->andReturn('a.jpg');
+        $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
+
+        $this->mockLineBotService->shouldReceive('replyMessage')->once();
+
+        $this->callHandleImageMessage(
+            $this->makeImageMessageEvent('msg-1', ['id' => 'set-x', 'index' => 1, 'total' => 3]),
+            self::REPLY_TOKEN
+        );
+
+        $state = Cache::get("line_user_" . self::USER_ID . "_create_fish_state");
+        $indexed = Cache::get("line_user_" . self::USER_ID . "_create_fish_indexed_images");
+
+        $this->assertContains($state, ['waiting_image', 'waiting_more_images']);
+        $this->assertNotNull($indexed);
+        $this->assertSame('a.jpg', $indexed['indexed'][1]);
+    }
+
+    /** @test */
+    public function test_imageset_auto_transitions_to_name_choice_when_all_images_received(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_indexed_images", [
+            'set_id' => 'set-x',
+            'indexed' => [1 => 'a.jpg', 2 => 'b.jpg'],
+            'total'   => 3,
+        ], now()->addMinutes(5));
+
+        $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-3')->andReturn('blob3');
+        $mockUploadService = \Mockery::mock(\App\Services\LineUploadService::class);
+        $mockUploadService->shouldReceive('uploadLineImage')->with('blob3')->andReturn('c.jpg');
+        $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
+
+        $this->mockLineBotService->shouldReceive('replyMessage')->once();
+
+        $this->callHandleImageMessage(
+            $this->makeImageMessageEvent('msg-3', ['id' => 'set-x', 'index' => 3, 'total' => 3]),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertEquals('waiting_name_choice', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+
+        $images = Cache::get("line_user_" . self::USER_ID . "_create_fish_images");
+        $this->assertEquals(['a.jpg', 'b.jpg', 'c.jpg'], $images);
+        $this->assertNull(Cache::get("line_user_" . self::USER_ID . "_create_fish_indexed_images"));
+    }
+
+    /** @test */
+    public function test_imageset_images_are_sorted_by_index_regardless_of_arrival_order(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
+        // index 2 arrived first (a.jpg), then index 1 arriving now (b.jpg)
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_indexed_images", [
+            'set_id' => 'set-y',
+            'indexed' => [2 => 'second.jpg'],
+            'total'   => 2,
+        ], now()->addMinutes(5));
+
+        $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob1');
+        $mockUploadService = \Mockery::mock(\App\Services\LineUploadService::class);
+        $mockUploadService->shouldReceive('uploadLineImage')->with('blob1')->andReturn('first.jpg');
+        $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
+
+        $this->mockLineBotService->shouldReceive('replyMessage')->once();
+
+        $this->callHandleImageMessage(
+            $this->makeImageMessageEvent('msg-1', ['id' => 'set-y', 'index' => 1, 'total' => 2]),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertEquals('waiting_name_choice', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+
+        $images = Cache::get("line_user_" . self::USER_ID . "_create_fish_images");
+        // index 1 (first.jpg) should be before index 2 (second.jpg)
+        $this->assertEquals(['first.jpg', 'second.jpg'], $images);
+    }
 }

@@ -20,6 +20,7 @@ use App\Services\LineBatchCapture\State\Image\Handlers\LineBatchCaptureLockedIma
 use App\Services\LineBatchCapture\State\Image\Handlers\LineBatchCaptureWaitingImagesImageStateHandler;
 use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageContext;
 use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageStateHandler;
+use App\Services\LineBatchCapture\State\Image\LineImageSet;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureDateSelectorTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureDateTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureLocationTextStateHandler;
@@ -143,7 +144,7 @@ class LineBatchCaptureFlowService
         return true;
     }
 
-    public function handleImageMessage(string $userId, string $replyToken, string $messageId): bool
+    public function handleImageMessage(string $userId, string $replyToken, string $messageId, ?LineImageSet $imageSet = null): bool
     {
         $state = $this->getState($userId);
         if (!$state) {
@@ -156,7 +157,7 @@ class LineBatchCaptureFlowService
             return true;
         }
 
-        $handler->handle($this, new LineBatchCaptureImageContext($state, $userId, $replyToken, $messageId));
+        $handler->handle($this, new LineBatchCaptureImageContext($state, $userId, $replyToken, $messageId, $imageSet));
         return true;
     }
 

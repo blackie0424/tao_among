@@ -115,8 +115,8 @@ class LineBatchCaptureFlowTest extends TestCase
             ->getMock();
 
         $message = \Mockery::mock(\LINE\Webhook\Model\ImageMessageContent::class)
-            ->shouldReceive('getId')
-            ->andReturn($messageId)
+            ->shouldReceive('getId')->andReturn($messageId)
+            ->shouldReceive('getImageSet')->andReturn(null)
             ->getMock();
 
         return \Mockery::mock(\LINE\Webhook\Model\MessageEvent::class)

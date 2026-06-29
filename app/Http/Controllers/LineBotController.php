@@ -30,6 +30,7 @@ use LINE\Webhook\Model\ImageMessageContent;
 use LINE\Webhook\Model\MessageEvent;
 use LINE\Webhook\Model\PostbackEvent;
 use LINE\Webhook\Model\TextMessageContent;
+use App\Services\LineBatchCapture\State\Image\LineImageSet;
 
 class LineBotController extends Controller
 {
@@ -463,7 +464,9 @@ class LineBotController extends Controller
             return;
         }
 
-        if ($this->lineBatchCaptureFlowService->handleImageMessage($userId, $replyToken, $event->getMessage()->getId())) {
+        $imageSet = $this->extractImageSet($event);
+
+        if ($this->lineBatchCaptureFlowService->handleImageMessage($userId, $replyToken, $event->getMessage()->getId(), $imageSet)) {
             return;
         }
 
@@ -529,6 +532,12 @@ class LineBotController extends Controller
 
             if (! $filename) {
                 throw new \Exception('Failed to upload image');
+            }
+
+            // imageSet：多圖一次傳送，自動完成
+            if ($imageSet !== null) {
+                $this->handleCreateFishImageSet($userId, $replyToken, $filename, $imageSet, $maxImages);
+                return;
             }
 
             // 累積圖片陣列（TTL 15 分鐘，批次流程時間較長）
@@ -624,6 +633,101 @@ class LineBotController extends Controller
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
                     'text' => '❌ 圖片處理失敗，請稍後再試',
+                ]),
+            ]);
+        }
+    }
+
+    private function extractImageSet(MessageEvent $event): ?LineImageSet
+    {
+        $message = $event->getMessage();
+        if (! ($message instanceof ImageMessageContent)) {
+            return null;
+        }
+
+        $sdkSet = $message->getImageSet();
+        if ($sdkSet === null || ! $sdkSet->getTotal()) {
+            return null;
+        }
+
+        return new LineImageSet($sdkSet->getId(), $sdkSet->getIndex(), $sdkSet->getTotal());
+    }
+
+    private function handleCreateFishImageSet(
+        string $userId,
+        string $replyToken,
+        string $filename,
+        LineImageSet $imageSet,
+        int $maxImages,
+    ): void {
+        $cacheData = Cache::get("line_user_{$userId}_create_fish_indexed_images");
+        $indexed   = ($cacheData !== null && $cacheData['set_id'] === $imageSet->id())
+            ? $cacheData['indexed']
+            : [];
+
+        $indexed[$imageSet->index()] = $filename;
+        $existing = Cache::get("line_user_{$userId}_create_fish_images", []);
+        $received = count($indexed);
+
+        if ($received >= $imageSet->total() || count($existing) + $received >= $maxImages) {
+            ksort($indexed);
+            $all = array_merge($existing, array_values($indexed));
+            $all = array_slice($all, 0, $maxImages);
+
+            Cache::put("line_user_{$userId}_create_fish_images", $all, now()->addMinutes(15));
+            Cache::forget("line_user_{$userId}_create_fish_indexed_images");
+            Cache::put("line_user_{$userId}_create_fish_state", 'waiting_name_choice', now()->addMinutes(10));
+
+            $count = count($all);
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "已收到 {$count} 張圖片，請選擇魚類名稱：",
+                    'quickReply' => [
+                        'items' => [
+                            [
+                                'type'   => 'action',
+                                'action' => [
+                                    'type'        => 'postback',
+                                    'label'       => '🔤 使用預設名稱',
+                                    'data'        => 'action=create_fish_with_default_name',
+                                    'displayText' => '使用預設名稱',
+                                ],
+                            ],
+                            [
+                                'type'   => 'action',
+                                'action' => [
+                                    'type'        => 'postback',
+                                    'label'       => '✏️ 輸入自訂名稱',
+                                    'data'        => 'action=input_custom_fish_name',
+                                    'displayText' => '輸入自訂名稱',
+                                ],
+                            ],
+                            [
+                                'type'   => 'action',
+                                'action' => [
+                                    'type'        => 'postback',
+                                    'label'       => '❌ 取消',
+                                    'data'        => 'action=cancel_create_fish',
+                                    'displayText' => '取消新增',
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            ]);
+        } else {
+            Cache::put("line_user_{$userId}_create_fish_indexed_images", [
+                'set_id'  => $imageSet->id(),
+                'indexed' => $indexed,
+                'total'   => $imageSet->total(),
+            ], now()->addMinutes(15));
+            Cache::put("line_user_{$userId}_create_fish_state", 'waiting_more_images', now()->addMinutes(15));
+
+            $this->lineMessagingClient->replyMessage($replyToken, [
+                new \LINE\Clients\MessagingApi\Model\TextMessage([
+                    'type' => 'text',
+                    'text' => "📷 已收到 {$received}/{$imageSet->total()} 張，請稍候...",
                 ]),
             ]);
         }

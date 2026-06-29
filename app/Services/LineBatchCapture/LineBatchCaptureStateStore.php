@@ -76,12 +76,44 @@ class LineBatchCaptureStateStore
         $this->putState($userId, 'waiting_images', $minutes);
     }
 
+    /**
+     * @return array{string, array<int, string>, int}|null [setId, indexedImages, total]
+     */
+    public function getIndexedImages(string $userId): ?array
+    {
+        $data = Cache::get($this->key($userId, 'indexed_images'));
+        if ($data === null) {
+            return null;
+        }
+
+        return [$data['set_id'], $data['indexed'], $data['total']];
+    }
+
+    /**
+     * @param array{string, array<int, string>, int} $payload [setId, indexedImages, total]
+     */
+    public function putIndexedImages(string $userId, array $payload, int $minutes = 15): void
+    {
+        [$setId, $indexed, $total] = $payload;
+        Cache::put($this->key($userId, 'indexed_images'), [
+            'set_id'  => $setId,
+            'indexed' => $indexed,
+            'total'   => $total,
+        ], now()->addMinutes($minutes));
+    }
+
+    public function forgetIndexedImages(string $userId): void
+    {
+        Cache::forget($this->key($userId, 'indexed_images'));
+    }
+
     public function clear(string $userId): void
     {
         Cache::forget($this->key($userId, 'state'));
         Cache::forget($this->key($userId, 'fish'));
         Cache::forget($this->key($userId, 'images'));
         Cache::forget($this->key($userId, 'form'));
+        Cache::forget($this->key($userId, 'indexed_images'));
     }
 
     private function key(string $userId, string $suffix): string
