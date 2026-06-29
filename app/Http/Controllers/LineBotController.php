@@ -217,7 +217,7 @@ class LineBotController extends Controller
             $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
-                    'text' => '📷 請傳送一張魚類圖片，或點選下方取消放棄新增。',
+                    'text' => '📷 請傳送魚類圖片（最多 5 張），或點選下方取消放棄新增。',
                     'quickReply' => [
                         'items' => [
                             [
@@ -1370,7 +1370,7 @@ class LineBotController extends Controller
                 $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
-                        'text' => "🐟 新增魚類\n\n請傳送一張魚類圖片",
+                        'text' => "🐟 新增魚類\n\n請傳送魚類圖片（最多 5 張）",
                         'quickReply' => [
                             'items' => [
                                 [
