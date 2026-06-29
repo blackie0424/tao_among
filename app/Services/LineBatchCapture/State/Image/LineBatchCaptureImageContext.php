@@ -9,6 +9,7 @@ class LineBatchCaptureImageContext
         private readonly string $userId,
         private readonly string $replyToken,
         private readonly string $messageId,
+        private readonly ?LineImageSet $imageSet = null,
     ) {
     }
 
@@ -30,5 +31,10 @@ class LineBatchCaptureImageContext
     public function messageId(): string
     {
         return $this->messageId;
+    }
+
+    public function imageSet(): ?LineImageSet
+    {
+        return $this->imageSet;
     }
 }
