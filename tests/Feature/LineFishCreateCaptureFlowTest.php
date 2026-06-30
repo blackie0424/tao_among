@@ -245,7 +245,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
 
         // Step 6: select date (today)
         $this->callHandlePostback(
-            $this->makePostbackEvent('action=set_batch_capture_date&date=today'),
+            $this->makePostbackEvent('action=set_batch_capture_date&value=today'),
             self::REPLY_TOKEN
         );
 

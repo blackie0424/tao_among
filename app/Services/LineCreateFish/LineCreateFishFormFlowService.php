@@ -97,7 +97,7 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
         if ($fishId) {
             $fish = Fish::find($fishId);
             if ($fish && $fish->captureRecords()->doesntExist()) {
-                $fish->delete();
+                $fish->forceDelete();
             }
         }
     }
