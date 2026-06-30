@@ -19,30 +19,12 @@
       <!-- Admin Links -->
       <Link
         v-if="user?.role === 'admin'"
-        href="/dashboard"
-        data-testid="link-dashboard"
-        class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+        href="/admin"
+        data-testid="link-admin-hub"
+        class="block w-full text-left px-4 py-2.5 text-elder-aux text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
         @click="$emit('close')"
       >
-        統計面板
-      </Link>
-      <Link
-        v-if="user?.role === 'admin'"
-        href="/line-users"
-        data-testid="link-line-users"
-        class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 transition"
-        @click="$emit('close')"
-      >
-        使用者管理
-      </Link>
-      <Link
-        v-if="user?.role === 'admin'"
-        href="/admin/references"
-        data-testid="link-references"
-        class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition"
-        @click="$emit('close')"
-      >
-        文獻管理
+        系統管理後台
       </Link>
 
       <!-- Logout -->

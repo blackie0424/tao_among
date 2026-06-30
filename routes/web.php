@@ -14,6 +14,7 @@ use App\Http\Controllers\LineLoginController;
 use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\ReferenceKnowledgeController;
 
+use App\Http\Controllers\AdminHubController;
 use App\Http\Controllers\AuthController;
 
 use Illuminate\Support\Facades\Route;
@@ -112,6 +113,7 @@ Route::middleware(['auth'])->group(function () {
     // LINE 使用者管理（僅 admin 可存取）
     // -------------------------------------------------
     Route::middleware(['admin'])->group(function () {
+        Route::get('/admin', [AdminHubController::class, 'index'])->name('admin.hub');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/fish-report', [FishReportController::class, 'index'])->name('fish-report');
         Route::get('/line-users', [LineUserController::class, 'index'])->name('line-users.index');
