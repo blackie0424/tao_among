@@ -16,9 +16,9 @@
       </div>
       <!-- 文字資訊區域 - 白色背景帶 padding -->
       <div class="p-4 bg-white">
-        <div class="flex items-center justify-between h-9">
+        <div class="flex items-center justify-between min-h-touch-primary">
           <div
-            class="text-base font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0"
+            class="text-elder-name font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0"
           >
             {{ fish.name }}
           </div>

@@ -20,10 +20,11 @@
       <Link
         v-if="user"
         href="/fish/batch-create"
-        class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
+        class="inline-flex flex-col items-center justify-center w-14 h-14 rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md border border-white/20"
         title="新增魚類"
       >
-        <span class="text-2xl leading-none font-light pb-0.5">+</span>
+        <span class="text-2xl leading-none font-light">+</span>
+        <span class="text-elder-aux leading-tight">新增</span>
       </Link>
       <SearchToggleButton @toggle="$emit('toggle')" />
     </div>
