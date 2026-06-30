@@ -556,4 +556,125 @@ class LineFishCreateCaptureFlowTest extends TestCase
             ->shouldReceive('getReplyToken')->andReturn(self::REPLY_TOKEN)
             ->getMock();
     }
+
+    private function flexToArray(object $message): array
+    {
+        return json_decode(json_encode($message), true);
+    }
+
+    private function flattenTexts(array $node): array
+    {
+        $texts = [];
+        if (($node['type'] ?? null) === 'text' && isset($node['text'])) {
+            $texts[] = $node['text'];
+        }
+        foreach ($node as $value) {
+            if (is_array($value)) {
+                if (array_is_list($value)) {
+                    foreach ($value as $item) {
+                        if (is_array($item)) {
+                            $texts = array_merge($texts, $this->flattenTexts($item));
+                        }
+                    }
+                } else {
+                    $texts = array_merge($texts, $this->flattenTexts($value));
+                }
+            }
+        }
+        return $texts;
+    }
+
+    private function allButtonLabels(array $node): array
+    {
+        $labels = [];
+        if (($node['type'] ?? null) === 'button' && isset($node['action']['label'])) {
+            $labels[] = $node['action']['label'];
+        }
+        foreach ($node as $value) {
+            if (is_array($value)) {
+                if (array_is_list($value)) {
+                    foreach ($value as $item) {
+                        if (is_array($item)) {
+                            $labels = array_merge($labels, $this->allButtonLabels($item));
+                        }
+                    }
+                } else {
+                    $labels = array_merge($labels, $this->allButtonLabels($value));
+                }
+            }
+        }
+        return $labels;
+    }
+
+    // =====================================================
+    // Session Picker（新增魚類流程）
+    // =====================================================
+
+    /** @test */
+    public function test_start_form_session_with_recent_sessions_shows_session_picker(): void
+    {
+        $existingFish = Fish::factory()->create();
+        CaptureRecord::factory()->create([
+            'fish_id'        => $existingFish->id,
+            'tribe'          => 'iranmeilek',
+            'location'       => '溪邊釣點',
+            'capture_method' => 'mamasil',
+            'capture_date'   => '2026-06-29',
+        ]);
+
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+
+        $capturedMessages = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->once()
+            ->withArgs(function ($token, $messages) use (&$capturedMessages) {
+                $capturedMessages = $messages;
+                return true;
+            });
+
+        $this->callHandlePostback(
+            $this->makePostbackEvent('action=create_fish_with_default_name'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertSame('waiting_session_selection', Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+
+        $this->assertCount(1, $capturedMessages);
+        $json = $this->flexToArray($capturedMessages[0]);
+        $this->assertSame('carousel', $json['contents']['type']);
+
+        $allTexts = $this->flattenTexts($json['contents']);
+        $this->assertContains('溪邊釣點', $allTexts);
+
+        $allLabels = $this->allButtonLabels($json['contents']);
+        $this->assertContains('使用此筆', $allLabels);
+        $this->assertContains('手動填寫', $allLabels);
+    }
+
+    /** @test */
+    public function test_start_form_session_without_sessions_shows_tribe_card(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+
+        $capturedMessages = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->once()
+            ->withArgs(function ($token, $messages) use (&$capturedMessages) {
+                $capturedMessages = $messages;
+                return true;
+            });
+
+        $this->callHandlePostback(
+            $this->makePostbackEvent('action=create_fish_with_default_name'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertSame('waiting_tribe_selection', Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+
+        $json = $this->flexToArray($capturedMessages[0]);
+        $labels = $this->allButtonLabels($json['contents']);
+        $this->assertContains('Ivalino', $labels);
+    }
 }

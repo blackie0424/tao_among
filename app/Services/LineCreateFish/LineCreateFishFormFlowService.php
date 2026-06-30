@@ -37,9 +37,8 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
         $store->putFishId($userId, $fishId);
         $store->putImages($userId, $images);
         $store->putForm($userId, []);
-        $store->putState($userId, 'waiting_tribe_selection');
 
-        $this->replyTribeSelectionCard($replyToken);
+        $this->replySessionPickerOrTribeCard($replyToken, $userId);
     }
 
     public function confirmCapture(string $userId, string $replyToken): void
