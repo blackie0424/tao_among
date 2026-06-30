@@ -247,18 +247,19 @@ describe('CaptureRecordForm', () => {
       expect(wrapper.find('#notes').element.value).toBe('備註')
     })
 
-    it('edit mode 的 submitForm 送出 PUT（含 _method: PUT）', async () => {
-      const { router } = await import('@inertiajs/vue3')
+    it('edit mode 的 submitForm emit submit 事件（含 _method: PUT）', async () => {
       const wrapper = mount(CaptureRecordForm, { props: editProps })
 
       wrapper.vm.submitForm()
       await nextTick()
 
-      expect(router.post).toHaveBeenCalledWith(
-        expect.stringContaining('/capture-records/1'),
-        expect.objectContaining({ _method: 'PUT' }),
-        expect.any(Object)
-      )
+      expect(wrapper.emitted('submit')).toBeTruthy()
+      expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+        tribe: 'ivalino',
+        location: '溪流A',
+        capture_method: '網捕',
+        _method: 'PUT',
+      })
     })
 
     it('edit mode 圖片上傳在選檔後自動觸發（autoUpload）', async () => {
@@ -371,6 +372,34 @@ describe('CaptureRecordForm', () => {
 
   // ── Create mode 補充測試 ──
 
+  it('create mode finalSubmit emit submit 事件（含 image_filename）', async () => {
+    const wrapper = mount(CaptureRecordForm, { props: defaultProps })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    await wrapper.find('#tribe').setValue('ivalino')
+    await wrapper.find('#location').setValue('小蘭嶼')
+    await wrapper.find('#capture_date').setValue('2026-05-01')
+
+    wrapper.vm.nextStep()
+    await nextTick()
+
+    await wrapper.find('#capture_method').setValue('網捕')
+
+    wrapper.vm.finalSubmit()
+    await nextTick()
+
+    expect(wrapper.emitted('submit')).toBeTruthy()
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+      tribe: 'ivalino',
+      location: '小蘭嶼',
+      capture_date: '2026-05-01',
+      capture_method: '網捕',
+      image_filename: 'prefill.jpg',
+    })
+  })
+
   it('C9: prevStep 返回上一步時表單資料保留', async () => {
     wrapper = mount(CaptureRecordForm, { props: defaultProps })
 
@@ -453,5 +482,68 @@ describe('CaptureRecordForm', () => {
         }),
       })
     )
+  })
+
+  // ── 驗證錯誤測試 ──
+
+  it('C10: Step 2 未填必填欄位時顯示驗證錯誤，不進入 Step 3', async () => {
+    wrapper = mount(CaptureRecordForm, { props: defaultProps })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    // 不填任何欄位直接呼叫 nextStep
+    wrapper.vm.nextStep()
+    await nextTick()
+
+    expect(wrapper.vm.step).toBe(2)
+    expect(wrapper.text()).toContain('請選擇部落')
+    expect(wrapper.text()).toContain('請輸入地點')
+    expect(wrapper.text()).toContain('請選擇日期')
+  })
+
+  it('C11: Step 3 未選捕獲方式時顯示驗證錯誤，不 emit submit', async () => {
+    wrapper = mount(CaptureRecordForm, { props: defaultProps })
+
+    wrapper.vm.setPrefillImage('prefill.jpg')
+    await nextTick()
+
+    await wrapper.find('#tribe').setValue('ivalino')
+    await wrapper.find('#location').setValue('小蘭嶼')
+    await wrapper.find('#capture_date').setValue('2026-05-01')
+    wrapper.vm.nextStep()
+    await nextTick()
+
+    // 不填捕獲方式直接送出
+    wrapper.vm.finalSubmit()
+    await nextTick()
+
+    expect(wrapper.emitted('submit')).toBeFalsy()
+    expect(wrapper.text()).toContain('請選擇捕獲方式')
+  })
+
+  it('E9: edit mode 未填必填欄位送出時顯示驗證錯誤，不 emit submit', async () => {
+    const editPropsEmpty = {
+      ...defaultProps,
+      record: {
+        id: 1,
+        tribe: '',
+        location: '',
+        capture_method: '',
+        capture_date: '',
+        notes: '',
+      },
+    }
+    const wrapper = mount(CaptureRecordForm, { props: editPropsEmpty })
+    await nextTick()
+
+    wrapper.vm.submitForm()
+    await nextTick()
+
+    expect(wrapper.emitted('submit')).toBeFalsy()
+    expect(wrapper.text()).toContain('請選擇部落')
+    expect(wrapper.text()).toContain('請輸入地點')
+    expect(wrapper.text()).toContain('請選擇日期')
+    expect(wrapper.text()).toContain('請選擇捕獲方式')
   })
 })

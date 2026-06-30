@@ -35,7 +35,6 @@ class LineBatchCaptureUploadPostbackHandler implements LineBatchCapturePostbackH
             return;
         }
 
-        $flow->putState($context->userId(), 'waiting_tribe_selection');
-        $flow->replyTribeSelectionCard($context->replyToken());
+        $flow->replySessionPickerOrTribeCard($context->replyToken(), $context->userId());
     }
 }

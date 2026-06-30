@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\CaptureSessionServiceInterface;
 use App\Contracts\LineMessagingClientInterface;
 use App\Models\Fish;
 use App\Services\LineBatchCapture\Actions\ConfirmLineBatchCaptureAction;
@@ -12,6 +13,7 @@ use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureLifecyclePos
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureLocationPostbackHandler;
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureMethodPostbackHandler;
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureNotesPostbackHandler;
+use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureSessionPostbackHandler;
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureTribePostbackHandler;
 use App\Services\LineBatchCapture\Postback\Handlers\LineBatchCaptureUploadPostbackHandler;
 use App\Services\LineBatchCapture\Postback\LineBatchCapturePostbackContext;
@@ -20,11 +22,13 @@ use App\Services\LineBatchCapture\State\Image\Handlers\LineBatchCaptureLockedIma
 use App\Services\LineBatchCapture\State\Image\Handlers\LineBatchCaptureWaitingImagesImageStateHandler;
 use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageContext;
 use App\Services\LineBatchCapture\State\Image\LineBatchCaptureImageStateHandler;
+use App\Services\LineBatchCapture\State\Image\LineImageSet;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureDateSelectorTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureDateTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureLocationTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureMethodSelectorTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureNotesTextStateHandler;
+use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureSessionSelectorTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureSummaryTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\Handlers\LineBatchCaptureTribeSelectorTextStateHandler;
 use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextContext;
@@ -60,6 +64,7 @@ class LineBatchCaptureFlowService
         private readonly ?LineBatchCaptureStateStore $lineBatchCaptureStateStore = null,
         private readonly ?StartLineBatchCaptureAction $startLineBatchCaptureAction = null,
         private readonly ?ConfirmLineBatchCaptureAction $confirmLineBatchCaptureAction = null,
+        private readonly ?CaptureSessionServiceInterface $captureSessionService = null,
     ) {
         $resolvedHandlers = is_array($postbackHandlers)
             ? $postbackHandlers
@@ -143,7 +148,7 @@ class LineBatchCaptureFlowService
         return true;
     }
 
-    public function handleImageMessage(string $userId, string $replyToken, string $messageId): bool
+    public function handleImageMessage(string $userId, string $replyToken, string $messageId, ?LineImageSet $imageSet = null): bool
     {
         $state = $this->getState($userId);
         if (!$state) {
@@ -156,7 +161,7 @@ class LineBatchCaptureFlowService
             return true;
         }
 
-        $handler->handle($this, new LineBatchCaptureImageContext($state, $userId, $replyToken, $messageId));
+        $handler->handle($this, new LineBatchCaptureImageContext($state, $userId, $replyToken, $messageId, $imageSet));
         return true;
     }
 
@@ -245,6 +250,29 @@ class LineBatchCaptureFlowService
         ]);
     }
 
+    /**
+     * @param array<int, array{tribe:string,location:string,capture_method:string,capture_date:string}> $sessions
+     */
+    public function replySessionPickerCard(string $replyToken, array $sessions): void
+    {
+        $this->lineMessagingClient->replyMessage($replyToken, [
+            $this->lineBatchCaptureReplyBuilder()->buildSessionPickerMessage($sessions),
+        ]);
+    }
+
+    public function replySessionPickerOrTribeCard(string $replyToken, string $userId): void
+    {
+        $sessions = array_slice($this->captureSessionService()->getRecentSessions(), 0, 3);
+
+        if (!empty($sessions)) {
+            $this->putState($userId, 'waiting_session_selection');
+            $this->replySessionPickerCard($replyToken, $sessions);
+        } else {
+            $this->putState($userId, 'waiting_tribe_selection');
+            $this->replyTribeSelectionCard($replyToken);
+        }
+    }
+
     public function replyMethodSelectionCard(string $replyToken, ?string $prefix = null): void
     {
         $this->lineMessagingClient->replyMessage($replyToken, [
@@ -278,6 +306,11 @@ class LineBatchCaptureFlowService
         return $filename;
     }
 
+    public function captureRecordBatchService(): CaptureRecordBatchService
+    {
+        return $this->captureRecordBatchService;
+    }
+
     public function captureRecordFieldValidator(): CaptureRecordFieldValidator
     {
         return $this->captureRecordFieldValidator ?? app(CaptureRecordFieldValidator::class);
@@ -305,6 +338,11 @@ class LineBatchCaptureFlowService
             ?? new ConfirmLineBatchCaptureAction($this->lineBatchCaptureStateStore(), $this->captureRecordBatchService);
     }
 
+    public function captureSessionService(): CaptureSessionServiceInterface
+    {
+        return $this->captureSessionService ?? app(CaptureSessionServiceInterface::class);
+    }
+
     private function lineUploadService(): LineUploadService
     {
         return $this->lineUploadService ?? app(LineUploadService::class);
@@ -318,6 +356,7 @@ class LineBatchCaptureFlowService
         return [
             new LineBatchCaptureLifecyclePostbackHandler(),
             new LineBatchCaptureUploadPostbackHandler(),
+            new LineBatchCaptureSessionPostbackHandler(),
             new LineBatchCaptureTribePostbackHandler(),
             new LineBatchCaptureLocationPostbackHandler(),
             new LineBatchCaptureMethodPostbackHandler(),
@@ -333,6 +372,7 @@ class LineBatchCaptureFlowService
     {
         return [
             new LineBatchCaptureSummaryTextStateHandler(),
+            new LineBatchCaptureSessionSelectorTextStateHandler(),
             new LineBatchCaptureTribeSelectorTextStateHandler(),
             new LineBatchCaptureLocationTextStateHandler(),
             new LineBatchCaptureMethodSelectorTextStateHandler(),

@@ -185,7 +185,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { router } from '@inertiajs/vue3'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 import { useImageUpload } from '@/composables/useImageUpload'
@@ -195,13 +194,12 @@ const props = defineProps({
   record: { type: Object, default: null },
   tribes: Array,
   capture_methods: [Array, Object],
-  fishId: Number,
   fishName: String,
   fishImage: String,
   recent_sessions: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['submitted', 'statusChange'])
+const emit = defineEmits(['submit', 'statusChange'])
 
 const isEditMode = computed(() => !!props.record)
 
@@ -316,34 +314,20 @@ function prevStep() {
 }
 
 // ── Submit ──
-async function finalSubmit() {
+function finalSubmit() {
   if (!form.capture_method) {
     errors.value = { capture_method: '請選擇捕獲方式' }
     return
   }
-  processing.value = true
-  router.post(`/fish/${props.fishId}/capture-records`, {
-    ...buildFormData(),
-    image_filename: imageFilename.value,
-  }, {
-    onSuccess: () => emit('submitted'),
-    onError: (e) => { errors.value = e || { general: '新增失敗' } },
-    onFinish: () => { processing.value = false },
-  })
+  emit('submit', { ...buildFormData(), image_filename: imageFilename.value })
 }
 
 function submitForm() {
   if (isEditMode.value) {
-    // Edit mode：直接送出 PUT
-    processing.value = true
-    errors.value = {}
+    if (!validateCaptureFields()) return
     const formData = { ...buildFormData(), _method: 'PUT' }
     if (uploadedFilename.value) formData.image_filename = uploadedFilename.value
-    router.post(`/fish/${props.fishId}/capture-records/${props.record.id}`, formData, {
-      onSuccess: () => emit('submitted'),
-      onError: (e) => { errors.value = e },
-      onFinish: () => { processing.value = false },
-    })
+    emit('submit', formData)
     return
   }
 
@@ -376,10 +360,14 @@ function onSessionSelect(session) {
   sessionSelectorVisible.value = false
 }
 
+function setErrors(e) {
+  errors.value = e || {}
+}
+
 defineExpose({
   // create mode
   step, nextStep, prevStep, finalSubmit, setPrefillImage,
   // shared
-  submitForm, uploading, processing, canSubmit,
+  submitForm, uploading, processing, canSubmit, setErrors,
 })
 </script>

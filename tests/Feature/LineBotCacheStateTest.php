@@ -385,8 +385,8 @@ class LineBotCacheStateTest extends TestCase
     // =========================================================
 
     /**
-     * 使用者在 waiting_custom_name 狀態輸入魚名 → 儲存名稱並轉換到 waiting_capture_tribe
-     * （新流程：命名後繼續收集捕獲資料，不直接建立 Fish）
+     * 使用者在 waiting_custom_name 狀態輸入魚名 → 立即建立 Fish，啟動捕獲表單流程
+     * （新流程：命名時即建立 Fish，後續使用 LineCreateFishFormFlowService 收集捕獲資料）
      */
     public function test_text_message_during_waiting_custom_name_creates_fish(): void
     {
@@ -415,10 +415,12 @@ class LineBotCacheStateTest extends TestCase
         $method->setAccessible(true);
         $method->invoke($controller, $this->makeTextMessageEvent('黑鯛'), self::REPLY_TOKEN);
 
-        // 新流程：名稱存入 cache，轉換到 waiting_capture_tribe，不直接建立 Fish
-        $this->assertEquals('黑鯛', Cache::get('line_user_' . self::USER_ID . '_create_fish_name'));
-        $this->assertEquals('waiting_capture_tribe', Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
-        $this->assertDatabaseCount('fish', 0);
+        // 新流程：Fish 立即建立，表單流程在 create_fish_form state store 中啟動
+        $this->assertDatabaseCount('fish', 1);
+        $this->assertEquals('黑鯛', \App\Models\Fish::first()->name);
+        $this->assertEquals('waiting_tribe_selection', Cache::get('line_user_' . self::USER_ID . '_create_fish_form_state'));
+        // 舊 create_fish cache 已清除
+        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_create_fish_state'));
     }
 
     // =========================================================
