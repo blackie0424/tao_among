@@ -1,7 +1,7 @@
 <template>
   <header class="sticky top-4 z-30">
     <div
-      class="container mx-auto max-w-7xl bg-white/90 backdrop-blur-md shadow-sm border border-gray-100 rounded-2xl"
+      class="container mx-auto max-w-7xl bg-white shadow-sm border border-gray-200 rounded-2xl"
     >
       <div class="px-4 flex flex-col lg:flex-row lg:items-center justify-between">
         <!-- Mobile Row 1: Nav & User -->
@@ -15,9 +15,9 @@
             <Link
               v-if="!breadcrumbPage"
               href="/"
-              class="font-medium text-gray-500 hover:text-gray-900 transition flex items-center gap-1 shrink-0"
+              class="font-medium text-gray-700 hover:text-gray-900 transition flex items-center gap-1 shrink-0"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -25,7 +25,7 @@
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                 ></path>
               </svg>
-              <span class="text-sm">首頁</span>
+              <span class="text-elder-aux">首頁</span>
             </Link>
 
             <!-- Separator 1 -->
@@ -48,7 +48,7 @@
             <template v-if="mobileBackUrl !== '/'">
               <Link
                 :href="mobileBackUrl"
-                class="font-bold text-gray-500 hover:text-blue-600 transition shrink-0 whitespace-nowrap text-sm sm:text-base"
+                class="font-bold text-gray-700 hover:text-blue-600 transition shrink-0 whitespace-nowrap text-elder-aux sm:text-elder-body"
               >
                 {{ mobileBackText }}
               </Link>
@@ -69,7 +69,7 @@
             </template>
 
             <!-- Current Page Title -->
-            <span class="font-bold text-gray-900 text-lg tracking-wide truncate">
+            <span class="font-bold text-elder-text text-elder-name tracking-wide truncate">
               {{ pageTitle }}
             </span>
           </div>
@@ -80,7 +80,7 @@
             <button
               v-if="user"
               @click="showMobileUserMenu = !showMobileUserMenu"
-              class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition"
+              class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -111,7 +111,7 @@
         </div>
 
         <!-- Mobile Row 2: Actions Slot -->
-        <div class="lg:hidden w-full border-t border-gray-100 py-2">
+        <div class="lg:hidden w-full border-t border-gray-200 py-2">
           <slot name="mobile-actions" />
         </div>
 
@@ -122,9 +122,9 @@
             <!-- Home Link -->
             <Link
               href="/"
-              class="font-medium text-gray-500 hover:text-gray-900 transition flex items-center gap-1"
+              class="font-medium text-gray-700 hover:text-gray-900 transition flex items-center gap-1 text-elder-body"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -153,7 +153,7 @@
             <!-- App / Fish List Link -->
             <Link
               href="/fishs"
-              class="font-bold text-gray-900 text-lg tracking-wide hover:text-blue-600 transition"
+              class="font-bold text-elder-text text-elder-name tracking-wide hover:text-blue-600 transition"
             >
               among no tao
             </Link>
@@ -194,7 +194,7 @@
             <div v-if="user?.role === 'admin'" class="relative">
               <button
                 @click="showDesktopAdminMenu = !showDesktopAdminMenu"
-                class="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-blue-600 transition"
+                class="flex items-center gap-1.5 text-elder-body font-medium text-gray-700 hover:text-blue-600 transition"
               >
                 {{ user.name }}
                 <svg
@@ -218,8 +218,8 @@
               />
             </div>
             <!-- Non-Admin: Name with Badge -->
-            <div v-else-if="user" class="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs">田調人員</span>
+            <div v-else-if="user" class="text-elder-body font-medium text-gray-700 flex items-center gap-2">
+              <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-elder-aux">田調人員</span>
               {{ user.name }}
             </div>
             <!-- Non-Admin Logout -->
@@ -228,14 +228,14 @@
               href="/logout"
               method="post"
               as="button"
-              class="text-sm text-gray-500 hover:text-red-600"
+              class="text-elder-aux text-gray-700 hover:text-red-600"
             >
               登出
             </Link>
             <Link
               v-if="!user"
               :href="loginUrl"
-              class="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              class="text-elder-body text-blue-600 hover:text-blue-700 font-medium"
             >
               登入
             </Link>

@@ -78,15 +78,15 @@ describe('FishListNavActions', () => {
   // ─── mobile variant ───────────────────────────────────────────────────────
 
   describe('variant="mobile"', () => {
-    it('有 user 時渲染新增按鈕（圖示樣式，含 w-9 h-9）', () => {
+    it('有 user 時渲染新增按鈕（圖示樣式，觸控目標 w-14 h-14）', () => {
       const wrapper = mount(FishListNavActions, {
         props: { variant: 'mobile', user: { id: 1 } },
         ...globalStubs,
       })
       const link = wrapper.find('a[href="/fish/batch-create"]')
       expect(link.exists()).toBe(true)
-      expect(link.classes()).toContain('w-9')
-      expect(link.classes()).toContain('h-9')
+      expect(link.classes()).toContain('w-14')
+      expect(link.classes()).toContain('h-14')
     })
 
     it('無 user 時不渲染新增按鈕', () => {
