@@ -137,10 +137,10 @@ const mobileBackText = computed(() => {
 const ALL_TABS = [
   { key: 'basic',     label: '基本' },
   { key: 'local',     label: '地方知識' },
-  { key: 'advanced',  label: '進階知識' },
+  { key: 'advanced',  label: '進階知識', editorOnly: true },
   { key: 'reference', label: '文獻知識', editorOnly: true },
-  { key: 'capture',   label: '捕獲' },
-  { key: 'audio',     label: '發音' },
+  { key: 'capture',   label: '捕獲紀錄' },
+  { key: 'audio',     label: '發音',     editorOnly: true },
 ]
 
 const visibleTabs = computed(() =>
