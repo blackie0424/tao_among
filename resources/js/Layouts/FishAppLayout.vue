@@ -33,11 +33,11 @@
 
     <AppFooter />
 
-    <!-- 桌面版懸浮管理選單（僅 editor/admin 顯示） -->
-    <AdminFloatingMenu v-if="canEdit && fishId" :fishId="fishId" />
+    <!-- 桌面版懸浮管理選單（僅 editor/admin 顯示，且頁面未自帶 FishEditBar） -->
+    <AdminFloatingMenu v-if="showEditMenu && canEdit && fishId" :fishId="fishId" />
 
-    <!-- 手機版底部管理選單（僅 editor/admin 顯示） -->
-    <BottomNavBar v-if="canEdit && fishId" :fishId="fishId" />
+    <!-- 手機版底部管理選單（僅 editor/admin 顯示，且頁面未自帶 FishEditBar） -->
+    <BottomNavBar v-if="showEditMenu && canEdit && fishId" :fishId="fishId" />
   </div>
 </template>
 
@@ -84,6 +84,10 @@ const props = defineProps({
     default: true,
   },
   showHeader: {
+    type: Boolean,
+    default: true,
+  },
+  showEditMenu: {
     type: Boolean,
     default: true,
   },
