@@ -23,8 +23,9 @@
             {{ fish.name }}
           </div>
           <!-- 音檔播放按鈕靠右 -->
-          <div v-if="fish.audio_url" class="ml-2 flex-shrink-0" @click.stop.prevent>
-            <Volume :audioUrl="fish.audio_url" />
+          <div v-if="fish.audio_url" class="ml-2 flex-shrink-0 flex flex-col items-center gap-0.5" @click.stop.prevent>
+            <Volume :audioUrl="fish.audio_url" :large="true" />
+            <span class="text-[11px] text-gray-500 leading-none">聽發音</span>
           </div>
         </div>
       </div>
