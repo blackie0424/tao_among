@@ -42,72 +42,69 @@ Route::get('/search', [FishController::class, 'search'])->name('fish.search');
 // 需要登入的路由
 // =====================================================
 Route::middleware(['auth'])->group(function () {
-    
-    // -------------------------------------------------
-    // 魚類基本管理
-    // -------------------------------------------------
-    // 注意：/fish/batch-create 必須在 /fish/{id} 之前定義
-    Route::get('/fish/batch-create', [FishController::class, 'batchCreate'])->name('fish.batch-create');
-    Route::post('/fish/batch-create', [FishController::class, 'batchStore'])->name('fish.batch-create.store');
-    Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit');
-    Route::put('/fish/{id}/name', [FishController::class, 'updateName'])->name('fish.updateName');
-    Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.destroy');
-    Route::get('/fish/{id}/merge', [FishController::class, 'showMergePage'])->name('fish.merge.page');
-    Route::put('/fish/{id}/display-image', [FishController::class, 'updateDisplayImage'])->name('fish.display-image.update');
 
     // -------------------------------------------------
-    // 聚合管理頁面
-    // -------------------------------------------------
-    Route::get('/fish/{id}/media-manager', [FishManagementController::class, 'mediaManager'])->name('fish.media-manager');
-    Route::get('/fish/{id}/knowledge-manager', [FishManagementController::class, 'knowledgeManager'])->name('fish.knowledge-manager');
-
-    // -------------------------------------------------
-    // 捕獲紀錄管理
+    // 唯讀（viewer 可瀏覽）
     // -------------------------------------------------
     Route::get('/fish/{id}/capture-records', [CaptureRecordController::class, 'index'])->name('fish.capture-records');
-    Route::get('/fish/{id}/capture-records/create', [CaptureRecordController::class, 'create'])->name('fish.capture-records.create');
-    Route::get('/fish/{id}/capture-records/batch-create', [CaptureRecordController::class, 'batchCreate'])->name('fish.capture-records.batch-create');
-    Route::post('/fish/{id}/capture-records', [CaptureRecordController::class, 'store'])->name('fish.capture-records.store');
-    Route::get('/fish/{id}/capture-records/{record_id}/edit', [CaptureRecordController::class, 'edit'])->name('fish.capture-records.edit');
-    Route::put('/fish/{id}/capture-records/{record_id}', [CaptureRecordController::class, 'update'])->name('fish.capture-records.update');
-    Route::delete('/fish/{id}/capture-records/{record_id}', [CaptureRecordController::class, 'destroy'])->name('fish.capture-records.destroy');
-
-    // -------------------------------------------------
-    // 地方知識（部落分類）管理
-    // -------------------------------------------------
     Route::get('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'indexPage'])->name('fish.tribal-classifications');
-    Route::get('/fish/{id}/tribal-classifications/create', [TribalClassificationController::class, 'createPage'])->name('fish.tribal-classifications.create');
-    Route::post('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'storePage'])->name('fish.tribal-classifications.store');
-
-    // -------------------------------------------------
-    // 進階知識管理
-    // -------------------------------------------------
     Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index']);
-    Route::get('/fish/{id}/knowledge/create', [FishNoteController::class, 'create'])->name('fish.knowledge.create');
-    Route::post('/fish/{id}/knowledge', [FishNoteController::class, 'storeKnowledge'])->name('fish.knowledge.store');
     Route::get('/fish/{id}/knowledge-list', [FishNoteController::class, 'knowledgeList'])->name('fish.knowledge-list');
-    Route::get('/fish/{id}/knowledge/{note}/edit', [FishNoteController::class, 'editKnowledge'])->name('fish.knowledge.edit');
-    Route::put('/fish/{id}/knowledge/{note}', [FishNoteController::class, 'updateKnowledge'])->name('fish.knowledge.update');
-    Route::delete('/fish/{id}/knowledge/{note}', [FishNoteController::class, 'destroyKnowledge'])->name('fish.knowledge.destroy');
+    Route::get('/fish/{id}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
 
+    // -------------------------------------------------
+    // 田調人員以上（editor/admin）才可存取的寫入路由
+    // -------------------------------------------------
     Route::middleware(['editor'])->group(function () {
+
+        // 魚類基本管理
+        // 注意：/fish/batch-create 必須在 /fish/{id} 之前定義
+        Route::get('/fish/batch-create', [FishController::class, 'batchCreate'])->name('fish.batch-create');
+        Route::post('/fish/batch-create', [FishController::class, 'batchStore'])->name('fish.batch-create.store');
+        Route::get('/fish/{id}/edit', [FishController::class, 'edit'])->name('fish.edit');
+        Route::put('/fish/{id}/name', [FishController::class, 'updateName'])->name('fish.updateName');
+        Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.destroy');
+        Route::get('/fish/{id}/merge', [FishController::class, 'showMergePage'])->name('fish.merge.page');
+        Route::put('/fish/{id}/display-image', [FishController::class, 'updateDisplayImage'])->name('fish.display-image.update');
+
+        // 聚合管理頁面
+        Route::get('/fish/{id}/media-manager', [FishManagementController::class, 'mediaManager'])->name('fish.media-manager');
+        Route::get('/fish/{id}/knowledge-manager', [FishManagementController::class, 'knowledgeManager'])->name('fish.knowledge-manager');
+
+        // 捕獲紀錄（寫入）
+        Route::get('/fish/{id}/capture-records/create', [CaptureRecordController::class, 'create'])->name('fish.capture-records.create');
+        Route::get('/fish/{id}/capture-records/batch-create', [CaptureRecordController::class, 'batchCreate'])->name('fish.capture-records.batch-create');
+        Route::post('/fish/{id}/capture-records', [CaptureRecordController::class, 'store'])->name('fish.capture-records.store');
+        Route::get('/fish/{id}/capture-records/{record_id}/edit', [CaptureRecordController::class, 'edit'])->name('fish.capture-records.edit');
+        Route::put('/fish/{id}/capture-records/{record_id}', [CaptureRecordController::class, 'update'])->name('fish.capture-records.update');
+        Route::delete('/fish/{id}/capture-records/{record_id}', [CaptureRecordController::class, 'destroy'])->name('fish.capture-records.destroy');
+
+        // 地方知識（寫入）
+        Route::get('/fish/{id}/tribal-classifications/create', [TribalClassificationController::class, 'createPage'])->name('fish.tribal-classifications.create');
+        Route::post('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'storePage'])->name('fish.tribal-classifications.store');
+
+        // 進階知識（寫入）
+        Route::get('/fish/{id}/knowledge/create', [FishNoteController::class, 'create'])->name('fish.knowledge.create');
+        Route::post('/fish/{id}/knowledge', [FishNoteController::class, 'storeKnowledge'])->name('fish.knowledge.store');
+        Route::get('/fish/{id}/knowledge/{note}/edit', [FishNoteController::class, 'editKnowledge'])->name('fish.knowledge.edit');
+        Route::put('/fish/{id}/knowledge/{note}', [FishNoteController::class, 'updateKnowledge'])->name('fish.knowledge.update');
+        Route::delete('/fish/{id}/knowledge/{note}', [FishNoteController::class, 'destroyKnowledge'])->name('fish.knowledge.destroy');
+
+        // 文獻知識
         Route::get('/fish/{id}/reference-knowledge', [ReferenceKnowledgeController::class, 'index'])->name('fish.reference-knowledge.index');
         Route::get('/fish/{id}/reference-knowledge/create', [ReferenceKnowledgeController::class, 'create'])->name('fish.reference-knowledge.create');
         Route::post('/fish/{id}/reference-knowledge', [ReferenceKnowledgeController::class, 'store'])->name('fish.reference-knowledge.store');
         Route::get('/fish/{id}/reference-knowledge/{knowledge}/edit', [ReferenceKnowledgeController::class, 'edit'])->name('fish.reference-knowledge.edit');
         Route::put('/fish/{id}/reference-knowledge/{knowledge}', [ReferenceKnowledgeController::class, 'update'])->name('fish.reference-knowledge.update');
         Route::delete('/fish/{id}/reference-knowledge/{knowledge}', [ReferenceKnowledgeController::class, 'destroy'])->name('fish.reference-knowledge.destroy');
-    });
 
-    // -------------------------------------------------
-    // 發音管理
-    // -------------------------------------------------
-    Route::get('/fish/{id}/audio/create', [FishAudioController::class, 'create'])->name('fish.audio.create');
-    Route::get('/fish/{id}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
-    Route::get('/fish/{id}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
-    Route::put('/fish/{id}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
-    Route::put('/fish/{id}/audio/{audio}/set-base', [FishAudioController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
-    Route::delete('/fish/{id}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
+        // 發音（寫入）
+        Route::get('/fish/{id}/audio/create', [FishAudioController::class, 'create'])->name('fish.audio.create');
+        Route::get('/fish/{id}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
+        Route::put('/fish/{id}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
+        Route::put('/fish/{id}/audio/{audio}/set-base', [FishAudioController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
+        Route::delete('/fish/{id}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
+    });
 
     // -------------------------------------------------
     // LINE 使用者管理（僅 admin 可存取）
