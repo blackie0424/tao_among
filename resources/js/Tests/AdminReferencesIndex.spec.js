@@ -5,12 +5,13 @@ import AdminReferencesIndex from '@/Pages/Admin/References/Index.vue'
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
   Link: { template: '<a :href="href"><slot /></a>', props: ['href'] },
+  usePage: () => ({ props: { auth: { user: { name: '管理員' } } }, url: '/admin/references' }),
 }))
 
-vi.mock('@/Layouts/FishAppLayout.vue', () => ({
+vi.mock('@/Layouts/AdminLayout.vue', () => ({
   default: {
     template: '<div><slot /></div>',
-    props: ['pageTitle', 'mobileBackUrl', 'mobileBackText'],
+    props: ['title'],
   },
 }))
 
