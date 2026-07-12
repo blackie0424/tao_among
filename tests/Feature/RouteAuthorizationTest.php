@@ -312,9 +312,23 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $response->assertRedirect('/login');
     });
 
-    it('發音列表頁面需要登入', function () {
+    it('一般瀏覽器訪客可直接瀏覽發音列表', function () {
         $fish = Fish::factory()->create();
         $response = $this->get("/fish/{$fish->id}/audio-list");
+        $response->assertStatus(200);
+    });
+
+    it('LINE 瀏覽器訪客瀏覽發音列表需要登入', function () {
+        $fish = Fish::factory()->create();
+        $response = $this->withHeader('User-Agent', 'Mozilla/5.0 Line/12.0.0')
+            ->get("/fish/{$fish->id}/audio-list");
+        $response->assertRedirect('/login');
+    });
+
+    it('LIFF 環境訪客瀏覽發音列表需要登入', function () {
+        $fish = Fish::factory()->create();
+        $response = $this->withHeader('User-Agent', 'Mozilla/5.0 LIFF/2.0')
+            ->get("/fish/{$fish->id}/audio-list");
         $response->assertRedirect('/login');
     });
 

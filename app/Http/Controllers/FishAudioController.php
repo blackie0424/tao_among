@@ -39,14 +39,20 @@ class FishAudioController extends BaseController
     }
 
     /**
-     * Display the audio list page for a specific fish
+     * Display the audio list page for a specific fish.
+     * LINE browser users must be authenticated (preserves LINE OAuth flow).
+     * General browser guests may view without login.
      */
-    public function audioList($fishId)
+    public function audioList(Request $request, $fishId)
     {
+        if ($this->isLineApp($request) && !auth()->check()) {
+            return redirect()->route('login');
+        }
+
         try {
             $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
             $fish->load('audios');
-            
+
             $fishWithUrls = $this->assignFishImage($fish);
 
             $this->logOperation('Audio list viewed', [
@@ -60,6 +66,12 @@ class FishAudioController extends BaseController
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入發音列表');
         }
+    }
+
+    private function isLineApp(Request $request): bool
+    {
+        $ua = $request->userAgent() ?? '';
+        return str_contains($ua, 'Line/') || str_contains($ua, 'LIFF');
     }
 
     /**

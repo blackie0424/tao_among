@@ -50,7 +50,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'indexPage'])->name('fish.tribal-classifications');
     Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index']);
     Route::get('/fish/{id}/knowledge-list', [FishNoteController::class, 'knowledgeList'])->name('fish.knowledge-list');
-    Route::get('/fish/{id}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
 
     // -------------------------------------------------
     // 田調人員以上（editor/admin）才可存取的寫入路由
@@ -124,4 +123,5 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // 公開瀏覽頁面（魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突）
+Route::get('/fish/{id}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
 Route::get('/fish/{id}', [FishController::class, 'getFish']);

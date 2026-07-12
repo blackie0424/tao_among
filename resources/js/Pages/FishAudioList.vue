@@ -77,8 +77,9 @@
           </div>
         </div>
 
-        <!-- 新增發音 FAB 按鈕 -->
+        <!-- 新增發音 FAB 按鈕（僅登入使用者可見） -->
         <FabButton
+          v-if="user"
           bgClass="bg-purple-600"
           hoverClass="hover:bg-purple-700"
           textClass="text-white"
@@ -93,7 +94,7 @@
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishAudioCard from '../Components/FishAudio/FishAudioCard.vue'
 import FabButton from '../Components/UI/FabButton.vue'
@@ -105,6 +106,9 @@ import { useNetworkStatus } from '../composables/useNetworkStatus.js'
 const props = defineProps({
   fish: Object,
 })
+
+const page = usePage()
+const user = computed(() => page.props.auth?.user)
 
 // 網路狀態監控
 const { isOnline, wasOffline } = useNetworkStatus()

@@ -3,7 +3,7 @@
     class="min-h-screen bg-gray-50 relative"
     :class="[
       showHeader ? 'pt-4' : 'pt-0',
-      canEdit && fishId ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6',
+      canEdit && fishId ? 'pb-[max(calc(7rem+env(safe-area-inset-bottom)),8rem)] lg:pb-6' : 'pb-6',
     ]"
   >
     <!-- 頂部導覽列 -->

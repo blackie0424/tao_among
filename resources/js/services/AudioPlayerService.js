@@ -875,7 +875,13 @@ class AudioPlayerService {
    * 處理暫停事件
    */
   handlePause() {
+    // iOS Safari sometimes fires spurious pause events during buffering.
+    // Only update state if the element is actually paused.
+    if (this.currentAudioElement && !this.currentAudioElement.paused) {
+      return
+    }
     this.playbackState.isPlaying = false
+    this.playbackState.isPaused = true
   }
 
   /**
@@ -918,6 +924,11 @@ class AudioPlayerService {
    */
   handleTimeUpdate(event) {
     this.playbackState.currentTime = event.target.currentTime
+    // timeupdate only fires during playback; self-heal state for iOS Safari
+    if (!this.playbackState.isPlaying) {
+      this.playbackState.isPlaying = true
+      this.playbackState.isPaused = false
+    }
     this.emit('timeupdate', {
       audioId: this.currentPlayingId.value,
       currentTime: this.playbackState.currentTime,

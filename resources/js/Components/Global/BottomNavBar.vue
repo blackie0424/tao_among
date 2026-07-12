@@ -2,7 +2,7 @@
   <div
     v-if="user"
     class="fixed bottom-0 left-0 right-0 z-40 flex justify-center lg:hidden pointer-events-none"
-    style="padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);"
+    style="padding-bottom: max(calc(env(safe-area-inset-bottom) + 1rem), 3.5rem);"
   >
     <button
       @click="showAdminMenu = true"

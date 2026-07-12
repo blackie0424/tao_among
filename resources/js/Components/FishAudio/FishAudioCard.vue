@@ -106,7 +106,7 @@
       </button>
 
       <div class="flex-1">
-        <div class="text-lg font-medium text-gray-800">{{ audio.name }}</div>
+        <div :class="['text-lg font-medium transition-colors', currentAudioIsPlaying ? 'text-blue-600' : 'text-gray-800']">{{ audio.name }}</div>
         <div class="text-md text-gray-500">
           {{ getStatusText() }}
         </div>
