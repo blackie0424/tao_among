@@ -661,7 +661,7 @@ class LineBotController extends Controller
                                 'action' => [
                                     'type'        => 'postback',
                                     'label'       => '✏️ 輸入自訂名稱',
-                                    'data'        => 'action=input_custom_fish_name',
+                                    'data'        => 'action=create_fish_need_name',
                                     'displayText' => '輸入自訂名稱',
                                 ],
                             ],

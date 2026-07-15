@@ -139,6 +139,25 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $this->assertStringContainsString('部落', $capturedMessages[0]->getAltText());
     }
 
+    /** @test */
+    public function test_need_name_postback_transitions_to_waiting_custom_name(): void
+    {
+        // Regression: image upload auto-completion used to send action=input_custom_fish_name
+        // which had no handler, causing the button to be silently ignored.
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+
+        $this->mockLineBotService->shouldReceive('replyMessage')->once();
+
+        $this->callHandlePostback(
+            $this->makePostbackEvent('action=create_fish_need_name'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertEquals('waiting_custom_name', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+        $this->assertDatabaseCount('fish', 0);
+    }
+
     // =====================================================
     // 取消流程 → 刪除孤兒 Fish
     // =====================================================
