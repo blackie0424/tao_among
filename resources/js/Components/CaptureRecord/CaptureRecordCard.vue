@@ -36,7 +36,20 @@
         </div>
 
         <!-- 三點選單：靠右 -->
-        <div class="ml-2 flex-shrink-0">
+        <div class="ml-2 flex-shrink-0 flex items-center gap-1">
+          <!-- 旋轉圖片（僅 editor/admin） -->
+          <button
+            v-if="isEditor && record.image_url"
+            type="button"
+            class="text-gray-400 hover:text-blue-500 p-1 rounded transition-colors"
+            title="旋轉圖片"
+            @click="rotateModalOpen = true"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
           <OverflowMenu
             :apiUrl="`/fish/${fishId}/capture-records/${record.id}`"
             :fishId="fishId.toString()"
@@ -64,11 +77,23 @@
       </div>
     </div>
   </div>
+
+  <!-- 旋轉 Modal -->
+  <ImageRotateModal
+    v-if="isEditor && record.image_url"
+    :open="rotateModalOpen"
+    :imageUrl="recordImageUrl"
+    :fishId="fishId"
+    :recordId="record.id"
+    @close="rotateModalOpen = false"
+    @rotated="onRotated"
+  />
 </template>
 
 <script setup>
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
+import ImageRotateModal from '@/Components/UI/ImageRotateModal.vue'
 import { computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
@@ -77,12 +102,15 @@ import { formatDate, formatDateTime } from '@/utils/formatDate'
 const props = defineProps({
   record: Object,
   fishId: Number,
-  displayCaptureRecordId: Number, // 當前設定為圖鑑主圖的捕獲紀錄 ID
+  displayCaptureRecordId: Number,
+  isEditor: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['updated', 'deleted'])
 
 const isUpdating = ref(false)
+const rotateModalOpen = ref(false)
+const rotatedImageUrl = ref(null)
 
 // 判斷此捕獲紀錄是否為當前圖鑑主圖
 const isDisplayImage = computed(() => {
@@ -116,11 +144,15 @@ function setAsDisplayImage() {
   )
 }
 
-// 處理捕獲紀錄圖片 URL
+// 處理捕獲紀錄圖片 URL（旋轉後使用 cache-busted URL）
 const recordImageUrl = computed(() => {
-  // 使用後端已經處理好的 image_url 屬性
-  return props.record.image_url || '/images/default-capture.png'
+  return rotatedImageUrl.value || props.record.image_url || '/images/default-capture.png'
 })
+
+function onRotated(newUrl) {
+  rotatedImageUrl.value = newUrl
+  emit('updated')
+}
 
 // 顯示標籤：若 location 為空則只顯示 tribe
 const displayLabel = computed(() => {

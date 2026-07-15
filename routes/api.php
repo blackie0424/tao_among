@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApiFishController;
+use App\Http\Controllers\Api\ImageRotateController;
 use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
@@ -67,6 +68,12 @@ Route::middleware(['auth:sanctum', 'editor'])->group(function () {
     // 魚類合併
     Route::post('/fish/merge/preview', [FishMergeController::class, 'preview']);
     Route::post('/fish/merge', [FishMergeController::class, 'merge']);
+
+    // 圖片旋轉（覆蓋 S3 原檔）
+    Route::post('/fish/{id}/image/rotate', [ImageRotateController::class, 'rotateFishImage'])->whereNumber('id');
+    Route::post('/fish/{id}/capture-records/{recordId}/image/rotate', [ImageRotateController::class, 'rotateCaptureRecordImage'])
+        ->whereNumber('id')
+        ->whereNumber('recordId');
 
     // 上傳與 signed URL
     Route::post('/upload', [UploadController::class, 'uploadImage']);

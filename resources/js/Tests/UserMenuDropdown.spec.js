@@ -25,19 +25,16 @@ const mountDropdown = (propsData = {}) =>
 // 管理員選單項目
 // ────────────────────────────────────────────────────
 describe('管理員選單項目', () => {
-  it('管理員：應顯示統計面板連結', () => {
+  it('管理員：應顯示系統管理後台連結', () => {
     const wrapper = mountDropdown({ user: makeAdmin() })
-    expect(wrapper.text()).toContain('統計面板')
+    expect(wrapper.text()).toContain('系統管理後台')
   })
 
-  it('管理員：應顯示使用者管理連結', () => {
+  it('管理員：後台連結應指向 /admin', () => {
     const wrapper = mountDropdown({ user: makeAdmin() })
-    expect(wrapper.text()).toContain('使用者管理')
-  })
-
-  it('管理員：應顯示文獻管理連結', () => {
-    const wrapper = mountDropdown({ user: makeAdmin() })
-    expect(wrapper.text()).toContain('文獻管理')
+    const link = wrapper.find('[data-testid="link-admin-hub"]')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('/admin')
   })
 
   it('管理員：應顯示登出按鈕', () => {
@@ -50,19 +47,9 @@ describe('管理員選單項目', () => {
 // 非管理員選單項目
 // ────────────────────────────────────────────────────
 describe('非管理員選單項目', () => {
-  it('非管理員：不應顯示統計面板連結', () => {
+  it('非管理員：不應顯示系統管理後台連結', () => {
     const wrapper = mountDropdown({ user: makeUser() })
-    expect(wrapper.text()).not.toContain('統計面板')
-  })
-
-  it('非管理員：不應顯示使用者管理連結', () => {
-    const wrapper = mountDropdown({ user: makeUser() })
-    expect(wrapper.text()).not.toContain('使用者管理')
-  })
-
-  it('非管理員：不應顯示文獻管理連結', () => {
-    const wrapper = mountDropdown({ user: makeUser() })
-    expect(wrapper.text()).not.toContain('文獻管理')
+    expect(wrapper.text()).not.toContain('系統管理後台')
   })
 
   it('非管理員：應顯示登出按鈕', () => {
@@ -97,21 +84,9 @@ describe('關閉行為', () => {
     expect(wrapper.emitted('close')).toBeTruthy()
   })
 
-  it('點擊統計面板連結應觸發 close 事件', async () => {
+  it('點擊系統管理後台連結應觸發 close 事件', async () => {
     const wrapper = mountDropdown({ user: makeAdmin() })
-    await wrapper.find('[data-testid="link-dashboard"]').trigger('click')
-    expect(wrapper.emitted('close')).toBeTruthy()
-  })
-
-  it('點擊使用者管理連結應觸發 close 事件', async () => {
-    const wrapper = mountDropdown({ user: makeAdmin() })
-    await wrapper.find('[data-testid="link-line-users"]').trigger('click')
-    expect(wrapper.emitted('close')).toBeTruthy()
-  })
-
-  it('點擊文獻管理連結應觸發 close 事件', async () => {
-    const wrapper = mountDropdown({ user: makeAdmin() })
-    await wrapper.find('[data-testid="link-references"]').trigger('click')
+    await wrapper.find('[data-testid="link-admin-hub"]').trigger('click')
     expect(wrapper.emitted('close')).toBeTruthy()
   })
 })

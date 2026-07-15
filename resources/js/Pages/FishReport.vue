@@ -1,7 +1,7 @@
 <template>
   <Head title="量化報告 | 管理後台" />
 
-  <FishAppLayout page-title="量化報告" mobile-back-url="/dashboard" mobile-back-text="統計面板">
+  <AdminLayout title="量化報告">
     <div class="report-root">
       <!-- 頁面標題 -->
       <div class="report-header">
@@ -295,13 +295,13 @@
         </div>
       </section>
     </div>
-  </FishAppLayout>
+  </AdminLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
-import FishAppLayout from '@/Layouts/FishAppLayout.vue'
+import AdminLayout from '@/Layouts/AdminLayout.vue'
 
 // ---- Props ----
 const props = defineProps({

@@ -1,26 +1,37 @@
 <template>
   <Head title="編輯文獻" />
 
-  <FishAppLayout pageTitle="編輯文獻" mobileBackUrl="/admin/references" mobileBackText="文獻管理">
+  <AdminLayout title="編輯文獻">
     <div class="mx-auto max-w-3xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <h1 class="mb-6 text-2xl font-bold text-gray-900">編輯文獻</h1>
       <ReferenceForm
         :reference="reference"
-        :submit-url="`/admin/references/${reference.id}`"
-        method="put"
+        :is-edit-mode="true"
         submit-label="更新文獻"
+        :processing="processing"
+        @submit="onFormSubmit"
+        ref="formRef"
       />
     </div>
-  </FishAppLayout>
+  </AdminLayout>
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
-import FishAppLayout from '@/Layouts/FishAppLayout.vue'
+import { ref } from 'vue'
+import { Head, router } from '@inertiajs/vue3'
+import AdminLayout from '@/Layouts/AdminLayout.vue'
 import ReferenceForm from '@/Components/Reference/ReferenceForm.vue'
 
-defineProps({
-  reference: Object,
-})
+const props = defineProps({ reference: Object })
+const formRef = ref(null)
+const processing = ref(false)
+
+function onFormSubmit(formData) {
+  processing.value = true
+  router.post(`/admin/references/${props.reference.id}`, formData, {
+    onError: (e) => { formRef.value?.setErrors?.(e) },
+    onFinish: () => { processing.value = false },
+  })
+}
 </script>
 

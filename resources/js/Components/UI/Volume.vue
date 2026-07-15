@@ -5,7 +5,7 @@
       shouldEnableAnimations ? 'transition-colors duration-200' : '',
       optimizedButtonClasses,
     ]"
-    style="width: 2.2rem; height: 2.2rem"
+    :style="large ? 'width: 3.5rem; height: 3.5rem' : 'width: 2.2rem; height: 2.2rem'"
     @click="handleClick"
     :disabled="isPlaying"
     :title="buttonTitle"
@@ -81,6 +81,10 @@ const props = defineProps({
   audioId: {
     type: [String, Number],
     default: null,
+  },
+  large: {
+    type: Boolean,
+    default: false,
   },
 })
 

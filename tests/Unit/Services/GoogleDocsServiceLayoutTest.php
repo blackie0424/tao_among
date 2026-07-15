@@ -375,6 +375,11 @@ it('keeps 200 fish structure writes below quota even when batched image inserts 
             return "https://example.com/{$path}";
         }
 
+        public function putContent(string $filePath, string $content, string $mimeType = 'application/octet-stream'): bool
+        {
+            return true;
+        }
+
         public function fileExists(string $filePath): bool
         {
             return false;

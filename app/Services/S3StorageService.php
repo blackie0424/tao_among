@@ -255,6 +255,28 @@ class S3StorageService implements StorageServiceInterface
     }
 
     /**
+     * 直接寫入內容到指定路徑（覆蓋現有檔案）
+     */
+    public function putContent(string $filePath, string $content, string $mimeType = 'application/octet-stream'): bool
+    {
+        try {
+            /** @var \Illuminate\Contracts\Filesystem\Cloud $disk */
+            $disk = Storage::disk('s3');
+            $disk->put($filePath, $content, [
+                'visibility' => 'public',
+                'ContentType' => $mimeType,
+            ]);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to put content to S3', [
+                'filePath' => $filePath,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * 上傳檔案（舊版直接上傳方法，建議使用簽章 URL）
      *
      * @param mixed $file 上傳的檔案

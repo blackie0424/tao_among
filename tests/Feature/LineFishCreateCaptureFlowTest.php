@@ -139,6 +139,25 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $this->assertStringContainsString('部落', $capturedMessages[0]->getAltText());
     }
 
+    /** @test */
+    public function test_need_name_postback_transitions_to_waiting_custom_name(): void
+    {
+        // Regression: image upload auto-completion used to send action=input_custom_fish_name
+        // which had no handler, causing the button to be silently ignored.
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+
+        $this->mockLineBotService->shouldReceive('replyMessage')->once();
+
+        $this->callHandlePostback(
+            $this->makePostbackEvent('action=create_fish_need_name'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertEquals('waiting_custom_name', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+        $this->assertDatabaseCount('fish', 0);
+    }
+
     // =====================================================
     // 取消流程 → 刪除孤兒 Fish
     // =====================================================
@@ -464,6 +483,69 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $images = Cache::get("line_user_" . self::USER_ID . "_create_fish_images");
         // index 1 (first.jpg) should be before index 2 (second.jpg)
         $this->assertEquals(['first.jpg', 'second.jpg'], $images);
+    }
+
+    /** @test */
+    public function test_single_non_imageset_image_auto_completes_to_name_choice(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_image', now()->addMinutes(5));
+
+        $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob1');
+        $mockUploadService = \Mockery::mock(\App\Services\LineUploadService::class);
+        $mockUploadService->shouldReceive('uploadLineImage')->with('blob1')->andReturn('fish.jpg');
+        $this->app->instance(\App\Services\LineUploadService::class, $mockUploadService);
+
+        $this->mockLineBotService->shouldReceive('replyMessage')->once();
+
+        $this->callHandleImageMessage(
+            $this->makeImageMessageEvent('msg-1', null),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertEquals('waiting_name_choice', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+        $this->assertEquals(['fish.jpg'], Cache::get("line_user_" . self::USER_ID . "_create_fish_images"));
+    }
+
+    /** @test */
+    public function test_text_during_waiting_more_images_does_not_offer_finish_upload_button(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_indexed_images", [
+            'set_id' => 'set-x',
+            'indexed' => [1 => 'a.jpg'],
+            'total' => 3,
+        ], now()->addMinutes(5));
+
+        $capturedMessages = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->once()
+            ->withArgs(function ($token, $messages) use (&$capturedMessages) {
+                $capturedMessages = $messages;
+                return true;
+            });
+
+        $this->callHandleTextMessage(
+            $this->makeTextMessageEvent('任意文字'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertStringNotContainsString('finish_upload_fish_images', json_encode($capturedMessages));
+    }
+
+    /** @test */
+    public function test_finish_upload_fish_images_postback_no_longer_handled(): void
+    {
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
+        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+
+        $this->mockLineBotService->shouldReceive('replyMessage')->never();
+
+        $this->callHandlePostback(
+            $this->makePostbackEvent('action=finish_upload_fish_images'),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertEquals('waiting_more_images', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
     }
 
     // =====================================================

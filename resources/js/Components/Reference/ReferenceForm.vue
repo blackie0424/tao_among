@@ -8,7 +8,7 @@
         type="text"
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
       />
-      <p v-if="form.errors.name" class="mt-1 text-sm text-red-600">{{ form.errors.name }}</p>
+      <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
     </div>
 
     <div>
@@ -19,7 +19,7 @@
         type="url"
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
       />
-      <p v-if="form.errors.image_url" class="mt-1 text-sm text-red-600">{{ form.errors.image_url }}</p>
+      <p v-if="errors.image_url" class="mt-1 text-sm text-red-600">{{ errors.image_url }}</p>
     </div>
 
     <div>
@@ -30,7 +30,7 @@
         type="url"
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
       />
-      <p v-if="form.errors.external_url" class="mt-1 text-sm text-red-600">{{ form.errors.external_url }}</p>
+      <p v-if="errors.external_url" class="mt-1 text-sm text-red-600">{{ errors.external_url }}</p>
     </div>
 
     <div>
@@ -41,7 +41,7 @@
         type="text"
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
       />
-      <p v-if="form.errors.author" class="mt-1 text-sm text-red-600">{{ form.errors.author }}</p>
+      <p v-if="errors.author" class="mt-1 text-sm text-red-600">{{ errors.author }}</p>
     </div>
 
     <div>
@@ -54,7 +54,7 @@
         <option value="enabled">啟用</option>
         <option value="disabled">停用</option>
       </select>
-      <p v-if="form.errors.status" class="mt-1 text-sm text-red-600">{{ form.errors.status }}</p>
+      <p v-if="errors.status" class="mt-1 text-sm text-red-600">{{ errors.status }}</p>
     </div>
 
     <div class="flex justify-end gap-3">
@@ -64,7 +64,7 @@
       <button
         type="submit"
         class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        :disabled="form.processing"
+        :disabled="processing"
       >
         {{ submitLabel }}
       </button>
@@ -73,28 +73,19 @@
 </template>
 
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3'
+import { reactive, ref } from 'vue'
+import { Link } from '@inertiajs/vue3'
 
 const props = defineProps({
-  reference: {
-    type: Object,
-    default: null,
-  },
-  submitUrl: {
-    type: String,
-    required: true,
-  },
-  method: {
-    type: String,
-    default: 'post',
-  },
-  submitLabel: {
-    type: String,
-    default: '儲存',
-  },
+  reference: { type: Object, default: null },
+  isEditMode: { type: Boolean, default: false },
+  submitLabel: { type: String, default: '儲存' },
+  processing: { type: Boolean, default: false },
 })
 
-const form = useForm({
+const emit = defineEmits(['submit'])
+
+const form = reactive({
   name: props.reference?.name ?? '',
   image_url: props.reference?.image_url ?? '',
   external_url: props.reference?.external_url ?? '',
@@ -102,8 +93,17 @@ const form = useForm({
   status: props.reference?.status ?? 'enabled',
 })
 
+const errors = ref({})
+
 function submitForm() {
-  form[props.method](props.submitUrl)
+  const formData = { ...form, ...(props.isEditMode ? { _method: 'PUT' } : {}) }
+  emit('submit', formData)
 }
+
+function setErrors(serverErrors) {
+  errors.value = serverErrors || {}
+}
+
+defineExpose({ setErrors })
 </script>
 

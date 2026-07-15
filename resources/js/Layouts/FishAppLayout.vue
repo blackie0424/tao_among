@@ -3,7 +3,7 @@
     class="min-h-screen bg-gray-50 relative"
     :class="[
       showHeader ? 'pt-4' : 'pt-0',
-      user && fishId ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6',
+      canEdit && fishId ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6',
     ]"
   >
     <!-- 頂部導覽列 -->
@@ -33,11 +33,11 @@
 
     <AppFooter />
 
-    <!-- 桌面版懸浮管理選單 -->
-    <AdminFloatingMenu v-if="user && fishId" :fishId="fishId" />
+    <!-- 桌面版懸浮管理選單（僅 editor/admin 顯示，且頁面未自帶 FishEditBar） -->
+    <AdminFloatingMenu v-if="showEditMenu && canEdit && fishId" :fishId="fishId" />
 
-    <!-- 手機版底部管理選單 (常駐) -->
-    <BottomNavBar v-if="user && fishId" :fishId="fishId" />
+    <!-- 手機版底部管理選單（僅 editor/admin 顯示，且頁面未自帶 FishEditBar） -->
+    <BottomNavBar v-if="showEditMenu && canEdit && fishId" :fishId="fishId" />
   </div>
 </template>
 
@@ -53,6 +53,7 @@ import AppNavBar from '@/Components/Global/AppNavBar.vue'
 const page = usePage()
 const fish = computed(() => page.props.fish)
 const user = computed(() => page.props.auth?.user)
+const canEdit = computed(() => ['editor', 'admin'].includes(user.value?.role))
 
 // Props 定義
 const props = defineProps({
@@ -83,6 +84,10 @@ const props = defineProps({
     default: true,
   },
   showHeader: {
+    type: Boolean,
+    default: true,
+  },
+  showEditMenu: {
     type: Boolean,
     default: true,
   },
