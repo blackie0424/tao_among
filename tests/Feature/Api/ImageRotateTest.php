@@ -35,12 +35,22 @@ beforeEach(function () {
 
 describe('POST /prefix/api/fish/{id}/image/rotate', function () {
 
-    it('editor 可旋轉魚類首圖', function () {
+    it('editor 可旋轉魚類首圖（degrees）', function () {
         $editor = User::factory()->create();
         $fish = Fish::factory()->create(['image' => 'fish.jpg', 'has_webp' => false]);
 
         $response = $this->actingAs($editor, 'sanctum')
             ->postJson("/prefix/api/fish/{$fish->id}/image/rotate", ['degrees' => 90]);
+
+        $response->assertOk()->assertJson(['message' => 'success']);
+    });
+
+    it('editor 可水平翻轉魚類首圖（flip）', function () {
+        $editor = User::factory()->create();
+        $fish = Fish::factory()->create(['image' => 'fish.jpg', 'has_webp' => false]);
+
+        $response = $this->actingAs($editor, 'sanctum')
+            ->postJson("/prefix/api/fish/{$fish->id}/image/rotate", ['flip' => 'horizontal']);
 
         $response->assertOk()->assertJson(['message' => 'success']);
     });
@@ -72,7 +82,7 @@ describe('POST /prefix/api/fish/{id}/image/rotate', function () {
         $response->assertNotFound();
     });
 
-    it('未傳入 degrees 時回傳 422', function () {
+    it('未傳入 degrees 或 flip 時回傳 422', function () {
         $editor = User::factory()->create();
         $fish = Fish::factory()->create(['image' => 'fish.jpg']);
 
@@ -92,7 +102,17 @@ describe('POST /prefix/api/fish/{id}/image/rotate', function () {
         $response->assertUnprocessable();
     });
 
-    it('has_webp = true 時同步覆蓋 WebP（putContent 呼叫兩次）', function () {
+    it('degrees 為 180 時回傳 422', function () {
+        $editor = User::factory()->create();
+        $fish = Fish::factory()->create(['image' => 'fish.jpg']);
+
+        $response = $this->actingAs($editor, 'sanctum')
+            ->postJson("/prefix/api/fish/{$fish->id}/image/rotate", ['degrees' => 180]);
+
+        $response->assertUnprocessable();
+    });
+
+    it('has_webp = true 時旋轉同步覆蓋 WebP（putContent 呼叫兩次）', function () {
         $editor = User::factory()->create();
         $fish = Fish::factory()->create(['image' => 'fish.jpg', 'has_webp' => true]);
 
@@ -100,6 +120,17 @@ describe('POST /prefix/api/fish/{id}/image/rotate', function () {
 
         $this->actingAs($editor, 'sanctum')
             ->postJson("/prefix/api/fish/{$fish->id}/image/rotate", ['degrees' => 90])
+            ->assertOk();
+    });
+
+    it('has_webp = true 時翻轉同步覆蓋 WebP（putContent 呼叫兩次）', function () {
+        $editor = User::factory()->create();
+        $fish = Fish::factory()->create(['image' => 'fish.jpg', 'has_webp' => true]);
+
+        $this->storageMock->shouldReceive('putContent')->twice()->andReturn(true);
+
+        $this->actingAs($editor, 'sanctum')
+            ->postJson("/prefix/api/fish/{$fish->id}/image/rotate", ['flip' => 'horizontal'])
             ->assertOk();
     });
 
@@ -121,13 +152,24 @@ describe('POST /prefix/api/fish/{id}/image/rotate', function () {
 
 describe('POST /prefix/api/fish/{id}/capture-records/{recordId}/image/rotate', function () {
 
-    it('editor 可旋轉捕獲紀錄圖片', function () {
+    it('editor 可旋轉捕獲紀錄圖片（degrees）', function () {
         $editor = User::factory()->create();
         $fish = Fish::factory()->create();
         $record = CaptureRecord::factory()->create(['fish_id' => $fish->id, 'image_path' => 'record.jpg']);
 
         $response = $this->actingAs($editor, 'sanctum')
             ->postJson("/prefix/api/fish/{$fish->id}/capture-records/{$record->id}/image/rotate", ['degrees' => 90]);
+
+        $response->assertOk()->assertJson(['message' => 'success']);
+    });
+
+    it('editor 可水平翻轉捕獲紀錄圖片（flip）', function () {
+        $editor = User::factory()->create();
+        $fish = Fish::factory()->create();
+        $record = CaptureRecord::factory()->create(['fish_id' => $fish->id, 'image_path' => 'record.jpg']);
+
+        $response = $this->actingAs($editor, 'sanctum')
+            ->postJson("/prefix/api/fish/{$fish->id}/capture-records/{$record->id}/image/rotate", ['flip' => 'horizontal']);
 
         $response->assertOk()->assertJson(['message' => 'success']);
     });
@@ -165,7 +207,7 @@ describe('POST /prefix/api/fish/{id}/capture-records/{recordId}/image/rotate', f
         $response->assertNotFound();
     });
 
-    it('未傳入 degrees 時回傳 422', function () {
+    it('未傳入 degrees 或 flip 時回傳 422', function () {
         $editor = User::factory()->create();
         $fish = Fish::factory()->create();
         $record = CaptureRecord::factory()->create(['fish_id' => $fish->id]);

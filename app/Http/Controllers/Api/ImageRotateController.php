@@ -8,6 +8,7 @@ use App\Models\CaptureRecord;
 use App\Models\Fish;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ImageRotateController extends Controller
 {
@@ -15,27 +16,25 @@ class ImageRotateController extends Controller
 
     /**
      * POST /prefix/api/fish/{id}/image/rotate
-     * 旋轉魚類首圖並覆蓋 S3；若 has_webp = true 則同步重新產生 WebP
+     * 旋轉或翻轉魚類首圖並覆蓋 S3；若 has_webp = true 則同步重新產生 WebP
      */
     public function rotateFishImage(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'degrees' => ['required', 'integer', 'in:90,180,270'],
-        ]);
+        $this->validateOperation($request);
 
-        $degrees = (int) $request->input('degrees');
         $fish = Fish::findOrFail($id);
-
         $imagePath = $this->storage->getImageFolder() . '/' . $fish->image;
         $content = $this->storage->getContent($imagePath);
         $mimeType = $this->detectMimeType($fish->image);
 
-        $rotatedContent = $this->rotateImageContent($content, $degrees, $mimeType);
+        $processedContent = $request->filled('degrees')
+            ? $this->rotateImageContent($content, (int) $request->input('degrees'), $mimeType)
+            : $this->flipImageContent($content, $mimeType);
 
-        $this->storage->putContent($imagePath, $rotatedContent, $mimeType);
+        $this->storage->putContent($imagePath, $processedContent, $mimeType);
 
         if ($fish->has_webp) {
-            $this->regenerateWebp($rotatedContent, $fish->image);
+            $this->regenerateWebp($processedContent, $fish->image);
         }
 
         return response()->json(['message' => 'success']);
@@ -43,26 +42,38 @@ class ImageRotateController extends Controller
 
     /**
      * POST /prefix/api/fish/{id}/capture-records/{recordId}/image/rotate
-     * 旋轉捕獲紀錄圖片並覆蓋 S3
+     * 旋轉或翻轉捕獲紀錄圖片並覆蓋 S3
      */
     public function rotateCaptureRecordImage(Request $request, int $fishId, int $recordId): JsonResponse
     {
-        $request->validate([
-            'degrees' => ['required', 'integer', 'in:90,180,270'],
-        ]);
+        $this->validateOperation($request);
 
-        $degrees = (int) $request->input('degrees');
         $record = CaptureRecord::where('fish_id', $fishId)->findOrFail($recordId);
-
         $imagePath = $this->storage->getImageFolder() . '/' . $record->image_path;
         $content = $this->storage->getContent($imagePath);
         $mimeType = $this->detectMimeType($record->image_path);
 
-        $rotatedContent = $this->rotateImageContent($content, $degrees, $mimeType);
+        $processedContent = $request->filled('degrees')
+            ? $this->rotateImageContent($content, (int) $request->input('degrees'), $mimeType)
+            : $this->flipImageContent($content, $mimeType);
 
-        $this->storage->putContent($imagePath, $rotatedContent, $mimeType);
+        $this->storage->putContent($imagePath, $processedContent, $mimeType);
 
         return response()->json(['message' => 'success']);
+    }
+
+    private function validateOperation(Request $request): void
+    {
+        $request->validate([
+            'degrees' => ['nullable', 'integer', 'in:90,270'],
+            'flip' => ['nullable', 'string', 'in:horizontal'],
+        ]);
+
+        if (!$request->filled('degrees') && !$request->filled('flip')) {
+            throw ValidationException::withMessages([
+                'degrees' => ['degrees 或 flip 擇一必填'],
+            ]);
+        }
     }
 
     private function rotateImageContent(string $content, int $degrees, string $mimeType): string
@@ -88,6 +99,31 @@ class ImageRotateController extends Controller
         };
         $result = ob_get_clean();
         imagedestroy($rotated);
+
+        if ($result === false || $result === '') {
+            throw new \RuntimeException('圖片輸出失敗');
+        }
+
+        return $result;
+    }
+
+    private function flipImageContent(string $content, string $mimeType): string
+    {
+        $gdImage = @imagecreatefromstring($content);
+        if ($gdImage === false) {
+            throw new \RuntimeException('無法讀取圖片內容');
+        }
+
+        imageflip($gdImage, IMG_FLIP_HORIZONTAL);
+
+        ob_start();
+        match ($mimeType) {
+            'image/png' => imagepng($gdImage),
+            'image/webp' => imagewebp($gdImage),
+            default => imagejpeg($gdImage, null, 100),
+        };
+        $result = ob_get_clean();
+        imagedestroy($gdImage);
 
         if ($result === false || $result === '') {
             throw new \RuntimeException('圖片輸出失敗');

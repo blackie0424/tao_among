@@ -64,7 +64,7 @@
               <!-- 旋轉按鈕（僅 editor/admin） -->
               <button
                 v-if="isEditor"
-                class="absolute top-2 right-10 bg-white/90 p-2 rounded-full shadow-sm text-gray-600 hover:text-blue-600 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+                class="absolute top-2 right-14 bg-white/90 p-2 rounded-full shadow-sm text-gray-600 hover:text-blue-600 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
                 title="旋轉圖片"
                 @click.stop="openRotateModal(record)"
               >
