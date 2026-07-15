@@ -90,6 +90,16 @@ interface StorageServiceInterface
     public function uploadFile($file, string $path): string;
 
     /**
+     * 直接寫入內容到指定路徑（用於覆蓋現有檔案，如旋轉後的圖片）
+     *
+     * @param string $filePath 完整路徑
+     * @param string $content 檔案內容
+     * @param string $mimeType MIME 類型
+     * @return bool 成功回傳 true
+     */
+    public function putContent(string $filePath, string $content, string $mimeType = 'application/octet-stream'): bool;
+
+    /**
      * 檢查檔案是否存在
      *
      * @param string $filePath 檔案路徑
