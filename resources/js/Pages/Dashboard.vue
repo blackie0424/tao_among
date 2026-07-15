@@ -1,12 +1,7 @@
 <template>
   <Head :title="`${selectedTribe} 的統計資料 | 管理後台`" />
 
-  <FishAppLayout
-    :page-title="`${selectedTribe} 的統計資料`"
-    mobile-back-url="/fishs"
-    mobile-back-text="among no tao"
-    breadcrumb-page="統計面板"
-  >
+  <AdminLayout :title="`${selectedTribe} 的統計資料`">
     <div class="dashboard-root">
       <!-- 頁面標題 + 部落切換器（同排，空間不足時換行） -->
       <div class="dashboard-top">
@@ -302,13 +297,13 @@
         </div>
       </div>
     </div>
-  </FishAppLayout>
+  </AdminLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
-import FishAppLayout from '@/Layouts/FishAppLayout.vue'
+import AdminLayout from '@/Layouts/AdminLayout.vue'
 
 // ---- Props ----
 const props = defineProps({

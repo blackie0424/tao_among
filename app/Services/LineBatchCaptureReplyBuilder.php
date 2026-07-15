@@ -79,6 +79,14 @@ class LineBatchCaptureReplyBuilder
         );
     }
 
+    /**
+     * @param array<int, array{tribe:string,location:string,capture_method:string,capture_date:string}> $sessions
+     */
+    public function buildSessionPickerMessage(array $sessions): FlexMessage
+    {
+        return $this->lineBatchCaptureMessageBuilder->buildSessionPickerMessage($sessions);
+    }
+
     public function buildTextMessage(string $text): TextMessage
     {
         return new TextMessage([

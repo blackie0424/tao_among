@@ -1,7 +1,7 @@
 <template>
   <Head title="LINE 使用者管理" />
 
-  <FishAppLayout pageTitle="LINE 使用者管理" mobileBackUrl="/fishs">
+  <AdminLayout title="使用者管理">
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900">LINE 使用者管理</h1>
       <p class="text-sm text-gray-500 mt-1">
@@ -87,13 +87,13 @@
           {{ page }}
         </Link>
       </div>
-  </FishAppLayout>
+  </AdminLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
-import FishAppLayout from '@/Layouts/FishAppLayout.vue'
+import AdminLayout from '@/Layouts/AdminLayout.vue'
 import axios from 'axios'
 import { formatDate } from '@/utils/formatDate'
 

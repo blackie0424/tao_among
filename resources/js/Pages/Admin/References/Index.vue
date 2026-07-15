@@ -1,7 +1,7 @@
 <template>
   <Head title="文獻管理" />
 
-  <FishAppLayout pageTitle="文獻管理" mobileBackUrl="/dashboard" mobileBackText="統計面板">
+  <AdminLayout title="文獻管理">
     <div class="mb-6 flex items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">文獻管理</h1>
@@ -80,12 +80,12 @@
     >
       尚未建立文獻資料
     </div>
-  </FishAppLayout>
+  </AdminLayout>
 </template>
 
 <script setup>
 import { Head, Link } from '@inertiajs/vue3'
-import FishAppLayout from '@/Layouts/FishAppLayout.vue'
+import AdminLayout from '@/Layouts/AdminLayout.vue'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 
 defineProps({

@@ -89,6 +89,91 @@ class LineBatchCaptureMessageBuilder
     }
 
     /**
+     * @param array<int, array{tribe:string,location:string,capture_method:string,capture_date:string}> $sessions
+     */
+    public function buildSessionPickerMessage(array $sessions): FlexMessage
+    {
+        $bubbles = [];
+
+        foreach ($sessions as $session) {
+            $methodLabel = config('fish_options.capture_methods.' . $session['capture_method'], $session['capture_method']);
+            $postbackData = http_build_query([
+                'action'         => 'select_capture_session',
+                'tribe'          => $session['tribe'],
+                'location'       => $session['location'],
+                'capture_method' => $session['capture_method'],
+                'capture_date'   => $session['capture_date'],
+            ]);
+
+            $bubbles[] = [
+                'type' => 'bubble',
+                'body' => [
+                    'type'     => 'box',
+                    'layout'   => 'vertical',
+                    'contents' => [
+                        ['type' => 'text', 'text' => $session['capture_date'], 'weight' => 'bold', 'size' => 'lg'],
+                        ['type' => 'text', 'text' => $session['tribe'], 'size' => 'sm', 'margin' => 'md', 'wrap' => true],
+                        ['type' => 'text', 'text' => $session['location'], 'size' => 'sm', 'margin' => 'sm', 'wrap' => true],
+                        ['type' => 'text', 'text' => $methodLabel, 'size' => 'sm', 'margin' => 'sm', 'wrap' => true, 'color' => '#666666'],
+                    ],
+                ],
+                'footer' => [
+                    'type'     => 'box',
+                    'layout'   => 'vertical',
+                    'contents' => [[
+                        'type'   => 'button',
+                        'style'  => 'primary',
+                        'color'  => '#00B900',
+                        'height' => 'sm',
+                        'action' => [
+                            'type'        => 'postback',
+                            'label'       => '使用此筆',
+                            'data'        => $postbackData,
+                            'displayText' => '使用此筆',
+                        ],
+                    ]],
+                ],
+            ];
+        }
+
+        $bubbles[] = [
+            'type' => 'bubble',
+            'body' => [
+                'type'     => 'box',
+                'layout'   => 'vertical',
+                'contents' => [
+                    ['type' => 'text', 'text' => '手動填寫', 'weight' => 'bold', 'size' => 'lg'],
+                    ['type' => 'text', 'text' => '自行輸入捕獲資訊', 'size' => 'sm', 'margin' => 'md', 'color' => '#666666'],
+                ],
+            ],
+            'footer' => [
+                'type'     => 'box',
+                'layout'   => 'vertical',
+                'contents' => [[
+                    'type'   => 'button',
+                    'style'  => 'secondary',
+                    'height' => 'sm',
+                    'action' => [
+                        'type'        => 'postback',
+                        'label'       => '手動填寫',
+                        'data'        => 'action=skip_session_picker',
+                        'displayText' => '手動填寫',
+                    ],
+                ]],
+            ],
+        ];
+
+        return new FlexMessage([
+            'type'     => 'flex',
+            'altText'  => '請選擇最近捕獲資訊',
+            'contents' => [
+                'type'     => 'carousel',
+                'contents' => $bubbles,
+            ],
+        ]);
+    }
+
+    /**
      * @param array<int, array{label:string,data:string,display_text?:?string,style?:?string,color?:?string}> $actions
      */
     public function buildOptionSelectorCard(string $title, string $description, array $actions): FlexMessage

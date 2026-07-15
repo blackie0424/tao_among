@@ -2,6 +2,21 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Fish from '@/Pages/Fish.vue'
 
+// jsdom 缺少 matchMedia，補上 stub
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
+
 const mockUsePage = vi.fn(() => ({ props: { auth: { user: null } } }))
 
 // Mock Inertia
@@ -15,8 +30,16 @@ vi.mock('@inertiajs/vue3', () => ({
 vi.mock('@/Layouts/FishAppLayout.vue', () => ({
   default: {
     template: '<div><slot /></div>',
-    props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showBottomNav'],
+    props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showBottomNav', 'showEditMenu'],
   },
+}))
+
+vi.mock('@/Components/Global/FishEditBar.vue', () => ({
+  default: { template: '<div />', props: ['fishId', 'canEdit', 'variant'] },
+}))
+
+vi.mock('@/Components/UI/Volume.vue', () => ({
+  default: { template: '<div />', props: ['audioUrl'] },
 }))
 
 vi.mock('@/Layouts/FishGridLayout.vue', () => ({

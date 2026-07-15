@@ -157,6 +157,20 @@ class FishService implements FishServiceInterface
     }
 
     /**
+     * 從 LINE Bot 建立魚類資料（不含捕獲紀錄），供後續填寫表單使用
+     *
+     * @param string|null $name 魚類名稱，null 時使用預設值「我不知道」
+     * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
+     */
+    public function createFishWithImages(?string $name, array $filenames): Fish
+    {
+        return Fish::create([
+            'name'  => $name ?: '我不知道',
+            'image' => $filenames[0],
+        ]);
+    }
+
+    /**
      * 從 LINE Bot 建立魚類記錄（含批次捕獲記錄）
      *
      * @param string|null $name 魚類名稱，null 時使用預設值「我不知道」

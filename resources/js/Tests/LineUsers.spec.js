@@ -6,7 +6,7 @@ import LineUsers from '@/Pages/LineUsers.vue'
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div><slot /></div>' },
   Link: { template: '<a><slot /></a>', props: ['href', 'method'] },
-  usePage: () => ({ props: { auth: { user: { name: '管理員' } } } }),
+  usePage: () => ({ props: { auth: { user: { name: '管理員' } } }, url: '/line-users' }),
 }))
 
 // Mock axios
