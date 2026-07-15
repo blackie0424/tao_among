@@ -42,12 +42,12 @@ describe('GET /workspace', function () {
         Fish::factory()->count(25)->create(['audio_filename' => null]);
 
         $this->actingAs($editor, 'sanctum')
-            ->get('/workspace?limit=5')
+            ->get('/workspace?limit=10')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('EditorHome')
-                ->where('needAudio', fn ($items) => count($items) <= 5)
-                ->where('limit', 5)
+                ->where('needAudio', fn ($items) => count($items) <= 10)
+                ->where('limit', 10)
             );
     });
 
