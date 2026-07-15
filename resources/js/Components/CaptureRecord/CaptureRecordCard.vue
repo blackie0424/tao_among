@@ -36,7 +36,7 @@
         </div>
 
         <!-- 三點選單：靠右 -->
-        <div class="ml-2 flex-shrink-0 flex items-center gap-1">
+        <div class="ml-2 flex-shrink-0 flex items-center gap-3">
           <!-- 旋轉圖片（僅 editor/admin） -->
           <button
             v-if="isEditor && record.image_url"
