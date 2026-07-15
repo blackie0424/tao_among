@@ -173,7 +173,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { router } from '@inertiajs/vue3'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import { useFormValidation, validationRules } from '@/composables/useFormValidation.js'
 
@@ -181,14 +180,13 @@ const props = defineProps({
   initialData: { type: Object, default: null },
   noteTypes: Array,
   tribes: Array,
-  fishId: Number,
   fishName: String,
   fishImage: String,
 })
 
 const isEditMode = computed(() => props.initialData !== null)
 
-const emit = defineEmits(['submitted', 'statusChange'])
+const emit = defineEmits(['submit'])
 
 const formValidationRules = {
   note: [
@@ -220,14 +218,8 @@ onMounted(() => {
 function submitForm() {
   if (!validateAll()) return
 
-  processing.value = true
   networkError.value = null
   clearErrors()
-  canSubmit.value = false
-
-  if (isEditMode.value) {
-    emit('statusChange', { canSubmit: false, processing: true })
-  }
 
   const formData = {
     note_type: form.note_type,
@@ -236,51 +228,24 @@ function submitForm() {
     ...(isEditMode.value ? { _method: 'PUT' } : {}),
   }
 
-  const url = isEditMode.value
-    ? `/fish/${props.fishId}/knowledge/${props.initialData.id}`
-    : `/fish/${props.fishId}/knowledge`
-
-  router.post(url, formData, {
-    onSuccess: () => {
-      retryAttempts.value = 0
-      if (!isEditMode.value) {
-        form.note_type = ''
-        form.note = ''
-        form.locate = ''
-      }
-      emit('submitted')
-    },
-    onError: handleSubmitError,
-    onFinish: () => {
-      processing.value = false
-    },
-  })
+  emit('submit', formData)
 }
 
-function retrySubmit() {
-  if (retryAttempts.value >= maxRetryAttempts) return
-  retryAttempts.value++
-  setTimeout(submitForm, 1000 * retryAttempts.value)
+function reset() {
+  form.note_type = ''
+  form.note = ''
+  form.locate = ''
+  clearErrors()
+  networkError.value = null
 }
 
-function handleSubmitError(errorResponse) {
-  if (!navigator.onLine) {
-    networkError.value = '無網路連線，請檢查網路狀態後重試'
-  } else if (errorResponse.message?.includes('timeout')) {
-    networkError.value = '請求超時，請稍後再試'
-  } else if (errorResponse.message?.includes('500')) {
-    networkError.value = '伺服器錯誤，請稍後再試'
-  } else if (typeof errorResponse === 'object' && Object.keys(errorResponse).length > 0) {
-    setServerErrors(errorResponse)
-  } else {
-    networkError.value = '提交失敗，請稍後再試'
-  }
-
-  canSubmit.value = true
-  if (isEditMode.value) {
-    emit('statusChange', { canSubmit: true, processing: false })
-  }
+function setErrors(serverErrors) {
+  setServerErrors(serverErrors || {})
 }
 
-defineExpose({ submitForm, canSubmit, processing })
+function setNetworkError(message) {
+  networkError.value = message
+}
+
+defineExpose({ submitForm, reset, setErrors, setNetworkError, canSubmit, processing })
 </script>

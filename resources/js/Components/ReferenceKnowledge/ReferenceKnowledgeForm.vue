@@ -12,8 +12,8 @@
           {{ reference.name }}
         </option>
       </select>
-      <p v-if="form.errors.reference_id" class="mt-1 text-sm text-red-600">
-        {{ form.errors.reference_id }}
+      <p v-if="errors.reference_id" class="mt-1 text-sm text-red-600">
+        {{ errors.reference_id }}
       </p>
     </div>
 
@@ -29,7 +29,7 @@
           {{ tribe }}
         </option>
       </select>
-      <p v-if="form.errors.tribe" class="mt-1 text-sm text-red-600">{{ form.errors.tribe }}</p>
+      <p v-if="errors.tribe" class="mt-1 text-sm text-red-600">{{ errors.tribe }}</p>
     </div>
 
     <div>
@@ -42,7 +42,7 @@
         placeholder="例如：12 或 12-15，跳頁請分筆輸入"
       />
       <p class="mt-1 text-sm text-gray-500">僅接受單頁或連續頁，例如 12 或 12-15，跳頁請分筆輸入。</p>
-      <p v-if="form.errors.pages" class="mt-1 text-sm text-red-600">{{ form.errors.pages }}</p>
+      <p v-if="errors.pages" class="mt-1 text-sm text-red-600">{{ errors.pages }}</p>
     </div>
 
     <div>
@@ -53,7 +53,7 @@
         rows="8"
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
       />
-      <p v-if="form.errors.content" class="mt-1 text-sm text-red-600">{{ form.errors.content }}</p>
+      <p v-if="errors.content" class="mt-1 text-sm text-red-600">{{ errors.content }}</p>
     </div>
 
     <div>
@@ -64,7 +64,7 @@
         rows="3"
         class="w-full rounded-lg border border-gray-300 px-3 py-2"
       />
-      <p v-if="form.errors.note" class="mt-1 text-sm text-red-600">{{ form.errors.note }}</p>
+      <p v-if="errors.note" class="mt-1 text-sm text-red-600">{{ errors.note }}</p>
     </div>
 
     <div class="flex justify-end gap-3">
@@ -74,7 +74,7 @@
       <button
         type="submit"
         class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        :disabled="form.processing"
+        :disabled="processing"
       >
         {{ submitLabel }}
       </button>
@@ -83,40 +83,22 @@
 </template>
 
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3'
+import { reactive, ref } from 'vue'
+import { Link } from '@inertiajs/vue3'
 
 const props = defineProps({
-  knowledge: {
-    type: Object,
-    default: null,
-  },
-  references: {
-    type: Array,
-    default: () => [],
-  },
-  tribes: {
-    type: Array,
-    default: () => [],
-  },
-  submitUrl: {
-    type: String,
-    required: true,
-  },
-  cancelUrl: {
-    type: String,
-    required: true,
-  },
-  method: {
-    type: String,
-    default: 'post',
-  },
-  submitLabel: {
-    type: String,
-    default: '儲存',
-  },
+  knowledge: { type: Object, default: null },
+  references: { type: Array, default: () => [] },
+  tribes: { type: Array, default: () => [] },
+  cancelUrl: { type: String, required: true },
+  isEditMode: { type: Boolean, default: false },
+  submitLabel: { type: String, default: '儲存' },
+  processing: { type: Boolean, default: false },
 })
 
-const form = useForm({
+const emit = defineEmits(['submit'])
+
+const form = reactive({
   reference_id: props.knowledge?.reference_id ?? '',
   tribe: props.knowledge?.tribe ?? '',
   content: props.knowledge?.content ?? '',
@@ -124,7 +106,16 @@ const form = useForm({
   note: props.knowledge?.note ?? '',
 })
 
+const errors = ref({})
+
 function submitForm() {
-  form[props.method](props.submitUrl)
+  const formData = { ...form, ...(props.isEditMode ? { _method: 'PUT' } : {}) }
+  emit('submit', formData)
 }
+
+function setErrors(serverErrors) {
+  errors.value = serverErrors || {}
+}
+
+defineExpose({ setErrors })
 </script>

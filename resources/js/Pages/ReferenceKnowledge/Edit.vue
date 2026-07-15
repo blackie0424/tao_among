@@ -12,24 +12,32 @@
         :knowledge="knowledge"
         :references="references"
         :tribes="tribes"
-        :submit-url="`/fish/${fish.id}/reference-knowledge/${knowledge.id}`"
         :cancel-url="`/fish/${fish.id}/reference-knowledge`"
-        method="put"
+        :is-edit-mode="true"
         submit-label="更新文獻知識"
+        :processing="processing"
+        @submit="onFormSubmit"
+        ref="formRef"
       />
     </div>
   </FishAppLayout>
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { ref } from 'vue'
+import { Head, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import ReferenceKnowledgeForm from '@/Components/ReferenceKnowledge/ReferenceKnowledgeForm.vue'
 
-defineProps({
-  fish: Object,
-  knowledge: Object,
-  references: Array,
-  tribes: Array,
-})
+const props = defineProps({ fish: Object, knowledge: Object, references: Array, tribes: Array })
+const formRef = ref(null)
+const processing = ref(false)
+
+function onFormSubmit(formData) {
+  processing.value = true
+  router.post(`/fish/${props.fish.id}/reference-knowledge/${props.knowledge.id}`, formData, {
+    onError: (e) => { formRef.value?.setErrors?.(e) },
+    onFinish: () => { processing.value = false },
+  })
+}
 </script>

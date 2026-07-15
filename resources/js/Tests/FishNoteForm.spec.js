@@ -21,7 +21,6 @@ describe('FishNoteForm', () => {
   const defaultProps = {
     tribes: ['ivalino', 'iranmeilek', 'imowrod'],
     noteTypes: ['生態習性', '捕獲技巧', '文化意義'],
-    fishId: 1,
     fishName: 'Test Fish',
     fishImage: 'test-image.jpg',
   }
@@ -72,17 +71,15 @@ describe('FishNoteForm', () => {
       expect(wrapper.text()).toContain('/2000')
     })
 
-    it('does not submit when validation fails', async () => {
-      const { router } = await import('@inertiajs/vue3')
+    it('does not emit submit when validation fails', async () => {
       wrapper = mount(FishNoteForm, { props: defaultProps })
 
       wrapper.vm.submitForm()
 
-      expect(router.post).not.toHaveBeenCalled()
+      expect(wrapper.emitted('submit')).toBeFalsy()
     })
 
     it('shows error when note content is less than 10 characters', async () => {
-      const { router } = await import('@inertiajs/vue3')
       wrapper = mount(FishNoteForm, { props: defaultProps })
       await wrapper.find('#locate').setValue('ivalino')
       await wrapper.find('#note_type').setValue('生態習性')
@@ -91,12 +88,11 @@ describe('FishNoteForm', () => {
       wrapper.vm.submitForm()
       await flushPromises()
 
-      expect(router.post).not.toHaveBeenCalled()
+      expect(wrapper.emitted('submit')).toBeFalsy()
       expect(wrapper.text()).toContain('知識內容至少需要 10 個字元')
     })
 
-    it('calls router.post to create endpoint when valid', async () => {
-      const { router } = await import('@inertiajs/vue3')
+    it('emits submit with correct formData in create mode', async () => {
       wrapper = mount(FishNoteForm, { props: defaultProps })
       await wrapper.find('#locate').setValue('ivalino')
       await wrapper.find('#note_type').setValue('生態習性')
@@ -104,76 +100,41 @@ describe('FishNoteForm', () => {
 
       wrapper.vm.submitForm()
 
-      expect(router.post).toHaveBeenCalledWith(
-        '/fish/1/knowledge',
-        expect.objectContaining({ locate: 'ivalino', note_type: '生態習性' }),
-        expect.any(Object)
-      )
-    })
-
-    it('does not include _method in create mode payload', async () => {
-      const { router } = await import('@inertiajs/vue3')
-      wrapper = mount(FishNoteForm, { props: defaultProps })
-      await wrapper.find('#locate').setValue('ivalino')
-      await wrapper.find('#note_type').setValue('生態習性')
-      await wrapper.find('#note').setValue('這條魚通常在夜間活動，習慣棲息於礁石附近。')
-
-      wrapper.vm.submitForm()
-
-      const payload = router.post.mock.calls[0][1]
-      expect(payload._method).toBeUndefined()
-    })
-
-    it('resets form after successful creation', async () => {
-      const { router } = await import('@inertiajs/vue3')
-      router.post.mockImplementationOnce((url, data, callbacks) => {
-        callbacks.onSuccess()
+      expect(wrapper.emitted('submit')).toBeTruthy()
+      expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+        locate: 'ivalino',
+        note_type: '生態習性',
       })
+    })
 
+    it('create mode formData 不包含 _method', async () => {
       wrapper = mount(FishNoteForm, { props: defaultProps })
       await wrapper.find('#locate').setValue('ivalino')
       await wrapper.find('#note_type').setValue('生態習性')
       await wrapper.find('#note').setValue('這條魚通常在夜間活動，習慣棲息於礁石附近。')
+
       wrapper.vm.submitForm()
+
+      expect(wrapper.emitted('submit')[0][0]._method).toBeUndefined()
+    })
+
+    it('reset() 清空所有欄位', async () => {
+      wrapper = mount(FishNoteForm, { props: defaultProps })
+      await wrapper.find('#locate').setValue('ivalino')
+      await wrapper.find('#note_type').setValue('生態習性')
+      await wrapper.find('#note').setValue('這條魚通常在夜間活動，習慣棲息於礁石附近。')
+
+      wrapper.vm.reset()
       await flushPromises()
 
       expect(wrapper.find('#locate').element.value).toBe('')
       expect(wrapper.find('#note').element.value).toBe('')
     })
 
-    it('emits submitted after successful creation', async () => {
-      const { router } = await import('@inertiajs/vue3')
-      router.post.mockImplementationOnce((url, data, callbacks) => {
-        callbacks.onSuccess()
-      })
-
-      wrapper = mount(FishNoteForm, { props: defaultProps })
-      await wrapper.find('#locate').setValue('ivalino')
-      await wrapper.find('#note_type').setValue('生態習性')
-      await wrapper.find('#note').setValue('這條魚通常在夜間活動，習慣棲息於礁石附近。')
-      wrapper.vm.submitForm()
-
-      expect(wrapper.emitted('submitted')).toHaveLength(1)
-    })
-
-    it('does not emit statusChange in create mode', async () => {
-      const { router } = await import('@inertiajs/vue3')
-      router.post.mockImplementationOnce((url, data, callbacks) => {
-        callbacks.onSuccess()
-      })
-
-      wrapper = mount(FishNoteForm, { props: defaultProps })
-      await wrapper.find('#locate').setValue('ivalino')
-      await wrapper.find('#note_type').setValue('生態習性')
-      await wrapper.find('#note').setValue('這條魚通常在夜間活動，習慣棲息於礁石附近。')
-      wrapper.vm.submitForm()
-
-      expect(wrapper.emitted('statusChange')).toBeUndefined()
-    })
-
-    it('exposes submitForm method', () => {
+    it('exposes submitForm and reset methods', () => {
       wrapper = mount(FishNoteForm, { props: defaultProps })
       expect(typeof wrapper.vm.submitForm).toBe('function')
+      expect(typeof wrapper.vm.reset).toBe('function')
     })
   })
 
@@ -191,8 +152,7 @@ describe('FishNoteForm', () => {
       expect(wrapper.find('#note').element.value).toBe(noteData.note)
     })
 
-    it('calls router.post to edit endpoint with _method PUT', async () => {
-      const { router } = await import('@inertiajs/vue3')
+    it('emits submit with _method PUT in edit mode', async () => {
       wrapper = mount(FishNoteForm, {
         props: { ...defaultProps, initialData: noteData },
       })
@@ -200,64 +160,36 @@ describe('FishNoteForm', () => {
 
       wrapper.vm.submitForm()
 
-      expect(router.post).toHaveBeenCalledWith(
-        '/fish/1/knowledge/99',
-        expect.objectContaining({ _method: 'PUT' }),
-        expect.any(Object)
-      )
-    })
-
-    it('does not reset form after successful edit', async () => {
-      const { router } = await import('@inertiajs/vue3')
-      router.post.mockImplementationOnce((url, data, callbacks) => {
-        callbacks.onSuccess()
-      })
-
-      wrapper = mount(FishNoteForm, {
-        props: { ...defaultProps, initialData: noteData },
-      })
-      await flushPromises()
-      wrapper.vm.submitForm()
-
-      expect(wrapper.find('#locate').element.value).toBe('ivalino')
-    })
-
-    it('emits statusChange when submitting in edit mode', async () => {
-      const { router } = await import('@inertiajs/vue3')
-      router.post.mockImplementationOnce((url, data, callbacks) => {
-        callbacks.onSuccess()
-      })
-
-      wrapper = mount(FishNoteForm, {
-        props: { ...defaultProps, initialData: noteData },
-      })
-      await flushPromises()
-      wrapper.vm.submitForm()
-
-      expect(wrapper.emitted('statusChange')).toBeTruthy()
-      expect(wrapper.emitted('statusChange')[0][0]).toEqual({
-        canSubmit: false,
-        processing: true,
+      expect(wrapper.emitted('submit')).toBeTruthy()
+      expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+        _method: 'PUT',
+        locate: 'ivalino',
+        note_type: '生態習性',
       })
     })
 
-    it('shows network error block on submit failure', async () => {
-      const { router } = await import('@inertiajs/vue3')
-      router.post.mockImplementationOnce((url, data, callbacks) => {
-        // Simulate offline
-        vi.stubGlobal('navigator', { onLine: false })
-        callbacks.onError({})
-        vi.unstubAllGlobals()
-      })
-
+    it('shows network error block when setNetworkError is called', async () => {
       wrapper = mount(FishNoteForm, {
         props: { ...defaultProps, initialData: noteData },
       })
       await flushPromises()
-      wrapper.vm.submitForm()
+
+      wrapper.vm.setNetworkError('無網路連線，請檢查網路狀態後重試')
       await flushPromises()
 
       expect(wrapper.find('[class*="bg-red-50"]').exists()).toBe(true)
+    })
+
+    it('setErrors 顯示伺服器回傳的欄位錯誤', async () => {
+      wrapper = mount(FishNoteForm, {
+        props: { ...defaultProps, initialData: noteData },
+      })
+      await flushPromises()
+
+      wrapper.vm.setErrors({ note: '知識內容不可包含違禁詞彙' })
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('知識內容不可包含違禁詞彙')
     })
   })
 })
