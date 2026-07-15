@@ -27,10 +27,10 @@
             <!-- 16:9 圖片 -->
             <div
               class="relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm group cursor-pointer"
-              @click="selectedImage = record.image_url"
+              @click="selectedImage = getRecordImageUrl(record)"
             >
               <LazyImage
-                :src="record.image_url"
+                :src="getRecordImageUrl(record)"
                 :alt="`捕獲紀錄`"
                 wrapperClass="w-full h-full"
                 imgClass="w-full h-full object-cover"
@@ -60,6 +60,19 @@
                   設為首圖
                 </button>
               </div>
+
+              <!-- 旋轉按鈕（僅 editor/admin） -->
+              <button
+                v-if="isEditor"
+                class="absolute top-2 right-10 bg-white/90 p-2 rounded-full shadow-sm text-gray-600 hover:text-blue-600 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+                title="旋轉圖片"
+                @click.stop="openRotateModal(record)"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
 
               <!-- 編輯按鈕 -->
               <a
@@ -191,6 +204,17 @@
     </template>
   </FishGridLayout>
 
+  <!-- 圖片旋轉 Modal -->
+  <ImageRotateModal
+    v-if="rotateTarget"
+    :open="!!rotateTarget"
+    :imageUrl="rotateTarget.imageUrl"
+    :fishId="fish.id"
+    :recordId="rotateTarget.recordId"
+    @close="rotateTarget = null"
+    @rotated="onRecordRotated"
+  />
+
   <!-- 圖片放大檢視 (Lightbox) -->
   <Teleport to="body">
     <transition
@@ -236,6 +260,7 @@ import { markFishStale } from '@/utils/fishListCache'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import LazyImage from '@/Components/UI/LazyImage.vue'
+import ImageRotateModal from '@/Components/UI/ImageRotateModal.vue'
 
 // 設定巢狀佈局，並傳遞 props
 defineOptions({
@@ -261,8 +286,28 @@ const props = defineProps({
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
 const fish = computed(() => props.fish)
 const selectedImage = ref(null)
+const rotateTarget = ref(null)
+
+// 每張捕獲紀錄的 cache-busted 圖片 URL（旋轉後更新）
+const recordImageUrls = ref({})
+
+function getRecordImageUrl(record) {
+  return recordImageUrls.value[record.id] || record.image_url
+}
+
+function openRotateModal(record) {
+  rotateTarget.value = { recordId: record.id, imageUrl: getRecordImageUrl(record) }
+}
+
+function onRecordRotated(newUrl) {
+  if (rotateTarget.value) {
+    recordImageUrls.value[rotateTarget.value.recordId] = newUrl
+  }
+  rotateTarget.value = null
+}
 
 const formatDate = (dateString) => {
   if (!dateString) return '未記錄'

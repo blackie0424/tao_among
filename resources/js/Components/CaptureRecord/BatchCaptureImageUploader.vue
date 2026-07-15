@@ -174,6 +174,49 @@
           HEIC
         </div>
 
+        <!-- 旋轉按鈕（pending/done 狀態才顯示） -->
+        <div
+          v-if="item.status === 'pending' || item.status === 'done'"
+          class="absolute bottom-1 left-1 flex gap-0.5"
+        >
+          <button
+            type="button"
+            :data-testid="`rotate-ccw-${index}`"
+            class="bg-black/50 hover:bg-black/70 rounded p-0.5 transition-colors"
+            title="逆時針 90°"
+            @click="rotateItem(index, -90)"
+          >
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            :data-testid="`rotate-180-${index}`"
+            class="bg-black/50 hover:bg-black/70 rounded p-0.5 transition-colors"
+            title="180°"
+            @click="rotateItem(index, 180)"
+          >
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            :data-testid="`rotate-cw-${index}`"
+            class="bg-black/50 hover:bg-black/70 rounded p-0.5 transition-colors"
+            title="順時針 90°"
+            @click="rotateItem(index, 90)"
+          >
+            <svg class="w-3 h-3 text-white scale-x-[-1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9" />
+            </svg>
+          </button>
+        </div>
+
         <!-- 移除按鈕（未上傳中才可移除） -->
         <button
           v-if="item.status !== 'uploading' && item.status !== 'converting'"
@@ -311,6 +354,39 @@ function addFiles(files) {
 
 function removeItem(index) {
   items.value.splice(index, 1)
+}
+
+async function rotateItem(index, degrees) {
+  const item = items.value[index]
+  if (!item?.preview) return
+
+  const img = new Image()
+  await new Promise((resolve, reject) => {
+    img.onload = resolve
+    img.onerror = reject
+    img.src = item.preview
+  })
+
+  const rad = (degrees * Math.PI) / 180
+  const swap = Math.abs(degrees) === 90 || Math.abs(degrees) === 270
+  const canvas = document.createElement('canvas')
+  canvas.width = swap ? img.naturalHeight : img.naturalWidth
+  canvas.height = swap ? img.naturalWidth : img.naturalHeight
+
+  const ctx = canvas.getContext('2d')
+  ctx.translate(canvas.width / 2, canvas.height / 2)
+  ctx.rotate(rad)
+  ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2)
+
+  const mimeType = item.file?.type === 'image/png' ? 'image/png' : 'image/jpeg'
+  const quality = mimeType === 'image/jpeg' ? 1.0 : undefined
+
+  canvas.toBlob((blob) => {
+    if (!blob) return
+    item.preview = canvas.toDataURL(mimeType, quality)
+    const originalName = item.file?.name ?? 'rotated.jpg'
+    item.file = new File([blob], originalName, { type: mimeType })
+  }, mimeType, quality)
 }
 
 function clearAll() {
