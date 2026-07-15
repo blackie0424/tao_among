@@ -9,7 +9,6 @@ use Inertia\Response;
 
 class WorkspaceController extends Controller
 {
-    private const VALID_LIMITS = [10, 20, 30, 50];
     private const DEFAULT_LIMIT = 20;
 
     public function index(Request $request): Response
@@ -42,7 +41,7 @@ class WorkspaceController extends Controller
             ]);
 
         $recentEdits = Fish::orderByDesc('updated_at')
-            ->limit(10)
+            ->limit($limit)
             ->get($cols)
             ->map(fn ($f) => [
                 'id'        => $f->id,
@@ -60,7 +59,9 @@ class WorkspaceController extends Controller
 
     private function resolveLimit(mixed $value): int
     {
-        $int = (int) $value;
-        return in_array($int, self::VALID_LIMITS, true) ? $int : self::DEFAULT_LIMIT;
+        if ($value === null || $value === '') {
+            return self::DEFAULT_LIMIT;
+        }
+        return max(10, min(50, (int) $value));
     }
 }

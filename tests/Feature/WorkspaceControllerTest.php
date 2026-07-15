@@ -51,11 +51,33 @@ describe('GET /workspace', function () {
             );
     });
 
-    it('不合法的 limit 值回退為預設值 20', function () {
+    it('limit 超過上限時夾緊至 50', function () {
         $editor = User::factory()->create();
 
         $this->actingAs($editor, 'sanctum')
             ->get('/workspace?limit=999')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('limit', 50)
+            );
+    });
+
+    it('limit 低於下限時夾緊至 10', function () {
+        $editor = User::factory()->create();
+
+        $this->actingAs($editor, 'sanctum')
+            ->get('/workspace?limit=0')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('limit', 10)
+            );
+    });
+
+    it('未傳入 limit 時使用預設值 20', function () {
+        $editor = User::factory()->create();
+
+        $this->actingAs($editor, 'sanctum')
+            ->get('/workspace')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('limit', 20)
