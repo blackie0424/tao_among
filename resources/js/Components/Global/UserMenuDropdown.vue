@@ -16,6 +16,26 @@
         </div>
       </div>
 
+      <!-- Editor/Admin Links -->
+      <template v-if="user?.role === 'editor' || user?.role === 'admin'">
+        <Link
+          href="/workspace"
+          data-testid="link-workspace"
+          class="block w-full text-left px-4 py-2.5 text-elder-aux text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+          @click="$emit('close')"
+        >
+          田調工作區
+        </Link>
+        <Link
+          href="/fishs"
+          data-testid="link-fishs"
+          class="block w-full text-left px-4 py-2.5 text-elder-aux text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+          @click="$emit('close')"
+        >
+          魚種列表
+        </Link>
+      </template>
+
       <!-- Admin Links -->
       <Link
         v-if="user?.role === 'admin'"

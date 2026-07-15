@@ -16,6 +16,7 @@ use App\Http\Controllers\ReferenceKnowledgeController;
 
 use App\Http\Controllers\AdminHubController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\WorkspaceController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,9 @@ Route::middleware(['auth'])->group(function () {
     // 田調人員以上（editor/admin）才可存取的寫入路由
     // -------------------------------------------------
     Route::middleware(['editor'])->group(function () {
+
+        // 田調工作區
+        Route::get('/workspace', [WorkspaceController::class, 'index'])->name('workspace');
 
         // 魚類基本管理
         // 注意：/fish/batch-create 必須在 /fish/{id} 之前定義
