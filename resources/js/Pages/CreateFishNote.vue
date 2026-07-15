@@ -11,10 +11,9 @@
       <FishNoteForm
         :tribes="tribes"
         :noteTypes="noteTypes"
-        :fishId="fish.id"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
-        @submitted="onNoteSubmitted"
+        @submit="onFormSubmit"
         ref="formRef"
       />
     </div>
@@ -39,9 +38,14 @@ function goBack() {
   router.visit(`/fish/${props.fish.id}/knowledge-manager`)
 }
 
-function onNoteSubmitted() {
-  // 返回進階知識列表頁面
-  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
+function onFormSubmit(formData) {
+  router.post(`/fish/${props.fish.id}/knowledge`, formData, {
+    onSuccess: () => {
+      formRef.value?.reset?.()
+      router.visit(`/fish/${props.fish.id}/knowledge-manager`)
+    },
+    onError: (e) => { formRef.value?.setErrors?.(e) },
+  })
 }
 
 // 整合送出到 FormActionBar 的 @submit 事件

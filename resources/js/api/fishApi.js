@@ -36,3 +36,81 @@ export async function getFishLatestAt() {
     return null
   }
 }
+
+export async function searchFishs(q) {
+  const response = await fetch(`${BASE_URL}/fishs/search?q=${encodeURIComponent(q)}`)
+  if (!response.ok) return null
+  const result = await response.json()
+  return result.data ?? null
+}
+
+export async function filterFishs(params = {}) {
+  const qs = new URLSearchParams(params).toString()
+  const url = qs ? `${BASE_URL}/fishs/filter?${qs}` : `${BASE_URL}/fishs/filter`
+  const response = await fetch(url)
+  if (!response.ok) return null
+  const result = await response.json()
+  return result.data ?? null
+}
+
+export async function createFish(data) {
+  const response = await fetch(`${BASE_URL}/fish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) throw new Error(`HTTP error ${response.status}`)
+  return await response.json()
+}
+
+export async function getTribalClassifications(fishId) {
+  const response = await fetch(`${BASE_URL}/fish/${fishId}/tribal-classifications`)
+  if (!response.ok) return null
+  const result = await response.json()
+  return result.data ?? null
+}
+
+export async function createTribalClassification(fishId, data) {
+  const response = await fetch(`${BASE_URL}/fish/${fishId}/tribal-classifications`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) throw new Error(`HTTP error ${response.status}`)
+  return await response.json()
+}
+
+export async function updateTribalClassification(id, data) {
+  const response = await fetch(`${BASE_URL}/tribal-classifications/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) throw new Error(`HTTP error ${response.status}`)
+  return await response.json()
+}
+
+export async function deleteTribalClassification(id) {
+  const response = await fetch(`${BASE_URL}/tribal-classifications/${id}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) throw new Error(`HTTP error ${response.status}`)
+  return await response.json()
+}
+
+export async function createFishNote(fishId, data) {
+  const response = await fetch(`${BASE_URL}/fish/${fishId}/note`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) throw new Error(`HTTP error ${response.status}`)
+  return await response.json()
+}
+
+export async function getFishNotesList(fishId) {
+  const response = await fetch(`${BASE_URL}/fish/${fishId}/notes`)
+  if (!response.ok) return null
+  const result = await response.json()
+  return result.data ?? null
+}
