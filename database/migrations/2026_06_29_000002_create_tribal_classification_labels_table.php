@@ -23,7 +23,7 @@ return new class extends Migration {
                 ->on('fish_labels')
                 ->onDelete('cascade');
 
-            $table->unique(['tribal_classification_id', 'fish_label_id']);
+            $table->unique(['tribal_classification_id', 'fish_label_id'], 'tcl_tc_id_fl_id_unique');
         });
     }
 
