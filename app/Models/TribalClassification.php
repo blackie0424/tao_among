@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TribalClassification extends Model
@@ -28,5 +29,15 @@ class TribalClassification extends Model
     public function fish(): BelongsTo
     {
         return $this->belongsTo(Fish::class, 'fish_id');
+    }
+
+    public function labels(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            FishLabel::class,
+            'tribal_classification_labels',
+            'tribal_classification_id',
+            'fish_label_id'
+        );
     }
 }
