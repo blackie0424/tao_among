@@ -104,15 +104,17 @@ describe('AppNavBar', () => {
       expect(wrapper.text()).toContain('管理員')
     })
 
-    it('非管理員顯示田調人員徽章', () => {
+    it('editor 顯示含名字的下拉按鈕', () => {
       const wrapper = mountNavBar({}, makeEditorUser())
-      expect(wrapper.text()).toContain('田調人員')
+      expect(wrapper.text()).toContain('田調員')
     })
 
-    it('非管理員顯示登出按鈕', () => {
+    it('editor 點擊名字後顯示 UserMenuDropdown', async () => {
       const wrapper = mountNavBar({}, makeEditorUser())
-      const logoutBtn = wrapper.findAll('a').find((a) => a.text().includes('登出'))
-      expect(logoutBtn).toBeTruthy()
+      expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false)
+      const btn = wrapper.findAll('button').find((b) => b.text().includes('田調員'))
+      await btn?.trigger('click')
+      expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true)
     })
 
     it('未登入時 desktop 顯示登入連結', () => {
