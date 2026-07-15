@@ -380,6 +380,11 @@ it('keeps 200 fish structure writes below quota even when batched image inserts 
             return true;
         }
 
+        public function getContent(string $filePath): string
+        {
+            return '';
+        }
+
         public function fileExists(string $filePath): bool
         {
             return false;
