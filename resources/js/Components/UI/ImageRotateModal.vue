@@ -27,27 +27,20 @@
             </button>
           </div>
 
-          <!-- Canvas preview -->
+          <!-- Image preview -->
           <div class="flex items-center justify-center bg-gray-50 p-4" style="min-height: 240px;">
-            <canvas
-              ref="canvasRef"
+            <img
+              :src="imageUrl"
+              :style="{ transform: `rotate(${totalRotation}deg)`, transition: 'transform 0.2s' }"
               class="max-w-full max-h-64 object-contain rounded shadow"
-              style="max-height: 240px;"
             />
-            <div v-if="loading" class="flex items-center gap-2 text-gray-500">
-              <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              載入中…
-            </div>
           </div>
 
           <!-- Rotation buttons -->
           <div class="flex justify-center gap-3 px-5 py-3 border-t border-gray-100">
             <button
               type="button"
-              :disabled="loading || submitting"
+              :disabled="submitting"
               class="flex flex-col items-center gap-1 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-sm text-gray-700 transition-colors"
               @click="rotate(-90)"
             >
@@ -59,7 +52,7 @@
             </button>
             <button
               type="button"
-              :disabled="loading || submitting"
+              :disabled="submitting"
               class="flex flex-col items-center gap-1 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-sm text-gray-700 transition-colors"
               @click="rotate(180)"
             >
@@ -71,7 +64,7 @@
             </button>
             <button
               type="button"
-              :disabled="loading || submitting"
+              :disabled="submitting"
               class="flex flex-col items-center gap-1 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-sm text-gray-700 transition-colors"
               @click="rotate(90)"
             >
@@ -98,7 +91,7 @@
             </button>
             <button
               type="button"
-              :disabled="loading || submitting || totalRotation === 0"
+              :disabled="submitting || totalRotation === 0"
               class="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
               @click="confirm"
             >
@@ -116,103 +109,41 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
   imageUrl: { type: String, required: true },
   fishId: { type: Number, required: true },
   recordId: { type: Number, default: null },
-  mimeType: { type: String, default: 'image/jpeg' },
 })
 
 const emit = defineEmits(['close', 'rotated'])
 
-const canvasRef = ref(null)
-const loading = ref(false)
 const submitting = ref(false)
 const error = ref('')
 const totalRotation = ref(0)
 
-let originalImage = null
-
 watch(
   () => props.open,
-  async (isOpen) => {
+  (isOpen) => {
     if (!isOpen) {
       totalRotation.value = 0
       error.value = ''
-      originalImage = null
-      return
     }
-    await nextTick()
-    await loadImage()
   }
 )
 
-async function loadImage() {
-  if (!canvasRef.value) return
-  loading.value = true
-  error.value = ''
-
-  try {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = () => reject(new Error('圖片載入失敗'))
-      img.src = props.imageUrl
-    })
-    originalImage = img
-    drawRotated(0)
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
-}
-
 function rotate(degrees) {
   totalRotation.value = ((totalRotation.value + degrees) % 360 + 360) % 360
-  drawRotated(totalRotation.value)
-}
-
-function drawRotated(degrees) {
-  if (!originalImage || !canvasRef.value) return
-  const canvas = canvasRef.value
-  const img = originalImage
-  const rad = (degrees * Math.PI) / 180
-
-  const swap = degrees === 90 || degrees === 270
-  canvas.width = swap ? img.naturalHeight : img.naturalWidth
-  canvas.height = swap ? img.naturalWidth : img.naturalHeight
-
-  const ctx = canvas.getContext('2d')
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.translate(canvas.width / 2, canvas.height / 2)
-  ctx.rotate(rad)
-  ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2)
 }
 
 async function confirm() {
-  if (!canvasRef.value || totalRotation.value === 0) return
+  if (totalRotation.value === 0) return
   submitting.value = true
   error.value = ''
 
   try {
-    const blob = await new Promise((resolve, reject) => {
-      const quality = props.mimeType === 'image/png' ? undefined : 1.0
-      canvasRef.value.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('canvas 匯出失敗'))),
-        props.mimeType,
-        quality
-      )
-    })
-
-    const ext = props.mimeType === 'image/png' ? 'png' : 'jpg'
-    const formData = new FormData()
-    formData.append('image', blob, `rotated.${ext}`)
-
     const url = props.recordId
       ? `/prefix/api/fish/${props.fishId}/capture-records/${props.recordId}/image/rotate`
       : `/prefix/api/fish/${props.fishId}/image/rotate`
@@ -227,10 +158,11 @@ async function confirm() {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Accept: 'application/json',
         'X-XSRF-TOKEN': csrfToken,
       },
-      body: formData,
+      body: JSON.stringify({ degrees: totalRotation.value }),
     })
 
     if (!res.ok) {

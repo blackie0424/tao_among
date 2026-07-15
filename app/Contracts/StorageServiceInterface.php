@@ -90,6 +90,15 @@ interface StorageServiceInterface
     public function uploadFile($file, string $path): string;
 
     /**
+     * 讀取指定路徑的檔案內容
+     *
+     * @param string $filePath 檔案路徑
+     * @return string 檔案內容
+     * @throws \RuntimeException 讀取失敗時
+     */
+    public function getContent(string $filePath): string;
+
+    /**
      * 直接寫入內容到指定路徑（用於覆蓋現有檔案，如旋轉後的圖片）
      *
      * @param string $filePath 完整路徑

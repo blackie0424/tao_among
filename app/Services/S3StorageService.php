@@ -255,6 +255,26 @@ class S3StorageService implements StorageServiceInterface
     }
 
     /**
+     * 讀取指定路徑的檔案內容
+     */
+    public function getContent(string $filePath): string
+    {
+        try {
+            $content = Storage::disk('s3')->get($filePath);
+            if ($content === null || $content === false) {
+                throw new \RuntimeException("Failed to read file: {$filePath}");
+            }
+            return $content;
+        } catch (\Exception $e) {
+            Log::error('Failed to get content from S3', [
+                'filePath' => $filePath,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * 直接寫入內容到指定路徑（覆蓋現有檔案）
      */
     public function putContent(string $filePath, string $content, string $mimeType = 'application/octet-stream'): bool

@@ -8,33 +8,6 @@ const Teleport = { template: '<slot />' }
 // Mock fetch
 global.fetch = vi.fn()
 
-// Mock canvas
-function makeCanvasMock() {
-  const ctx = {
-    clearRect: vi.fn(),
-    translate: vi.fn(),
-    rotate: vi.fn(),
-    drawImage: vi.fn(),
-  }
-  const canvas = {
-    getContext: vi.fn(() => ctx),
-    toBlob: vi.fn((cb, type) => cb(new Blob(['data'], { type }))),
-    toDataURL: vi.fn(() => 'data:image/jpeg;base64,mock'),
-    width: 0,
-    height: 0,
-  }
-  return { canvas, ctx }
-}
-
-// Mock Image loading
-global.Image = class {
-  constructor() {
-    this.naturalWidth = 100
-    this.naturalHeight = 80
-    setTimeout(() => this.onload?.(), 0)
-  }
-}
-
 // Mock document.cookie
 Object.defineProperty(document, 'cookie', {
   get: () => 'XSRF-TOKEN=test-token',
@@ -47,7 +20,6 @@ describe('ImageRotateModal', () => {
     imageUrl: 'https://example.com/fish.jpg',
     fishId: 1,
     recordId: 42,
-    mimeType: 'image/jpeg',
   }
 
   beforeEach(() => {
@@ -76,6 +48,17 @@ describe('ImageRotateModal', () => {
     expect(wrapper.find('h3').text()).toBe('旋轉圖片')
   })
 
+  it('open 時顯示 img 標籤並套用 imageUrl', async () => {
+    const wrapper = mount(ImageRotateModal, {
+      props: defaultProps,
+      global: { stubs: { Teleport } },
+    })
+    await flushPromises()
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toBe(defaultProps.imageUrl)
+  })
+
   it('顯示三個旋轉按鈕', async () => {
     const wrapper = mount(ImageRotateModal, {
       props: defaultProps,
@@ -98,6 +81,17 @@ describe('ImageRotateModal', () => {
     expect(confirmBtn?.attributes('disabled')).toBeDefined()
   })
 
+  it('點擊旋轉按鈕後 img style 有 rotate 效果', async () => {
+    const wrapper = mount(ImageRotateModal, {
+      props: defaultProps,
+      global: { stubs: { Teleport } },
+    })
+    await flushPromises()
+    await wrapper.findAll('button').find((b) => b.text().includes('順時針 90°'))?.trigger('click')
+    const img = wrapper.find('img')
+    expect(img.attributes('style')).toContain('rotate(90deg)')
+  })
+
   it('點擊取消按鈕 emit close', async () => {
     const wrapper = mount(ImageRotateModal, {
       props: defaultProps,
@@ -109,17 +103,13 @@ describe('ImageRotateModal', () => {
   })
 
   it('recordId 存在時 API 呼叫捕獲紀錄路由', async () => {
-    const { canvas } = makeCanvasMock()
     const wrapper = mount(ImageRotateModal, {
       props: defaultProps,
       global: { stubs: { Teleport } },
     })
     await flushPromises()
 
-    // Inject mock canvas
-    wrapper.vm.canvasRef = canvas
     wrapper.vm.totalRotation = 90
-
     await wrapper.vm.confirm()
     await flushPromises()
 
@@ -128,16 +118,13 @@ describe('ImageRotateModal', () => {
   })
 
   it('recordId 為 null 時 API 呼叫魚類主圖路由', async () => {
-    const { canvas } = makeCanvasMock()
     const wrapper = mount(ImageRotateModal, {
       props: { ...defaultProps, recordId: null },
       global: { stubs: { Teleport } },
     })
     await flushPromises()
 
-    wrapper.vm.canvasRef = canvas
     wrapper.vm.totalRotation = 90
-
     await wrapper.vm.confirm()
     await flushPromises()
 
@@ -145,17 +132,30 @@ describe('ImageRotateModal', () => {
     expect(url).toBe('/prefix/api/fish/1/image/rotate')
   })
 
-  it('API 成功後 emit rotated 與 close', async () => {
-    const { canvas } = makeCanvasMock()
+  it('confirm 時送出 JSON body 包含 degrees', async () => {
     const wrapper = mount(ImageRotateModal, {
       props: defaultProps,
       global: { stubs: { Teleport } },
     })
     await flushPromises()
 
-    wrapper.vm.canvasRef = canvas
     wrapper.vm.totalRotation = 90
+    await wrapper.vm.confirm()
+    await flushPromises()
 
+    const [, options] = global.fetch.mock.calls[0]
+    expect(options.headers['Content-Type']).toBe('application/json')
+    expect(JSON.parse(options.body)).toEqual({ degrees: 90 })
+  })
+
+  it('API 成功後 emit rotated 與 close', async () => {
+    const wrapper = mount(ImageRotateModal, {
+      props: defaultProps,
+      global: { stubs: { Teleport } },
+    })
+    await flushPromises()
+
+    wrapper.vm.totalRotation = 90
     await wrapper.vm.confirm()
     await flushPromises()
 
@@ -169,16 +169,13 @@ describe('ImageRotateModal', () => {
       ok: false,
       json: async () => ({ message: '旋轉失敗' }),
     })
-    const { canvas } = makeCanvasMock()
     const wrapper = mount(ImageRotateModal, {
       props: defaultProps,
       global: { stubs: { Teleport } },
     })
     await flushPromises()
 
-    wrapper.vm.canvasRef = canvas
     wrapper.vm.totalRotation = 90
-
     await wrapper.vm.confirm()
     await flushPromises()
 
