@@ -8,7 +8,6 @@ use App\Models\CaptureRecord;
 use App\Models\Fish;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rules\File;
 
 class ImageRotateController extends Controller
 {
@@ -21,19 +20,22 @@ class ImageRotateController extends Controller
     public function rotateFishImage(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'image' => ['required', File::image()->max(10 * 1024)],
+            'degrees' => ['required', 'integer', 'in:90,180,270'],
         ]);
 
+        $degrees = (int) $request->input('degrees');
         $fish = Fish::findOrFail($id);
-        $file = $request->file('image');
 
         $imagePath = $this->storage->getImageFolder() . '/' . $fish->image;
-        $mimeType = $file->getMimeType() ?? 'image/jpeg';
+        $content = $this->storage->getContent($imagePath);
+        $mimeType = $this->detectMimeType($fish->image);
 
-        $this->storage->putContent($imagePath, $file->getContent(), $mimeType);
+        $rotatedContent = $this->rotateImageContent($content, $degrees, $mimeType);
+
+        $this->storage->putContent($imagePath, $rotatedContent, $mimeType);
 
         if ($fish->has_webp) {
-            $this->regenerateWebp($file->getContent(), $fish->image);
+            $this->regenerateWebp($rotatedContent, $fish->image);
         }
 
         return response()->json(['message' => 'success']);
@@ -46,18 +48,61 @@ class ImageRotateController extends Controller
     public function rotateCaptureRecordImage(Request $request, int $fishId, int $recordId): JsonResponse
     {
         $request->validate([
-            'image' => ['required', File::image()->max(10 * 1024)],
+            'degrees' => ['required', 'integer', 'in:90,180,270'],
         ]);
 
+        $degrees = (int) $request->input('degrees');
         $record = CaptureRecord::where('fish_id', $fishId)->findOrFail($recordId);
-        $file = $request->file('image');
 
         $imagePath = $this->storage->getImageFolder() . '/' . $record->image_path;
-        $mimeType = $file->getMimeType() ?? 'image/jpeg';
+        $content = $this->storage->getContent($imagePath);
+        $mimeType = $this->detectMimeType($record->image_path);
 
-        $this->storage->putContent($imagePath, $file->getContent(), $mimeType);
+        $rotatedContent = $this->rotateImageContent($content, $degrees, $mimeType);
+
+        $this->storage->putContent($imagePath, $rotatedContent, $mimeType);
 
         return response()->json(['message' => 'success']);
+    }
+
+    private function rotateImageContent(string $content, int $degrees, string $mimeType): string
+    {
+        $gdImage = @imagecreatefromstring($content);
+        if ($gdImage === false) {
+            throw new \RuntimeException('無法讀取圖片內容');
+        }
+
+        // imagerotate 角度為逆時針，360 - $degrees 轉換為順時針
+        $rotated = imagerotate($gdImage, 360 - $degrees, 0);
+        imagedestroy($gdImage);
+
+        if ($rotated === false) {
+            throw new \RuntimeException('圖片旋轉失敗');
+        }
+
+        ob_start();
+        match ($mimeType) {
+            'image/png' => imagepng($rotated),
+            'image/webp' => imagewebp($rotated),
+            default => imagejpeg($rotated, null, 100),
+        };
+        $result = ob_get_clean();
+        imagedestroy($rotated);
+
+        if ($result === false || $result === '') {
+            throw new \RuntimeException('圖片輸出失敗');
+        }
+
+        return $result;
+    }
+
+    private function detectMimeType(string $filename): string
+    {
+        return match (strtolower(pathinfo($filename, PATHINFO_EXTENSION))) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            default => 'image/jpeg',
+        };
     }
 
     private function regenerateWebp(string $content, string $filename): void
