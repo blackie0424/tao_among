@@ -17,7 +17,8 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom', // 這行很重要，讓測試有瀏覽器文件環境
+    environment: 'jsdom',
+    exclude: ['node_modules/**', 'tests/e2e/**'],
     coverage: {
       provider: 'v8', // 使用 V8 引擎計算覆蓋率
       reporter: ['text', 'html', 'lcov'], // 生成文字、HTML 和 LCOV 格式報告

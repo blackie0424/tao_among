@@ -17,6 +17,8 @@ use App\Http\Controllers\ReferenceKnowledgeController;
 use App\Http\Controllers\AdminHubController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\IntroCategoryController;
+use App\Http\Controllers\IntroSlideController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -124,6 +126,21 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/references', [ReferenceController::class, 'store'])->name('admin.references.store');
         Route::get('/admin/references/{reference}/edit', [ReferenceController::class, 'edit'])->name('admin.references.edit');
         Route::put('/admin/references/{reference}', [ReferenceController::class, 'update'])->name('admin.references.update');
+
+        Route::get('/admin/intro-categories', [IntroCategoryController::class, 'index'])->name('admin.intro-categories.index');
+        Route::get('/admin/intro-categories/create', [IntroCategoryController::class, 'create'])->name('admin.intro-categories.create');
+        Route::post('/admin/intro-categories', [IntroCategoryController::class, 'store'])->name('admin.intro-categories.store');
+        Route::get('/admin/intro-categories/{introCategory}/edit', [IntroCategoryController::class, 'edit'])->name('admin.intro-categories.edit');
+        Route::put('/admin/intro-categories/{introCategory}', [IntroCategoryController::class, 'update'])->name('admin.intro-categories.update');
+        Route::delete('/admin/intro-categories/{introCategory}', [IntroCategoryController::class, 'destroy'])->name('admin.intro-categories.destroy');
+
+        Route::get('/admin/intro-slides', [IntroSlideController::class, 'index'])->name('admin.intro-slides.index');
+        Route::get('/admin/intro-slides/create', [IntroSlideController::class, 'create'])->name('admin.intro-slides.create');
+        Route::post('/admin/intro-slides', [IntroSlideController::class, 'store'])->name('admin.intro-slides.store');
+        Route::get('/admin/intro-slides/{introSlide}/edit', [IntroSlideController::class, 'edit'])->name('admin.intro-slides.edit');
+        Route::put('/admin/intro-slides/{introSlide}', [IntroSlideController::class, 'update'])->name('admin.intro-slides.update');
+        Route::delete('/admin/intro-slides/{introSlide}', [IntroSlideController::class, 'destroy'])->name('admin.intro-slides.destroy');
+        Route::patch('/admin/intro-slides/{introSlide}/toggle-published', [IntroSlideController::class, 'togglePublished'])->name('admin.intro-slides.toggle-published');
     });
 });
 
