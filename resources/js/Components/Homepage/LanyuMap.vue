@@ -95,7 +95,7 @@
       <!-- 野銀 (iratay) — 東南細長尾部，禁用 -->
       <polygon
         data-tribe="iratay"
-        points="275,250 348,220 390,318 382,368 338,442 288,445 260,442 198,340 198,275"
+        points="275,250 348,220 390,318 382,368 338,442 288,445 260,442 198,340"
         :fill="disabledFill"
         :stroke="borderColor"
         stroke-width="1"
