@@ -57,7 +57,7 @@
       <!-- 椰油 (ivalino) — 西側含左突出部，禁用 -->
       <polygon
         data-tribe="ivalino"
-        points="198,170 30,175 28,185 5,228 8,235 5,245 15,255 28,245 28,285 198,275"
+        points="198,170 30,175 28,185 5,228 8,248 5,262 28,270 28,285 198,275"
         :fill="disabledFill"
         :stroke="borderColor"
         stroke-width="1"
@@ -79,7 +79,7 @@
       <!-- 紅頭 (imowrod) — 南，可點選 -->
       <polygon
         data-tribe="imowrod"
-        points="45,335 95,360 158,408 220,435 260,442 198,340"
+        points="45,335 95,360 95,388 158,408 220,435 260,442 198,340"
         :fill="activeFill"
         :stroke="borderColor"
         stroke-width="1"
@@ -95,7 +95,7 @@
       <!-- 野銀 (iratay) — 東南細長尾部，禁用 -->
       <polygon
         data-tribe="iratay"
-        points="275,250 348,220 390,318 382,368 338,442 260,442 198,340 198,275"
+        points="275,250 348,220 390,318 382,368 338,442 288,445 260,442 198,340 198,275"
         :fill="disabledFill"
         :stroke="borderColor"
         stroke-width="1"
