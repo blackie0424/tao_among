@@ -40,7 +40,8 @@ class IntroSlide extends Model
         }
 
         if ($this->media_type === 'photo') {
-            return Storage::disk('s3')->url($this->media_path);
+            $disk = app()->environment('local', 'testing') ? 'public' : 's3';
+            return Storage::disk($disk)->url($this->media_path);
         }
 
         return $this->media_path;
