@@ -196,6 +196,10 @@
                 @click="showDesktopAdminMenu = !showDesktopAdminMenu"
                 class="flex items-center gap-1.5 text-elder-body font-medium text-gray-700 hover:text-blue-600 transition"
               >
+                <span
+                  v-if="user?.role === 'editor'"
+                  class="bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full text-xs font-medium"
+                >田調人員</span>
                 {{ user.name }}
                 <svg
                   class="w-4 h-4 text-gray-400"
