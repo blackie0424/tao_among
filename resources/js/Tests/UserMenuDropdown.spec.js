@@ -10,6 +10,7 @@ vi.mock('@inertiajs/vue3', () => ({
 }))
 
 const makeAdmin = () => ({ name: '管理員A', role: 'admin' })
+const makeEditor = () => ({ name: '田調員C', role: 'editor' })
 const makeUser = () => ({ name: '田調員B', role: 'user' })
 
 const mountDropdown = (propsData = {}) =>
@@ -71,6 +72,44 @@ describe('使用者資訊標頭', () => {
     const wrapper = mountDropdown({ user: makeAdmin(), showUserInfo: false })
     const header = wrapper.find('[data-testid="user-info-header"]')
     expect(header.exists()).toBe(false)
+  })
+})
+
+// ────────────────────────────────────────────────────
+// 田調工作區 / 魚種連結（editor & admin）
+// ────────────────────────────────────────────────────
+describe('田調工作區與魚種連結', () => {
+  it('admin：應顯示田調工作區連結，指向 /workspace', () => {
+    const wrapper = mountDropdown({ user: makeAdmin() })
+    const link = wrapper.find('[data-testid="link-workspace"]')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('/workspace')
+  })
+
+  it('editor：應顯示田調工作區連結，指向 /workspace', () => {
+    const wrapper = mountDropdown({ user: makeEditor() })
+    const link = wrapper.find('[data-testid="link-workspace"]')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('/workspace')
+  })
+
+  it('admin：應顯示新增魚種連結，指向 /fish/batch-create', () => {
+    const wrapper = mountDropdown({ user: makeAdmin() })
+    const link = wrapper.find('[data-testid="link-batch-create"]')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('/fish/batch-create')
+  })
+
+  it('editor：應顯示新增魚種連結，指向 /fish/batch-create', () => {
+    const wrapper = mountDropdown({ user: makeEditor() })
+    const link = wrapper.find('[data-testid="link-batch-create"]')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('/fish/batch-create')
+  })
+
+  it('一般使用者：不應顯示田調工作區連結', () => {
+    const wrapper = mountDropdown({ user: makeUser() })
+    expect(wrapper.find('[data-testid="link-workspace"]').exists()).toBe(false)
   })
 })
 

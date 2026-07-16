@@ -190,12 +190,16 @@
 
           <!-- User Menu (Right aligned) -->
           <div class="ml-auto flex items-center gap-3 shrink-0">
-            <!-- Admin: Dropdown Button -->
-            <div v-if="user?.role === 'admin'" class="relative">
+            <!-- Admin / Editor: Dropdown Button -->
+            <div v-if="user?.role === 'admin' || user?.role === 'editor'" class="relative">
               <button
                 @click="showDesktopAdminMenu = !showDesktopAdminMenu"
                 class="flex items-center gap-1.5 text-elder-body font-medium text-gray-700 hover:text-blue-600 transition"
               >
+                <span
+                  v-if="user?.role === 'editor'"
+                  class="bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full text-xs font-medium"
+                >田調人員</span>
                 {{ user.name }}
                 <svg
                   class="w-4 h-4 text-gray-400"
@@ -217,14 +221,14 @@
                 @close="showDesktopAdminMenu = false"
               />
             </div>
-            <!-- Non-Admin: Name with Badge -->
+            <!-- Other Users: Name with Badge -->
             <div v-else-if="user" class="text-elder-body font-medium text-gray-700 flex items-center gap-2">
               <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-elder-aux">田調人員</span>
               {{ user.name }}
             </div>
-            <!-- Non-Admin Logout -->
+            <!-- Other Users Logout -->
             <Link
-              v-if="user && user.role !== 'admin'"
+              v-if="user && user.role !== 'admin' && user.role !== 'editor'"
               href="/logout"
               method="post"
               as="button"

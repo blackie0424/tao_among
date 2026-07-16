@@ -41,51 +41,6 @@ class FishController extends Controller
 
     public function index()
     {
-        $user = auth()->user();
-
-        if ($user && $user->isEditor()) {
-            $cols = ['id', 'name', 'image'];
-
-            $needAudio = Fish::doesntHave('audios')
-                ->orderBy('id')
-                ->limit(20)
-                ->get($cols)
-                ->map(fn ($f) => [
-                    'id'        => $f->id,
-                    'name'      => $f->name,
-                    'image_url' => $f->image_url,
-                ]);
-
-            $needPhoto = Fish::where(function ($q) {
-                    $q->whereNull('image')
-                      ->orWhere('image', '')
-                      ->orWhere('image', 'default.png');
-                })
-                ->orderBy('id')
-                ->limit(20)
-                ->get($cols)
-                ->map(fn ($f) => [
-                    'id'        => $f->id,
-                    'name'      => $f->name,
-                    'image_url' => null,
-                ]);
-
-            $recentEdits = Fish::orderByDesc('updated_at')
-                ->limit(10)
-                ->get($cols)
-                ->map(fn ($f) => [
-                    'id'        => $f->id,
-                    'name'      => $f->name,
-                    'image_url' => $f->image_url,
-                ]);
-
-            return Inertia::render('EditorHome', [
-                'needAudio'   => $needAudio,
-                'needPhoto'   => $needPhoto,
-                'recentEdits' => $recentEdits,
-            ]);
-        }
-
         return Inertia::render('Index');
     }
 
