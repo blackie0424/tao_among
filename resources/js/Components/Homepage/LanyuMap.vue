@@ -57,7 +57,7 @@
       <!-- 椰油 (ivalino) — 西側含左突出部，禁用 -->
       <polygon
         data-tribe="ivalino"
-        points="198,170 30,175 28,185 5,228 15,200 5,215 28,245 28,285 198,275"
+        points="198,170 30,175 28,185 5,228 8,235 5,245 15,255 28,245 28,285 198,275"
         :fill="disabledFill"
         :stroke="borderColor"
         stroke-width="1"
