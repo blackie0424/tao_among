@@ -93,18 +93,18 @@ describe('田調工作區與魚種連結', () => {
     expect(link.attributes('href')).toBe('/workspace')
   })
 
-  it('admin：應顯示魚種連結，指向 /fishs', () => {
+  it('admin：應顯示新增魚種連結，指向 /fish/batch-create', () => {
     const wrapper = mountDropdown({ user: makeAdmin() })
-    const link = wrapper.find('[data-testid="link-fishs"]')
+    const link = wrapper.find('[data-testid="link-batch-create"]')
     expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('/fishs')
+    expect(link.attributes('href')).toBe('/fish/batch-create')
   })
 
-  it('editor：應顯示魚種連結，指向 /fishs', () => {
+  it('editor：應顯示新增魚種連結，指向 /fish/batch-create', () => {
     const wrapper = mountDropdown({ user: makeEditor() })
-    const link = wrapper.find('[data-testid="link-fishs"]')
+    const link = wrapper.find('[data-testid="link-batch-create"]')
     expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('/fishs')
+    expect(link.attributes('href')).toBe('/fish/batch-create')
   })
 
   it('一般使用者：不應顯示田調工作區連結', () => {
