@@ -236,6 +236,13 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // 兼容舊版或快取的資源路徑：若請求 /assets/...，改為 /build/assets/...
+  if (url.pathname.startsWith('/assets/')) {
+    const newUrl = new URL('/build' + url.pathname, self.location.origin)
+    event.respondWith(cacheFirst(new Request(newUrl, request)))
+    return
+  }
+
   // 根據請求類型選擇快取策略
   if (isNavigationRequest(request)) {
     // 頁面導航：Network-First（確保取得最新內容）
