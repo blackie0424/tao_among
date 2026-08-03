@@ -613,7 +613,7 @@ class LineBatchCaptureFlowTest extends TestCase
     }
 
     /** @test */
-    public function test_edit_notes_button_appears_in_waiting_confirm_and_allows_notes_input(): void
+    public function test_edit_notes_button_allows_notes_input_from_waiting_confirm(): void
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
         Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
@@ -624,16 +624,7 @@ class LineBatchCaptureFlowTest extends TestCase
             'capture_method' => 'mapazat', 'capture_date' => '2026-05-16',
         ], now()->addMinutes(15));
 
-        // 確認卡片必須出現「編輯備註」按鈕
-        $replied = $this->captureSingleReply(function () use ($fish) {
-            $this->invokeHandlePostback($this->makePostbackEvent("action=start_batch_capture_record&fish_id={$fish->id}"));
-        });
-        // 觸發重新顯示 summary
-        $replied = $this->captureSingleReply(function () {
-            $this->invokeHandlePostback($this->makePostbackEvent('action=start_batch_capture_record&fish_id=0'));
-        });
-
-        // 直接從 waiting_confirm 觸發 prompt_batch_capture_notes
+        // 從 waiting_confirm 直接觸發備註輸入
         $this->invokeHandlePostback($this->makePostbackEvent('action=prompt_batch_capture_notes'));
         $this->assertSame('awaiting_notes_input', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
 
