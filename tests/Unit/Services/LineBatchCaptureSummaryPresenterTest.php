@@ -17,7 +17,7 @@ it('presents waiting images state with upload guidance and cancel only when empt
         ]);
 });
 
-it('presents waiting confirm state with submit reset and cancel actions', function () {
+it('presents waiting confirm state with submit, edit notes, reset and cancel actions', function () {
     $view = $this->presenter->present('waiting_confirm', ['capture-1.jpg'], [
         'tribe' => 'ivalino',
         'location' => 'Vanes',
@@ -27,6 +27,8 @@ it('presents waiting confirm state with submit reset and cancel actions', functi
 
     expect($view['notice'])->toBe('請確認資料無誤後再送出。')
         ->and($view['actions'][0]['label'])->toBe('✅ 確認送出')
-        ->and($view['actions'][1]['label'])->toBe('🔁 重新填寫')
-        ->and($view['actions'][2]['label'])->toBe('❌ 取消');
+        ->and($view['actions'][1]['label'])->toBe('✏️ 編輯備註')
+        ->and($view['actions'][1]['data'])->toBe('action=prompt_batch_capture_notes')
+        ->and($view['actions'][2]['label'])->toBe('🔁 重新填寫')
+        ->and($view['actions'][3]['label'])->toBe('❌ 取消');
 });

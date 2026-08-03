@@ -611,4 +611,35 @@ class LineBatchCaptureFlowTest extends TestCase
         $allTexts = $this->flattenTexts($json['contents']);
         $this->assertContains('海邊', $allTexts);
     }
+
+    /** @test */
+    public function test_edit_notes_button_appears_in_waiting_confirm_and_allows_notes_input(): void
+    {
+        $fish = Fish::factory()->create(['name' => '測試魚']);
+        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['cap.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_confirm', now()->addMinutes(15));
+        Cache::put('line_user_' . self::USER_ID . '_batch_capture_form', [
+            'tribe' => 'ivalino', 'location' => 'Vanes',
+            'capture_method' => 'mapazat', 'capture_date' => '2026-05-16',
+        ], now()->addMinutes(15));
+
+        // 確認卡片必須出現「編輯備註」按鈕
+        $replied = $this->captureSingleReply(function () use ($fish) {
+            $this->invokeHandlePostback($this->makePostbackEvent("action=start_batch_capture_record&fish_id={$fish->id}"));
+        });
+        // 觸發重新顯示 summary
+        $replied = $this->captureSingleReply(function () {
+            $this->invokeHandlePostback($this->makePostbackEvent('action=start_batch_capture_record&fish_id=0'));
+        });
+
+        // 直接從 waiting_confirm 觸發 prompt_batch_capture_notes
+        $this->invokeHandlePostback($this->makePostbackEvent('action=prompt_batch_capture_notes'));
+        $this->assertSame('awaiting_notes_input', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+
+        // 輸入備註後回到 waiting_confirm
+        $this->invokeHandleTextMessage($this->makeTextMessageEvent('特殊備註'));
+        $this->assertSame('waiting_confirm', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('特殊備註', Cache::get('line_user_' . self::USER_ID . '_batch_capture_form')['notes']);
+    }
 }
