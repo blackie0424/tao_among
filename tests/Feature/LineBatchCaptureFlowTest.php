@@ -624,12 +624,16 @@ class LineBatchCaptureFlowTest extends TestCase
             'capture_method' => 'mapazat', 'capture_date' => '2026-05-16',
         ], now()->addMinutes(15));
 
-        // 從 waiting_confirm 直接觸發備註輸入
-        $this->invokeHandlePostback($this->makePostbackEvent('action=prompt_batch_capture_notes'));
+        // 從 waiting_confirm 觸發備註輸入
+        $this->captureSingleReply(function () {
+            $this->invokeHandlePostback($this->makePostbackEvent('action=prompt_batch_capture_notes'));
+        });
         $this->assertSame('awaiting_notes_input', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
 
         // 輸入備註後回到 waiting_confirm
-        $this->invokeHandleTextMessage($this->makeTextMessageEvent('特殊備註'));
+        $this->captureSingleReply(function () {
+            $this->invokeHandleTextMessage($this->makeTextMessageEvent('特殊備註'));
+        });
         $this->assertSame('waiting_confirm', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
         $this->assertSame('特殊備註', Cache::get('line_user_' . self::USER_ID . '_batch_capture_form')['notes']);
     }
