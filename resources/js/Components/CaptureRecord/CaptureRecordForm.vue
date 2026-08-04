@@ -207,15 +207,15 @@
               id="image_scale"
               v-model.number="form.image_scale"
               type="range"
-              min="1"
-              max="3"
+              min="0.8"
+              max="2.0"
               step="0.1"
               class="w-full"
             />
             <div class="flex justify-between text-sm text-gray-500 mt-1">
-              <span>1.0x</span>
+              <span>0.8x</span>
+              <span>1.4x</span>
               <span>2.0x</span>
-              <span>3.0x</span>
             </div>
           </div>
         </div>

@@ -417,7 +417,7 @@ describe('CaptureRecordRequest Validation', function () {
         ];
 
         // valid values
-        foreach ([1.0, 1.5, 2.0, 3.0] as $scale) {
+        foreach ([0.8, 1.0, 1.5, 2.0] as $scale) {
             $validator = Validator::make(array_merge($baseData, ['image_scale' => $scale]), $request->rules());
             expect($validator->errors()->has('image_scale'))->toBeFalse("scale {$scale} should be valid");
         }
@@ -427,7 +427,7 @@ describe('CaptureRecordRequest Validation', function () {
         expect($validator->errors()->has('image_scale'))->toBeTrue();
 
         // invalid: above max
-        $validator = Validator::make(array_merge($baseData, ['image_scale' => 3.5]), $request->rules());
+        $validator = Validator::make(array_merge($baseData, ['image_scale' => 2.5]), $request->rules());
         expect($validator->errors()->has('image_scale'))->toBeTrue();
 
         // invalid: non-numeric

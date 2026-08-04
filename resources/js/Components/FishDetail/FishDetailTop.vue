@@ -55,8 +55,8 @@ const user = computed(() => page.props.auth?.user)
 
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(
-    props.fish?.display_capture_record?.image_position ?? props.fish?.displayCaptureRecord?.image_position,
-    props.fish?.display_capture_record?.image_scale ?? props.fish?.displayCaptureRecord?.image_scale,
+    props.fish?.display_capture_record?.image_position,
+    props.fish?.display_capture_record?.image_scale,
   )
 )
 </script>
