@@ -37,8 +37,13 @@ it('has_webp 未變更時不執行 save', function () {
     $storage->shouldReceive('getWebpFolder')->andReturn('webp');
     $storage->shouldReceive('fileExists')->with('webp/sample.webp')->andReturn(true);
 
+    $saved = false;
+    Fish::saved(function () use (&$saved) {
+        $saved = true;
+    });
+
     $this->artisan('fish:check-webp')->assertSuccessful();
 
     expect($fish->fresh()->has_webp)->toBeTruthy();
-    expect($fish->fresh()->updated_at->eq($fish->updated_at))->toBeTrue();
+    expect($saved)->toBeFalse();
 });
