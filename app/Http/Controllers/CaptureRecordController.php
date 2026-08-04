@@ -154,7 +154,7 @@ class CaptureRecordController extends Controller
             'location' => $validated['location'],
             'capture_method' => $validated['capture_method'],
             'capture_date' => $validated['capture_date'],
-            'notes' => $validated['notes'],
+            'notes' => $validated['notes'] ?? null,
             'image_position' => $validated['image_position'] ?? null,
             'image_scale' => $validated['image_scale'] ?? null,
         ];
