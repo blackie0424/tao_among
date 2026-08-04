@@ -340,6 +340,52 @@ describe('Capture Record Inertia Endpoints', function () {
         $response->assertStatus(404);
     });
 
+    it('can update capture record image_position and image_scale', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create();
+        $captureRecord = CaptureRecord::factory()->create([
+            'fish_id' => $fish->id,
+            'tribe' => 'iraraley',
+            'location' => 'Original Location',
+        ]);
+
+        $updateData = [
+            'tribe' => 'iraraley',
+            'location' => 'Original Location',
+            'capture_method' => '網捕',
+            'capture_date' => '2024-01-15',
+            'image_position' => 'top',
+            'image_scale' => 1.5,
+        ];
+
+        $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
+
+        $response->assertRedirect("/fish/{$fish->id}/media-manager");
+
+        $this->assertDatabaseHas('capture_records', [
+            'id' => $captureRecord->id,
+            'image_position' => 'top',
+            'image_scale' => 1.5,
+        ]);
+    });
+
+    it('validates image_position when updating capture record', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create();
+        $captureRecord = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
+
+        $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", [
+            'tribe' => 'iraraley',
+            'location' => 'Test Location',
+            'capture_method' => '網捕',
+            'capture_date' => '2024-01-15',
+            'image_position' => 'invalid_position',
+        ]);
+
+        $response->assertStatus(302)
+            ->assertSessionHasErrors(['image_position']);
+    });
+
     it('includes tribes options in all pages', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create();

@@ -12,6 +12,7 @@
           :imgIndex="index"
           wrapperClass="w-full h-[170px] flex items-center justify-center bg-gray-100"
           imgClass="w-full h-full object-cover"
+          :imgStyle="displayImgStyle"
         />
       </div>
       <!-- 文字資訊區域 - 白色背景帶 padding -->
@@ -37,6 +38,8 @@
 import { Link } from '@inertiajs/vue3'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import Volume from '@/Components/UI/Volume.vue'
+import { computed } from 'vue'
+import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
 
 const props = defineProps({
   fish: {
@@ -48,4 +51,8 @@ const props = defineProps({
     default: 0,
   },
 })
+
+const displayImgStyle = computed(() =>
+  buildImageDisplayStyle(props.fish.display_image_position, props.fish.display_image_scale)
+)
 </script>
