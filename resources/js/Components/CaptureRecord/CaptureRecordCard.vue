@@ -7,6 +7,7 @@
         :alt="`${record.tribe} 捕獲紀錄`"
         wrapperClass="w-full h-48 bg-gray-100"
         imgClass="w-full h-full object-cover"
+        :imgStyle="recordImgStyle"
       />
 
       <!-- 當前主圖標記 -->
@@ -95,6 +96,7 @@ import LazyImage from '@/Components/UI/LazyImage.vue'
 import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 import ImageRotateModal from '@/Components/UI/ImageRotateModal.vue'
 import { computed, ref } from 'vue'
+import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
@@ -148,6 +150,10 @@ function setAsDisplayImage() {
 const recordImageUrl = computed(() => {
   return rotatedImageUrl.value || props.record.image_url || '/images/default-capture.png'
 })
+
+const recordImgStyle = computed(() =>
+  buildImageDisplayStyle(props.record.image_position, props.record.image_scale)
+)
 
 function onRotated(newUrl) {
   rotatedImageUrl.value = newUrl

@@ -358,4 +358,80 @@ describe('CaptureRecordRequest Validation', function () {
             ->and($request->messages())->toBe($sharedValidator->messages())
             ->and($request->attributes())->toBe($sharedValidator->attributes());
     });
+
+    it('allows null image_position and image_scale', function () {
+        $request = new CaptureRecordRequest();
+        $request->setMethod('PUT');
+
+        $data = [
+            'tribe' => 'iraraley',
+            'location' => 'Test Location',
+            'capture_method' => '網捕',
+            'capture_date' => '2024-01-15',
+            'image_position' => null,
+            'image_scale' => null,
+        ];
+
+        $validator = Validator::make($data, $request->rules());
+
+        expect($validator->passes())->toBeTrue();
+    });
+
+    it('validates image_position must be one of allowed values', function () {
+        $request = new CaptureRecordRequest();
+        $request->setMethod('PUT');
+
+        $validPositions = ['center', 'top', 'bottom', 'left', 'right'];
+        foreach ($validPositions as $position) {
+            $data = [
+                'tribe' => 'iraraley',
+                'location' => 'Test Location',
+                'capture_method' => '網捕',
+                'capture_date' => '2024-01-15',
+                'image_position' => $position,
+            ];
+            $validator = Validator::make($data, $request->rules());
+            expect($validator->errors()->has('image_position'))->toBeFalse("position '{$position}' should be valid");
+        }
+
+        $data = [
+            'tribe' => 'iraraley',
+            'location' => 'Test Location',
+            'capture_method' => '網捕',
+            'capture_date' => '2024-01-15',
+            'image_position' => 'invalid',
+        ];
+        $validator = Validator::make($data, $request->rules());
+        expect($validator->errors()->has('image_position'))->toBeTrue();
+    });
+
+    it('validates image_scale must be numeric between 1.0 and 3.0', function () {
+        $request = new CaptureRecordRequest();
+        $request->setMethod('PUT');
+
+        $baseData = [
+            'tribe' => 'iraraley',
+            'location' => 'Test Location',
+            'capture_method' => '網捕',
+            'capture_date' => '2024-01-15',
+        ];
+
+        // valid values
+        foreach ([1.0, 1.5, 2.0, 3.0] as $scale) {
+            $validator = Validator::make(array_merge($baseData, ['image_scale' => $scale]), $request->rules());
+            expect($validator->errors()->has('image_scale'))->toBeFalse("scale {$scale} should be valid");
+        }
+
+        // invalid: below min
+        $validator = Validator::make(array_merge($baseData, ['image_scale' => 0.5]), $request->rules());
+        expect($validator->errors()->has('image_scale'))->toBeTrue();
+
+        // invalid: above max
+        $validator = Validator::make(array_merge($baseData, ['image_scale' => 3.5]), $request->rules());
+        expect($validator->errors()->has('image_scale'))->toBeTrue();
+
+        // invalid: non-numeric
+        $validator = Validator::make(array_merge($baseData, ['image_scale' => 'big']), $request->rules());
+        expect($validator->errors()->has('image_scale'))->toBeTrue();
+    });
 });

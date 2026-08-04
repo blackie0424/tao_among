@@ -10,6 +10,8 @@ export function useCaptureFormFields(initialData = {}) {
     capture_method: initialData.capture_method ?? '',
     capture_date: initialData.capture_date ?? '',
     notes: initialData.notes ?? '',
+    image_position: initialData.image_position ?? 'center',
+    image_scale: initialData.image_scale ?? 1,
   })
 
   const errors = ref({})
@@ -36,6 +38,8 @@ export function useCaptureFormFields(initialData = {}) {
       capture_method: form.capture_method,
       capture_date: form.capture_date,
       notes: form.notes,
+      image_position: form.image_position,
+      image_scale: form.image_scale,
     }
   }
 

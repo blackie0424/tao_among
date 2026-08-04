@@ -10,6 +10,7 @@
           :alt="fish.name"
           wrapperClass="w-full h-full"
           imgClass="w-full h-full object-cover object-center"
+          :imgStyle="displayImgStyle"
         />
       </div>
 
@@ -43,11 +44,19 @@ import Volume from '@/Components/UI/Volume.vue'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import { usePage, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
+import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
 
-defineProps({
+const props = defineProps({
   fish: Object,
 })
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+
+const displayImgStyle = computed(() =>
+  buildImageDisplayStyle(
+    props.fish?.display_capture_record?.image_position ?? props.fish?.displayCaptureRecord?.image_position,
+    props.fish?.display_capture_record?.image_scale ?? props.fish?.displayCaptureRecord?.image_scale,
+  )
+)
 </script>

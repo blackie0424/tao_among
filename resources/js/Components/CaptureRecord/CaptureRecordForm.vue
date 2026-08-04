@@ -178,6 +178,48 @@
         ></textarea>
         <div v-if="errors.notes" class="text-red-500 text-base mt-1">{{ errors.notes }}</div>
       </div>
+
+      <!-- ── 圖片顯示調整（僅 edit mode） ── -->
+      <template v-if="isEditMode">
+        <div class="border-t border-gray-200 pt-6 space-y-6">
+          <h3 class="text-xl font-semibold text-gray-700">圖片顯示調整</h3>
+
+          <div>
+            <label for="image_position" class="block text-xl font-medium text-gray-700 mb-2">顯示位置</label>
+            <select
+              id="image_position"
+              v-model="form.image_position"
+              class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="center">置中</option>
+              <option value="top">靠上</option>
+              <option value="bottom">靠下</option>
+              <option value="left">靠左</option>
+              <option value="right">靠右</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="image_scale" class="block text-xl font-medium text-gray-700 mb-2">
+              縮放比例：{{ Number(form.image_scale).toFixed(1) }}x
+            </label>
+            <input
+              id="image_scale"
+              v-model.number="form.image_scale"
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              class="w-full"
+            />
+            <div class="flex justify-between text-sm text-gray-500 mt-1">
+              <span>1.0x</span>
+              <span>2.0x</span>
+              <span>3.0x</span>
+            </div>
+          </div>
+        </div>
+      </template>
     </template>
 
   </form>
@@ -238,6 +280,8 @@ onMounted(() => {
       ? new Date(props.record.capture_date).toISOString().split('T')[0]
       : ''
     form.notes = props.record.notes || ''
+    form.image_position = props.record.image_position || 'center'
+    form.image_scale = props.record.image_scale != null ? parseFloat(props.record.image_scale) : 1
   }
 })
 
