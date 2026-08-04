@@ -31,7 +31,7 @@ class CheckFishWebp extends Command
                 $webpPath = $webpFolder . '/' . $baseName . '.webp';
                 $hasWebp = $this->storage->fileExists($webpPath);
 
-                if ($fish->has_webp !== $hasWebp) {
+                if ((bool) $fish->has_webp !== $hasWebp) {
                     $fish->has_webp = $hasWebp;
                     $fish->save();
                 }

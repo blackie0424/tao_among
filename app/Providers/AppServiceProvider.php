@@ -51,6 +51,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $request = $this->app['request'];
+
+        if ($this->app->environment(['local', 'testing']) && $request->getHost()) {
+            $currentUrl = $request->getSchemeAndHttpHost();
+
+            if ($currentUrl !== config('app.url')) {
+                URL::useOrigin($currentUrl);
+                URL::useAssetOrigin($currentUrl);
+                config()->set('app.url', $currentUrl);
+                config()->set('app.asset_url', $currentUrl);
+            }
+        }
+
         // 生產環境強制使用 HTTPS 協定
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
