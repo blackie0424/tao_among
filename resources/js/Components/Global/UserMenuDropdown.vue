@@ -27,12 +27,12 @@
           田調工作區
         </Link>
         <Link
-          href="/fishs"
-          data-testid="link-fishs"
+          href="/fish/batch-create"
+          data-testid="link-batch-create"
           class="block w-full text-left px-4 py-2.5 text-elder-aux text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
           @click="$emit('close')"
         >
-          魚種列表
+          新增魚種
         </Link>
       </template>
 
