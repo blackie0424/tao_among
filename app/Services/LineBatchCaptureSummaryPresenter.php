@@ -74,6 +74,7 @@ class LineBatchCaptureSummaryPresenter
             ],
             'waiting_confirm' => [
                 ['label' => '✅ 確認送出', 'data' => 'action=confirm_batch_capture_record', 'display_text' => '確認送出批次捕獲紀錄'],
+                ['label' => '✏️ 編輯備註', 'data' => 'action=prompt_batch_capture_notes', 'display_text' => '編輯備註', 'style' => 'secondary'],
                 ['label' => '🔁 重新填寫', 'data' => 'action=reset_batch_capture_form', 'display_text' => '重新填寫捕獲資料', 'style' => 'secondary'],
                 ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
             ],
