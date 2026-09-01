@@ -13,6 +13,12 @@ describe('useCaptureFormFields', () => {
     expect(form.notes).toBe('')
   })
 
+  it('無 initialData 時，image_position 預設 center、image_scale 預設 1', () => {
+    const { form } = useCaptureFormFields()
+    expect(form.image_position).toBe('center')
+    expect(form.image_scale).toBe(1)
+  })
+
   it('傳入 initialData 時，正確初始化欄位值', () => {
     const { form } = useCaptureFormFields({
       tribe: 'ivalino',
@@ -107,6 +113,8 @@ describe('useCaptureFormFields', () => {
       capture_method: 'mamasil',
       capture_date: '2026-06-01',
       notes: '天氣晴',
+      image_position: 'top',
+      image_scale: 1.5,
     })
     const data = buildFormData()
     expect(data).toEqual({
@@ -115,6 +123,8 @@ describe('useCaptureFormFields', () => {
       capture_method: 'mamasil',
       capture_date: '2026-06-01',
       notes: '天氣晴',
+      image_position: 'top',
+      image_scale: 1.5,
     })
   })
 

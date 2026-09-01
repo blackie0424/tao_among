@@ -251,7 +251,7 @@ class FishSearchService implements FishSearchServiceInterface
             ->select($selects)
             ->with([
                 'tribalClassifications:id,fish_id,tribe,food_category',
-                'displayCaptureRecord:id,image_path'
+                'displayCaptureRecord:id,image_path,image_position,image_scale'
             ])
             ->find($id);
 
@@ -264,6 +264,8 @@ class FishSearchService implements FishSearchServiceInterface
             'name' => $fish->name,
             'image_url' => $fish->image_url,
             'display_image_url' => $fish->display_image_url,
+            'display_image_position' => $fish->displayCaptureRecord?->image_position ?? null,
+            'display_image_scale' => $fish->displayCaptureRecord?->image_scale ?? null,
             'audio_url' => $fish->audio_url,
             'tribal_classifications' => $fish->tribalClassifications->map(fn ($tc) => [
                 'tribe' => $tc->tribe,
@@ -302,7 +304,7 @@ class FishSearchService implements FishSearchServiceInterface
         $query = Fish::query()
             ->select($selects)
             ->with([
-                'displayCaptureRecord:id,image_path' // 預載圖鑑主圖關聯（僅需 id 和 image_path）
+                'displayCaptureRecord:id,image_path,image_position,image_scale' // 預載圖鑑主圖關聯
             ])
             ->orderByDesc('id');
 
@@ -382,6 +384,8 @@ class FishSearchService implements FishSearchServiceInterface
                 'name' => $f->name,
                 'image_url' => $f->image_url,
                 'display_image_url' => $f->display_image_url, // 優先使用圖鑑主圖
+                'display_image_position' => $f->displayCaptureRecord?->image_position ?? null,
+                'display_image_scale' => $f->displayCaptureRecord?->image_scale ?? null,
                 'audio_url' => $f->audio_url, // 透過模型 accessor 轉換為完整播放連結
             ];
         })->all();

@@ -37,8 +37,20 @@ it('has_webp 未變更時不執行 save', function () {
     $storage->shouldReceive('getWebpFolder')->andReturn('webp');
     $storage->shouldReceive('fileExists')->with('webp/sample.webp')->andReturn(true);
 
+    // 在 factory create 之後才註冊監聽，避免捕捉到 create 本身的查詢
+    $updateExecuted = false;
+    \Illuminate\Support\Facades\DB::listen(function ($query) use (&$updateExecuted, $fish) {
+        if (
+            str_contains(strtolower($query->sql), 'update') &&
+            str_contains(strtolower($query->sql), 'fish') &&
+            in_array($fish->id, $query->bindings)
+        ) {
+            $updateExecuted = true;
+        }
+    });
+
     $this->artisan('fish:check-webp')->assertSuccessful();
 
     expect($fish->fresh()->has_webp)->toBeTruthy();
-    expect($fish->fresh()->updated_at->eq($fish->updated_at))->toBeTrue();
+    expect($updateExecuted)->toBeFalse();
 });

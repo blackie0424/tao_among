@@ -19,11 +19,14 @@ class CaptureRecord extends Model
         'location',
         'capture_method',
         'capture_date',
-        'notes'
+        'notes',
+        'image_position',
+        'image_scale',
     ];
 
     protected $casts = [
         'capture_date' => 'date',
+        'image_scale' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
