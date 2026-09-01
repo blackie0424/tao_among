@@ -33,7 +33,7 @@ describe('AdminLayout', () => {
     vi.clearAllMocks()
   })
 
-  it('不顯示錯誤訊息當 errors.error 不存在', () => {
+  it('不顯示錯誤訊息當 errors.error 不存在', async () => {
     const { usePage } = await import('@inertiajs/vue3')
     usePage.mockReturnValue({
       props: {
