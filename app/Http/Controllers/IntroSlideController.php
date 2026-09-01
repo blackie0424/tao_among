@@ -130,6 +130,11 @@ class IntroSlideController extends BaseController
             return $filename;
         }
 
-        return $this->storageService->uploadFile($file, 'intro-slides');
+        // 產生完整路徑: intro-slides/{uniqid}.{ext}
+        $extension = $file->getClientOriginalExtension();
+        $filename = uniqid('slide_') . '.' . $extension;
+        $fullPath = 'intro-slides/' . $filename;
+
+        return $this->storageService->uploadFile($file, $fullPath);
     }
 }

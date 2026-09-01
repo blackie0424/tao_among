@@ -95,6 +95,8 @@ it('admin 可以上傳圖片並新增 photo 類型的 intro-slide', function () 
     $slide = IntroSlide::where('title', '圖片投影片')->first();
     expect($slide)->not->toBeNull();
     expect($slide->media_path)->toStartWith('intro-slides/');
+    // 驗證路徑包含副檔名 (修正 uploadFile 呼叫方式後應該符合 intro-slides/{filename}.jpg 格式)
+    expect($slide->media_path)->toMatch('/^intro-slides\/.+\.(jpg|jpeg|png|gif|webp)$/');
 });
 
 it('store 驗證：title 必填', function () {
