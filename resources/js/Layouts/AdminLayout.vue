@@ -201,7 +201,12 @@ defineProps({
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const currentUrl = computed(() => page.url)
-const globalError = computed(() => page.props.errors?.error)
+const globalError = computed(() => {
+  const error = page.props.errors?.error
+  if (!error) return null
+  // 如果是字串直接回傳,如果是物件提取 message 屬性
+  return typeof error === 'string' ? error : (error.message || String(error))
+})
 const sidebarOpen = ref(false)
 
 watch(sidebarOpen, (val) => {

@@ -121,4 +121,33 @@ describe('AdminLayout', () => {
     expect(alert.classes()).toContain('border-red-200')
     expect(alert.classes()).toContain('text-red-800')
   })
+
+  it('處理錯誤物件並提取訊息', async () => {
+    const { usePage } = await import('@inertiajs/vue3')
+    usePage.mockReturnValue({
+      props: {
+        auth: { user: { name: 'Test Admin' } },
+        errors: {
+          error: { message: '這是錯誤物件的訊息' },
+        },
+      },
+      url: '/admin',
+    })
+
+    const wrapper = mount(AdminLayout, {
+      props: {
+        title: 'Test Page',
+      },
+      global: {
+        components: { Link },
+        stubs: {
+          Link: true,
+        },
+      },
+    })
+
+    const alert = wrapper.find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(alert.text()).toContain('這是錯誤物件的訊息')
+  })
 })
