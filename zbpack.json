@@ -1,0 +1,3 @@
+{
+    "start_command": "php artisan migrate --force && _startup"
+}
