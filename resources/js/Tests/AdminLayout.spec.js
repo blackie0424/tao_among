@@ -65,7 +65,8 @@ describe('AdminLayout', () => {
       props: {
         auth: { user: { name: 'Test Admin' } },
         errors: {
-          error: '檔案上傳失敗,請稍後再試',
+          // Laravel MessageBag::getMessages() 回傳陣列格式
+          error: ['檔案上傳失敗,請稍後再試'],
         },
       },
       url: '/admin',
@@ -87,7 +88,7 @@ describe('AdminLayout', () => {
     const alert = wrapper.find('[role="alert"]')
     expect(alert.exists()).toBe(true)
 
-    // 應該包含錯誤訊息
+    // 應該包含錯誤訊息 (取陣列第一個元素)
     expect(alert.text()).toContain('發生錯誤')
     expect(alert.text()).toContain('檔案上傳失敗,請稍後再試')
   })
@@ -98,7 +99,7 @@ describe('AdminLayout', () => {
       props: {
         auth: { user: { name: 'Test Admin' } },
         errors: {
-          error: '測試錯誤',
+          error: ['測試錯誤'],
         },
       },
       url: '/admin',
@@ -122,13 +123,14 @@ describe('AdminLayout', () => {
     expect(alert.classes()).toContain('text-red-800')
   })
 
-  it('處理錯誤物件並提取訊息', async () => {
+  it('正確從陣列取出第一個錯誤訊息', async () => {
     const { usePage } = await import('@inertiajs/vue3')
     usePage.mockReturnValue({
       props: {
         auth: { user: { name: 'Test Admin' } },
         errors: {
-          error: { message: '這是錯誤物件的訊息' },
+          // 模擬 Laravel MessageBag 可能回傳多個訊息的情境
+          error: ['第一個錯誤訊息', '第二個錯誤訊息'],
         },
       },
       url: '/admin',
@@ -148,6 +150,8 @@ describe('AdminLayout', () => {
 
     const alert = wrapper.find('[role="alert"]')
     expect(alert.exists()).toBe(true)
-    expect(alert.text()).toContain('這是錯誤物件的訊息')
+    // 應該只顯示第一個訊息
+    expect(alert.text()).toContain('第一個錯誤訊息')
+    expect(alert.text()).not.toContain('第二個錯誤訊息')
   })
 })

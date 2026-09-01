@@ -204,8 +204,9 @@ const currentUrl = computed(() => page.url)
 const globalError = computed(() => {
   const error = page.props.errors?.error
   if (!error) return null
-  // 如果是字串直接回傳,如果是物件提取 message 屬性
-  return typeof error === 'string' ? error : (error.message || String(error))
+  // Laravel MessageBag::getMessages() 回傳的 error 是陣列格式
+  // 取第一個訊息即可
+  return Array.isArray(error) ? error[0] : error
 })
 const sidebarOpen = ref(false)
 
