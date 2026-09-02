@@ -98,13 +98,32 @@
         </button>
       </div>
 
-      <!-- 部落地圖 -->
+      <!-- 知識分類 -->
       <section>
-        <h2 class="text-center text-lg font-bold text-gray-800 mb-4">依部落瀏覽</h2>
-        <div class="flex justify-center">
-          <LanyuMap @tribe-click="onTribeClick" />
+        <h2 class="text-center text-lg font-bold text-gray-800 mb-4">探索蘭嶼</h2>
+        <div class="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+          <div
+            v-for="category in knowledgeCategories"
+            :key="category.id"
+            class="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition"
+            @click="goToCategory(category)"
+          >
+            <div class="relative h-32">
+              <img
+                v-if="category.image_url"
+                :src="category.image_url"
+                :alt="category.title"
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center">
+                <span class="text-gray-400">無圖片</span>
+              </div>
+            </div>
+            <div class="p-3 text-center">
+              <h3 class="text-elder-body font-semibold text-gray-800">{{ category.title }}</h3>
+            </div>
+          </div>
         </div>
-        <p class="text-center text-xs text-gray-400 mt-2">點選部落名稱可查看該部落的魚類紀錄</p>
       </section>
 
     </div>
@@ -116,13 +135,29 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import AnimatedText from '@/Components/UI/AnimatedText.vue'
-import LanyuMap from '@/Components/Homepage/LanyuMap.vue'
 
 const props = defineProps({
   slides: {
     type: Array,
     default: () => [],
   },
+})
+
+// Knowledge categories
+const knowledgeCategories = ref([])
+
+onMounted(async () => {
+  if (props.slides.length > 1) resetTimer()
+  
+  // 取得已發布的知識分類
+  try {
+    const response = await fetch('/prefix/api/knowledge-categories')
+    if (response.ok) {
+      knowledgeCategories.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Failed to fetch knowledge categories:', error)
+  }
 })
 
 // Slideshow
@@ -146,9 +181,6 @@ function resetTimer() {
   }
 }
 
-onMounted(() => {
-  if (props.slides.length > 1) resetTimer()
-})
 onUnmounted(() => {
   if (autoTimer) clearInterval(autoTimer)
 })
@@ -164,8 +196,12 @@ function goFishs() {
   router.visit('/fishs')
 }
 
-function onTribeClick(tribe) {
-  router.visit(`/fishs?tribe=${tribe}`)
+function goToCategory(category) {
+  if (category.is_fish_category) {
+    router.visit('/fishs')
+  } else {
+    router.visit(`/knowledge/${category.slug}`)
+  }
 }
 
 // PWA
