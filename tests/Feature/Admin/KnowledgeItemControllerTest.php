@@ -29,7 +29,7 @@ it('editor 無法存取 knowledge-items', function () {
 // --- Index ---
 
 it('admin 可以瀏覽 knowledge-items 列表', function () {
-    KnowledgeItem::factory()->count(3)->for($this->category)->create();
+    KnowledgeItem::factory()->count(3)->for($this->category, 'category')->create();
 
     $this->actingAs($this->admin)
         ->get('/admin/knowledge-items')
@@ -42,10 +42,10 @@ it('admin 可以瀏覽 knowledge-items 列表', function () {
 });
 
 it('admin 可以按分類篩選 knowledge-items', function () {
-    KnowledgeItem::factory()->count(2)->for($this->category)->create();
+    KnowledgeItem::factory()->count(2)->for($this->category, 'category')->create();
     
     $otherCategory = KnowledgeCategory::where('id', '!=', $this->category->id)->first();
-    KnowledgeItem::factory()->count(1)->for($otherCategory)->create();
+    KnowledgeItem::factory()->count(1)->for($otherCategory, 'category')->create();
 
     $this->actingAs($this->admin)
         ->get("/admin/knowledge-items?category_id={$this->category->id}")
@@ -80,7 +80,7 @@ it('admin 可以新增 knowledge-item', function () {
             'image_path' => 'knowledge-items/flying-fish.jpg',
             'is_published' => true,
         ])
-        ->assertRedirect('/admin/knowledge-items');
+        ->assertRedirect("/admin/knowledge-items?category_id={$this->category->id}");
 
     $item = KnowledgeItem::where('title', '飛魚')->first();
     expect($item)->not->toBeNull();
@@ -91,8 +91,8 @@ it('admin 可以新增 knowledge-item', function () {
 
 it('store 自動計算 sort_order 為該分類最大值+1', function () {
     // 先建立一個項目
-    KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 0]);
-    KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 1]);
+    KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 0]);
+    KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 1]);
 
     $this->actingAs($this->admin)
         ->post('/admin/knowledge-items', [
@@ -124,7 +124,7 @@ it('store 驗證：knowledge_category_id 必填', function () {
 // --- Edit ---
 
 it('admin 可以瀏覽 knowledge-item 編輯頁面', function () {
-    $item = KnowledgeItem::factory()->for($this->category)->create();
+    $item = KnowledgeItem::factory()->for($this->category, 'category')->create();
 
     $this->actingAs($this->admin)
         ->get("/admin/knowledge-items/{$item->id}/edit")
@@ -139,7 +139,7 @@ it('admin 可以瀏覽 knowledge-item 編輯頁面', function () {
 // --- Update ---
 
 it('admin 可以更新 knowledge-item', function () {
-    $item = KnowledgeItem::factory()->for($this->category)->create();
+    $item = KnowledgeItem::factory()->for($this->category, 'category')->create();
 
     $this->actingAs($this->admin)
         ->put("/admin/knowledge-items/{$item->id}", [
@@ -160,7 +160,7 @@ it('admin 可以更新 knowledge-item', function () {
 // --- Delete ---
 
 it('admin 可以刪除 knowledge-item', function () {
-    $item = KnowledgeItem::factory()->for($this->category)->create();
+    $item = KnowledgeItem::factory()->for($this->category, 'category')->create();
 
     $this->actingAs($this->admin)
         ->delete("/admin/knowledge-items/{$item->id}")
@@ -172,7 +172,7 @@ it('admin 可以刪除 knowledge-item', function () {
 // --- Toggle Published ---
 
 it('admin 可以切換項目的發布狀態', function () {
-    $item = KnowledgeItem::factory()->for($this->category)->create(['is_published' => false]);
+    $item = KnowledgeItem::factory()->for($this->category, 'category')->create(['is_published' => false]);
 
     $this->actingAs($this->admin)
         ->patch("/admin/knowledge-items/{$item->id}/toggle-published")
@@ -185,8 +185,8 @@ it('admin 可以切換項目的發布狀態', function () {
 // --- Move Up ---
 
 it('admin 可以上移項目（限定同分類）', function () {
-    $first = KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 0]);
-    $second = KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 1]);
+    $first = KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 0]);
+    $second = KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 1]);
 
     $this->actingAs($this->admin)
         ->patch("/admin/knowledge-items/{$second->id}/move-up")
@@ -200,11 +200,11 @@ it('admin 可以上移項目（限定同分類）', function () {
 });
 
 it('上移不會影響其他分類的項目', function () {
-    $item1 = KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 0]);
-    $item2 = KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 1]);
+    $item1 = KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 0]);
+    $item2 = KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 1]);
     
     $otherCategory = KnowledgeCategory::where('id', '!=', $this->category->id)->first();
-    $otherItem = KnowledgeItem::factory()->for($otherCategory)->create(['sort_order' => 0]);
+    $otherItem = KnowledgeItem::factory()->for($otherCategory, 'category')->create(['sort_order' => 0]);
 
     $this->actingAs($this->admin)
         ->patch("/admin/knowledge-items/{$item2->id}/move-up");
@@ -216,8 +216,8 @@ it('上移不會影響其他分類的項目', function () {
 // --- Move Down ---
 
 it('admin 可以下移項目（限定同分類）', function () {
-    $first = KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 0]);
-    $second = KnowledgeItem::factory()->for($this->category)->create(['sort_order' => 1]);
+    $first = KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 0]);
+    $second = KnowledgeItem::factory()->for($this->category, 'category')->create(['sort_order' => 1]);
 
     $this->actingAs($this->admin)
         ->patch("/admin/knowledge-items/{$first->id}/move-down")

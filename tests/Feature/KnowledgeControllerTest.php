@@ -32,7 +32,7 @@ it('API 回傳已發布的知識分類', function () {
 // --- Index (清單頁) ---
 
 it('可以瀏覽知識分類清單頁', function () {
-    KnowledgeItem::factory()->count(3)->for($this->category)->published()->create();
+    KnowledgeItem::factory()->count(3)->for($this->category, 'category')->published()->create();
 
     $this->get("/knowledge/{$this->category->slug}")
         ->assertOk()
@@ -44,8 +44,8 @@ it('可以瀏覽知識分類清單頁', function () {
 });
 
 it('清單頁只顯示已發布的項目', function () {
-    KnowledgeItem::factory()->for($this->category)->published()->create(['title' => '已發布項目']);
-    KnowledgeItem::factory()->for($this->category)->create(['title' => '草稿項目', 'is_published' => false]);
+    KnowledgeItem::factory()->for($this->category, 'category')->published()->create(['title' => '已發布項目']);
+    KnowledgeItem::factory()->for($this->category, 'category')->create(['title' => '草稿項目', 'is_published' => false]);
 
     $this->get("/knowledge/{$this->category->slug}")
         ->assertOk()
@@ -56,9 +56,9 @@ it('清單頁只顯示已發布的項目', function () {
 });
 
 it('清單頁按 sort_order 排序', function () {
-    $item1 = KnowledgeItem::factory()->for($this->category)->published()->create(['title' => '第三', 'sort_order' => 2]);
-    $item2 = KnowledgeItem::factory()->for($this->category)->published()->create(['title' => '第一', 'sort_order' => 0]);
-    $item3 = KnowledgeItem::factory()->for($this->category)->published()->create(['title' => '第二', 'sort_order' => 1]);
+    $item1 = KnowledgeItem::factory()->for($this->category, 'category')->published()->create(['title' => '第三', 'sort_order' => 2]);
+    $item2 = KnowledgeItem::factory()->for($this->category, 'category')->published()->create(['title' => '第一', 'sort_order' => 0]);
+    $item3 = KnowledgeItem::factory()->for($this->category, 'category')->published()->create(['title' => '第二', 'sort_order' => 1]);
 
     $this->get("/knowledge/{$this->category->slug}")
         ->assertOk()
@@ -85,7 +85,7 @@ it('未發布的分類回傳 404', function () {
 // --- Show (詳細頁) ---
 
 it('可以瀏覽知識項目詳細頁', function () {
-    $item = KnowledgeItem::factory()->for($this->category)->published()->create([
+    $item = KnowledgeItem::factory()->for($this->category, 'category')->published()->create([
         'title' => '測試項目',
         'description' => '這是詳細說明',
     ]);
@@ -102,7 +102,7 @@ it('可以瀏覽知識項目詳細頁', function () {
 });
 
 it('未發布的項目回傳 404', function () {
-    $item = KnowledgeItem::factory()->for($this->category)->create(['is_published' => false]);
+    $item = KnowledgeItem::factory()->for($this->category, 'category')->create(['is_published' => false]);
 
     $this->get("/knowledge/{$this->category->slug}/{$item->id}")
         ->assertNotFound();
@@ -117,7 +117,7 @@ it('跨分類存取項目回傳 404', function () {
     $otherCategory = KnowledgeCategory::where('slug', 'fishing-method')->first();
     $otherCategory->update(['is_published' => true]);
     
-    $item = KnowledgeItem::factory()->for($otherCategory)->published()->create();
+    $item = KnowledgeItem::factory()->for($otherCategory, 'category')->published()->create();
 
     // 用錯誤的分類 slug 存取
     $this->get("/knowledge/{$this->category->slug}/{$item->id}")
