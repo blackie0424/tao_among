@@ -48,10 +48,6 @@ Route::get('/search', [FishController::class, 'search'])->name('fish.search');
 Route::get('/knowledge/{slug}', [KnowledgeController::class, 'index'])->name('knowledge.index');
 Route::get('/knowledge/{slug}/{itemId}', [KnowledgeController::class, 'show'])->name('knowledge.show');
 
-// 知識分類公開頁面
-Route::get('/knowledge/{slug}', [KnowledgeController::class, 'index'])->name('knowledge.index');
-Route::get('/knowledge/{slug}/{itemId}', [KnowledgeController::class, 'show'])->name('knowledge.show');
-
 // =====================================================
 // 需要登入的路由
 // =====================================================
