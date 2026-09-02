@@ -98,6 +98,7 @@ it('store 自動計算 sort_order 為該分類最大值+1', function () {
         ->post('/admin/knowledge-items', [
             'knowledge_category_id' => $this->category->id,
             'title' => '新項目',
+            'image_path' => 'knowledge-items/new-item.jpg',
             'is_published' => false,
         ]);
 
