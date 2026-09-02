@@ -25,13 +25,19 @@ export function useImageUpload({ autoUpload = false } = {}) {
     return Promise.resolve()
   }
 
-  async function uploadImage(file) {
+  async function uploadImage(file, options = {}) {
+    const { folder } = options
     uploading.value = true
     imageError.value = null
     try {
+      const requestBody = { filename: file.name }
+      if (folder) {
+        requestBody.folder = folder
+      }
+      
       const signedUrlRes = await apiFetch('/prefix/api/storage/signed-upload-url', {
         method: 'POST',
-        body: JSON.stringify({ filename: file.name }),
+        body: JSON.stringify(requestBody),
       })
       const signedUrlData = await signedUrlRes.json()
       if (!signedUrlRes.ok) {

@@ -117,7 +117,6 @@ import { ref, reactive } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import { useImageUpload } from '@/composables/useImageUpload'
-import { apiFetch } from '@/utils/apiFetch'
 
 defineProps({
   categories: Array,
@@ -141,9 +140,7 @@ const {
   uploading,
   uploadedFilename,
   imageError,
-  handleImageChange,
   uploadImage,
-  removeImage,
 } = useImageUpload({ autoUpload: false })
 
 async function onFileChange(e) {
@@ -155,43 +152,12 @@ async function onFileChange(e) {
   reader.onload = (event) => { imagePreview.value = event.target.result }
   reader.readAsDataURL(file)
 
-  // 上傳圖片到 intro-slides 資料夾
+  // 使用 composable 上傳到 intro-slides 資料夾
   try {
-    const filename = await uploadToIntroSlides(file)
+    const filename = await uploadImage(file, { folder: 'intro-slides' })
     form.media_path = `intro-slides/${filename}`
   } catch (err) {
     errors.value = { ...errors.value, photo: err.message || '上傳失敗' }
-  }
-}
-
-async function uploadToIntroSlides(file) {
-  uploading.value = true
-  imageError.value = null
-  try {
-    const signedUrlRes = await apiFetch('/prefix/api/storage/signed-upload-url', {
-      method: 'POST',
-      body: JSON.stringify({ filename: file.name, folder: 'intro-slides' }),
-    })
-    const signedUrlData = await signedUrlRes.json()
-    if (!signedUrlRes.ok) {
-      throw new Error(signedUrlData.message || '取得上傳網址失敗')
-    }
-
-    const uploadRes = await fetch(signedUrlData.url, {
-      method: 'PUT',
-      body: file,
-    })
-    if (!uploadRes.ok) {
-      throw new Error('圖片上傳失敗')
-    }
-
-    uploadedFilename.value = signedUrlData.filename
-    return signedUrlData.filename
-  } catch (e) {
-    imageError.value = e.message || '上傳失敗'
-    throw e
-  } finally {
-    uploading.value = false
   }
 }
 
