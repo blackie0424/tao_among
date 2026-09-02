@@ -318,7 +318,12 @@ class UploadController extends Controller
         $folder = $request->input('folder', 'images');
         
         // 根據資料夾選擇路徑
-        $path = $folder === 'intro-slides' ? 'intro-slides' : $service->getImageFolder();
+        $path = match ($folder) {
+            'intro-slides' => 'intro-slides',
+            'knowledge-categories' => 'knowledge-categories',
+            'knowledge-items' => 'knowledge-items',
+            default => $service->getImageFolder(),
+        };
         
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
