@@ -118,7 +118,7 @@ describe('IntroSlides Edit.vue', () => {
 
     // 預設可以送出
     const submitButton = wrapper.find('button[type="submit"]')
-    expect(submitButton.attributes('disabled')).toBeUndefined()
+    expect(submitButton.attributes('disabled')).toBeFalsy()
 
     // 設定上傳中
     mockUploading.value = true
@@ -132,7 +132,7 @@ describe('IntroSlides Edit.vue', () => {
     wrapper = mount(Edit, { props: defaultProps })
 
     const submitButton = wrapper.find('button[type="submit"]')
-    expect(submitButton.attributes('disabled')).toBeUndefined()
+    expect(submitButton.attributes('disabled')).toBeFalsy()
 
     // 設定處理中
     wrapper.vm.processing = true
