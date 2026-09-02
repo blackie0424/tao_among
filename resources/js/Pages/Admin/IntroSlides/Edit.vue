@@ -5,7 +5,7 @@
     <div class="mx-auto max-w-3xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <h1 class="mb-6 text-2xl font-bold text-gray-900">編輯首頁投影片</h1>
 
-      <form @submit.prevent="submit" enctype="multipart/form-data" class="space-y-5">
+      <form @submit.prevent="submit" class="space-y-5">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">標題 <span class="text-red-500">*</span></label>
           <input
@@ -55,10 +55,16 @@
             type="file"
             accept="image/*"
             class="block w-full text-sm text-gray-600"
+            :disabled="uploading"
             @change="onFileChange"
           />
-          <p v-if="slide.media_path && !form.photo" class="mt-1 text-xs text-gray-400">目前：{{ slide.media_path }}</p>
+          <p v-if="uploading" class="mt-1 text-xs text-blue-600">上傳中...</p>
+          <p v-if="imageError" class="mt-1 text-xs text-red-600">{{ imageError }}</p>
+          <p v-if="slide.media_path && !imagePreview" class="mt-1 text-xs text-gray-400">目前：{{ slide.media_path }}</p>
           <p v-if="errors.photo" class="mt-1 text-xs text-red-600">{{ errors.photo }}</p>
+          <div v-if="imagePreview" class="mt-3">
+            <img :src="imagePreview" alt="預覽" class="max-h-40 rounded border" />
+          </div>
         </div>
 
         <div v-if="form.media_type === 'youtube'">
@@ -94,7 +100,7 @@
         <div class="flex items-center gap-3 pt-2">
           <button
             type="submit"
-            :disabled="processing"
+            :disabled="processing || uploading"
             class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
             儲存變更
@@ -107,9 +113,10 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import { useImageUpload } from '@/composables/useImageUpload'
 
 const props = defineProps({
   slide: Object,
@@ -122,32 +129,64 @@ const form = reactive({
   category_id: props.slide.category_id ?? null,
   media_type: props.slide.media_type,
   media_path: props.slide.media_path ?? '',
-  photo: null,
   sort_order: props.slide.sort_order,
   is_published: props.slide.is_published,
 })
 const errors = ref({})
 const processing = ref(false)
 
-function onFileChange(e) {
-  form.photo = e.target.files[0] ?? null
+// 使用 useImageUpload composable
+const {
+  imagePreview,
+  uploading,
+  uploadedFilename,
+  imageError,
+  uploadImage,
+} = useImageUpload({ autoUpload: false })
+
+// 監聽 media_type 切換,清空相關狀態
+watch(() => form.media_type, () => {
+  form.media_path = ''
+  imagePreview.value = null
+  uploadedFilename.value = null
+  imageError.value = null
+})
+
+async function onFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  // 建立預覽
+  const reader = new FileReader()
+  reader.onload = (event) => { imagePreview.value = event.target.result }
+  reader.readAsDataURL(file)
+
+  // 使用 composable 上傳到 intro-slides 資料夾
+  try {
+    const filename = await uploadImage(file, { folder: 'intro-slides' })
+    form.media_path = `intro-slides/${filename}`
+  } catch (err) {
+    errors.value = { ...errors.value, photo: err.message || '上傳失敗' }
+  }
 }
 
 function submit() {
   processing.value = true
-  const data = new FormData()
-  data.append('_method', 'PUT')
-  data.append('title', form.title)
-  data.append('body', form.body ?? '')
-  if (form.category_id) data.append('category_id', form.category_id)
-  data.append('media_type', form.media_type)
-  if (form.media_type === 'photo' && form.photo) data.append('photo', form.photo)
-  if (form.media_type === 'youtube') data.append('media_path', form.media_path)
-  data.append('sort_order', form.sort_order)
-  data.append('is_published', form.is_published ? '1' : '0')
+  errors.value = {}
 
-  router.post(`/admin/intro-slides/${props.slide.id}`, data, {
-    forceFormData: true,
+  const data = {
+    title: form.title,
+    body: form.body || '',
+    media_type: form.media_type,
+    media_path: form.media_path,
+    sort_order: form.sort_order,
+    is_published: form.is_published,
+  }
+  if (form.category_id) {
+    data.category_id = form.category_id
+  }
+
+  router.put(`/admin/intro-slides/${props.slide.id}`, data, {
     onError: (e) => { errors.value = e },
     onFinish: () => { processing.value = false },
   })

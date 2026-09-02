@@ -42,24 +42,17 @@ class IntroSlideController extends BaseController
             'title'       => 'required|string|max:255',
             'body'        => 'nullable|string',
             'media_type'  => 'required|in:photo,youtube',
-            'media_path'  => 'nullable|string|required_if:media_type,youtube',
-            'photo'       => 'nullable|file|image|max:5120|required_if:media_type,photo',
+            'media_path'  => 'required|string',
             'sort_order'  => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
         ]);
-
-        $mediaPath = $data['media_path'] ?? null;
-
-        if ($data['media_type'] === 'photo' && $request->hasFile('photo')) {
-            $mediaPath = $this->uploadPhoto($request);
-        }
 
         IntroSlide::create([
             'category_id'  => $data['category_id'] ?? null,
             'title'        => $data['title'],
             'body'         => $data['body'] ?? null,
             'media_type'   => $data['media_type'],
-            'media_path'   => $mediaPath,
+            'media_path'   => $data['media_path'],
             'sort_order'   => $data['sort_order'] ?? 0,
             'is_published' => $data['is_published'] ?? false,
         ]);
@@ -82,24 +75,17 @@ class IntroSlideController extends BaseController
             'title'        => 'required|string|max:255',
             'body'         => 'nullable|string',
             'media_type'   => 'required|in:photo,youtube',
-            'media_path'   => 'nullable|string|required_if:media_type,youtube',
-            'photo'        => 'nullable|file|image|max:5120',
+            'media_path'   => 'required|string',
             'sort_order'   => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
         ]);
-
-        $mediaPath = $data['media_path'] ?? $introSlide->media_path;
-
-        if ($data['media_type'] === 'photo' && $request->hasFile('photo')) {
-            $mediaPath = $this->uploadPhoto($request);
-        }
 
         $introSlide->update([
             'category_id'  => $data['category_id'] ?? null,
             'title'        => $data['title'],
             'body'         => $data['body'] ?? null,
             'media_type'   => $data['media_type'],
-            'media_path'   => $mediaPath,
+            'media_path'   => $data['media_path'],
             'sort_order'   => $data['sort_order'] ?? 0,
             'is_published' => $data['is_published'] ?? false,
         ]);
@@ -119,17 +105,5 @@ class IntroSlideController extends BaseController
         $introSlide->update(['is_published' => !$introSlide->is_published]);
 
         return redirect('/admin/intro-slides')->with('success', '發布狀態已更新');
-    }
-
-    private function uploadPhoto(Request $request): string
-    {
-        $file = $request->file('photo');
-
-        if (app()->environment('local', 'testing')) {
-            $filename = $file->store('intro-slides', 'public');
-            return $filename;
-        }
-
-        return $this->storageService->uploadFile($file, 'intro-slides');
     }
 }

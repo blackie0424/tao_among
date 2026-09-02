@@ -4,8 +4,6 @@ use App\Models\IntroCategory;
 use App\Models\IntroSlide;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -76,17 +74,12 @@ it('admin 可以新增 youtube 類型的 intro-slide', function () {
 
 // --- Store (Photo) ---
 
-it('admin 可以上傳圖片並新增 photo 類型的 intro-slide', function () {
-    Storage::fake('public');
-    Storage::fake('s3');
-
-    $file = UploadedFile::fake()->image('slide.jpg');
-
+it('admin 可以新增 photo 類型的 intro-slide', function () {
     $this->actingAs($this->admin)
         ->post('/admin/intro-slides', [
             'title' => '圖片投影片',
             'media_type' => 'photo',
-            'photo' => $file,
+            'media_path' => 'intro-slides/test-image.jpg',
             'sort_order' => 2,
             'is_published' => false,
         ])
@@ -94,7 +87,8 @@ it('admin 可以上傳圖片並新增 photo 類型的 intro-slide', function () 
 
     $slide = IntroSlide::where('title', '圖片投影片')->first();
     expect($slide)->not->toBeNull();
-    expect($slide->media_path)->toStartWith('intro-slides/');
+    expect($slide->media_path)->toBe('intro-slides/test-image.jpg');
+    expect($slide->media_type)->toBe('photo');
 });
 
 it('store 驗證：title 必填', function () {
