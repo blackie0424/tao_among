@@ -51,12 +51,19 @@ class KnowledgeItemController extends BaseController
             'is_published' => 'nullable|boolean',
         ]);
 
+        // 如果沒有提供 sort_order,自動設為該分類目前最大值 + 1
+        if (!isset($data['sort_order'])) {
+            $maxSortOrder = KnowledgeItem::where('knowledge_category_id', $data['knowledge_category_id'])
+                ->max('sort_order');
+            $data['sort_order'] = ($maxSortOrder ?? -1) + 1;
+        }
+
         KnowledgeItem::create([
             'knowledge_category_id' => $data['knowledge_category_id'],
             'title' => $data['title'],
             'image_path' => $data['image_path'],
             'description' => $data['description'] ?? null,
-            'sort_order' => $data['sort_order'] ?? 0,
+            'sort_order' => $data['sort_order'],
             'is_published' => $data['is_published'] ?? false,
         ]);
 

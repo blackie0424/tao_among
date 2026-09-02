@@ -43,7 +43,8 @@ class KnowledgeItem extends Model
             return $this->image_path;
         }
 
-        // 否則從 S3 取得 URL
-        return Storage::disk('s3')->url($this->image_path);
+        // 根據環境選擇 disk
+        $disk = app()->environment('local', 'testing') ? 'public' : 's3';
+        return Storage::disk($disk)->url($this->image_path);
     }
 }
