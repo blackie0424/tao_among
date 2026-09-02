@@ -15,7 +15,7 @@ return new class extends Migration
                 ->onDelete('cascade')
                 ->comment('所屬知識分類');
             $table->string('title')->comment('項目標題');
-            $table->string('image_path')->comment('項目圖片路徑');
+            $table->string('image_path')->nullable()->comment('項目圖片路徑');
             $table->text('description')->nullable()->comment('項目說明');
             $table->integer('sort_order')->default(0)->comment('排序順序');
             $table->boolean('is_published')->default(false)->comment('是否發布');
