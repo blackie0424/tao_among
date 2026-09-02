@@ -148,7 +148,7 @@ it('admin 可以更新 knowledge-item', function () {
             'description' => '更新後的說明',
             'is_published' => true,
         ])
-        ->assertRedirect('/admin/knowledge-items');
+        ->assertRedirect("/admin/knowledge-items?category_id={$this->category->id}");
 
     $this->assertDatabaseHas('knowledge_items', [
         'id' => $item->id,
