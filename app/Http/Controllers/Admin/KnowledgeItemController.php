@@ -45,7 +45,7 @@ class KnowledgeItemController extends BaseController
         $data = $request->validate([
             'knowledge_category_id' => 'required|exists:knowledge_categories,id',
             'title' => 'required|string|max:255',
-            'image_path' => 'nullable|string',
+            'image_path' => 'required|string',
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
@@ -61,7 +61,7 @@ class KnowledgeItemController extends BaseController
         KnowledgeItem::create([
             'knowledge_category_id' => $data['knowledge_category_id'],
             'title' => $data['title'],
-            'image_path' => $data['image_path'] ?? null,
+            'image_path' => $data['image_path'],
             'description' => $data['description'] ?? null,
             'sort_order' => $data['sort_order'],
             'is_published' => $data['is_published'] ?? false,
