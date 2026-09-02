@@ -22,7 +22,7 @@ class KnowledgeItemFactory extends Factory
             },
             'title' => fake()->sentence(3),
             'description' => fake()->optional()->paragraph(),
-            'image_path' => null,
+            'image_path' => 'knowledge-items/' . fake()->uuid() . '.jpg',
             'sort_order' => fake()->numberBetween(0, 10),
             'is_published' => false,
         ];
@@ -33,10 +33,10 @@ class KnowledgeItemFactory extends Factory
         return $this->state(fn () => ['is_published' => true]);
     }
 
-    public function withImage(): static
+    public function withoutImage(): static
     {
         return $this->state(fn () => [
-            'image_path' => 'knowledge-items/' . fake()->uuid() . '.jpg',
+            'image_path' => null,
         ]);
     }
 }
