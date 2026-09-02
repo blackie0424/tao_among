@@ -161,10 +161,11 @@ it('admin 可以更新 knowledge-item', function () {
 
 it('admin 可以刪除 knowledge-item', function () {
     $item = KnowledgeItem::factory()->for($this->category, 'category')->create();
+    $categoryId = $item->knowledge_category_id;
 
     $this->actingAs($this->admin)
         ->delete("/admin/knowledge-items/{$item->id}")
-        ->assertRedirect('/admin/knowledge-items');
+        ->assertRedirect("/admin/knowledge-items?category_id={$categoryId}");
 
     $this->assertDatabaseMissing('knowledge_items', ['id' => $item->id]);
 });

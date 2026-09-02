@@ -84,20 +84,25 @@ class KnowledgeItemController extends BaseController
         $data = $request->validate([
             'knowledge_category_id' => 'required|exists:knowledge_categories,id',
             'title' => 'required|string|max:255',
-            'image_path' => 'required|string',
+            'image_path' => 'nullable|string',
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
         ]);
 
-        $knowledgeItem->update([
+        $updateData = [
             'knowledge_category_id' => $data['knowledge_category_id'],
             'title' => $data['title'],
-            'image_path' => $data['image_path'],
             'description' => $data['description'] ?? null,
             'sort_order' => $data['sort_order'] ?? $knowledgeItem->sort_order,
             'is_published' => $data['is_published'] ?? false,
-        ]);
+        ];
+
+        if (isset($data['image_path'])) {
+            $updateData['image_path'] = $data['image_path'];
+        }
+
+        $knowledgeItem->update($updateData);
 
         return redirect('/admin/knowledge-items?category_id=' . $data['knowledge_category_id'])
             ->with('success', '知識項目已成功更新');
