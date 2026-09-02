@@ -117,6 +117,7 @@ import { ref, reactive } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import { useImageUpload } from '@/composables/useImageUpload'
+import { apiFetch } from '@/utils/apiFetch'
 
 const props = defineProps({
   slide: Object,
@@ -165,9 +166,8 @@ async function uploadToIntroSlides(file) {
   uploading.value = true
   imageError.value = null
   try {
-    const signedUrlRes = await fetch('/prefix/api/storage/signed-upload-url', {
+    const signedUrlRes = await apiFetch('/prefix/api/storage/signed-upload-url', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename: file.name, folder: 'intro-slides' }),
     })
     const signedUrlData = await signedUrlRes.json()
