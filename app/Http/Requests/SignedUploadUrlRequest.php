@@ -20,7 +20,11 @@ class SignedUploadUrlRequest extends FormRequest
                     }
                 }
             ],
-            'path' => ['nullable', 'string'],
+            'folder' => [
+                'nullable',
+                'string',
+                'in:images,intro-slides',
+            ],
         ];
     }
 
@@ -29,6 +33,7 @@ class SignedUploadUrlRequest extends FormRequest
         return [
             'filename.required' => '請提供檔案名稱。',
             'filename.string' => '檔案名稱必須是字串。',
+            'folder.in' => '資料夾參數不正確。',
         ];
     }
 
