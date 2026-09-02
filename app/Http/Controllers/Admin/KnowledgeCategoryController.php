@@ -30,17 +30,22 @@ class KnowledgeCategoryController extends BaseController
     {
         $data = $request->validate([
             'title' => 'required|string|max:255',
-            'image_path' => 'required|string',
+            'image_path' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
         ]);
 
-        $knowledgeCategory->update([
+        $updateData = [
             'title' => $data['title'],
-            'image_path' => $data['image_path'],
             'sort_order' => $data['sort_order'] ?? $knowledgeCategory->sort_order,
             'is_published' => $data['is_published'] ?? false,
-        ]);
+        ];
+
+        if (!empty($data['image_path'])) {
+            $updateData['image_path'] = $data['image_path'];
+        }
+
+        $knowledgeCategory->update($updateData);
 
         return redirect('/admin/knowledge-categories')->with('success', '知識分類已成功更新');
     }

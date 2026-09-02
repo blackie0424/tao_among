@@ -16,7 +16,10 @@ class KnowledgeItemFactory extends Factory
     public function definition(): array
     {
         return [
-            'knowledge_category_id' => KnowledgeCategory::factory(),
+            'knowledge_category_id' => function () {
+                // 測試時應該已經有 Seeder 建立的分類,使用第一個
+                return \App\Models\KnowledgeCategory::first()?->id ?? \App\Models\KnowledgeCategory::factory();
+            },
             'title' => fake()->sentence(3),
             'description' => fake()->optional()->paragraph(),
             'image_path' => null,

@@ -15,7 +15,7 @@ class KnowledgeCategorySeeder extends Seeder
                 'slug' => 'fish-guide',
                 'title' => '魚類圖鑑',
                 'image_path' => '', // 待後台上傳
-                'sort_order' => 1,
+                'sort_order' => 0,
                 'is_published' => false,
             ],
             [
@@ -23,7 +23,7 @@ class KnowledgeCategorySeeder extends Seeder
                 'slug' => 'bait',
                 'title' => '魚餌',
                 'image_path' => '', // 待後台上傳
-                'sort_order' => 2,
+                'sort_order' => 1,
                 'is_published' => false,
             ],
             [
@@ -31,7 +31,7 @@ class KnowledgeCategorySeeder extends Seeder
                 'slug' => 'fishing-method',
                 'title' => '漁法',
                 'image_path' => '', // 待後台上傳
-                'sort_order' => 3,
+                'sort_order' => 2,
                 'is_published' => false,
             ],
             [
@@ -39,7 +39,7 @@ class KnowledgeCategorySeeder extends Seeder
                 'slug' => 'cooking-method',
                 'title' => '食用方式',
                 'image_path' => '', // 待後台上傳
-                'sort_order' => 4,
+                'sort_order' => 3,
                 'is_published' => false,
             ],
         ];
