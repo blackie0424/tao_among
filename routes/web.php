@@ -19,6 +19,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\IntroCategoryController;
 use App\Http\Controllers\IntroSlideController;
+use App\Http\Controllers\KnowledgeController;
+use App\Http\Controllers\Admin\KnowledgeCategoryController;
+use App\Http\Controllers\Admin\KnowledgeItemController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +43,14 @@ Route::get('/auth/line/complete', [LineLoginController::class, 'complete'])->nam
 Route::get('/', [FishController::class, 'index']);
 Route::get('/fishs', [FishController::class, 'getFishs']);
 Route::get('/search', [FishController::class, 'search'])->name('fish.search');
+
+// 知識分類公開頁面
+Route::get('/knowledge/{slug}', [KnowledgeController::class, 'index'])->name('knowledge.index');
+Route::get('/knowledge/{slug}/{itemId}', [KnowledgeController::class, 'show'])->name('knowledge.show');
+
+// 知識分類公開頁面
+Route::get('/knowledge/{slug}', [KnowledgeController::class, 'index'])->name('knowledge.index');
+Route::get('/knowledge/{slug}/{itemId}', [KnowledgeController::class, 'show'])->name('knowledge.show');
 
 // =====================================================
 // 需要登入的路由
@@ -141,6 +152,25 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/admin/intro-slides/{introSlide}', [IntroSlideController::class, 'update'])->name('admin.intro-slides.update');
         Route::delete('/admin/intro-slides/{introSlide}', [IntroSlideController::class, 'destroy'])->name('admin.intro-slides.destroy');
         Route::patch('/admin/intro-slides/{introSlide}/toggle-published', [IntroSlideController::class, 'togglePublished'])->name('admin.intro-slides.toggle-published');
+
+        // 知識分類管理
+        Route::get('/admin/knowledge-categories', [KnowledgeCategoryController::class, 'index'])->name('admin.knowledge-categories.index');
+        Route::get('/admin/knowledge-categories/{knowledgeCategory}/edit', [KnowledgeCategoryController::class, 'edit'])->name('admin.knowledge-categories.edit');
+        Route::put('/admin/knowledge-categories/{knowledgeCategory}', [KnowledgeCategoryController::class, 'update'])->name('admin.knowledge-categories.update');
+        Route::patch('/admin/knowledge-categories/{knowledgeCategory}/toggle-published', [KnowledgeCategoryController::class, 'togglePublished'])->name('admin.knowledge-categories.toggle-published');
+        Route::patch('/admin/knowledge-categories/{knowledgeCategory}/move-up', [KnowledgeCategoryController::class, 'moveUp'])->name('admin.knowledge-categories.move-up');
+        Route::patch('/admin/knowledge-categories/{knowledgeCategory}/move-down', [KnowledgeCategoryController::class, 'moveDown'])->name('admin.knowledge-categories.move-down');
+
+        // 知識項目管理
+        Route::get('/admin/knowledge-items', [KnowledgeItemController::class, 'index'])->name('admin.knowledge-items.index');
+        Route::get('/admin/knowledge-items/create', [KnowledgeItemController::class, 'create'])->name('admin.knowledge-items.create');
+        Route::post('/admin/knowledge-items', [KnowledgeItemController::class, 'store'])->name('admin.knowledge-items.store');
+        Route::get('/admin/knowledge-items/{knowledgeItem}/edit', [KnowledgeItemController::class, 'edit'])->name('admin.knowledge-items.edit');
+        Route::put('/admin/knowledge-items/{knowledgeItem}', [KnowledgeItemController::class, 'update'])->name('admin.knowledge-items.update');
+        Route::delete('/admin/knowledge-items/{knowledgeItem}', [KnowledgeItemController::class, 'destroy'])->name('admin.knowledge-items.destroy');
+        Route::patch('/admin/knowledge-items/{knowledgeItem}/toggle-published', [KnowledgeItemController::class, 'togglePublished'])->name('admin.knowledge-items.toggle-published');
+        Route::patch('/admin/knowledge-items/{knowledgeItem}/move-up', [KnowledgeItemController::class, 'moveUp'])->name('admin.knowledge-items.move-up');
+        Route::patch('/admin/knowledge-items/{knowledgeItem}/move-down', [KnowledgeItemController::class, 'moveDown'])->name('admin.knowledge-items.move-down');
     });
 });
 
