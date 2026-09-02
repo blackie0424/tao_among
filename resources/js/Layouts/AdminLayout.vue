@@ -167,6 +167,22 @@
       <!-- Page content -->
       <main class="flex-1 overflow-y-auto">
         <div class="container mx-auto max-w-7xl px-4 py-6">
+          <!-- 全域錯誤訊息 -->
+          <div
+            v-if="globalError"
+            class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800"
+            role="alert"
+          >
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+              <div class="flex-1">
+                <h3 class="font-semibold mb-1">發生錯誤</h3>
+                <p class="text-sm">{{ globalError }}</p>
+              </div>
+            </div>
+          </div>
           <slot />
         </div>
       </main>
@@ -185,6 +201,13 @@ defineProps({
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const currentUrl = computed(() => page.url)
+const globalError = computed(() => {
+  const error = page.props.errors?.error
+  if (!error) return null
+  // Laravel MessageBag::getMessages() 回傳的 error 是陣列格式
+  // 取第一個訊息即可
+  return Array.isArray(error) ? error[0] : error
+})
 const sidebarOpen = ref(false)
 
 watch(sidebarOpen, (val) => {

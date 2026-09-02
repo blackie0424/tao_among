@@ -313,7 +313,13 @@ class UploadController extends Controller
     public function getSignedUploadUrl(SignedUploadUrlRequest $request)
     {
         $service = app(StorageServiceInterface::class);
-        $path = $service->getImageFolder();
+        
+        // 使用 folder 參數,預設為 images
+        $folder = $request->input('folder', 'images');
+        
+        // 根據資料夾選擇路徑
+        $path = $folder === 'intro-slides' ? 'intro-slides' : $service->getImageFolder();
+        
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
 
