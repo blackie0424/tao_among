@@ -37,7 +37,7 @@ it('可以瀏覽知識分類清單頁', function () {
     $this->get("/topics/{$this->topic->slug}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Knowledge/Index')
+            ->component('Topic/Index')
             ->where('topic.slug', $this->topic->slug)
             ->has('items', 3)
         );
@@ -93,7 +93,7 @@ it('可以瀏覽知識項目詳細頁', function () {
     $this->get("/topics/{$this->topic->slug}/{$item->id}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Knowledge/Show')
+            ->component('Topic/Show')
             ->where('topic.slug', $this->topic->slug)
             ->where('item.id', $item->id)
             ->where('item.title', '測試項目')
