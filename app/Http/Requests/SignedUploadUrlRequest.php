@@ -23,7 +23,7 @@ class SignedUploadUrlRequest extends FormRequest
             'folder' => [
                 'nullable',
                 'string',
-                'in:images,intro-slides,knowledge-categories,knowledge-items',
+                'in:images,intro-slides,topics,topic-items',
             ],
         ];
     }

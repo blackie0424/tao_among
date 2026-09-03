@@ -5,11 +5,11 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class KnowledgeCategorySeeder extends Seeder
+class TopicSeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = [
+        $topics = [
             [
                 'is_fish_category' => true,
                 'slug' => 'fish-guide',
@@ -44,8 +44,8 @@ class KnowledgeCategorySeeder extends Seeder
             ],
         ];
 
-        foreach ($categories as $category) {
-            DB::table('knowledge_categories')->insert(array_merge($category, [
+        foreach ($topics as $topic) {
+            DB::table('topics')->insert(array_merge($topic, [
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));

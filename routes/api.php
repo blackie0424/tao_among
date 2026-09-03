@@ -7,7 +7,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\FishMergeController;
-use App\Http\Controllers\KnowledgeController;
+use App\Http\Controllers\TopicController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,8 +30,8 @@ Route::post('/line/webhook', [LineBotController::class, 'webhook']);
 Route::get('/fish', [ApiFishController::class, 'getFishs']);
 Route::get('/capture-records', [ApiFishController::class, 'getAllCaptureRecords']);
 
-// 首頁知識分類
-Route::get('/knowledge-categories', [KnowledgeController::class, 'getPublishedCategories']);
+// 首頁主題導覽分類
+Route::get('/topics', [TopicController::class, 'getPublishedCategories']);
 Route::get('/fishs/latest-at', [ApiFishController::class, 'getLatestAt']);
 Route::get('/fishs/search', [ApiFishController::class, 'search']);
 Route::get('/fishs/random-unknown', [ApiFishController::class, 'randomUnknownFish']);

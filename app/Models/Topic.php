@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
-class KnowledgeCategory extends Model
+class Topic extends Model
 {
     use HasFactory;
+
+    protected $table = 'topics';
 
     protected $fillable = [
         'is_fish_category',
@@ -30,7 +32,7 @@ class KnowledgeCategory extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(KnowledgeItem::class);
+        return $this->hasMany(TopicItem::class, 'topic_id');
     }
 
     public function getImageUrlAttribute(): ?string

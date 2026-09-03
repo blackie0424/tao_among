@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
-class KnowledgeItem extends Model
+class TopicItem extends Model
 {
     use HasFactory;
 
+    protected $table = 'topic_items';
+
     protected $fillable = [
-        'knowledge_category_id',
+        'topic_id',
         'title',
         'image_path',
         'description',
@@ -27,9 +29,9 @@ class KnowledgeItem extends Model
 
     protected $appends = ['image_url'];
 
-    public function category(): BelongsTo
+    public function topic(): BelongsTo
     {
-        return $this->belongsTo(KnowledgeCategory::class, 'knowledge_category_id');
+        return $this->belongsTo(Topic::class, 'topic_id');
     }
 
     public function getImageUrlAttribute(): ?string

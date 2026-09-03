@@ -3,29 +3,29 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\BaseController;
-use App\Models\KnowledgeCategory;
-use App\Models\KnowledgeItem;
+use App\Models\Topic;
+use App\Models\TopicItem;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class KnowledgeItemController extends BaseController
+class TopicItemController extends BaseController
 {
     public function index(Request $request): Response
     {
         $categoryId = $request->query('category_id');
         
-        $query = KnowledgeItem::with('category')
+        $query = TopicItem::with('category')
             ->orderBy('sort_order')
             ->orderBy('id');
 
         if ($categoryId) {
-            $query->where('knowledge_category_id', $categoryId);
+            $query->where('topic_id', $categoryId);
         }
 
-        return Inertia::render('Admin/KnowledgeItems/Index', [
+        return Inertia::render('Admin/TopicItems/Index', [
             'items' => $query->paginate(20)->withQueryString(),
-            'categories' => KnowledgeCategory::orderBy('sort_order')->get(),
+            'categories' => Topic::orderBy('sort_order')->get(),
             'selectedCategoryId' => $categoryId ? (int)$categoryId : null,
         ]);
     }
@@ -34,8 +34,8 @@ class KnowledgeItemController extends BaseController
     {
         $categoryId = $request->query('category_id');
         
-        return Inertia::render('Admin/KnowledgeItems/Create', [
-            'categories' => KnowledgeCategory::orderBy('sort_order')->get(),
+        return Inertia::render('Admin/TopicItems/Create', [
+            'categories' => Topic::orderBy('sort_order')->get(),
             'selectedCategoryId' => $categoryId ? (int)$categoryId : null,
         ]);
     }
@@ -43,7 +43,7 @@ class KnowledgeItemController extends BaseController
     public function store(Request $request)
     {
         $data = $request->validate([
-            'knowledge_category_id' => 'required|exists:knowledge_categories,id',
+            'topic_id' => 'required|exists:topics,id',
             'title' => 'required|string|max:255',
             'image_path' => 'required|string',
             'description' => 'nullable|string',
@@ -53,13 +53,13 @@ class KnowledgeItemController extends BaseController
 
         // 如果沒有提供 sort_order,自動設為該分類目前最大值 + 1
         if (!isset($data['sort_order'])) {
-            $maxSortOrder = KnowledgeItem::where('knowledge_category_id', $data['knowledge_category_id'])
+            $maxSortOrder = TopicItem::where('topic_id', $data['topic_id'])
                 ->max('sort_order');
             $data['sort_order'] = ($maxSortOrder ?? -1) + 1;
         }
 
-        KnowledgeItem::create([
-            'knowledge_category_id' => $data['knowledge_category_id'],
+        TopicItem::create([
+            'topic_id' => $data['topic_id'],
             'title' => $data['title'],
             'image_path' => $data['image_path'],
             'description' => $data['description'] ?? null,
@@ -67,22 +67,22 @@ class KnowledgeItemController extends BaseController
             'is_published' => $data['is_published'] ?? false,
         ]);
 
-        return redirect('/admin/knowledge-items?category_id=' . $data['knowledge_category_id'])
+        return redirect('/admin/topic-items?category_id=' . $data['topic_id'])
             ->with('success', '知識項目已成功建立');
     }
 
-    public function edit(KnowledgeItem $knowledgeItem): Response
+    public function edit(TopicItem $topicItem): Response
     {
-        return Inertia::render('Admin/KnowledgeItems/Edit', [
-            'item' => $knowledgeItem->load('category'),
-            'categories' => KnowledgeCategory::orderBy('sort_order')->get(),
+        return Inertia::render('Admin/TopicItems/Edit', [
+            'item' => $topicItem->load('category'),
+            'categories' => Topic::orderBy('sort_order')->get(),
         ]);
     }
 
-    public function update(Request $request, KnowledgeItem $knowledgeItem)
+    public function update(Request $request, TopicItem $topicItem)
     {
         $data = $request->validate([
-            'knowledge_category_id' => 'required|exists:knowledge_categories,id',
+            'topic_id' => 'required|exists:topics,id',
             'title' => 'required|string|max:255',
             'image_path' => 'nullable|string',
             'description' => 'nullable|string',
@@ -91,10 +91,10 @@ class KnowledgeItemController extends BaseController
         ]);
 
         $updateData = [
-            'knowledge_category_id' => $data['knowledge_category_id'],
+            'topic_id' => $data['topic_id'],
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
-            'sort_order' => $data['sort_order'] ?? $knowledgeItem->sort_order,
+            'sort_order' => $data['sort_order'] ?? $topicItem->sort_order,
             'is_published' => $data['is_published'] ?? false,
         ];
 
@@ -102,58 +102,58 @@ class KnowledgeItemController extends BaseController
             $updateData['image_path'] = $data['image_path'];
         }
 
-        $knowledgeItem->update($updateData);
+        $topicItem->update($updateData);
 
-        return redirect('/admin/knowledge-items?category_id=' . $data['knowledge_category_id'])
+        return redirect('/admin/topic-items?category_id=' . $data['topic_id'])
             ->with('success', '知識項目已成功更新');
     }
 
-    public function destroy(KnowledgeItem $knowledgeItem)
+    public function destroy(TopicItem $topicItem)
     {
-        $categoryId = $knowledgeItem->knowledge_category_id;
-        $knowledgeItem->delete();
+        $categoryId = $topicItem->topic_id;
+        $topicItem->delete();
 
-        return redirect('/admin/knowledge-items?category_id=' . $categoryId)
+        return redirect('/admin/topic-items?category_id=' . $categoryId)
             ->with('success', '知識項目已成功刪除');
     }
 
-    public function togglePublished(KnowledgeItem $knowledgeItem)
+    public function togglePublished(TopicItem $topicItem)
     {
-        $knowledgeItem->update(['is_published' => !$knowledgeItem->is_published]);
+        $topicItem->update(['is_published' => !$topicItem->is_published]);
 
         return back()->with('success', '發布狀態已更新');
     }
 
-    public function moveUp(KnowledgeItem $knowledgeItem)
+    public function moveUp(TopicItem $topicItem)
     {
         // 找到同分類中上一筆 (sort_order 較小的)
-        $previous = KnowledgeItem::where('knowledge_category_id', $knowledgeItem->knowledge_category_id)
-            ->where('sort_order', '<', $knowledgeItem->sort_order)
+        $previous = TopicItem::where('topic_id', $topicItem->topic_id)
+            ->where('sort_order', '<', $topicItem->sort_order)
             ->orderBy('sort_order', 'desc')
             ->first();
 
         if ($previous) {
             // 交換 sort_order
-            $temp = $knowledgeItem->sort_order;
-            $knowledgeItem->update(['sort_order' => $previous->sort_order]);
+            $temp = $topicItem->sort_order;
+            $topicItem->update(['sort_order' => $previous->sort_order]);
             $previous->update(['sort_order' => $temp]);
         }
 
         return back()->with('success', '排序已更新');
     }
 
-    public function moveDown(KnowledgeItem $knowledgeItem)
+    public function moveDown(TopicItem $topicItem)
     {
         // 找到同分類中下一筆 (sort_order 較大的)
-        $next = KnowledgeItem::where('knowledge_category_id', $knowledgeItem->knowledge_category_id)
-            ->where('sort_order', '>', $knowledgeItem->sort_order)
+        $next = TopicItem::where('topic_id', $topicItem->topic_id)
+            ->where('sort_order', '>', $topicItem->sort_order)
             ->orderBy('sort_order', 'asc')
             ->first();
 
         if ($next) {
             // 交換 sort_order
-            $temp = $knowledgeItem->sort_order;
-            $knowledgeItem->update(['sort_order' => $next->sort_order]);
+            $temp = $topicItem->sort_order;
+            $topicItem->update(['sort_order' => $next->sort_order]);
             $next->update(['sort_order' => $temp]);
         }
 

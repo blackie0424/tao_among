@@ -2,27 +2,27 @@
 
 namespace Database\Factories;
 
-use App\Models\KnowledgeItem;
-use App\Models\KnowledgeCategory;
+use App\Models\TopicItem;
+use App\Models\Topic;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<KnowledgeItem>
+ * @extends Factory<TopicItem>
  */
-class KnowledgeItemFactory extends Factory
+class TopicItemFactory extends Factory
 {
-    protected $model = KnowledgeItem::class;
+    protected $model = TopicItem::class;
 
     public function definition(): array
     {
         return [
-            'knowledge_category_id' => function () {
-                // 測試時應該已經有 Seeder 建立的分類,使用第一個
-                return \App\Models\KnowledgeCategory::first()?->id ?? \App\Models\KnowledgeCategory::factory();
+            'topic_id' => function () {
+                // 測試時應該已經有 Seeder 建立的主題,使用第一個
+                return \App\Models\Topic::first()?->id ?? \App\Models\Topic::factory();
             },
             'title' => fake()->sentence(3),
             'description' => fake()->optional()->paragraph(),
-            'image_path' => 'knowledge-items/' . fake()->uuid() . '.jpg',
+            'image_path' => 'topic-items/' . fake()->uuid() . '.jpg',
             'sort_order' => fake()->numberBetween(0, 10),
             'is_published' => false,
         ];

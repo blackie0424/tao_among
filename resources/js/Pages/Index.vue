@@ -149,14 +149,14 @@ const knowledgeCategories = ref([])
 onMounted(async () => {
   if (props.slides.length > 1) resetTimer()
   
-  // 取得已發布的知識分類
+  // 取得已發布的主題分類
   try {
-    const response = await fetch('/prefix/api/knowledge-categories')
+    const response = await fetch('/prefix/api/topics')
     if (response.ok) {
       knowledgeCategories.value = await response.json()
     }
   } catch (error) {
-    console.error('Failed to fetch knowledge categories:', error)
+    console.error('Failed to fetch topics:', error)
   }
 })
 
@@ -200,7 +200,7 @@ function goToCategory(category) {
   if (category.is_fish_category) {
     router.visit('/fishs')
   } else {
-    router.visit(`/knowledge/${category.slug}`)
+    router.visit(`/topics/${category.slug}`)
   }
 }
 

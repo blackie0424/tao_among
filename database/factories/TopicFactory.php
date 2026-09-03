@@ -2,19 +2,19 @@
 
 namespace Database\Factories;
 
-use App\Models\KnowledgeCategory;
+use App\Models\Topic;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<KnowledgeCategory>
+ * @extends Factory<Topic>
  */
-class KnowledgeCategoryFactory extends Factory
+class TopicFactory extends Factory
 {
-    protected $model = KnowledgeCategory::class;
+    protected $model = Topic::class;
 
     public function definition(): array
     {
-        // Note: KnowledgeCategory 是固定的 4 筆資料,通常不應該使用 factory
+        // Note: Topic 是固定的 4 筆資料,通常不應該使用 factory
         // 測試中應該直接使用 Seeder
         return [
             'is_fish_category' => false,

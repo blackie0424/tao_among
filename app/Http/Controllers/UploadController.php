@@ -320,8 +320,8 @@ class UploadController extends Controller
         // 根據資料夾選擇路徑
         $path = match ($folder) {
             'intro-slides' => 'intro-slides',
-            'knowledge-categories' => 'knowledge-categories',
-            'knowledge-items' => 'knowledge-items',
+            'topics' => 'topics',
+            'topic-items' => 'topic-items',
             default => $service->getImageFolder(),
         };
         
