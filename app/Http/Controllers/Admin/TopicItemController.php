@@ -15,7 +15,7 @@ class TopicItemController extends BaseController
     {
         $categoryId = $request->query('category_id');
         
-        $query = TopicItem::with('category')
+        $query = TopicItem::with('topic')
             ->orderBy('sort_order')
             ->orderBy('id');
 
@@ -74,7 +74,7 @@ class TopicItemController extends BaseController
     public function edit(TopicItem $topicItem): Response
     {
         return Inertia::render('Admin/TopicItems/Edit', [
-            'item' => $topicItem->load('category'),
+            'item' => $topicItem->load('topic'),
             'categories' => Topic::orderBy('sort_order')->get(),
         ]);
     }

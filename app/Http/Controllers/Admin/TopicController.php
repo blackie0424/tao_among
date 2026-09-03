@@ -13,7 +13,7 @@ class TopicController extends BaseController
     public function index(): Response
     {
         return Inertia::render('Admin/Topics/Index', [
-            'categories' => Topic::orderBy('sort_order')
+            'topics' => Topic::orderBy('sort_order')
                 ->orderBy('id')
                 ->get(),
         ]);
@@ -22,7 +22,7 @@ class TopicController extends BaseController
     public function edit(Topic $topic): Response
     {
         return Inertia::render('Admin/Topics/Edit', [
-            'category' => $topic,
+            'topic' => $topic,
         ]);
     }
 
