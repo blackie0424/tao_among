@@ -13,30 +13,30 @@ class TopicItemController extends BaseController
 {
     public function index(Request $request): Response
     {
-        $categoryId = $request->query('category_id');
+        $topicId = $request->query('topic_id');
         
         $query = TopicItem::with('topic')
             ->orderBy('sort_order')
             ->orderBy('id');
 
-        if ($categoryId) {
-            $query->where('topic_id', $categoryId);
+        if ($topicId) {
+            $query->where('topic_id', $topicId);
         }
 
         return Inertia::render('Admin/TopicItems/Index', [
             'items' => $query->paginate(20)->withQueryString(),
-            'categories' => Topic::orderBy('sort_order')->get(),
-            'selectedCategoryId' => $categoryId ? (int)$categoryId : null,
+            'topics' => Topic::orderBy('sort_order')->get(),
+            'selectedTopicId' => $topicId ? (int)$topicId : null,
         ]);
     }
 
     public function create(Request $request): Response
     {
-        $categoryId = $request->query('category_id');
+        $topicId = $request->query('topic_id');
         
         return Inertia::render('Admin/TopicItems/Create', [
-            'categories' => Topic::orderBy('sort_order')->get(),
-            'selectedCategoryId' => $categoryId ? (int)$categoryId : null,
+            'topics' => Topic::orderBy('sort_order')->get(),
+            'selectedTopicId' => $topicId ? (int)$topicId : null,
         ]);
     }
 
@@ -67,7 +67,7 @@ class TopicItemController extends BaseController
             'is_published' => $data['is_published'] ?? false,
         ]);
 
-        return redirect('/admin/topic-items?category_id=' . $data['topic_id'])
+        return redirect('/admin/topic-items?topic_id=' . $data['topic_id'])
             ->with('success', '知識項目已成功建立');
     }
 
@@ -75,7 +75,7 @@ class TopicItemController extends BaseController
     {
         return Inertia::render('Admin/TopicItems/Edit', [
             'item' => $topicItem->load('topic'),
-            'categories' => Topic::orderBy('sort_order')->get(),
+            'topics' => Topic::orderBy('sort_order')->get(),
         ]);
     }
 
@@ -104,16 +104,16 @@ class TopicItemController extends BaseController
 
         $topicItem->update($updateData);
 
-        return redirect('/admin/topic-items?category_id=' . $data['topic_id'])
+        return redirect('/admin/topic-items?topic_id=' . $data['topic_id'])
             ->with('success', '知識項目已成功更新');
     }
 
     public function destroy(TopicItem $topicItem)
     {
-        $categoryId = $topicItem->topic_id;
+        $topicId = $topicItem->topic_id;
         $topicItem->delete();
 
-        return redirect('/admin/topic-items?category_id=' . $categoryId)
+        return redirect('/admin/topic-items?topic_id=' . $topicId)
             ->with('success', '知識項目已成功刪除');
     }
 
