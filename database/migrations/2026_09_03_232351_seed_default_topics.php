@@ -14,7 +14,7 @@ return new class extends Migration
             [
                 'slug' => 'fish-guide',
                 'title' => '魚類圖鑑',
-                'image_path' => null,
+                'image_path' => '',
                 'sort_order' => 0,
                 'is_published' => true,
                 'is_fish_category' => true,
@@ -22,7 +22,7 @@ return new class extends Migration
             [
                 'slug' => 'fishing-method',
                 'title' => '漁獵方法',
-                'image_path' => null,
+                'image_path' => '',
                 'sort_order' => 1,
                 'is_published' => false,
                 'is_fish_category' => false,
@@ -30,7 +30,7 @@ return new class extends Migration
             [
                 'slug' => 'bait-guide',
                 'title' => '魚餌圖鑑',
-                'image_path' => null,
+                'image_path' => '',
                 'sort_order' => 2,
                 'is_published' => false,
                 'is_fish_category' => false,
@@ -38,7 +38,7 @@ return new class extends Migration
             [
                 'slug' => 'cooking',
                 'title' => '烹調處理',
-                'image_path' => null,
+                'image_path' => '',
                 'sort_order' => 3,
                 'is_published' => false,
                 'is_fish_category' => false,
