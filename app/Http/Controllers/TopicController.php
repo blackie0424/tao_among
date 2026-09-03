@@ -10,7 +10,7 @@ use Inertia\Response;
 class TopicController extends BaseController
 {
     /**
-     * 首頁 API - 返回已發布的知識分類
+     * 首頁 API - 返回已發布的主題分類
      */
     public function getPublishedCategories()
     {
@@ -23,42 +23,42 @@ class TopicController extends BaseController
     }
 
     /**
-     * 知識分類清單頁 - 顯示某分類下的已發布項目
+     * 主題分類清單頁 - 顯示某分類下的已發布項目
      */
     public function index(string $slug): Response
     {
-        $category = Topic::where('slug', $slug)
+        $topic = Topic::where('slug', $slug)
             ->where('is_published', true)
             ->firstOrFail();
 
-        $items = TopicItem::where('topic_id', $category->id)
+        $items = TopicItem::where('topic_id', $topic->id)
             ->where('is_published', true)
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 
         return Inertia::render('Topic/Index', [
-            'category' => $category,
+            'topic' => $topic,
             'items' => $items,
         ]);
     }
 
     /**
-     * 知識項目詳細頁
+     * 主題項目詳細頁
      */
     public function show(string $slug, int $itemId): Response
     {
-        $category = Topic::where('slug', $slug)
+        $topic = Topic::where('slug', $slug)
             ->where('is_published', true)
             ->firstOrFail();
 
         $item = TopicItem::where('id', $itemId)
-            ->where('topic_id', $category->id)
+            ->where('topic_id', $topic->id)
             ->where('is_published', true)
             ->firstOrFail();
 
         return Inertia::render('Topic/Show', [
-            'category' => $category,
+            'topic' => $topic,
             'item' => $item,
         ]);
     }
