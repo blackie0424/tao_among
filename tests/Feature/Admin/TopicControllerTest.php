@@ -10,9 +10,6 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
     $this->editor = User::factory()->lineEditor()->create();
-    
-    // 建立 4 個固定分類
-    $this->seed(\Database\Seeders\TopicSeeder::class);
 });
 
 // --- 權限 ---

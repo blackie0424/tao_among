@@ -8,8 +8,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TopicSeeder::class);
-    $this->topic = Topic::where('slug', 'bait')->first();
+    $this->topic = Topic::where('slug', 'bait-guide')->first();
     $this->topic->update(['is_published' => true]);
 });
 
@@ -18,7 +17,7 @@ beforeEach(function () {
 it('API 回傳已發布的知識分類', function () {
     // 設定部分分類為已發布
     Topic::where('slug', 'fish-guide')->update(['is_published' => true]);
-    Topic::where('slug', 'bait')->update(['is_published' => true]);
+    Topic::where('slug', 'bait-guide')->update(['is_published' => true]);
     Topic::where('slug', 'fishing-method')->update(['is_published' => false]);
 
     $response = $this->getJson('/prefix/api/topics')

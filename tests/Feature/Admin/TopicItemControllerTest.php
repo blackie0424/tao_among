@@ -12,7 +12,6 @@ beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
     $this->editor = User::factory()->lineEditor()->create();
     
-    $this->seed(\Database\Seeders\TopicSeeder::class);
     $this->topic = Topic::first();
 });
 
