@@ -134,35 +134,12 @@
               </svg>
               首頁
             </Link>
-
-            <!-- Separator -->
-            <svg
-              class="w-4 h-4 text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              ></path>
-            </svg>
-
-            <!-- App / Fish List Link -->
-            <Link
-              href="/fishs"
-              class="font-bold text-elder-text text-elder-name tracking-wide hover:text-blue-600 transition"
-            >
-              among no tao
-            </Link>
           </div>
 
-          <!-- Desktop Nav Content (Breadcrumbs by default) -->
           <div class="flex-1 flex items-center min-w-0">
             <slot name="desktop-nav">
-              <div class="flex items-center text-sm text-gray-500 gap-2">
+              <div class="flex items-center text-elder-body text-gray-700 gap-2">
+                <!-- Separator after Home Icon -->
                 <svg
                   class="w-4 h-4 text-gray-300"
                   fill="none"
@@ -176,14 +153,35 @@
                     d="M9 5l7 7-7 7"
                   ></path>
                 </svg>
-                <Link
-                  v-if="breadcrumbPage"
-                  :href="`/fish/${fish?.id}`"
-                  class="hover:text-blue-600 transition"
-                  >{{ fish?.name }}</Link
-                >
-                <span v-if="breadcrumbPage" class="text-gray-300">/</span>
-                <span class="font-medium text-gray-900">{{ breadcrumbPage || fish?.name }}</span>
+
+                <!-- Intermediate Link (if not going back to home) -->
+                <template v-if="mobileBackUrl !== '/'">
+                  <Link
+                    :href="mobileBackUrl"
+                    class="font-bold hover:text-blue-600 transition"
+                  >
+                    {{ mobileBackText }}
+                  </Link>
+                  <!-- Separator 2 -->
+                  <svg
+                    class="w-4 h-4 text-gray-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    ></path>
+                  </svg>
+                </template>
+
+                <!-- Current Page Title -->
+                <span class="font-bold text-elder-text text-elder-name tracking-wide">
+                  {{ pageTitle }}
+                </span>
               </div>
             </slot>
           </div>
