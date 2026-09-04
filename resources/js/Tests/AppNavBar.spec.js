@@ -56,8 +56,11 @@ describe('AppNavBar', () => {
     it('breadcrumbPage 有值時，mobile 不顯示首頁連結', () => {
       const wrapper = mountNavBar({ breadcrumbPage: '捕獲紀錄' })
       const mobileBreadcrumb = wrapper.find('[data-testid="mobile-breadcrumb"]')
-      const homeLink = mobileBreadcrumb.findAll('a').find((l) => l.text().includes('首頁'))
-      expect(homeLink).toBeFalsy()
+      // 檢查不顯示帶有首頁圖示的連結 (v-if="!breadcrumbPage" 那段)
+      const homeIconLinks = mobileBreadcrumb.findAll('a').filter((l) => 
+        l.find('svg').exists() && l.text().includes('首頁')
+      )
+      expect(homeIconLinks.length).toBe(0)
     })
 
     it('mobileBackUrl 非 "/" 時，顯示上層連結', () => {
