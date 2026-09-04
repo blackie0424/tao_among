@@ -272,7 +272,7 @@ defineProps({
   },
   mobileBackText: {
     type: String,
-    default: 'among no tao',
+    default: '首頁',
   },
 })
 
