@@ -73,22 +73,11 @@
       </div>
     </section>
 
-    <!-- Hero（無投影片時顯示標題動畫） -->
-    <div v-else class="flex items-center justify-center py-16">
-      <AnimatedText text="nivasilan ko a among" />
-    </div>
-
     <!-- 主要內容區 -->
     <div class="mx-auto max-w-4xl px-4 py-8 space-y-10">
 
       <!-- 快速入口 -->
       <div class="flex gap-3 flex-wrap justify-center">
-        <button
-          @click="goFishs"
-          class="min-h-touch-primary px-6 rounded-xl bg-green-600 text-white text-elder-body font-bold hover:bg-green-700 transition shadow"
-        >
-          瀏覽圖鑑
-        </button>
         <button
           v-if="showInstallBtn"
           @click="installPWA"
@@ -134,7 +123,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import AnimatedText from '@/Components/UI/AnimatedText.vue'
 
 const props = defineProps({
   slides: {
@@ -192,10 +180,6 @@ function toEmbedUrl(url) {
 }
 
 // Navigation
-function goFishs() {
-  router.visit('/fishs')
-}
-
 function goToCategory(category) {
   if (category.is_fish_category) {
     router.visit('/fishs')

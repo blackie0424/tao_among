@@ -9,16 +9,16 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">分類 <span class="text-red-500">*</span></label>
           <select
-            v-model="form.knowledge_category_id"
+            v-model="form.topic_id"
             class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            :class="{ 'border-red-500': errors.knowledge_category_id }"
+            :class="{ 'border-red-500': errors.topic_id }"
           >
             <option :value="null">請選擇分類</option>
-            <option v-for="category in categories" :key="category.id" :value="category.id">
-              {{ category.title }}
+            <option v-for="topic in topics" :key="topic.id" :value="topic.id">
+              {{ topic.title }}
             </option>
           </select>
-          <p v-if="errors.knowledge_category_id" class="mt-1 text-xs text-red-600">{{ errors.knowledge_category_id }}</p>
+          <p v-if="errors.topic_id" class="mt-1 text-xs text-red-600">{{ errors.topic_id }}</p>
         </div>
 
         <div>
@@ -74,7 +74,7 @@
           >
             建立項目
           </button>
-          <Link href="/admin/knowledge-items" class="text-sm text-gray-500 hover:text-gray-700">取消</Link>
+          <Link href="/admin/topic-items" class="text-sm text-gray-500 hover:text-gray-700">取消</Link>
         </div>
       </form>
     </div>
@@ -88,11 +88,12 @@ import AdminLayout from '@/Layouts/AdminLayout.vue'
 import { useImageUpload } from '@/composables/useImageUpload'
 
 defineProps({
-  categories: Array,
+  topics: Array,
+  selectedTopicId: Number,
 })
 
 const form = reactive({
-  knowledge_category_id: null,
+  topic_id: null,
   title: '',
   description: '',
   image_path: '',
@@ -118,8 +119,8 @@ async function onFileChange(e) {
   reader.readAsDataURL(file)
 
   try {
-    const filename = await uploadImage(file, { folder: 'knowledge-items' })
-    form.image_path = `knowledge-items/${filename}`
+    const filename = await uploadImage(file, { folder: 'topic-items' })
+    form.image_path = `topic-items/${filename}`
   } catch (err) {
     errors.value = { ...errors.value, image_path: err.message || '上傳失敗' }
   }
@@ -129,7 +130,7 @@ function submit() {
   processing.value = true
   errors.value = {}
 
-  router.post('/admin/knowledge-items', form, {
+  router.post('/admin/topic-items', form, {
     onError: (e) => { errors.value = e },
     onFinish: () => { processing.value = false },
   })

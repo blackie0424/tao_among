@@ -1,12 +1,12 @@
 <template>
-  <Head :title="category.title" />
+  <Head :title="topic.title" />
 
-  <FishAppLayout :pageTitle="category.title">
+  <FishAppLayout :pageTitle="topic.title">
     <div class="mx-auto max-w-4xl px-4 py-6">
       
       <!-- 分類標題 -->
       <div class="mb-6 text-center">
-        <h1 class="text-elder-title font-bold text-gray-900">{{ category.title }}</h1>
+        <h1 class="text-elder-title font-bold text-gray-900">{{ topic.title }}</h1>
       </div>
 
       <!-- 項目列表 -->
@@ -14,7 +14,7 @@
         <ItemCard
           v-for="(item, index) in items"
           :key="item.id"
-          :href="`/knowledge/${category.slug}/${item.id}`"
+          :href="`/topics/${topic.slug}/${item.id}`"
           :imageUrl="item.image_url"
           :title="item.title"
           :index="index"
@@ -36,7 +36,7 @@ import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import ItemCard from '@/Components/UI/ItemCard.vue'
 
 defineProps({
-  category: {
+  topic: {
     type: Object,
     required: true,
   },

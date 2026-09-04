@@ -7,7 +7,7 @@
       <p class="mt-1 text-sm text-gray-500">管理首頁展示的知識分類卡片（固定 4 張）。</p>
     </div>
 
-    <div v-if="categories.length" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div v-if="topics.length" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -19,31 +19,31 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
-          <tr v-for="category in categories" :key="category.id">
-            <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ category.title }}</td>
+          <tr v-for="topic in topics" :key="topic.id">
+            <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ topic.title }}</td>
             <td class="px-6 py-4 text-sm text-gray-500">
               <span
                 class="rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="category.is_fish_category ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'"
+                :class="topic.is_fish_category ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'"
               >
-                {{ category.is_fish_category ? '魚類圖鑑' : '知識項目' }}
+                {{ topic.is_fish_category ? '魚類圖鑑' : '知識項目' }}
               </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">
               <div class="flex items-center gap-2">
-                <span>{{ category.sort_order }}</span>
+                <span>{{ topic.sort_order }}</span>
                 <div class="flex gap-1">
                   <button
-                    v-if="category.sort_order > 0"
-                    @click="moveUp(category.id)"
+                    v-if="topic.sort_order > 0"
+                    @click="moveUp(topic.id)"
                     class="rounded px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600"
                     title="上移"
                   >
                     ↑
                   </button>
                   <button
-                    v-if="category.sort_order < categories.length - 1"
-                    @click="moveDown(category.id)"
+                    v-if="topic.sort_order < topics.length - 1"
+                    @click="moveDown(topic.id)"
                     class="rounded px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600"
                     title="下移"
                   >
@@ -55,14 +55,14 @@
             <td class="px-6 py-4 text-sm">
               <button
                 class="rounded-full px-2 py-0.5 text-xs font-medium transition"
-                :class="category.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'"
-                @click="togglePublished(category.id)"
+                :class="topic.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'"
+                @click="togglePublished(topic.id)"
               >
-                {{ category.is_published ? '已發布' : '草稿' }}
+                {{ topic.is_published ? '已發布' : '草稿' }}
               </button>
             </td>
             <td class="px-6 py-4 text-right text-sm">
-              <Link :href="`/admin/knowledge-categories/${category.id}/edit`" class="text-blue-600 hover:text-blue-700">
+              <Link :href="`/admin/topics/${topic.id}/edit`" class="text-blue-600 hover:text-blue-700">
                 編輯
               </Link>
             </td>
@@ -85,18 +85,18 @@ import { Head, Link, router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 
 defineProps({
-  categories: Array,
+  topics: Array,
 })
 
 function togglePublished(id) {
-  router.patch(`/admin/knowledge-categories/${id}/toggle-published`)
+  router.patch(`/admin/topics/${id}/toggle-published`)
 }
 
 function moveUp(id) {
-  router.patch(`/admin/knowledge-categories/${id}/move-up`)
+  router.patch(`/admin/topics/${id}/move-up`)
 }
 
 function moveDown(id) {
-  router.patch(`/admin/knowledge-categories/${id}/move-down`)
+  router.patch(`/admin/topics/${id}/move-down`)
 }
 </script>

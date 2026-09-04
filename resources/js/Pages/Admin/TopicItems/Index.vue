@@ -1,14 +1,14 @@
 <template>
-  <Head title="知識項目管理" />
+  <Head title="主題導覽項目管理" />
 
-  <AdminLayout title="知識項目管理">
+  <AdminLayout title="主題導覽項目管理">
     <div class="mb-6 flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">知識項目管理</h1>
+        <h1 class="text-2xl font-bold text-gray-900">主題導覽項目管理</h1>
         <p class="mt-1 text-sm text-gray-500">管理知識分類底下的項目內容。</p>
       </div>
       <Link
-        href="/admin/knowledge-items/create"
+        href="/admin/topic-items/create"
         class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
       >
         新增項目
@@ -20,20 +20,20 @@
       <label class="block text-sm font-medium text-gray-700 mb-2">篩選分類</label>
       <div class="flex gap-2 flex-wrap">
         <Link
-          href="/admin/knowledge-items"
+          href="/admin/topic-items"
           class="rounded-lg px-4 py-2 text-sm font-medium transition"
-          :class="!selectedCategoryId ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          :class="!selectedTopicId ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
         >
           全部
         </Link>
         <Link
-          v-for="category in categories"
-          :key="category.id"
-          :href="`/admin/knowledge-items?category_id=${category.id}`"
+          v-for="topic in topics"
+          :key="topic.id"
+          :href="`/admin/topic-items?topic_id=${topic.id}`"
           class="rounded-lg px-4 py-2 text-sm font-medium transition"
-          :class="selectedCategoryId === category.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          :class="selectedTopicId === topic.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
         >
-          {{ category.title }}
+          {{ topic.title }}
         </Link>
       </div>
     </div>
@@ -54,7 +54,7 @@
             <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ item.title }}</td>
             <td class="px-6 py-4 text-sm text-gray-500">
               <span class="rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">
-                {{ item.category?.title }}
+                {{ item.topic?.title }}
               </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">
@@ -88,7 +88,7 @@
               </button>
             </td>
             <td class="px-6 py-4 text-right text-sm">
-              <Link :href="`/admin/knowledge-items/${item.id}/edit`" class="text-blue-600 hover:text-blue-700 mr-4">
+              <Link :href="`/admin/topic-items/${item.id}/edit`" class="text-blue-600 hover:text-blue-700 mr-4">
                 編輯
               </Link>
               <button
@@ -130,35 +130,35 @@ import AdminLayout from '@/Layouts/AdminLayout.vue'
 
 const props = defineProps({
   items: Object,
-  categories: Array,
-  selectedCategoryId: Number,
+  topics: Array,
+  selectedTopicId: Number,
 })
 
 function togglePublished(id) {
-  router.patch(`/admin/knowledge-items/${id}/toggle-published`, {}, {
+  router.patch(`/admin/topic-items/${id}/toggle-published`, {}, {
     preserveScroll: true,
   })
 }
 
 function moveUp(id) {
-  router.patch(`/admin/knowledge-items/${id}/move-up`, {}, {
+  router.patch(`/admin/topic-items/${id}/move-up`, {}, {
     preserveScroll: true,
   })
 }
 
 function moveDown(id) {
-  router.patch(`/admin/knowledge-items/${id}/move-down`, {}, {
+  router.patch(`/admin/topic-items/${id}/move-down`, {}, {
     preserveScroll: true,
   })
 }
 
 function destroy(id) {
   if (!confirm('確定刪除此項目？')) return
-  router.delete(`/admin/knowledge-items/${id}`)
+  router.delete(`/admin/topic-items/${id}`)
 }
 
 function getPaginationUrl(page) {
-  const baseUrl = `/admin/knowledge-items?page=${page}`
-  return props.selectedCategoryId ? `${baseUrl}&category_id=${props.selectedCategoryId}` : baseUrl
+  const baseUrl = `/admin/topic-items?page=${page}`
+  return props.selectedTopicId ? `${baseUrl}&topic_id=${props.selectedTopicId}` : baseUrl
 }
 </script>

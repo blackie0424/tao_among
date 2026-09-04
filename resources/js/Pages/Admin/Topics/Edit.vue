@@ -40,13 +40,13 @@
           />
           <p v-if="uploading" class="mt-1 text-xs text-blue-600">上傳中...</p>
           <p v-if="imageError" class="mt-1 text-xs text-red-600">{{ imageError }}</p>
-          <p v-if="category.image_path && !imagePreview" class="mt-1 text-xs text-gray-400">目前：{{ category.image_path }}</p>
+          <p v-if="topic.image_path && !imagePreview" class="mt-1 text-xs text-gray-400">目前：{{ topic.image_path }}</p>
           <p v-if="errors.image_path" class="mt-1 text-xs text-red-600">{{ errors.image_path }}</p>
           <div v-if="imagePreview" class="mt-3">
             <img :src="imagePreview" alt="預覽" class="max-h-40 rounded border" />
           </div>
-          <div v-else-if="category.image_url" class="mt-3">
-            <img :src="category.image_url" alt="目前圖片" class="max-h-40 rounded border" />
+          <div v-else-if="topic.image_url" class="mt-3">
+            <img :src="topic.image_url" alt="目前圖片" class="max-h-40 rounded border" />
           </div>
         </div>
 
@@ -73,7 +73,7 @@
           >
             儲存變更
           </button>
-          <Link href="/admin/knowledge-categories" class="text-sm text-gray-500 hover:text-gray-700">取消</Link>
+          <Link href="/admin/topics" class="text-sm text-gray-500 hover:text-gray-700">取消</Link>
         </div>
       </form>
     </div>
@@ -87,15 +87,15 @@ import AdminLayout from '@/Layouts/AdminLayout.vue'
 import { useImageUpload } from '@/composables/useImageUpload'
 
 const props = defineProps({
-  category: Object,
+  topic: Object,
 })
 
 const form = reactive({
-  title: props.category.title,
-  slug: props.category.slug,
-  image_path: props.category.image_path ?? '',
-  is_fish_category: props.category.is_fish_category,
-  is_published: props.category.is_published,
+  title: props.topic.title,
+  slug: props.topic.slug,
+  image_path: props.topic.image_path ?? '',
+  is_fish_category: props.topic.is_fish_category,
+  is_published: props.topic.is_published,
 })
 const errors = ref({})
 const processing = ref(false)
@@ -117,8 +117,8 @@ async function onFileChange(e) {
   reader.readAsDataURL(file)
 
   try {
-    const filename = await uploadImage(file, { folder: 'knowledge-categories' })
-    form.image_path = `knowledge-categories/${filename}`
+    const filename = await uploadImage(file, { folder: 'topics' })
+    form.image_path = `topics/${filename}`
   } catch (err) {
     errors.value = { ...errors.value, image_path: err.message || '上傳失敗' }
   }
@@ -136,7 +136,7 @@ function submit() {
     data.image_path = form.image_path
   }
 
-  router.put(`/admin/knowledge-categories/${props.category.id}`, data, {
+  router.put(`/admin/topics/${props.topic.id}`, data, {
     onError: (e) => { errors.value = e },
     onFinish: () => { processing.value = false },
   })

@@ -34,7 +34,7 @@
       <!-- 返回按鈕 -->
       <div class="mt-8 text-center">
         <Link
-          :href="`/knowledge/${category.slug}`"
+          :href="`/topics/${topic.slug}`"
           class="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition min-h-touch-primary"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@ import { Head, Link } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 
 defineProps({
-  category: {
+  topic: {
     type: Object,
     required: true,
   },
