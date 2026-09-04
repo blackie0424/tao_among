@@ -1,7 +1,7 @@
 <template>
   <Head :title="item.title" />
 
-  <FishAppLayout :pageTitle="item.title" :mobileBackText="topic.title">
+  <FishAppLayout :pageTitle="item.title" :mobileBackText="topic.title" :mobileBackUrl="`/topics/${topic.slug}`">
     <div class="mx-auto max-w-3xl px-4 py-6">
       
       <!-- 圖片 -->
