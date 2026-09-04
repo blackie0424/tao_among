@@ -9,7 +9,10 @@
   >
     <!-- Desktop Nav Slot: 搜尋與新增按鈕 -->
     <template #desktop-nav>
-      <FishListNavActions variant="desktop" :user="user" @toggle="handleSearchToggle" />
+      <div class="flex items-center justify-between w-full">
+        <span class="font-bold text-elder-text text-elder-name tracking-wide">among no tao</span>
+        <FishListNavActions variant="desktop" :user="user" @toggle="handleSearchToggle" />
+      </div>
     </template>
 
     <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 -->

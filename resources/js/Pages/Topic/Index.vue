@@ -4,11 +4,6 @@
   <FishAppLayout :pageTitle="topic.title" :mobileBackText="topic.title" mobileBackUrl="/">
     <div class="mx-auto max-w-4xl px-4 py-6">
       
-      <!-- 分類標題 -->
-      <div class="mb-6 text-center">
-        <h1 class="text-elder-title font-bold text-gray-900">{{ topic.title }}</h1>
-      </div>
-
       <!-- 項目列表 -->
       <div v-if="items.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         <ItemCard
