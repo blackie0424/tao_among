@@ -50,8 +50,7 @@ describe('Topic/Index.vue', () => {
       props: { topic, items },
     })
 
-    // ItemCard 應該收到 /topics/bait-guide/1 這樣的 href
-    const itemCard = wrapper.findComponent({ name: 'default' })
-    expect(itemCard.exists()).toBe(true)
+    // 檢查 ItemCard 元件的 title 屬性有渲染
+    expect(wrapper.text()).toContain('項目1')
   })
 })
