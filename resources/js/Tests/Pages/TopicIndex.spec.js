@@ -8,8 +8,9 @@ vi.mock('@inertiajs/vue3', () => ({
 
 vi.mock('@/Layouts/FishAppLayout.vue', () => ({
   default: {
+    name: 'FishAppLayout',
     template: '<div><slot /></div>',
-    props: ['pageTitle'],
+    props: ['pageTitle', 'mobileBackText', 'mobileBackUrl'],
   },
 }))
 
@@ -33,7 +34,10 @@ describe('Topic/Index.vue', () => {
       props: { topic, items },
     })
 
-    expect(wrapper.text()).toContain('魚餌圖鑑')
+    // 檢查 FishAppLayout 接收到正確的 pageTitle prop
+    const layout = wrapper.findComponent({ name: 'FishAppLayout' })
+    expect(layout.exists()).toBe(true)
+    expect(layout.props('pageTitle')).toBe('魚餌圖鑑')
   })
 
   it('使用 /topics/ 路由而非 /knowledge/', () => {
