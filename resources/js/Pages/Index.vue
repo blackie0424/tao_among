@@ -90,14 +90,14 @@
       <!-- 知識分類 -->
       <section>
         <h2 class="text-center text-lg font-bold text-gray-800 mb-4">探索蘭嶼</h2>
-        <div class="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+        <div class="flex flex-col gap-4">
           <div
             v-for="category in knowledgeCategories"
             :key="category.id"
             class="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition"
             @click="goToCategory(category)"
           >
-            <div class="relative h-32">
+            <div class="relative aspect-video w-full">
               <img
                 v-if="category.image_url"
                 :src="category.image_url"
