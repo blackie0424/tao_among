@@ -97,16 +97,12 @@
             class="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition"
             @click="goToCategory(category)"
           >
-            <div class="relative aspect-video w-full">
+            <div v-if="category.image_url" class="relative aspect-video w-full">
               <img
-                v-if="category.image_url"
                 :src="category.image_url"
                 :alt="category.title"
                 class="w-full h-full object-cover"
               />
-              <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span class="text-gray-400">無圖片</span>
-              </div>
             </div>
             <div class="p-3 text-center">
               <h3 class="text-elder-body font-semibold text-gray-800">{{ category.title }}</h3>
