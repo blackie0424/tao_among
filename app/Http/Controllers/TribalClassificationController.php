@@ -203,10 +203,13 @@ class TribalClassificationController extends Controller
     {
         $fish = Fish::findOrFail($fishId);
         
+        $tribeOrder = array_flip(config('fish_options.tribes'));
+
         $classifications = $fish->tribalClassifications()
-            ->orderBy('tribe')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->sortBy(fn (TribalClassification $classification) => $tribeOrder[$classification->tribe] ?? PHP_INT_MAX)
+            ->values();
 
         return response()->json([
             'message' => 'Tribal classifications retrieved successfully',

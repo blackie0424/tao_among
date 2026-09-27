@@ -275,9 +275,9 @@ describe('Tribal Classification API', function () {
         // Should be ordered by tribe first, then by created_at desc
         expect($data)->toHaveCount(3);
         
-        // Check that tribes are ordered alphabetically
+        // Check that tribes follow the configured tribe order
         $tribes = collect($data)->pluck('tribe')->toArray();
-        expect($tribes)->toBe(['imowrod', 'iraraley', 'yayo']);
+        expect($tribes)->toBe(['imowrod', 'yayo', 'iraraley']);
     });
 
     it('prevents duplicate classifications for same fish and tribe', function () {
