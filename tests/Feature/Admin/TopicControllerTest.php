@@ -1,4 +1,4 @@
-<<?php
+<?php
 
 use App\Models\Topic;
 use App\Models\User;
