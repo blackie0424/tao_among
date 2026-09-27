@@ -21,6 +21,7 @@ use App\Http\Controllers\IntroCategoryController;
 use App\Http\Controllers\IntroSlideController;
 
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 // =====================================================
 // 公開路由（不需登入）
@@ -62,6 +63,8 @@ Route::middleware(['auth'])->group(function () {
 
         // 田調工作區
         Route::get('/workspace', [WorkspaceController::class, 'index'])->name('workspace');
+        Route::get('/workspace/field-survey/technical-validation', fn () => Inertia::render('FieldSurvey/TechnicalValidation'))
+            ->name('field-survey.technical-validation');
 
         // 魚類基本管理
         // 注意：/fish/batch-create 必須在 /fish/{id} 之前定義
