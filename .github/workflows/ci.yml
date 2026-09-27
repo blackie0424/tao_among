@@ -58,3 +58,66 @@ jobs:
         env:
           LARAVEL_BYPASS_ENV_CHECK: '1'
         run: npm run test -- --run
+
+  ci-mysql:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: tao_among_test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: tao_among_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, xml, mysql, pdo_mysql
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Prepare application environment
+        run: |
+          cp .env.testing .env
+          php artisan key:generate --force
+          mkdir -p public
+          printf 'http://localhost:5173' > public/hot
+
+      - name: Verify MySQL connection
+        run: |
+          php -r '
+          require "vendor/autoload.php";
+          $app = require "bootstrap/app.php";
+          $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+          $driver = Illuminate\Support\Facades\DB::connection()->getDriverName();
+          echo "Database driver: {$driver}\n";
+          exit($driver === "mysql" ? 0 : 1);
+          '
+
+      - name: Run MySQL migrations
+        run: php artisan migrate --force
+
+      - name: Run backend tests on MySQL
+        run: php artisan test
