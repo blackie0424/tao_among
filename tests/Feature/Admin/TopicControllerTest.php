@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\StorageServiceInterface;
 use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -8,6 +9,9 @@ use Inertia\Testing\AssertableInertia as Assert;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->storageMock = $this->mock(StorageServiceInterface::class);
+    $this->storageMock->shouldReceive('getImageFolder')->andReturn('images')->byDefault();
+    $this->storageMock->shouldReceive('getWebpFolder')->andReturn('webp')->byDefault();
     $this->admin = User::factory()->admin()->create();
     $this->editor = User::factory()->lineEditor()->create();
 });
@@ -70,6 +74,10 @@ it('admin 可以更新 topic', function () {
 it('admin 可以移除 topic 目前圖片', function () {
     $topic = Topic::first();
     $topic->update(['image_path' => 'topics/original.jpg']);
+    $this->storageMock->shouldReceive('delete')
+        ->once()
+        ->with('topics/original.jpg')
+        ->andReturnTrue();
 
     $this->actingAs($this->admin)
         ->put("/admin/topics/{$topic->id}", [
@@ -86,6 +94,7 @@ it('admin 可以移除 topic 目前圖片', function () {
 it('更新 topic 時未帶圖片欄位會保留原圖', function () {
     $topic = Topic::first();
     $topic->update(['image_path' => 'topics/original.jpg']);
+    $this->storageMock->shouldNotReceive('delete');
 
     $this->actingAs($this->admin)
         ->put("/admin/topics/{$topic->id}", [
@@ -101,6 +110,10 @@ it('更新 topic 時未帶圖片欄位會保留原圖', function () {
 it('同時移除並更新 topic 圖片時以新圖片為準', function () {
     $topic = Topic::first();
     $topic->update(['image_path' => 'topics/original.jpg']);
+    $this->storageMock->shouldReceive('delete')
+        ->once()
+        ->with('topics/original.jpg')
+        ->andReturnTrue();
 
     $this->actingAs($this->admin)
         ->put("/admin/topics/{$topic->id}", [
@@ -112,6 +125,72 @@ it('同時移除並更新 topic 圖片時以新圖片為準', function () {
 
     $topic->refresh();
     expect($topic->image_path)->toBe('topics/replacement.jpg');
+});
+
+it('更新 topic 時圖片路徑未改變不會刪除檔案', function () {
+    $topic = Topic::first();
+    $topic->update(['image_path' => 'topics/original.jpg']);
+    $this->storageMock->shouldNotReceive('delete');
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => $topic->title,
+            'image_path' => 'topics/original.jpg',
+        ])
+        ->assertRedirect('/admin/topics');
+
+    expect($topic->refresh()->image_path)->toBe('topics/original.jpg');
+});
+
+it('移除沒有圖片的 topic 不會呼叫刪除服務', function () {
+    $topic = Topic::first();
+    $topic->update(['image_path' => null]);
+    $this->storageMock->shouldNotReceive('delete');
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => $topic->title,
+            'remove_image' => true,
+        ])
+        ->assertRedirect('/admin/topics');
+
+    expect($topic->refresh()->image_path)->toBeNull();
+});
+
+it('移除 topic 圖片時刪除舊檔失敗仍會清空圖片', function () {
+    $topic = Topic::first();
+    $topic->update(['image_path' => 'topics/original.jpg']);
+    $this->storageMock->shouldReceive('delete')
+        ->once()
+        ->with('topics/original.jpg')
+        ->andThrow(new RuntimeException('storage unavailable'));
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => $topic->title,
+            'remove_image' => true,
+        ])
+        ->assertRedirect('/admin/topics');
+
+    expect($topic->refresh()->image_path)->toBeNull();
+});
+
+it('更新 topic 圖片時刪除舊檔失敗仍會使用新圖片', function () {
+    $topic = Topic::first();
+    $topic->update(['image_path' => 'topics/original.jpg']);
+    $this->storageMock->shouldReceive('delete')
+        ->once()
+        ->with('topics/original.jpg')
+        ->andThrow(new RuntimeException('storage unavailable'));
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => $topic->title,
+            'image_path' => 'topics/replacement.jpg',
+        ])
+        ->assertRedirect('/admin/topics');
+
+    expect($topic->refresh()->image_path)->toBe('topics/replacement.jpg');
 });
 
 it('update 驗證：remove_image 必須是布林值', function () {

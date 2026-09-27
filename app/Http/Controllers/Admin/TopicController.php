@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\StorageServiceInterface;
 use App\Http\Controllers\BaseController;
 use App\Models\Topic;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TopicController extends BaseController
 {
+    public function __construct(private readonly StorageServiceInterface $storageService) {}
+
     public function index(): Response
     {
         return Inertia::render('Admin/Topics/Index', [
@@ -43,14 +47,29 @@ class TopicController extends BaseController
         ];
 
         if (!empty($data['image_path'])) {
+            if ($topic->image_path && $topic->image_path !== $data['image_path']) {
+                $this->deleteImage($topic->image_path);
+            }
             $updateData['image_path'] = $data['image_path'];
         } elseif (($data['remove_image'] ?? false) === true) {
+            if ($topic->image_path) {
+                $this->deleteImage($topic->image_path);
+            }
             $updateData['image_path'] = null;
         }
 
         $topic->update($updateData);
 
         return redirect('/admin/topics')->with('success', '知識分類已成功更新');
+    }
+
+    private function deleteImage(string $imagePath): void
+    {
+        try {
+            $this->storageService->delete($imagePath);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete old topic image: '.$e->getMessage());
+        }
     }
 
     public function togglePublished(Topic $topic)
