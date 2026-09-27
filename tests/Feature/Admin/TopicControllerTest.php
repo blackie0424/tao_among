@@ -67,6 +67,64 @@ it('admin 可以更新 topic', function () {
     ]);
 });
 
+it('admin 可以移除 topic 目前圖片', function () {
+    $topic = Topic::first();
+    $topic->update(['image_path' => 'topics/original.jpg']);
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => $topic->title,
+            'remove_image' => true,
+        ])
+        ->assertRedirect('/admin/topics');
+
+    $topic->refresh();
+    expect($topic->image_path)->toBeNull()
+        ->and($topic->image_url)->toBeNull();
+});
+
+it('更新 topic 時未帶圖片欄位會保留原圖', function () {
+    $topic = Topic::first();
+    $topic->update(['image_path' => 'topics/original.jpg']);
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => '只更新標題',
+        ])
+        ->assertRedirect('/admin/topics');
+
+    $topic->refresh();
+    expect($topic->title)->toBe('只更新標題')
+        ->and($topic->image_path)->toBe('topics/original.jpg');
+});
+
+it('同時移除並更新 topic 圖片時以新圖片為準', function () {
+    $topic = Topic::first();
+    $topic->update(['image_path' => 'topics/original.jpg']);
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => $topic->title,
+            'remove_image' => true,
+            'image_path' => 'topics/replacement.jpg',
+        ])
+        ->assertRedirect('/admin/topics');
+
+    $topic->refresh();
+    expect($topic->image_path)->toBe('topics/replacement.jpg');
+});
+
+it('update 驗證：remove_image 必須是布林值', function () {
+    $topic = Topic::first();
+
+    $this->actingAs($this->admin)
+        ->put("/admin/topics/{$topic->id}", [
+            'title' => $topic->title,
+            'remove_image' => 'invalid',
+        ])
+        ->assertSessionHasErrors('remove_image');
+});
+
 it('update 驗證：title 必填', function () {
     $topic = Topic::first();
 

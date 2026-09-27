@@ -31,6 +31,7 @@ class TopicController extends BaseController
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'image_path' => 'nullable|string',
+            'remove_image' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
         ]);
@@ -43,6 +44,8 @@ class TopicController extends BaseController
 
         if (!empty($data['image_path'])) {
             $updateData['image_path'] = $data['image_path'];
+        } elseif (($data['remove_image'] ?? false) === true) {
+            $updateData['image_path'] = null;
         }
 
         $topic->update($updateData);
