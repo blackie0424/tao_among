@@ -205,8 +205,10 @@ class LineBotController extends Controller
         // 補漏網之魚：確保使用者有被記錄
         $this->upsertLineUserByProfile($userId);
 
+        $role = $this->lineUserService->getRole($userId);
         // 判斷是否為 editor 角色（用於圖卡 editor 按鈕顯示）
-        $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+        $isEditor = in_array($role, ['editor', 'admin']);
+        $canBrowse = $role !== 'guest';
 
         // 空白訊息，回傳使用說明
         if (empty($text)) {
@@ -298,6 +300,12 @@ class LineBotController extends Controller
         $renamingFishId = Cache::get("line_user_{$userId}_renaming_fish");
         if ($renamingFishId) {
             $this->handleRenameFish($userId, $renamingFishId, $text, $replyToken);
+
+            return;
+        }
+
+        if (! $canBrowse) {
+            $this->replyBrowsePermissionDenied($replyToken);
 
             return;
         }
@@ -1033,6 +1041,33 @@ class LineBotController extends Controller
         }
     }
 
+    protected function browseProtectedActions(): array
+    {
+        return [
+            'browse_oyod',
+            'browse_rahet',
+            'browse_tribes_menu',
+            'browse_tribe_data',
+            'random_browse',
+            'browse_next',
+            'browse_knowledge',
+            'random_unknown_fish',
+            'view_captures',
+            'play_audio',
+            'no_audio',
+        ];
+    }
+
+    protected function replyBrowsePermissionDenied(string $replyToken): void
+    {
+        $this->lineMessagingClient->replyMessage($replyToken, [
+            new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => '⚠️ 您沒有此功能的使用權限。',
+            ]),
+        ]);
+    }
+
     /**
      * 處理 Postback 事件
      */
@@ -1052,7 +1087,8 @@ class LineBotController extends Controller
             $this->upsertLineUserByProfile($userId);
 
             // 取得使用者角色（用於 editor 按鈕顯示及受保護 action 檢查）
-            $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+            $role = $this->lineUserService->getRole($userId);
+            $isEditor = in_array($role, ['editor', 'admin']);
 
             // 需要 editor/admin 角色的受保護 action
             // 注意：start_rename 與 start_add_audio 亦需保護，
@@ -1075,6 +1111,12 @@ class LineBotController extends Controller
 
                 return;
             }
+            if (in_array($action, $this->browseProtectedActions(), true) && $role === 'guest') {
+                $this->replyBrowsePermissionDenied($replyToken);
+
+                return;
+            }
+
 
             // ==========================================
             // 圖文選單功能（Rich Menu）
