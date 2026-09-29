@@ -8,6 +8,7 @@ use App\Contracts\LineUserServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
+use App\Models\User;
 use App\Services\CaptureRecordBatchService;
 use App\Services\FishNoteService;
 use App\Services\Line\LineCreateFishReplyBuilder;
@@ -170,17 +171,33 @@ class LineBotController extends Controller
     protected function handleFollowEvent(FollowEvent $event): void
     {
         $userId = $event->getSource()->getUserId();
-        $this->upsertLineUserByProfile($userId);
+        $user = $this->upsertLineUserByProfile($userId);
+
+        if (! $user) {
+            return;
+        }
+
+        $text = $user->role === 'guest'
+            ? "👋 歡迎加入 among no tao！\n\n你的帳號已建立，但尚未開通瀏覽權限，請聯繫管理者開通後再使用魚類資料功能。"
+            : "👋 歡迎回來！\n\n你可以使用圖文選單或輸入魚名開始瀏覽。";
+
+        $this->lineMessagingClient->replyMessage($event->getReplyToken(), [
+            new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => $text,
+            ]),
+        ]);
     }
 
     /**
      * 呼叫 LINE Profile API 取得使用者資料並 upsert 至資料庫
      */
-    protected function upsertLineUserByProfile(string $userId): void
+    protected function upsertLineUserByProfile(string $userId): ?User
     {
         try {
             $profile = $this->lineMessagingClient->getUserProfile($userId);
-            $this->lineUserService->upsert(
+
+            return $this->lineUserService->upsert(
                 $userId,
                 $profile['displayName'] ?? $userId,
                 $profile['pictureUrl'] ?? null
@@ -190,6 +207,8 @@ class LineBotController extends Controller
                 'userId' => $userId,
                 'error' => $e->getMessage(),
             ]);
+
+            return null;
         }
     }
 
