@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Fish;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,6 +42,43 @@ it('renders the custom forbidden page with a route back to the homepage', functi
         ->assertSee('請聯繫管理員')
         ->assertSee('href="/"', escape: false)
         ->assertSee('回首頁');
+});
+
+it('renders forbidden responses as an Inertia error page for Inertia requests', function () {
+    config(['app.asset_url' => 'https://assets.test']);
+    $version = app(HandleInertiaRequests::class)->version(request());
+
+    $response = $this
+        ->actingAs(User::factory()->lineGuest()->create())
+        ->withHeaders([
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => $version,
+        ])
+        ->get('/fishs');
+
+    $response
+        ->assertForbidden()
+        ->assertHeader('X-Inertia', 'true')
+        ->assertJsonPath('component', 'Error')
+        ->assertJsonPath('props.status', 403);
+});
+
+it('renders not-found responses as an Inertia error page for Inertia requests', function () {
+    config(['app.asset_url' => 'https://assets.test']);
+    $version = app(HandleInertiaRequests::class)->version(request());
+
+    $response = $this
+        ->withHeaders([
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => $version,
+        ])
+        ->get('/this-page-does-not-exist');
+
+    $response
+        ->assertNotFound()
+        ->assertHeader('X-Inertia', 'true')
+        ->assertJsonPath('component', 'Error')
+        ->assertJsonPath('props.status', 404);
 });
 
 it('enforces browse access on the existing authenticated web group', function () {
