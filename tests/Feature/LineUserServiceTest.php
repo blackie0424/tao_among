@@ -13,14 +13,17 @@ beforeEach(function () {
 });
 
 it('upsert_creates_new_line_user', function () {
+    config(['line.viewer_rich_menu_id' => 'viewer_menu_id']);
+    $this->richMenuService->shouldNotReceive('linkToUser');
+
     $user = $this->service->upsert('U123', '田調員甲', 'https://example.com/pic.jpg');
 
     expect($user->line_user_id)->toBe('U123');
     expect($user->name)->toBe('田調員甲');
     expect($user->picture_url)->toBe('https://example.com/pic.jpg');
-    expect($user->role)->toBe('viewer');
+    expect($user->role)->toBe('guest');
     expect($user->source)->toBe('line');
-    $this->assertDatabaseHas('users', ['line_user_id' => 'U123', 'source' => 'line']);
+    $this->assertDatabaseHas('users', ['line_user_id' => 'U123', 'source' => 'line', 'role' => 'guest']);
 });
 
 it('upsert_updates_display_name_if_user_exists', function () {
@@ -35,6 +38,17 @@ it('upsert_updates_display_name_if_user_exists', function () {
     expect($user->name)->toBe('新名字');
     expect($user->role)->toBe('editor'); // 角色不應被 upsert 覆蓋
     $this->assertDatabaseCount('users', 1);
+});
+
+it('upsert preserves an existing viewer role', function () {
+    User::factory()->lineViewer()->create([
+        'line_user_id' => 'Uviewer',
+        'name' => '舊名字',
+    ]);
+
+    $user = $this->service->upsert('Uviewer', '新名字', null);
+
+    expect($user->role)->toBe('viewer');
 });
 
 it('assign_role_editor_saves_to_database', function () {
@@ -62,6 +76,18 @@ it('assign_role_viewer_links_to_viewer_menu', function () {
     $user = $this->service->assignRole('U789', 'viewer');
 
     expect($user->role)->toBe('viewer');
+});
+
+it('assign_role_guest_unlinks_rich_menu', function () {
+    User::factory()->lineViewer()->create(['line_user_id' => 'Uguest']);
+
+    $this->richMenuService->shouldReceive('unlinkFromUser')
+        ->once()
+        ->with('Uguest');
+
+    $user = $this->service->assignRole('Uguest', 'guest');
+
+    expect($user->role)->toBe('guest');
 });
 
 it('get_role_returns_viewer_for_unknown_user', function () {

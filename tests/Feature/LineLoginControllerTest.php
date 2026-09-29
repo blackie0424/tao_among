@@ -57,7 +57,7 @@ it('callback_新使用者首次登入建立_User_記錄', function () {
         'line_user_id' => 'Unewuser123',
         'name'         => '新使用者',
         'source'       => 'line',
-        'role'         => 'viewer',
+        'role'         => 'guest',
     ]);
 });
 
@@ -113,7 +113,7 @@ it('callback_重複登入不會建立重複的_User_且更新名稱', function (
     $this->get('/auth/line/callback?code=fake_code&state=' . $state);
 
     $this->assertDatabaseCount('users', 1);
-    $this->assertDatabaseHas('users', ['line_user_id' => 'Uexisting', 'name' => '新名字']);
+    $this->assertDatabaseHas('users', ['line_user_id' => 'Uexisting', 'name' => '新名字', 'role' => 'viewer']);
 });
 
 // ─── complete ─────────────────────────────────────────────────────────────────
