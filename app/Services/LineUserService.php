@@ -77,6 +77,6 @@ class LineUserService implements LineUserServiceInterface
 
     public function getRole(string $lineUserId): string
     {
-        return User::where('line_user_id', $lineUserId)->value('role') ?? 'viewer';
+        return User::where('line_user_id', $lineUserId)->value('role') ?? 'guest';
     }
 }
