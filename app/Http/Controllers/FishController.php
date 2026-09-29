@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Fish;
 use App\Models\FishNote;
 use App\Models\CaptureRecord;
-use App\Models\IntroSlide;
 use App\Http\Requests\FishSearchRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -42,12 +41,7 @@ class FishController extends Controller
 
     public function index()
     {
-        $slides = IntroSlide::published()
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get(['id', 'title', 'body', 'media_type', 'media_path']);
-
-        return Inertia::render('Index', ['slides' => $slides]);
+        return Inertia::render('Index');
     }
 
     public function getFish($id, Request $request)
