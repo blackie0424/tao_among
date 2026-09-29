@@ -118,18 +118,29 @@ it('callback_重複登入不會建立重複的_User_且更新名稱', function (
 
 // ─── complete ─────────────────────────────────────────────────────────────────
 
-it('complete_有效_token_登入成功並導向_fishs', function () {
+it('complete_guest_登入成功後預設導向首頁且可正常存取', function () {
+    $user = User::factory()->lineGuest()->create();
+    Cache::put('line_login_token:guest_token', $user->id, now()->addMinutes(5));
+
+    $response = $this->get('/auth/line/complete?token=guest_token');
+
+    $response->assertRedirect('/');
+    $this->assertAuthenticatedAs($user);
+    $this->get('/')->assertOk();
+});
+
+it('complete_viewer_登入成功後預設導向首頁', function () {
     $user = User::factory()->lineViewer()->create();
     Cache::put('line_login_token:valid_token_123', $user->id, now()->addMinutes(5));
 
     $response = $this->get('/auth/line/complete?token=valid_token_123');
 
-    $response->assertRedirect('/fishs');
+    $response->assertRedirect('/');
     $this->assertAuthenticatedAs($user);
 });
 
-it('complete_若有_intended_url_則導向原始受保護頁面', function () {
-    $user = User::factory()->lineEditor()->create();
+it('complete_viewer_若有_intended_url_則導向原始受保護頁面', function () {
+    $user = User::factory()->lineViewer()->create();
     Cache::put('line_login_token:intended_token', $user->id, now()->addMinutes(5));
 
     $this->withSession([
