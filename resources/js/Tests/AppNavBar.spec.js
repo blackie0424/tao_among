@@ -22,6 +22,8 @@ vi.mock('@/Components/Global/UserMenuDropdown.vue', () => ({
 
 const makeAdminUser = () => ({ name: '管理員', role: 'admin' })
 const makeEditorUser = () => ({ name: '田調員', role: 'editor' })
+const makeViewerUser = () => ({ name: '使用者', role: 'viewer' })
+const makeGuestUser = () => ({ name: '訪客', role: 'guest' })
 
 const mountNavBar = (props = {}, user = makeAdminUser()) => {
   mockUsePage.mockReturnValue({
@@ -102,9 +104,19 @@ describe('AppNavBar', () => {
   })
 
   describe('Desktop 使用者區域', () => {
-    it('管理員顯示含名字的下拉按鈕', () => {
-      const wrapper = mountNavBar({}, makeAdminUser())
-      expect(wrapper.text()).toContain('管理員')
+    it.each([
+      ['guest', makeGuestUser(), '訪客'],
+      ['viewer', makeViewerUser(), '使用者'],
+      ['editor', makeEditorUser(), '田調人員'],
+      ['admin', makeAdminUser(), '管理者'],
+    ])('%s 顯示正確的角色 badge', (_role, user, label) => {
+      const wrapper = mountNavBar({}, user)
+      expect(wrapper.get('[data-testid="desktop-role-label"]').text()).toBe(label)
+    })
+
+    it('未知角色不顯示 badge', () => {
+      const wrapper = mountNavBar({}, { name: '未知使用者', role: 'unknown' })
+      expect(wrapper.find('[data-testid="desktop-role-label"]').exists()).toBe(false)
     })
 
     it('editor 的下拉按鈕內顯示「田調人員」badge 與名字', () => {

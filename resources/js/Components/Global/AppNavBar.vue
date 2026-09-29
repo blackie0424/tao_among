@@ -195,9 +195,10 @@
                 class="flex items-center gap-1.5 text-elder-body font-medium text-gray-700 hover:text-blue-600 transition"
               >
                 <span
-                  v-if="user?.role === 'editor'"
+                  v-if="roleLabel"
+                  data-testid="desktop-role-label"
                   class="bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full text-xs font-medium"
-                >田調人員</span>
+                >{{ roleLabel }}</span>
                 {{ user.name }}
                 <svg
                   class="w-4 h-4 text-gray-400"
@@ -221,7 +222,11 @@
             </div>
             <!-- Other Users: Name with Badge -->
             <div v-else-if="user" class="text-elder-body font-medium text-gray-700 flex items-center gap-2">
-              <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-elder-aux">田調人員</span>
+              <span
+                v-if="roleLabel"
+                data-testid="desktop-role-label"
+                class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-elder-aux"
+              >{{ roleLabel }}</span>
               {{ user.name }}
             </div>
             <!-- Other Users Logout -->
@@ -254,6 +259,7 @@
 import { computed, ref } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import UserMenuDropdown from '@/Components/Global/UserMenuDropdown.vue'
+import { ROLE_LABELS } from '@/constants/roles'
 
 defineProps({
   pageTitle: {
@@ -277,6 +283,7 @@ defineProps({
 const page = usePage()
 const fish = computed(() => page.props.fish)
 const user = computed(() => page.props.auth?.user)
+const roleLabel = computed(() => ROLE_LABELS[user.value?.role])
 
 const loginUrl = computed(() => {
   if (typeof window === 'undefined') return '/login'

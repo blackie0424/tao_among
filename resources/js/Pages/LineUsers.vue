@@ -62,9 +62,9 @@
                   class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   :class="roleClass(user.role)"
                 >
-                  <option value="guest">guest（未開通）</option>
-                  <option value="viewer">viewer（瀏覽者）</option>
-                  <option value="editor">editor（田調人員）</option>
+                  <option v-for="role in assignableRoles" :key="role" :value="role">
+                    {{ role }}（{{ ROLE_LABELS[role] }}）
+                  </option>
                 </select>
               </td>
             </tr>
@@ -96,6 +96,7 @@ import { ref } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import axios from 'axios'
+import { ROLE_LABELS } from '@/constants/roles'
 import { formatDate } from '@/utils/formatDate'
 
 const props = defineProps({
@@ -103,6 +104,7 @@ const props = defineProps({
 })
 
 const updatingId = ref(null)
+const assignableRoles = ['guest', 'viewer', 'editor']
 
 async function updateRole(user, newRole) {
   if (updatingId.value) return

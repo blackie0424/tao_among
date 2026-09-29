@@ -36,7 +36,7 @@
               使用者管理
               <span v-if="pendingUsers > 0" class="hub-card__badge">{{ pendingUsers }}</span>
             </div>
-            <div class="hub-card__desc">指派田調人員與管理者角色</div>
+            <div class="hub-card__desc">管理訪客、使用者、田調人員與管理者角色</div>
           </div>
         </Link>
 

@@ -66,7 +66,8 @@ describe('LineUsers', () => {
     })
 
     expect(wrapper.findAll('option').map((option) => option.attributes('value')))
-      .toEqual(['guest', 'viewer', 'editor'])
+    expect(wrapper.findAll('option').map((option) => option.text()))
+      .toEqual(['guest（訪客）', 'viewer（使用者）', 'editor（田調人員）'])
   })
 
   it('role dropdown triggers axios put on change', async () => {

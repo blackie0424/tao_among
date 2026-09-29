@@ -11,8 +11,12 @@
         class="px-4 py-3 border-b border-gray-50 bg-gray-50/50"
       >
         <div class="text-sm font-bold text-gray-900 truncate">{{ user.name }}</div>
-        <div v-if="user?.role !== 'admin'" class="text-xs text-blue-600 font-medium mt-0.5">
-          田調人員
+        <div
+          v-if="roleLabel"
+          data-testid="user-role-label"
+          class="text-xs text-blue-600 font-medium mt-0.5"
+        >
+          {{ roleLabel }}
         </div>
       </div>
 
@@ -69,12 +73,16 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { ROLE_LABELS } from '@/constants/roles'
 import { Link } from '@inertiajs/vue3'
 
-defineProps({
+const props = defineProps({
   user: { type: Object, required: true },
   showUserInfo: { type: Boolean, default: false },
 })
+
+const roleLabel = computed(() => ROLE_LABELS[props.user?.role])
 
 defineEmits(['close'])
 </script>
