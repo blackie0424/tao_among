@@ -43,9 +43,12 @@ describe('AppNavBar', () => {
   })
 
   describe('Mobile 麵包屑', () => {
-    it('顯示 pageTitle', () => {
+    it('顯示 pageTitle 且桌面標題可截斷', () => {
       const wrapper = mountNavBar({ pageTitle: '捕獲紀錄' })
       expect(wrapper.text()).toContain('捕獲紀錄')
+      const title = wrapper.get('[data-testid="desktop-page-title"]')
+      expect(title.classes()).toContain('min-w-0')
+      expect(title.classes()).toContain('truncate')
     })
 
     it('breadcrumbPage 為空時，顯示首頁連結', () => {

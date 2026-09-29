@@ -9,8 +9,11 @@
   >
     <!-- Desktop Nav Slot: 搜尋與新增按鈕 -->
     <template #desktop-nav>
-      <div class="flex items-center justify-between w-full">
-        <span class="font-bold text-elder-text text-elder-name tracking-wide">{{ PAGE_TITLE }}</span>
+      <div data-testid="desktop-nav-content" class="flex min-w-0 items-center justify-between w-full">
+        <span
+          data-testid="desktop-page-title"
+          class="min-w-0 truncate font-bold text-elder-text text-elder-name tracking-wide"
+        >{{ PAGE_TITLE }}</span>
         <FishListNavActions variant="desktop" :user="user" @toggle="handleSearchToggle" />
       </div>
     </template>

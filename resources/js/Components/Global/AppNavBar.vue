@@ -154,7 +154,7 @@
 
           <div class="flex-1 flex items-center min-w-0">
             <slot name="desktop-nav">
-              <div class="flex items-center text-elder-body text-gray-700 gap-2">
+              <div class="flex items-center text-elder-body text-gray-700 gap-2 min-w-0">
                 <!-- Intermediate Link (if not going back to home) -->
                 <template v-if="mobileBackUrl !== '/'">
                   <Link
@@ -180,7 +180,10 @@
                 </template>
 
                 <!-- Current Page Title -->
-                <span class="font-bold text-elder-text text-elder-name tracking-wide">
+                <span
+                  data-testid="desktop-page-title"
+                  class="min-w-0 truncate font-bold text-elder-text text-elder-name tracking-wide"
+                >
                   {{ pageTitle }}
                 </span>
               </div>
