@@ -12,7 +12,7 @@
       <!-- LINE Login 區塊 -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
         <div class="text-center">
-          <p class="text-sm font-medium text-gray-700">田調人員請使用 LINE 登入</p>
+          <p class="text-sm font-medium text-gray-700">請使用 LINE 登入</p>
         </div>
         <a
           href="/auth/line"

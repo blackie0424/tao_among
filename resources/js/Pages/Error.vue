@@ -30,7 +30,7 @@ const messages = {
   403: {
     title: "權限不足",
     description: "你目前的帳號權限不足，無法瀏覽此頁面。",
-    guidance: "如需開通權限，請聯繫管理員。",
+    guidance: "如需開通權限，請聯繫管理者。",
   },
   404: {
     title: "找不到頁面",

@@ -19,5 +19,7 @@ describe("登入頁", () => {
 
     expect(wrapper.text()).toContain("首次登入將自動建立帳號（guest 權限）")
     expect(wrapper.text()).not.toContain("首次登入將自動建立帳號（viewer 權限）")
+    expect(wrapper.text()).toContain("請使用 LINE 登入")
+    expect(wrapper.text()).not.toContain("田調人員請使用 LINE 登入")
   })
 })

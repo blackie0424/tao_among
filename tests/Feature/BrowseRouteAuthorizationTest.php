@@ -39,7 +39,7 @@ it('renders the custom forbidden page with a route back to the homepage', functi
         ->assertForbidden()
         ->assertSee('權限不足')
         ->assertSee('你目前的帳號權限不足，無法瀏覽此頁面。')
-        ->assertSee('請聯繫管理員')
+        ->assertSee('請聯繫管理者')
         ->assertSee('href="/"', escape: false)
         ->assertSee('回首頁');
 });
