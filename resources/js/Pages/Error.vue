@@ -1,5 +1,5 @@
 <template>
-  <FishAppLayout :pageTitle="content.title" :showHeader="true" :showEditMenu="false">
+  <FishAppLayout :pageTitle="'無法瀏覽'" mobileBackUrl="/" :showHeader="true" :showEditMenu="false">
     <section class="mx-auto max-w-2xl rounded-2xl border-2 border-gray-200 bg-white px-6 py-10 text-center shadow-sm sm:px-10">
       <p class="mb-3 text-lg font-semibold text-gray-500">{{ status }}</p>
       <h1 class="mb-5 text-3xl font-bold leading-tight text-gray-900">{{ content.title }}</h1>

@@ -6,7 +6,7 @@ vi.mock("@/Layouts/FishAppLayout.vue", () => ({
   default: {
     name: "FishAppLayout",
     template: "<main><slot /></main>",
-    props: ["pageTitle", "showHeader"],
+    props: ["pageTitle", "mobileBackUrl", "showHeader"],
   },
 }))
 
@@ -26,7 +26,8 @@ describe("Inertia 錯誤頁", () => {
     expect(wrapper.text()).toContain(guidance)
     expect(wrapper.get('a[href="/"]').text()).toBe("回首頁")
     expect(wrapper.getComponent({ name: "FishAppLayout" }).props()).toMatchObject({
-      pageTitle: title,
+      pageTitle: "無法瀏覽",
+      mobileBackUrl: "/",
       showHeader: true,
     })
   })
