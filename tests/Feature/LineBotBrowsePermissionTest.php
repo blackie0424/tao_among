@@ -98,7 +98,7 @@ class LineBotBrowsePermissionTest extends TestCase
 
         $this->assertCount(1, $messages);
         $this->assertInstanceOf(TextMessage::class, $messages[0]);
-        $this->assertStringContainsString('沒有此功能的使用權限', $messages[0]->getText());
+        $this->assertStringContainsString('你的帳號尚未開通瀏覽權限，請聯繫管理者', $messages[0]->getText());
     }
 
     /** @dataProvider guestSearchTerms */
@@ -112,7 +112,7 @@ class LineBotBrowsePermissionTest extends TestCase
 
         $this->assertCount(1, $messages);
         $this->assertInstanceOf(TextMessage::class, $messages[0]);
-        $this->assertStringContainsString('沒有此功能的使用權限', $messages[0]->getText());
+        $this->assertStringContainsString('你的帳號尚未開通瀏覽權限，請聯繫管理者', $messages[0]->getText());
         $this->assertStringNotContainsString('敏感魚類資料', $messages[0]->getText());
     }
 
@@ -188,7 +188,7 @@ class LineBotBrowsePermissionTest extends TestCase
     private function containsBrowseDenial(iterable $messages): bool
     {
         foreach ($messages as $message) {
-            if ($message instanceof TextMessage && str_contains($message->getText(), '沒有此功能的使用權限')) {
+            if ($message instanceof TextMessage && str_contains($message->getText(), '你的帳號尚未開通瀏覽權限，請聯繫管理者')) {
                 return true;
             }
         }

@@ -1063,7 +1063,7 @@ class LineBotController extends Controller
         $this->lineMessagingClient->replyMessage($replyToken, [
             new \LINE\Clients\MessagingApi\Model\TextMessage([
                 'type' => 'text',
-                'text' => '⚠️ 您沒有此功能的使用權限。',
+                'text' => '⚠️ 你的帳號尚未開通瀏覽權限，請聯繫管理者。',
             ]),
         ]);
     }
