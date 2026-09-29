@@ -1,43 +1,16 @@
 <template>
-  <div class="bg-white rounded-xl shadow-md overflow-hidden">
-    <Link
-      :href="`/fish/${fish.id}`"
-      class="block h-full group focus:outline-none focus:ring-2 focus:ring-blue-500"
-    >
-      <!-- 圖片區域 - 完整貼合上半部 -->
-      <div class="relative">
-        <LazyImage
-          :src="fish.display_image_url || fish.image_url"
-          :alt="fish.name"
-          :imgIndex="index"
-          wrapperClass="w-full h-[170px] flex items-center justify-center bg-gray-100"
-          imgClass="w-full h-full object-cover"
-          :imgStyle="displayImgStyle"
-        />
-      </div>
-      <!-- 文字資訊區域 - 白色背景帶 padding -->
-      <div class="p-4 bg-white">
-        <div class="flex items-center justify-between min-h-touch-primary">
-          <div
-            class="text-elder-name font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0"
-          >
-            {{ fish.name }}
-          </div>
-          <!-- 音檔播放按鈕靠右 -->
-          <div v-if="fish.audio_url" class="ml-2 flex-shrink-0 flex flex-col items-center gap-0.5" @click.stop.prevent>
-            <Volume :audioUrl="fish.audio_url" :large="true" />
-            <span class="text-[11px] text-gray-500 leading-none">聽發音</span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  </div>
+  <ItemCard
+    :href="`/fish/${fish.id}`"
+    :imageUrl="fish.display_image_url || fish.image_url"
+    :title="fish.name"
+    :imageStyle="displayImgStyle"
+    :audioUrl="fish.audio_url"
+    :index="index"
+  />
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3'
-import LazyImage from '@/Components/UI/LazyImage.vue'
-import Volume from '@/Components/UI/Volume.vue'
+import ItemCard from '@/Components/UI/ItemCard.vue'
 import { computed } from 'vue'
 import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
 

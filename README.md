@@ -22,7 +22,7 @@
 │  │  └── Static Assets (public/build/)               │   │
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │  PostgreSQL (同機部署)                            │   │
+│  │  MySQL (同機部署)                                 │   │
 │  └──────────────────────────────────────────────────┘   │
 └──────────────────────────┬──────────────────────────────┘
                            │ S3 API
@@ -41,7 +41,7 @@
 | 後端框架  | Laravel 11                                       |
 | 前端框架  | Vue 3 + Inertia.js                               |
 | 樣式      | Tailwind CSS 3                                   |
-| 資料庫    | PostgreSQL（生產）、SQLite（測試）               |
+| 資料庫    | MySQL（生產）、SQLite（測試）                    |
 | 檔案儲存  | AWS S3（`league/flysystem-aws-s3-v3`）           |
 | 認證      | Laravel Sanctum + Session Guard                  |
 | LINE 整合 | LINE Messaging API SDK (`linecorp/line-bot-sdk`) |
@@ -54,10 +54,10 @@
 
 ### 前置需求
 
-- PHP 8.2+（含 `pdo_pgsql`、`pdo_sqlite`、`gd` 擴充）
+- PHP 8.2+（含 `pdo_mysql`、`pdo_sqlite`、`gd` 擴充）
 - Composer 2
 - Node.js 20+
-- PostgreSQL 或 SQLite（本地測試用 SQLite 即可）
+- MySQL 或 SQLite（本地測試用 SQLite 即可）
 
 ### 安裝步驟
 
@@ -86,7 +86,7 @@ APP_ENV=local
 APP_URL=http://localhost:8000
 
 # 資料庫
-DB_CONNECTION=pgsql
+DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_DATABASE=tao_among
 
@@ -110,7 +110,7 @@ LINE_EDITOR_RICH_MENU_ID=
 ## 執行測試
 
 ```bash
-# 後端（Pest）—— 使用 SQLite in-memory，不需要 PostgreSQL
+# 後端（Pest）—— 本地預設使用 SQLite in-memory；CI 另於 MySQL 8.0 執行完整後端測試
 ./vendor/bin/pest --testsuite=Unit
 ./vendor/bin/pest --testsuite=Feature --exclude-group=legacy
 

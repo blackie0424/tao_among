@@ -77,7 +77,7 @@ const props = defineProps({
   },
   mobileBackText: {
     type: String,
-    default: 'among no tao',
+    default: '首頁',
   },
   showBottomNav: {
     type: Boolean,

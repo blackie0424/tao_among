@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
@@ -36,9 +35,11 @@ it('creates the reference tables with the expected portable schema', function ()
         'deleted_at',
     ]))->toBeTrue();
 
-    $foreignKeys = collect(DB::select("PRAGMA foreign_key_list('reference_knowledge')"));
+    $foreignKeyColumns = collect(Schema::getForeignKeys('reference_knowledge'))
+        ->flatMap(fn (array $foreignKey) => $foreignKey['columns'])
+        ->all();
 
-    expect($foreignKeys->pluck('from')->all())
+    expect($foreignKeyColumns)
         ->toEqualCanonicalizing(['fish_id', 'reference_id', 'created_by']);
 });
 

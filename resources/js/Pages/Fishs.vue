@@ -2,14 +2,17 @@
   <Head title="雅美（達悟）族魚類圖鑑" />
 
   <FishAppLayout
-    pageTitle="among no tao"
+    :pageTitle="PAGE_TITLE"
     mobileBackUrl="/"
     mobileBackText="首頁"
     :showBottomNav="false"
   >
     <!-- Desktop Nav Slot: 搜尋與新增按鈕 -->
     <template #desktop-nav>
-      <FishListNavActions variant="desktop" :user="user" @toggle="handleSearchToggle" />
+      <div class="flex items-center justify-between w-full">
+        <span class="font-bold text-elder-text text-elder-name tracking-wide">{{ PAGE_TITLE }}</span>
+        <FishListNavActions variant="desktop" :user="user" @toggle="handleSearchToggle" />
+      </div>
     </template>
 
     <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 -->
@@ -71,6 +74,7 @@ import { useFishList } from '@/composables/useFishList'
 import { useFishListCache } from '@/composables/useFishListCache'
 import { useFishSearch } from '@/composables/useFishSearch'
 
+const PAGE_TITLE = 'among no tao'
 const user = computed(() => usePage().props.auth?.user)
 
 const props = defineProps({

@@ -19,6 +19,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\IntroCategoryController;
 use App\Http\Controllers\IntroSlideController;
+use App\Http\Controllers\TopicController;
+use App\Http\Controllers\Admin\TopicController as AdminTopicController;
+use App\Http\Controllers\Admin\TopicItemController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +43,10 @@ Route::get('/auth/line/complete', [LineLoginController::class, 'complete'])->nam
 Route::get('/', [FishController::class, 'index']);
 Route::get('/fishs', [FishController::class, 'getFishs']);
 Route::get('/search', [FishController::class, 'search'])->name('fish.search');
+
+// 主題導覽公開頁面
+Route::get('/topics/{slug}', [TopicController::class, 'index'])->name('topics.index');
+Route::get('/topics/{slug}/{itemId}', [TopicController::class, 'show'])->name('topics.show');
 
 // =====================================================
 // 需要登入的路由
@@ -141,6 +148,25 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/admin/intro-slides/{introSlide}', [IntroSlideController::class, 'update'])->name('admin.intro-slides.update');
         Route::delete('/admin/intro-slides/{introSlide}', [IntroSlideController::class, 'destroy'])->name('admin.intro-slides.destroy');
         Route::patch('/admin/intro-slides/{introSlide}/toggle-published', [IntroSlideController::class, 'togglePublished'])->name('admin.intro-slides.toggle-published');
+
+        // 主題導覽分類管理
+        Route::get('/admin/topics', [AdminTopicController::class, 'index'])->name('admin.topics.index');
+        Route::get('/admin/topics/{topic}/edit', [AdminTopicController::class, 'edit'])->name('admin.topics.edit');
+        Route::put('/admin/topics/{topic}', [AdminTopicController::class, 'update'])->name('admin.topics.update');
+        Route::patch('/admin/topics/{topic}/toggle-published', [AdminTopicController::class, 'togglePublished'])->name('admin.topics.toggle-published');
+        Route::patch('/admin/topics/{topic}/move-up', [AdminTopicController::class, 'moveUp'])->name('admin.topics.move-up');
+        Route::patch('/admin/topics/{topic}/move-down', [AdminTopicController::class, 'moveDown'])->name('admin.topics.move-down');
+
+        // 主題導覽項目管理
+        Route::get('/admin/topic-items', [TopicItemController::class, 'index'])->name('admin.topic-items.index');
+        Route::get('/admin/topic-items/create', [TopicItemController::class, 'create'])->name('admin.topic-items.create');
+        Route::post('/admin/topic-items', [TopicItemController::class, 'store'])->name('admin.topic-items.store');
+        Route::get('/admin/topic-items/{topicItem}/edit', [TopicItemController::class, 'edit'])->name('admin.topic-items.edit');
+        Route::put('/admin/topic-items/{topicItem}', [TopicItemController::class, 'update'])->name('admin.topic-items.update');
+        Route::delete('/admin/topic-items/{topicItem}', [TopicItemController::class, 'destroy'])->name('admin.topic-items.destroy');
+        Route::patch('/admin/topic-items/{topicItem}/toggle-published', [TopicItemController::class, 'togglePublished'])->name('admin.topic-items.toggle-published');
+        Route::patch('/admin/topic-items/{topicItem}/move-up', [TopicItemController::class, 'moveUp'])->name('admin.topic-items.move-up');
+        Route::patch('/admin/topic-items/{topicItem}/move-down', [TopicItemController::class, 'moveDown'])->name('admin.topic-items.move-down');
     });
 });
 
