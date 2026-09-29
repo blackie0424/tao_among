@@ -53,7 +53,7 @@ describe('useImageUpload composable', () => {
       json: async () => ({
         url: 'https://s3.example.com/signed-url',
         filename: 'slide-uuid.jpg',
-        path: 'intro-slides/slide-uuid.jpg',
+        path: 'topics/slide-uuid.jpg',
       }),
     })
 
@@ -62,7 +62,7 @@ describe('useImageUpload composable', () => {
     const { uploadImage } = useImageUpload()
     const mockFile = new File(['test'], 'slide.jpg', { type: 'image/jpeg' })
 
-    await uploadImage(mockFile, { folder: 'intro-slides' })
+    await uploadImage(mockFile, { folder: 'topics' })
 
     // Verify folder parameter is passed
     expect(apiFetch).toHaveBeenCalledWith(
@@ -71,7 +71,7 @@ describe('useImageUpload composable', () => {
         method: 'POST',
         body: JSON.stringify({ 
           filename: 'slide.jpg',
-          folder: 'intro-slides',
+          folder: 'topics',
         }),
       })
     )

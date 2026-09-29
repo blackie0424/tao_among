@@ -21,7 +21,7 @@ async function mountWithCategory(category) {
     json: vi.fn().mockResolvedValue([category]),
   }))
 
-  const wrapper = mount(HomeIndex, { props: { slides: [] } })
+  const wrapper = mount(HomeIndex)
   await flushPromises()
   return wrapper
 }
@@ -29,6 +29,21 @@ async function mountWithCategory(category) {
 describe('首頁知識分類卡片', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it("以探索蘭嶼區塊開頭且不渲染投影片", async () => {
+    const wrapper = await mountWithCategory({
+      id: 1,
+      title: "魚類圖鑑",
+      image_url: null,
+    })
+
+    expect(wrapper.find("iframe").exists()).toBe(false)
+    expect(wrapper.find("[aria-label=\"上一張\"]").exists()).toBe(false)
+    expect(wrapper.find("[aria-label=\"下一張\"]").exists()).toBe(false)
+    expect(wrapper.get("section h2").text()).toBe("探索蘭嶼")
+
+    wrapper.unmount()
   })
 
   it('有 image_url 時渲染 16:9 圖片與標題', async () => {

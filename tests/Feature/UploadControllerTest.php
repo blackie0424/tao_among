@@ -20,14 +20,13 @@ describe('getSignedUploadUrl', function () {
             ->assertJsonStructure(['url', 'path', 'filename']);
     });
 
-    it('允許 intro-slides 資料夾', function () {
+    it('拒絕已移除的 intro-slides 資料夾', function () {
         $this->actingAs($this->admin)
             ->postJson('/prefix/api/storage/signed-upload-url', [
                 'filename' => 'slide.png',
                 'folder' => 'intro-slides',
             ])
-            ->assertOk()
-            ->assertJsonStructure(['url', 'path', 'filename']);
+            ->assertStatus(400);
     });
 
     it('拒絕不在白名單的資料夾', function () {
