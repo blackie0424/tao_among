@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'editor' => \App\Http\Middleware\EnsureUserIsEditor::class,
+            'browse' => \App\Http\Middleware\EnsureUserCanBrowse::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
@@ -149,5 +150,18 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return redirect()->back()->withErrors(['error' => '系統發生錯誤，請稍後再試']);
+        });
+
+        // Render full-page Inertia errors for SPA navigation while preserving Blade errors for ordinary requests.
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception, \Illuminate\Http\Request $request) {
+            $status = $response->getStatusCode();
+
+            if ($request->inertia() && in_array($status, [403, 404, 500, 503], true)) {
+                return \Inertia\Inertia::render('Error', [
+                    'status' => $status,
+                ])->toResponse($request)->setStatusCode($status);
+            }
+
+            return $response;
         });
     })->create();

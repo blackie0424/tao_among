@@ -18,7 +18,7 @@ class AdminHubController extends Controller
         $monthlyNew  = Fish::where('created_at', '>=', Carbon::now()->startOfMonth())->count();
         $audioCoverage = $totalFish > 0 ? (int) round($withAudio / $totalFish * 100) : 0;
 
-        $pendingUsers = User::where('role', 'viewer')->count();
+        $pendingUsers = User::where('role', 'guest')->count();
 
         return Inertia::render('Admin/Hub', [
             'stats' => [

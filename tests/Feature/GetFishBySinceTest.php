@@ -1,10 +1,15 @@
 <?php
 
 use App\Models\Fish;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
 
 it('can get fish list by time condition', function () {
 

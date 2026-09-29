@@ -27,26 +27,17 @@ describe('公開路由（不需登入）', function () {
         $response->assertStatus(200);
     });
 
-    it('魚類列表可公開存取', function () {
-        Http::fake(['*' => Http::response('', 404)]);
-        
-        $response = $this->get('/fishs');
-        $response->assertStatus(200);
+    it('魚類列表未登入會導向登入頁', function () {
+        $this->get('/fishs')->assertRedirect('/login');
     });
 
-    it('搜尋頁面可公開存取', function () {
-        Http::fake(['*' => Http::response('', 404)]);
-        
-        $response = $this->get('/search');
-        $response->assertStatus(200);
+    it('搜尋頁面未登入會導向登入頁', function () {
+        $this->get('/search')->assertRedirect('/login');
     });
 
-    it('魚類詳細頁面可公開存取', function () {
+    it('魚類詳細頁未登入會導向登入頁', function () {
         $fish = Fish::factory()->create();
-        Http::fake(['*' => Http::response('', 404)]);
-        
-        $response = $this->get("/fish/{$fish->id}");
-        $response->assertStatus(200);
+        $this->get("/fish/{$fish->id}")->assertRedirect('/login');
     });
 
     it('登入頁面可公開存取', function () {

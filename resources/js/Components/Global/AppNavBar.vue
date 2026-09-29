@@ -136,24 +136,25 @@
             </Link>
           </div>
 
+          <!-- Fixed separator after Home Link; remains when desktop-nav is overridden -->
+          <svg
+            data-testid="desktop-home-separator"
+            class="w-4 h-4 text-gray-300 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            ></path>
+          </svg>
+
           <div class="flex-1 flex items-center min-w-0">
             <slot name="desktop-nav">
-              <div class="flex items-center text-elder-body text-gray-700 gap-2">
-                <!-- Separator after Home Icon -->
-                <svg
-                  class="w-4 h-4 text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  ></path>
-                </svg>
-
+              <div class="flex items-center text-elder-body text-gray-700 gap-2 min-w-0">
                 <!-- Intermediate Link (if not going back to home) -->
                 <template v-if="mobileBackUrl !== '/'">
                   <Link
@@ -179,7 +180,10 @@
                 </template>
 
                 <!-- Current Page Title -->
-                <span class="font-bold text-elder-text text-elder-name tracking-wide">
+                <span
+                  data-testid="desktop-page-title"
+                  class="min-w-0 truncate font-bold text-elder-text text-elder-name tracking-wide"
+                >
                   {{ pageTitle }}
                 </span>
               </div>
@@ -195,9 +199,10 @@
                 class="flex items-center gap-1.5 text-elder-body font-medium text-gray-700 hover:text-blue-600 transition"
               >
                 <span
-                  v-if="user?.role === 'editor'"
+                  v-if="roleLabel"
+                  data-testid="desktop-role-label"
                   class="bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full text-xs font-medium"
-                >田調人員</span>
+                >{{ roleLabel }}</span>
                 {{ user.name }}
                 <svg
                   class="w-4 h-4 text-gray-400"
@@ -221,7 +226,11 @@
             </div>
             <!-- Other Users: Name with Badge -->
             <div v-else-if="user" class="text-elder-body font-medium text-gray-700 flex items-center gap-2">
-              <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-elder-aux">田調人員</span>
+              <span
+                v-if="roleLabel"
+                data-testid="desktop-role-label"
+                class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-elder-aux"
+              >{{ roleLabel }}</span>
               {{ user.name }}
             </div>
             <!-- Other Users Logout -->
@@ -254,6 +263,7 @@
 import { computed, ref } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import UserMenuDropdown from '@/Components/Global/UserMenuDropdown.vue'
+import { ROLE_LABELS } from '@/constants/roles'
 
 defineProps({
   pageTitle: {
@@ -277,6 +287,7 @@ defineProps({
 const page = usePage()
 const fish = computed(() => page.props.fish)
 const user = computed(() => page.props.auth?.user)
+const roleLabel = computed(() => ROLE_LABELS[user.value?.role])
 
 const loginUrl = computed(() => {
   if (typeof window === 'undefined') return '/login'

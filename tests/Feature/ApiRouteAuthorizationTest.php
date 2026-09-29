@@ -12,22 +12,19 @@ uses(RefreshDatabase::class);
 // API 公開路由（不需登入）
 // =====================================================
 
-describe('API 公開路由（不需登入）', function () {
+describe('API 讀取路由授權', function () {
 
-    it('可公開取得魚類列表', function () {
-        $response = $this->getJson('/prefix/api/fish');
-        $response->assertStatus(200);
+    it('未登入無法取得魚類列表', function () {
+        $this->getJson('/prefix/api/fish')->assertUnauthorized();
     });
 
-    it('可公開取得單一魚類', function () {
+    it('未登入無法取得單一魚類', function () {
         $fish = Fish::factory()->create();
-        $response = $this->getJson("/prefix/api/fish/{$fish->id}");
-        $response->assertStatus(200);
+        $this->getJson("/prefix/api/fish/{$fish->id}")->assertUnauthorized();
     });
 
-    it('可公開搜尋魚類', function () {
-        $response = $this->getJson('/prefix/api/fishs/search?q=test');
-        $response->assertStatus(200);
+    it('未登入無法搜尋魚類', function () {
+        $this->getJson('/prefix/api/fishs/search?q=test')->assertUnauthorized();
     });
 
     it('健康檢查可公開存取', function () {

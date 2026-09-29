@@ -8,6 +8,10 @@ use App\Models\User;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
+
 it('renders homepage with Index component', function () {
     $response = $this->get('/');
 

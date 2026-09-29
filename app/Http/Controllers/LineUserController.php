@@ -30,7 +30,7 @@ class LineUserController extends Controller
     public function updateRole(Request $request, User $lineUser): JsonResponse
     {
         $validated = $request->validate([
-            'role' => ['required', 'in:viewer,editor'],
+            'role' => ['required', 'in:guest,viewer,editor'],
         ]);
 
         $updated = $this->lineUserService->assignRole(

@@ -39,17 +39,17 @@ Route::get('/auth/line/complete', [LineLoginController::class, 'complete'])->nam
 
 // 公開瀏覽頁面
 Route::get('/', [FishController::class, 'index']);
-Route::get('/fishs', [FishController::class, 'getFishs']);
-Route::get('/search', [FishController::class, 'search'])->name('fish.search');
-
-// 主題導覽公開頁面
-Route::get('/topics/{slug}', [TopicController::class, 'index'])->name('topics.index');
-Route::get('/topics/{slug}/{itemId}', [TopicController::class, 'show'])->name('topics.show');
+Route::middleware(['auth', 'browse'])->group(function () {
+    Route::get('/fishs', [FishController::class, 'getFishs']);
+    Route::get('/search', [FishController::class, 'search'])->name('fish.search');
+    Route::get('/topics/{slug}', [TopicController::class, 'index'])->name('topics.index');
+    Route::get('/topics/{slug}/{itemId}', [TopicController::class, 'show'])->name('topics.show');
+});
 
 // =====================================================
 // 需要登入的路由
 // =====================================================
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'browse'])->group(function () {
 
     // -------------------------------------------------
     // 唯讀（viewer 可瀏覽）
@@ -153,5 +153,5 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-// 公開瀏覽頁面（魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突）
-Route::get('/fish/{id}', [FishController::class, 'getFish']);
+// 魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突）
+Route::get('/fish/{id}', [FishController::class, 'getFish'])->middleware(['auth', 'browse']);

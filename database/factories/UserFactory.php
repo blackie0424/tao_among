@@ -74,4 +74,17 @@ class UserFactory extends Factory
             'picture_url'  => fake()->optional()->imageUrl(),
         ]);
     }
+
+    public function lineGuest(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name'         => fake()->name(),
+            'email'        => null,
+            'password'     => null,
+            'source'       => 'line',
+            'role'         => 'guest',
+            'line_user_id' => 'U' . fake()->unique()->regexify('[A-Za-z0-9]{32}'),
+            'picture_url'  => fake()->optional()->imageUrl(),
+        ]);
+    }
 }

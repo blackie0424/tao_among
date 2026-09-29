@@ -107,7 +107,20 @@ const defaultProps = {
   searchStats: {},
 }
 
+
 const mountFishs = (propsData = {}) => mount(Fishs, { props: { ...defaultProps, ...propsData } })
+
+describe('Desktop 導覽標題', () => {
+  it('標題容器可收縮且標題不換行並截斷', () => {
+    const wrapper = mountFishs()
+    const container = wrapper.get('[data-testid="desktop-nav-content"]')
+    const title = wrapper.get('[data-testid="desktop-page-title"]')
+
+    expect(container.classes()).toContain('min-w-0')
+    expect(title.classes()).toContain('min-w-0')
+    expect(title.classes()).toContain('truncate')
+  })
+})
 
 // ──────────────────────────────────────────────
 // totalCount computed

@@ -11,7 +11,7 @@ vi.mock('@inertiajs/vue3', () => ({
 
 const makeAdmin = () => ({ name: '管理員A', role: 'admin' })
 const makeEditor = () => ({ name: '田調員C', role: 'editor' })
-const makeUser = () => ({ name: '田調員B', role: 'user' })
+const makeUser = () => ({ name: '使用者B', role: 'viewer' })
 
 const mountDropdown = (propsData = {}) =>
   mount(UserMenuDropdown, {
@@ -65,13 +65,28 @@ describe('非管理員選單項目', () => {
 describe('使用者資訊標頭', () => {
   it('showUserInfo=true：應顯示使用者名稱', () => {
     const wrapper = mountDropdown({ user: makeUser(), showUserInfo: true })
-    expect(wrapper.text()).toContain('田調員B')
+    expect(wrapper.text()).toContain('使用者B')
   })
 
   it('showUserInfo=false：不應顯示使用者名稱', () => {
     const wrapper = mountDropdown({ user: makeAdmin(), showUserInfo: false })
     const header = wrapper.find('[data-testid="user-info-header"]')
     expect(header.exists()).toBe(false)
+  })
+
+  it.each([
+    ['guest', '訪客'],
+    ['viewer', '使用者'],
+    ['editor', '田調人員'],
+    ['admin', '管理者'],
+  ])('%s 顯示正確的角色名稱', (role, label) => {
+    const wrapper = mountDropdown({ user: { name: 'Test', role }, showUserInfo: true })
+    expect(wrapper.get('[data-testid="user-role-label"]').text()).toBe(label)
+  })
+
+  it('未知角色不顯示角色文字', () => {
+    const wrapper = mountDropdown({ user: { name: 'Test', role: 'unknown' }, showUserInfo: true })
+    expect(wrapper.find('[data-testid="user-role-label"]').exists()).toBe(false)
   })
 })
 

@@ -22,6 +22,8 @@ vi.mock('@/Components/Global/UserMenuDropdown.vue', () => ({
 
 const makeAdminUser = () => ({ name: '管理員', role: 'admin' })
 const makeEditorUser = () => ({ name: '田調員', role: 'editor' })
+const makeViewerUser = () => ({ name: '使用者', role: 'viewer' })
+const makeGuestUser = () => ({ name: '訪客', role: 'guest' })
 
 const mountNavBar = (props = {}, user = makeAdminUser()) => {
   mockUsePage.mockReturnValue({
@@ -41,9 +43,12 @@ describe('AppNavBar', () => {
   })
 
   describe('Mobile 麵包屑', () => {
-    it('顯示 pageTitle', () => {
+    it('顯示 pageTitle 且桌面標題可截斷', () => {
       const wrapper = mountNavBar({ pageTitle: '捕獲紀錄' })
       expect(wrapper.text()).toContain('捕獲紀錄')
+      const title = wrapper.get('[data-testid="desktop-page-title"]')
+      expect(title.classes()).toContain('min-w-0')
+      expect(title.classes()).toContain('truncate')
     })
 
     it('breadcrumbPage 為空時，顯示首頁連結', () => {
@@ -102,9 +107,19 @@ describe('AppNavBar', () => {
   })
 
   describe('Desktop 使用者區域', () => {
-    it('管理員顯示含名字的下拉按鈕', () => {
-      const wrapper = mountNavBar({}, makeAdminUser())
-      expect(wrapper.text()).toContain('管理員')
+    it.each([
+      ['guest', makeGuestUser(), '訪客'],
+      ['viewer', makeViewerUser(), '使用者'],
+      ['editor', makeEditorUser(), '田調人員'],
+      ['admin', makeAdminUser(), '管理者'],
+    ])('%s 顯示正確的角色 badge', (_role, user, label) => {
+      const wrapper = mountNavBar({}, user)
+      expect(wrapper.get('[data-testid="desktop-role-label"]').text()).toBe(label)
+    })
+
+    it('未知角色不顯示 badge', () => {
+      const wrapper = mountNavBar({}, { name: '未知使用者', role: 'unknown' })
+      expect(wrapper.find('[data-testid="desktop-role-label"]').exists()).toBe(false)
     })
 
     it('editor 的下拉按鈕內顯示「田調人員」badge 與名字', () => {
@@ -127,6 +142,23 @@ describe('AppNavBar', () => {
       const wrapper = mount(AppNavBar, { props: {} })
       const loginLinks = wrapper.findAll('a').filter((a) => a.text().includes('登入'))
       expect(loginLinks.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('Desktop 首頁分隔符號', () => {
+    it('未覆寫 desktop-nav slot 時只顯示一個固定分隔符號', () => {
+      const wrapper = mountNavBar({})
+      expect(wrapper.findAll('[data-testid="desktop-home-separator"]')).toHaveLength(1)
+    })
+
+    it('覆寫 desktop-nav slot 時仍顯示一個固定分隔符號', () => {
+      mountNavBar({}, makeAdminUser())
+      const customWrapper = mount(AppNavBar, {
+        props: {},
+        slots: { 'desktop-nav': '<span data-testid="custom-nav">自訂導覽</span>' },
+      })
+      expect(customWrapper.findAll('[data-testid="desktop-home-separator"]')).toHaveLength(1)
+      expect(customWrapper.find('[data-testid="custom-nav"]').exists()).toBe(true)
     })
   })
 

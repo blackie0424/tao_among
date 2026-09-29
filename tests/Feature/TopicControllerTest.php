@@ -2,12 +2,14 @@
 
 use App\Models\Topic;
 use App\Models\TopicItem;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
     $this->topic = Topic::where('slug', 'bait-guide')->first();
     $this->topic->update(['is_published' => true]);
 });

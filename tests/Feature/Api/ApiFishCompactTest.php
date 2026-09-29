@@ -1,9 +1,14 @@
 <?php
 
 use App\Models\Fish;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
 
 it('GET /fish/{id}/compact 存在時回傳 200，含 id、name、image_url', function () {
     $fish = Fish::factory()->create(['name' => '飛魚']);
