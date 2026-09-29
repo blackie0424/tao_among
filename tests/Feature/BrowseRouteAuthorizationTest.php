@@ -31,6 +31,18 @@ it('enforces browse access on a top-level web browsing route', function () {
     $this->actingAs(User::factory()->lineViewer()->create())->get('/fishs')->assertOk();
 });
 
+it('renders the custom forbidden page with a route back to the homepage', function () {
+    $response = $this->actingAs(User::factory()->lineGuest()->create())->get('/fishs');
+
+    $response
+        ->assertForbidden()
+        ->assertSee('權限不足')
+        ->assertSee('你目前的帳號權限不足，無法瀏覽此頁面。')
+        ->assertSee('請聯繫管理員')
+        ->assertSee('href="/"', escape: false)
+        ->assertSee('回首頁');
+});
+
 it('enforces browse access on the existing authenticated web group', function () {
     $fish = Fish::factory()->create();
     $uri = "/fish/{$fish->id}/capture-records";
