@@ -27,7 +27,7 @@
           </svg>
           使用 LINE 登入
         </a>
-        <p class="text-xs text-center text-gray-400">首次登入將自動建立帳號（viewer 權限）</p>
+        <p class="text-xs text-center text-gray-400">首次登入將自動建立帳號（guest 權限）</p>
       </div>
 
       <!-- 分隔線 -->
