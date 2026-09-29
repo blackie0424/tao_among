@@ -27,22 +27,23 @@ Route::post('/line/webhook', [LineBotController::class, 'webhook']);
 // 公開唯讀路由（不需登入）
 // =====================================================
 
-Route::get('/fish', [ApiFishController::class, 'getFishs']);
-Route::get('/capture-records', [ApiFishController::class, 'getAllCaptureRecords']);
-
 // 首頁主題導覽分類
 Route::get('/topics', [TopicController::class, 'getPublishedCategories']);
-Route::get('/fishs/latest-at', [ApiFishController::class, 'getLatestAt']);
-Route::get('/fishs/search', [ApiFishController::class, 'search']);
-Route::get('/fishs/random-unknown', [ApiFishController::class, 'randomUnknownFish']);
-Route::get('/fishs/filter', [ApiFishController::class, 'getFishesByFilter']);
-Route::get('/fishs/random', [ApiFishController::class, 'getRandomFishes']);
-Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
-Route::get('/fish/{id}/compact', [ApiFishController::class, 'getCompactFishById'])->whereNumber('id');
-Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotes'])->whereNumber('id');
 
-Route::get('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'index'])->whereNumber('fish_id');
-Route::get('/tribal-classifications/{id}', [TribalClassificationController::class, 'show'])->whereNumber('id');
+Route::middleware(['auth:sanctum', 'browse'])->group(function () {
+    Route::get('/fish', [ApiFishController::class, 'getFishs']);
+    Route::get('/capture-records', [ApiFishController::class, 'getAllCaptureRecords']);
+    Route::get('/fishs/latest-at', [ApiFishController::class, 'getLatestAt']);
+    Route::get('/fishs/search', [ApiFishController::class, 'search']);
+    Route::get('/fishs/random-unknown', [ApiFishController::class, 'randomUnknownFish']);
+    Route::get('/fishs/filter', [ApiFishController::class, 'getFishesByFilter']);
+    Route::get('/fishs/random', [ApiFishController::class, 'getRandomFishes']);
+    Route::get('/fish/{id}', [ApiFishController::class, 'getFishById'])->whereNumber('id');
+    Route::get('/fish/{id}/compact', [ApiFishController::class, 'getCompactFishById'])->whereNumber('id');
+    Route::get('/fish/{id}/notes', [ApiFishController::class, 'getFishNotes'])->whereNumber('id');
+    Route::get('/fish/{fish_id}/tribal-classifications', [TribalClassificationController::class, 'index'])->whereNumber('fish_id');
+    Route::get('/tribal-classifications/{id}', [TribalClassificationController::class, 'show'])->whereNumber('id');
+});
 
 // =====================================================
 // 需要登入且具備 editor/admin 角色的寫入路由

@@ -5,10 +5,17 @@ namespace Tests\Feature\FishSearch;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Fish;
+use App\Models\User;
 
 class InvalidCursorTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->actingAs(User::factory()->lineViewer()->create());
+    }
 
     /**
      * FR-006 INVALID_CURSOR: last_id 非法時回傳 422 JSON

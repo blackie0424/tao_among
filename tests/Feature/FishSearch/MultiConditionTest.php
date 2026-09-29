@@ -5,11 +5,16 @@ namespace Tests\Feature\FishSearch;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Fish;
+use App\Models\User;
 use App\Models\TribalClassification;
 use App\Models\CaptureRecord;
 
 uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
 
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
 
 it('should return only the target fish when all conditions are matched', function () {
     // 目標魚：滿足所有條件

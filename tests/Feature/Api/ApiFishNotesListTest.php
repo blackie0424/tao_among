@@ -1,10 +1,15 @@
 <?php
 
 use App\Models\Fish;
+use App\Models\User;
 use App\Models\FishNote;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
 
 it('GET /fish/{id}/notes 回傳 200，data 為陣列', function () {
     $fish = Fish::factory()->create();

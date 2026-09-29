@@ -5,8 +5,13 @@ namespace Tests\Feature\FishSearch;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Fish;
+use App\Models\User;
 
 uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
 
 it('loads initial items correctly and sets hasMore to false when count equals perPage', function () {
     // Arrange: 建立 5 筆資料

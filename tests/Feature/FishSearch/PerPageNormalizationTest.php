@@ -4,6 +4,7 @@ namespace Tests\Feature\FishSearch;
 
 use Tests\TestCase;
 use App\Models\Fish;
+use App\Models\User;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -12,6 +13,10 @@ uses(RefreshDatabase::class);
 /**
      * FR-007 perPage 正規化: 超過最大值或無效值回退至 default=50
      */
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
 
 it('per page out of range falls back to default', function () {
     $defaultPerPage = config('fish_search.per_page_default');

@@ -5,9 +5,14 @@ namespace Tests\Feature\FishSearch;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Fish;
+use App\Models\User;
 
 uses(RefreshDatabase::class); // Pest 測試自動 migrate，確保資料表存在
 
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+});
 
 it('一開始載入網頁時，可以取得預設數量資料', function () {
     $perPage = config('fish_search.per_page_default');
