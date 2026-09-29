@@ -42,4 +42,9 @@ class User extends Authenticatable
     {
         return in_array($this->role, ['editor', 'admin']);
     }
+
+    public function canBrowse(): bool
+    {
+        return $this->role !== 'guest';
+    }
 }
