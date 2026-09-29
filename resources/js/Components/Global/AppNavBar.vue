@@ -136,24 +136,25 @@
             </Link>
           </div>
 
+          <!-- Fixed separator after Home Link; remains when desktop-nav is overridden -->
+          <svg
+            data-testid="desktop-home-separator"
+            class="w-4 h-4 text-gray-300 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            ></path>
+          </svg>
+
           <div class="flex-1 flex items-center min-w-0">
             <slot name="desktop-nav">
               <div class="flex items-center text-elder-body text-gray-700 gap-2">
-                <!-- Separator after Home Icon -->
-                <svg
-                  class="w-4 h-4 text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  ></path>
-                </svg>
-
                 <!-- Intermediate Link (if not going back to home) -->
                 <template v-if="mobileBackUrl !== '/'">
                   <Link

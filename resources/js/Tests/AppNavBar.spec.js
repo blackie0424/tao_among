@@ -142,6 +142,23 @@ describe('AppNavBar', () => {
     })
   })
 
+  describe('Desktop 首頁分隔符號', () => {
+    it('未覆寫 desktop-nav slot 時只顯示一個固定分隔符號', () => {
+      const wrapper = mountNavBar({})
+      expect(wrapper.findAll('[data-testid="desktop-home-separator"]')).toHaveLength(1)
+    })
+
+    it('覆寫 desktop-nav slot 時仍顯示一個固定分隔符號', () => {
+      mountNavBar({}, makeAdminUser())
+      const customWrapper = mount(AppNavBar, {
+        props: {},
+        slots: { 'desktop-nav': '<span data-testid="custom-nav">自訂導覽</span>' },
+      })
+      expect(customWrapper.findAll('[data-testid="desktop-home-separator"]')).toHaveLength(1)
+      expect(customWrapper.find('[data-testid="custom-nav"]').exists()).toBe(true)
+    })
+  })
+
   describe('Slots', () => {
     it('mobile-actions slot 正常渲染', () => {
       const wrapper = mountNavBar({}, makeAdminUser())
