@@ -58,6 +58,17 @@ describe('LineUsers', () => {
     expect(wrapper.text()).toContain('尚未有 LINE 使用者資料')
   })
 
+  it('offers guest, viewer, and editor roles', () => {
+    const wrapper = mount(LineUsers, {
+      props: {
+        lineUsers: { data: makeUsers(1), current_page: 1, last_page: 1 },
+      },
+    })
+
+    expect(wrapper.findAll('option').map((option) => option.attributes('value')))
+      .toEqual(['guest', 'viewer', 'editor'])
+  })
+
   it('role dropdown triggers axios put on change', async () => {
     const axios = (await import('axios')).default
     const wrapper = mount(LineUsers, {

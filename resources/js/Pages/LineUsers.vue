@@ -62,6 +62,7 @@
                   class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   :class="roleClass(user.role)"
                 >
+                  <option value="guest">guest（未開通）</option>
                   <option value="viewer">viewer（瀏覽者）</option>
                   <option value="editor">editor（田調人員）</option>
                 </select>
@@ -119,6 +120,7 @@ async function updateRole(user, newRole) {
 
 function roleClass(role) {
   return {
+    'bg-amber-50 text-amber-700 border-amber-300': role === 'guest',
     'bg-gray-50 text-gray-700': role === 'viewer',
     'bg-blue-50 text-blue-700 border-blue-300': role === 'editor',
     'bg-purple-50 text-purple-700 border-purple-300': role === 'admin',

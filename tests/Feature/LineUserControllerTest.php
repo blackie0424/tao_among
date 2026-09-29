@@ -81,6 +81,22 @@ it('update_role_changes_user_role_and_returns_200', function () {
     $response->assertJson(['role' => 'editor']);
 });
 
+it('update_role_accepts_guest_role', function () {
+    $lineUser = User::factory()->lineViewer()->create(['line_user_id' => 'Uguest']);
+
+    $mockService = Mockery::mock(\App\Contracts\LineUserServiceInterface::class);
+    $mockService->shouldReceive('assignRole')
+        ->once()
+        ->with('Uguest', 'guest')
+        ->andReturn(tap($lineUser->fresh(), fn ($user) => $user->role = 'guest'));
+    $this->app->instance(\App\Contracts\LineUserServiceInterface::class, $mockService);
+
+    $this->actingAs($this->admin)
+        ->putJson("/line-users/{$lineUser->id}/role", ['role' => 'guest'])
+        ->assertOk()
+        ->assertJson(['role' => 'guest']);
+});
+
 it('update_role_rejects_invalid_role_value', function () {
     $lineUser = User::factory()->lineViewer()->create();
 
