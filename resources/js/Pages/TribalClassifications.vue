@@ -1,8 +1,8 @@
 <template>
   <FishAppLayout
     :pageTitle="`${fish.name}的地方知識`"
-    mobileBackUrl="/fishs"
-    :mobileBackText="fish.name"
+    :mobileBackUrl="`/fish/${fish.id}`"
+    mobileBackText="魚類資料"
   >
     <div class="container mx-auto p-4 relative">
       <div class="pb-20">
