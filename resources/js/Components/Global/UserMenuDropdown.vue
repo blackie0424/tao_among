@@ -2,7 +2,7 @@
   <div>
     <!-- Dropdown Panel -->
     <div
-      class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down"
+      class="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down"
     >
       <!-- User Info Header (optional) -->
       <div
@@ -10,11 +10,11 @@
         data-testid="user-info-header"
         class="px-4 py-3 border-b border-gray-50 bg-gray-50/50"
       >
-        <div class="text-sm font-bold text-gray-900 truncate">{{ user.name }}</div>
+        <div class="text-elder-body font-bold text-elder-text truncate">{{ user.name }}</div>
         <div
           v-if="roleLabel"
           data-testid="user-role-label"
-          class="text-xs text-blue-600 font-medium mt-0.5"
+          class="text-elder-aux text-blue-700 font-medium mt-0.5"
         >
           {{ roleLabel }}
         </div>
@@ -25,7 +25,7 @@
         <Link
           href="/workspace"
           data-testid="link-workspace"
-          class="block w-full text-left px-4 py-2.5 text-elder-aux text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+          class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-gray-50 hover:text-blue-700 transition"
           @click="$emit('close')"
         >
           田調工作區
@@ -33,10 +33,10 @@
         <Link
           href="/fish/batch-create"
           data-testid="link-batch-create"
-          class="block w-full text-left px-4 py-2.5 text-elder-aux text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+          class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-gray-50 hover:text-blue-700 transition"
           @click="$emit('close')"
         >
-          新增魚種
+          ＋ 新增魚種
         </Link>
       </template>
 
@@ -45,7 +45,7 @@
         v-if="user?.role === 'admin'"
         href="/admin"
         data-testid="link-admin-hub"
-        class="block w-full text-left px-4 py-2.5 text-elder-aux text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition"
+        class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-gray-50 hover:text-blue-700 transition"
         @click="$emit('close')"
       >
         系統管理後台
@@ -56,7 +56,7 @@
         href="/logout"
         method="post"
         as="button"
-        class="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition"
+        class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-red-700 hover:bg-gray-50 transition"
       >
         登出
       </Link>

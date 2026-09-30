@@ -13,6 +13,8 @@
       :breadcrumbPage="breadcrumbPage"
       :mobileBackUrl="mobileBackUrl"
       :mobileBackText="mobileBackText"
+      :stickyMobile="stickyMobile"
+      :showMobileTitle="showMobileTitle"
     >
       <template #mobile-actions><slot name="mobile-actions" /></template>
       <template v-if="$slots['desktop-nav']" #desktop-nav>
@@ -88,6 +90,14 @@ const props = defineProps({
     default: true,
   },
   showEditMenu: {
+    type: Boolean,
+    default: true,
+  },
+  stickyMobile: {
+    type: Boolean,
+    default: true,
+  },
+  showMobileTitle: {
     type: Boolean,
     default: true,
   },
