@@ -80,6 +80,12 @@ export function useFishSearch(currentFilters, nameQuery, onSearch) {
     showSearchDialog.value = false
   }
 
+  /** 清除所有篩選條件並立即重新搜尋 */
+  const clearAllFilters = () => {
+    clearUnifiedSearchForm()
+    onSearch()
+  }
+
   /**
    * 移除單一篩選 chip 並立即重新搜尋
    * @param {string} key 篩選條件 key
@@ -101,6 +107,7 @@ export function useFishSearch(currentFilters, nameQuery, onSearch) {
     handleSearchToggle,
     submitUnifiedSearch,
     resetUnifiedSearch,
+    clearAllFilters,
     removeFilter,
   }
 }

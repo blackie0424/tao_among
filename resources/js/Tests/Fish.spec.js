@@ -29,8 +29,9 @@ vi.mock('@inertiajs/vue3', () => ({
 // Mock Layout 元件，避免遞迴渲染
 vi.mock('@/Layouts/FishAppLayout.vue', () => ({
   default: {
+    name: 'FishAppLayout',
     template: '<div><slot /></div>',
-    props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showBottomNav', 'showEditMenu'],
+    props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showBottomNav', 'showEditMenu', 'stickyMobile', 'showMobileTitle'],
   },
 }))
 
@@ -104,33 +105,25 @@ const mountFish = (propsData = {}) =>
   })
 
 // ──────────────────────────────────────────────
-// mobileBackText computed
+// 詳細頁導覽行為
 // ──────────────────────────────────────────────
-describe('mobileBackText', () => {
-  it('魚名 <= 12 字元時，應回傳 "among no tao"', () => {
-    const wrapper = mountFish({
-      fish: makeFish({ name: '短名魚' }),
+describe('詳細頁導覽行為', () => {
+  it('固定返回魚類列表且手機不 sticky、不顯示魚名標題', () => {
+    const wrapper = mountFish()
+    const layout = wrapper.getComponent({ name: 'FishAppLayout' })
+    expect(layout.props()).toMatchObject({
+      mobileBackUrl: '/fishs',
+      mobileBackText: '魚類列表',
+      stickyMobile: false,
+      showMobileTitle: false,
     })
-    // FishAppLayout 接收 mobileBackText prop
-    const layout = wrapper.findComponent({ name: 'default' })
-    expect(wrapper.html()).not.toContain('...')
   })
 
-  it('魚名 > 12 字元時，mobileBackText 應為 "..."', () => {
-    const wrapper = mountFish({
-      fish: makeFish({ name: '這條魚的名字實在太長超過十二個字元' }),
-    })
-    // 透過傳給 FishAppLayout 的 prop 確認
-    const fishAppLayout = wrapper.findAllComponents({ template: '<div />' })[0]
-    // 以 vm 存取 computed 驗證
-    expect(wrapper.vm.mobileBackText).toBe('...')
-  })
-
-  it('魚名剛好 12 字元時，mobileBackText 應為 "among no tao"', () => {
-    const wrapper = mountFish({
-      fish: makeFish({ name: '十二個字元魚名OK' }),
-    })
-    expect(wrapper.vm.mobileBackText).toBe('among no tao')
+  it('分頁列在手機固定 top-0、桌機維持 top-20', () => {
+    const wrapper = mountFish()
+    const tabBar = wrapper.find('.sticky')
+    expect(tabBar.classes()).toContain('top-0')
+    expect(tabBar.classes()).toContain('lg:top-20')
   })
 })
 

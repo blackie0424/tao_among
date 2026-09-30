@@ -1,7 +1,7 @@
 <template>
   <Head title="田調工作區 | among no tao" />
 
-  <FishAppLayout pageTitle="田調工作區" :showHeader="true">
+  <FishAppLayout pageTitle="田調工作區" mobileBackUrl="/fishs" mobileBackText="魚類列表" :showHeader="true">
     <!-- 標題列 -->
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <!-- 左：標題 + 新增按鈕 -->

@@ -14,7 +14,7 @@ vi.mock('@inertiajs/vue3', () => ({
 
 vi.mock('@/Components/Global/UserMenuDropdown.vue', () => ({
   default: {
-    template: '<div data-testid="user-menu-dropdown" />',
+    template: '<div data-testid="user-menu-dropdown">{{ user.role }}</div>',
     props: ['user', 'showUserInfo'],
     emits: ['close'],
   },
@@ -22,180 +22,130 @@ vi.mock('@/Components/Global/UserMenuDropdown.vue', () => ({
 
 const makeAdminUser = () => ({ name: '管理員', role: 'admin' })
 const makeEditorUser = () => ({ name: '田調員', role: 'editor' })
-const makeViewerUser = () => ({ name: '使用者', role: 'viewer' })
-const makeGuestUser = () => ({ name: '訪客', role: 'guest' })
 
-const mountNavBar = (props = {}, user = makeAdminUser()) => {
+const mountNavBar = (props = {}, user = makeAdminUser(), url = '/') => {
   mockUsePage.mockReturnValue({
-    props: {
-      auth: { user },
-      fish: { id: 1, name: '飛魚' },
-    },
+    url,
+    props: { auth: { user }, fish: { id: 1, name: '飛魚' } },
   })
   return mount(AppNavBar, { props })
 }
 
 describe('AppNavBar', () => {
   beforeEach(() => {
-    mockUsePage.mockReturnValue({
-      props: { auth: { user: makeAdminUser() }, fish: null },
-    })
+    mockUsePage.mockReturnValue({ url: '/', props: { auth: { user: makeAdminUser() } } })
   })
 
-  describe('Mobile 麵包屑', () => {
-    it('顯示 pageTitle 且桌面標題可截斷', () => {
-      const wrapper = mountNavBar({ pageTitle: '捕獲紀錄' })
-      expect(wrapper.text()).toContain('捕獲紀錄')
-      const title = wrapper.get('[data-testid="desktop-page-title"]')
-      expect(title.classes()).toContain('min-w-0')
-      expect(title.classes()).toContain('truncate')
-    })
-
-    it('breadcrumbPage 為空時，顯示首頁連結', () => {
-      const wrapper = mountNavBar({ breadcrumbPage: '' })
-      const links = wrapper.findAll('a')
-      const homeLink = links.find((l) => l.text().includes('首頁'))
-      expect(homeLink).toBeTruthy()
-    })
-
-    it('breadcrumbPage 有值時，mobile 不顯示首頁連結', () => {
-      const wrapper = mountNavBar({ breadcrumbPage: '捕獲紀錄' })
-      const mobileBreadcrumb = wrapper.find('[data-testid="mobile-breadcrumb"]')
-      // 檢查不顯示帶有首頁圖示的連結 (v-if="!breadcrumbPage" 那段)
-      const homeIconLinks = mobileBreadcrumb.findAll('a').filter((l) => 
-        l.find('svg').exists() && l.text().includes('首頁')
-      )
-      expect(homeIconLinks.length).toBe(0)
-    })
-
-    it('mobileBackUrl 非 "/" 時，顯示上層連結', () => {
-      const wrapper = mountNavBar({ mobileBackUrl: '/fishs', mobileBackText: 'among no tao' })
-      expect(wrapper.text()).toContain('among no tao')
-    })
-
-    it('mobileBackUrl 為 "/" 時，不顯示上層連結', () => {
-      const wrapper = mountNavBar({ mobileBackUrl: '/', mobileBackText: 'among no tao' })
-      // 只有 desktop 的 among no tao 連結，mobile 不顯示
-      const allLinks = wrapper.findAll('a')
-      const backLinks = allLinks.filter(
-        (l) => l.text() === 'among no tao' && l.attributes('href') === '/'
-      )
-      expect(backLinks.length).toBe(0)
-    })
-  })
-
-  describe('手機版使用者選單', () => {
-    it('已登入時顯示 avatar 按鈕', () => {
-      const wrapper = mountNavBar({}, makeAdminUser())
-      // avatar 按鈕為圓形藍色 button
-      const btn = wrapper.find('button.rounded-full')
-      expect(btn.exists()).toBe(true)
-    })
-
-    it('未登入時顯示登入連結', () => {
-      mockUsePage.mockReturnValue({ props: { auth: { user: null }, fish: null } })
-      const wrapper = mount(AppNavBar, { props: {} })
-      expect(wrapper.text()).toContain('登入')
-    })
-
-    it('點擊 avatar 後顯示 UserMenuDropdown', async () => {
-      const wrapper = mountNavBar({})
-      expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false)
-      await wrapper.find('button.rounded-full').trigger('click')
-      expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true)
-    })
-  })
-
-  describe('Desktop 使用者區域', () => {
-    it.each([
-      ['guest', makeGuestUser(), '訪客'],
-      ['viewer', makeViewerUser(), '使用者'],
-      ['editor', makeEditorUser(), '田調人員'],
-      ['admin', makeAdminUser(), '管理者'],
-    ])('%s 顯示正確的角色 badge', (_role, user, label) => {
-      const wrapper = mountNavBar({}, user)
-      expect(wrapper.get('[data-testid="desktop-role-label"]').text()).toBe(label)
-    })
-
-    it('未知角色不顯示 badge', () => {
-      const wrapper = mountNavBar({}, { name: '未知使用者', role: 'unknown' })
-      expect(wrapper.find('[data-testid="desktop-role-label"]').exists()).toBe(false)
-    })
-
-    it('editor 的下拉按鈕內顯示「田調人員」badge 與名字', () => {
-      const wrapper = mountNavBar({}, makeEditorUser())
-      const desktopButtons = wrapper.findAll('button').filter((b) => b.text().includes('田調人員'))
-      expect(desktopButtons.length).toBeGreaterThan(0)
-      expect(desktopButtons[0].text()).toContain('田調員')
-    })
-
-    it('editor 點擊 badge 按鈕後顯示 UserMenuDropdown', async () => {
-      const wrapper = mountNavBar({}, makeEditorUser())
-      expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false)
-      const btn = wrapper.findAll('button').find((b) => b.text().includes('田調人員'))
-      await btn?.trigger('click')
-      expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true)
-    })
-
-    it('未登入時 desktop 顯示登入連結', () => {
-      mockUsePage.mockReturnValue({ props: { auth: { user: null }, fish: null } })
-      const wrapper = mount(AppNavBar, { props: {} })
-      const loginLinks = wrapper.findAll('a').filter((a) => a.text().includes('登入'))
-      expect(loginLinks.length).toBeGreaterThan(0)
-    })
-  })
-
-  describe('Desktop 首頁分隔符號', () => {
-    it('未覆寫 desktop-nav slot 時只顯示一個固定分隔符號', () => {
-      const wrapper = mountNavBar({})
-      expect(wrapper.findAll('[data-testid="desktop-home-separator"]')).toHaveLength(1)
-    })
-
-    it('覆寫 desktop-nav slot 時仍顯示一個固定分隔符號', () => {
-      mountNavBar({}, makeAdminUser())
-      const customWrapper = mount(AppNavBar, {
-        props: {},
-        slots: { 'desktop-nav': '<span data-testid="custom-nav">自訂導覽</span>' },
+  describe('手機返回列', () => {
+    it('有上層頁面時顯示正確返回按鈕與標題', () => {
+      const wrapper = mountNavBar({
+        pageTitle: '飛魚',
+        mobileBackUrl: '/fishs',
+        mobileBackText: '魚類列表',
       })
-      expect(customWrapper.findAll('[data-testid="desktop-home-separator"]')).toHaveLength(1)
-      expect(customWrapper.find('[data-testid="custom-nav"]').exists()).toBe(true)
+      const back = wrapper.get('[data-testid="nav-back-button"]')
+      expect(back.attributes('href')).toBe('/fishs')
+      expect(back.text()).toContain('魚類列表')
+      expect(wrapper.get('[data-testid="nav-mobile-title"]').text()).toBe('飛魚')
+      expect(wrapper.find('[data-testid="mobile-breadcrumb"]').exists()).toBe(false)
+    })
+
+    it('返回首頁時顯示品牌、不顯示返回按鈕', () => {
+      const wrapper = mountNavBar({ mobileBackUrl: '/' })
+      expect(wrapper.get('[data-testid="nav-brand"]').attributes('href')).toBe('/')
+      expect(wrapper.get('[data-testid="nav-brand"]').text()).toContain('among no tao')
+      expect(wrapper.find('[data-testid="nav-back-button"]').exists()).toBe(false)
+    })
+
+    it('showMobileTitle=false 時不顯示 pageTitle', () => {
+      const wrapper = mountNavBar({
+        pageTitle: '不應顯示的魚名',
+        mobileBackUrl: '/fishs',
+        mobileBackText: '魚類列表',
+        showMobileTitle: false,
+      })
+      expect(wrapper.find('[data-testid="nav-mobile-title"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('不應顯示的魚名')
+    })
+
+    it('stickyMobile=false 時手機為 relative、桌機仍 sticky', () => {
+      const wrapper = mountNavBar({ stickyMobile: false })
+      expect(wrapper.get('header').classes()).toEqual(
+        expect.arrayContaining(['relative', 'lg:sticky', 'lg:top-4'])
+      )
+      expect(wrapper.get('header').classes()).not.toContain('top-4')
+    })
+  })
+
+  describe('使用者選單', () => {
+    it('手機頭像按鈕會開啟含使用者資訊的選單', async () => {
+      const wrapper = mountNavBar({}, makeAdminUser())
+      await wrapper.get('[data-testid="nav-user-button-mobile"]').trigger('click')
+      const dropdown = wrapper.getComponent({ name: 'UserMenuDropdown' })
+      expect(dropdown.props('showUserInfo')).toBe(true)
+    })
+
+    it.each([
+      ['admin', makeAdminUser()],
+      ['editor', makeEditorUser()],
+    ])('桌機 %s 頭像會開啟選單且不顯示舊 badge/姓名', async (_role, user) => {
+      const wrapper = mountNavBar({}, user)
+      expect(wrapper.find('[data-testid="desktop-role-label"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain(user.name)
+      await wrapper.get('[data-testid="nav-user-button-desktop"]').trigger('click')
+      expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true)
+    })
+
+    it('未登入時手機與桌機都有登入入口', () => {
+      const wrapper = mountNavBar({}, null)
+      expect(wrapper.get('[data-testid="nav-login-mobile"]')).toBeTruthy()
+      expect(wrapper.get('[data-testid="nav-login-desktop"]')).toBeTruthy()
+    })
+  })
+
+  describe('桌機主導覽', () => {
+    it('魚類頁將魚類圖鑑標為目前頁面', () => {
+      const wrapper = mountNavBar({}, makeAdminUser(), '/fishs?tribe=iraraley')
+      const fishLink = wrapper.findAll('a').find((link) => link.text() === '魚類圖鑑')
+      expect(fishLink.attributes('aria-current')).toBe('page')
+    })
+
+    it('首頁將首頁標為目前頁面', () => {
+      const wrapper = mountNavBar({}, makeAdminUser(), '/')
+      const homeLink = wrapper.findAll('a').find((link) => link.text() === '首頁')
+      expect(homeLink.attributes('aria-current')).toBe('page')
+    })
+
+    it('未覆寫 desktop-nav 時依返回目標顯示桌機返回按鈕', () => {
+      const wrapper = mountNavBar({ mobileBackUrl: '/fishs', mobileBackText: '魚類列表' })
+      expect(wrapper.get('[data-testid="nav-back-button-desktop"]').attributes('href')).toBe('/fishs')
     })
   })
 
   describe('Slots', () => {
-    it('mobile-actions slot 正常渲染', () => {
+    it('mobile-actions slot 在單列導覽正常渲染', () => {
       const wrapper = mountNavBar({}, makeAdminUser())
-      // 重新掛載並帶入 slot
-      mockUsePage.mockReturnValue({
-        props: { auth: { user: makeAdminUser() }, fish: null },
+      const withSlot = mount(AppNavBar, {
+        slots: { 'mobile-actions': '<button data-testid="mobile-action">搜尋</button>' },
       })
-      const w = mount(AppNavBar, {
-        props: {},
-        slots: { 'mobile-actions': '<div data-testid="mobile-action">搜尋</div>' },
-      })
-      expect(w.find('[data-testid="mobile-action"]').exists()).toBe(true)
+      expect(wrapper.exists()).toBe(true)
+      expect(withSlot.find('[data-testid="mobile-action"]').exists()).toBe(true)
     })
 
     it('header-extension slot 正常渲染', () => {
-      mockUsePage.mockReturnValue({
-        props: { auth: { user: makeAdminUser() }, fish: null },
-      })
       const wrapper = mount(AppNavBar, {
-        props: {},
         slots: { 'header-extension': '<div data-testid="ext">延伸內容</div>' },
       })
       expect(wrapper.find('[data-testid="ext"]').exists()).toBe(true)
     })
 
-    it('desktop-nav slot 可覆蓋預設麵包屑', () => {
-      mockUsePage.mockReturnValue({
-        props: { auth: { user: makeAdminUser() }, fish: { id: 1, name: '飛魚' } },
-      })
+    it('desktop-nav slot 可覆蓋預設返回按鈕', () => {
       const wrapper = mount(AppNavBar, {
-        props: {},
+        props: { mobileBackUrl: '/fishs' },
         slots: { 'desktop-nav': '<span data-testid="custom-nav">自訂導覽</span>' },
       })
       expect(wrapper.find('[data-testid="custom-nav"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="nav-back-button-desktop"]').exists()).toBe(false)
     })
   })
 })
