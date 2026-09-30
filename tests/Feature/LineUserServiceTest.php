@@ -90,10 +90,10 @@ it('assign_role_guest_unlinks_rich_menu', function () {
     expect($user->role)->toBe('guest');
 });
 
-it('get_role_returns_viewer_for_unknown_user', function () {
+it('get_role_returns_guest_for_unknown_user', function () {
     $role = $this->service->getRole('U_nonexistent');
 
-    expect($role)->toBe('viewer');
+    expect($role)->toBe('guest');
 });
 
 it('get_role_returns_correct_role_for_existing_user', function () {

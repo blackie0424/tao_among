@@ -8,6 +8,7 @@ use App\Contracts\LineUserServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
+use App\Models\User;
 use App\Services\CaptureRecordBatchService;
 use App\Services\FishNoteService;
 use App\Services\Line\LineCreateFishReplyBuilder;
@@ -170,17 +171,33 @@ class LineBotController extends Controller
     protected function handleFollowEvent(FollowEvent $event): void
     {
         $userId = $event->getSource()->getUserId();
-        $this->upsertLineUserByProfile($userId);
+        $user = $this->upsertLineUserByProfile($userId);
+
+        if (! $user) {
+            return;
+        }
+
+        $text = $user->role === 'guest'
+            ? "👋 歡迎加入 among no tao！\n\n你的帳號已建立，但尚未開通瀏覽權限，請聯繫管理者開通後再使用魚類資料功能。"
+            : "👋 歡迎回來！\n\n你可以使用圖文選單或輸入魚名開始瀏覽。";
+
+        $this->lineMessagingClient->replyMessage($event->getReplyToken(), [
+            new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => $text,
+            ]),
+        ]);
     }
 
     /**
      * 呼叫 LINE Profile API 取得使用者資料並 upsert 至資料庫
      */
-    protected function upsertLineUserByProfile(string $userId): void
+    protected function upsertLineUserByProfile(string $userId): ?User
     {
         try {
             $profile = $this->lineMessagingClient->getUserProfile($userId);
-            $this->lineUserService->upsert(
+
+            return $this->lineUserService->upsert(
                 $userId,
                 $profile['displayName'] ?? $userId,
                 $profile['pictureUrl'] ?? null
@@ -190,6 +207,8 @@ class LineBotController extends Controller
                 'userId' => $userId,
                 'error' => $e->getMessage(),
             ]);
+
+            return null;
         }
     }
 
@@ -205,8 +224,10 @@ class LineBotController extends Controller
         // 補漏網之魚：確保使用者有被記錄
         $this->upsertLineUserByProfile($userId);
 
+        $role = $this->lineUserService->getRole($userId);
         // 判斷是否為 editor 角色（用於圖卡 editor 按鈕顯示）
-        $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+        $isEditor = in_array($role, ['editor', 'admin']);
+        $canBrowse = $role !== 'guest';
 
         // 空白訊息，回傳使用說明
         if (empty($text)) {
@@ -298,6 +319,12 @@ class LineBotController extends Controller
         $renamingFishId = Cache::get("line_user_{$userId}_renaming_fish");
         if ($renamingFishId) {
             $this->handleRenameFish($userId, $renamingFishId, $text, $replyToken);
+
+            return;
+        }
+
+        if (! $canBrowse) {
+            $this->replyBrowsePermissionDenied($replyToken);
 
             return;
         }
@@ -1033,6 +1060,33 @@ class LineBotController extends Controller
         }
     }
 
+    protected function browseProtectedActions(): array
+    {
+        return [
+            'browse_oyod',
+            'browse_rahet',
+            'browse_tribes_menu',
+            'browse_tribe_data',
+            'random_browse',
+            'browse_next',
+            'browse_knowledge',
+            'random_unknown_fish',
+            'view_captures',
+            'play_audio',
+            'no_audio',
+        ];
+    }
+
+    protected function replyBrowsePermissionDenied(string $replyToken): void
+    {
+        $this->lineMessagingClient->replyMessage($replyToken, [
+            new \LINE\Clients\MessagingApi\Model\TextMessage([
+                'type' => 'text',
+                'text' => '⚠️ 你的帳號尚未開通瀏覽權限，請聯繫管理者。',
+            ]),
+        ]);
+    }
+
     /**
      * 處理 Postback 事件
      */
@@ -1052,7 +1106,8 @@ class LineBotController extends Controller
             $this->upsertLineUserByProfile($userId);
 
             // 取得使用者角色（用於 editor 按鈕顯示及受保護 action 檢查）
-            $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+            $role = $this->lineUserService->getRole($userId);
+            $isEditor = in_array($role, ['editor', 'admin']);
 
             // 需要 editor/admin 角色的受保護 action
             // 注意：start_rename 與 start_add_audio 亦需保護，
@@ -1075,6 +1130,12 @@ class LineBotController extends Controller
 
                 return;
             }
+            if (in_array($action, $this->browseProtectedActions(), true) && $role === 'guest') {
+                $this->replyBrowsePermissionDenied($replyToken);
+
+                return;
+            }
+
 
             // ==========================================
             // 圖文選單功能（Rich Menu）
