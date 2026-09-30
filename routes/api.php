@@ -30,7 +30,7 @@ Route::post('/line/webhook', [LineBotController::class, 'webhook']);
 // 首頁主題導覽分類
 Route::get('/topics', [TopicController::class, 'getPublishedCategories']);
 
-Route::middleware(['auth:sanctum', 'browse'])->group(function () {
+Route::middleware(['auth:sanctum', 'browse', 'audio.visibility'])->group(function () {
     Route::get('/fish', [ApiFishController::class, 'getFishs']);
     Route::get('/capture-records', [ApiFishController::class, 'getAllCaptureRecords']);
     Route::get('/fishs/latest-at', [ApiFishController::class, 'getLatestAt']);

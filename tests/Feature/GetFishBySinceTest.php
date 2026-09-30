@@ -8,7 +8,7 @@ use Carbon\Carbon;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->lineViewer()->create());
+    $this->actingAs(User::factory()->lineEditor()->create());
 });
 
 it('can get fish list by time condition', function () {
