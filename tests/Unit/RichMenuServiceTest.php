@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\DefaultRichMenuManagedExternallyException;
 use App\Services\RichMenuService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
@@ -55,7 +56,7 @@ it('getDefaultRichMenuId 在 OA Manager 設定預設時拋出明確錯誤', func
     $service = richMenuServiceWithResponses([new Response(403)], $history);
 
     expect(fn () => $service->getDefaultRichMenuId())
-        ->toThrow(RuntimeException::class, 'Official Account Manager');
+        ->toThrow(DefaultRichMenuManagedExternallyException::class, 'Official Account Manager');
 });
 
 it('clearDefault 使用 LINE 官方取消預設 endpoint', function () {

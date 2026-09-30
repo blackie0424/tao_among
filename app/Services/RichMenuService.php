@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\RichMenuServiceInterface;
+use App\Exceptions\DefaultRichMenuManagedExternallyException;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
 
@@ -77,7 +78,7 @@ class RichMenuService implements RichMenuServiceInterface
                 return null;
             }
             if ($status === 403) {
-                throw new \RuntimeException(
+                throw new DefaultRichMenuManagedExternallyException(
                     '全域預設由 LINE Official Account Manager 設定，請至 OA Manager 取消。',
                     previous: $e
                 );
@@ -117,8 +118,15 @@ class RichMenuService implements RichMenuServiceInterface
 
     public function deleteAllMenus(): void
     {
-        if ($this->getDefaultRichMenuId() !== null) {
-            $this->clearDefault();
+        try {
+            if ($this->getDefaultRichMenuId() !== null) {
+                $this->clearDefault();
+            }
+        } catch (DefaultRichMenuManagedExternallyException $e) {
+            Log::warning(
+                'RichMenuService: default rich menu is managed by OA Manager; continuing menu cleanup',
+                ['error' => $e->getMessage()]
+            );
         }
 
         $menus = $this->list();
