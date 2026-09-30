@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'editor' => \App\Http\Middleware\EnsureUserIsEditor::class,
             'browse' => \App\Http\Middleware\EnsureUserCanBrowse::class,
+            'audio.visibility' => \App\Http\Middleware\FilterRestrictedAudio::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

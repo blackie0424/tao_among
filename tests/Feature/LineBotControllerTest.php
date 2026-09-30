@@ -574,4 +574,5 @@ class LineBotControllerTest extends TestCase
         // 驗證 Cache 被清除
         $this->assertNull(Cache::get('line_user_test_user_id_adding_audio'));
     }
+
 }

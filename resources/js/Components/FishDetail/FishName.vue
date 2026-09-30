@@ -14,7 +14,7 @@
     <!-- 魚名與 icon 水平排列 -->
     <div class="section-title text-2xl font-bold text-primary flex justify-between w-full">
       <span>{{ fishName }}</span>
-      <template v-if="props.audio">
+      <template v-if="hasAudioAccess && props.audio">
         <Volume :audioUrl="props.audio" />
       </template>
     </div>
@@ -22,9 +22,11 @@
 </template>
 
 <script setup>
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import Volume from '@/Components/UI/Volume.vue'
 import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
+import { canAccessAudio } from '@/constants/roles'
 
 const props = defineProps({
   fishName: String,
@@ -35,4 +37,6 @@ const props = defineProps({
     default: false,
   },
 })
+
+const hasAudioAccess = computed(() => canAccessAudio(usePage().props.auth?.user?.role))
 </script>

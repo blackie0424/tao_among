@@ -380,3 +380,21 @@ describe('登入後可存取管理路由', function () {
         $response->assertStatus(200);
     });
 });
+
+describe('發音列表限田調人員以上存取', function () {
+    it('viewer 存取發音列表回傳 403', function () {
+        $fish = Fish::factory()->create();
+
+        $this->actingAs(User::factory()->lineViewer()->create())
+            ->get("/fish/{$fish->id}/audio-list")
+            ->assertForbidden();
+    });
+
+    it('editor 與 admin 可存取發音列表', function (string $role) {
+        $fish = Fish::factory()->create();
+
+        $this->actingAs(User::factory()->create(['role' => $role]))
+            ->get("/fish/{$fish->id}/audio-list")
+            ->assertOk();
+    })->with(['editor', 'admin']);
+});

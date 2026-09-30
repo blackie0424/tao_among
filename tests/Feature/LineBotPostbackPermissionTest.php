@@ -160,6 +160,25 @@ class LineBotPostbackPermissionTest extends TestCase
         $this->assertStringContainsString('沒有此功能的使用權限', $replied[0]->getText());
     }
 
+    public function test_editor_can_start_create_fish(): void
+    {
+        $this->mockLineUserService->shouldReceive('getRole')->once()->andReturn('editor');
+
+        $replied = [];
+        $this->mockLineBotService
+            ->shouldReceive('replyMessage')
+            ->once()
+            ->andReturnUsing(function ($token, $messages) use (&$replied) {
+                $replied = $messages;
+            });
+
+        $this->invokeHandlePostback($this->makePostbackEvent('action=start_create_fish'));
+
+        $this->assertSame('waiting_image', Cache::get('line_user_'.self::USER_ID.'_create_fish_state'));
+        $this->assertCount(1, $replied);
+        $this->assertStringContainsString('新增魚類', $replied[0]->getText());
+    }
+
     public function test_viewer_cannot_provide_clue(): void
     {
         $this->mockLineUserService->shouldReceive('getRole')->once()->andReturn('viewer');

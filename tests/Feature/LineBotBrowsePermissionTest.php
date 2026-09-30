@@ -68,8 +68,6 @@ class LineBotBrowsePermissionTest extends TestCase
                 'browse_knowledge',
                 'random_unknown_fish',
                 'view_captures',
-                'play_audio',
-                'no_audio',
             ],
         );
     }
@@ -127,6 +125,55 @@ class LineBotBrowsePermissionTest extends TestCase
         $method->setAccessible(true);
 
         $this->assertSame(array_column(self::browseActions(), 0), $method->invoke($this->controller));
+    }
+
+    public static function audioActions(): array
+    {
+        return [['play_audio'], ['no_audio']];
+    }
+
+    /** @dataProvider audioActions */
+    public function test_guest_and_viewer_are_blocked_from_audio_postbacks(string $action): void
+    {
+        foreach (['guest', 'viewer'] as $role) {
+            $this->lineUserService->shouldReceive('getRole')->once()->andReturn($role);
+            $messages = $this->captureReply();
+
+            $this->invoke('handlePostback', $this->postbackEvent("action={$action}"), self::REPLY_TOKEN);
+
+            $this->assertCount(1, $messages);
+            $this->assertStringContainsString('此功能僅限田調人員使用', $messages[0]->getText());
+        }
+    }
+
+    /** @dataProvider audioRoles */
+    public function test_editor_and_admin_can_play_audio_postbacks(string $role): void
+    {
+        $fish = Fish::factory()->create(['audio_filename' => 'line-audio.m4a']);
+        $this->lineUserService->shouldReceive('getRole')->once()->andReturn($role);
+        $messages = $this->captureReply();
+
+        $this->invoke(
+            'handlePostback',
+            $this->postbackEvent("action=play_audio&fish_id={$fish->id}&fish_name=測試魚"),
+            self::REPLY_TOKEN
+        );
+
+        $this->assertCount(2, $messages);
+        $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\AudioMessage::class, $messages[1]);
+    }
+
+    public static function audioRoles(): array
+    {
+        return [['editor'], ['admin']];
+    }
+
+    public function test_audio_action_inventory_is_explicit_and_complete(): void
+    {
+        $method = (new \ReflectionClass($this->controller))->getMethod('audioProtectedActions');
+        $method->setAccessible(true);
+
+        $this->assertSame(array_column(self::audioActions(), 0), $method->invoke($this->controller));
     }
 
     /** @dataProvider browsingRoles */

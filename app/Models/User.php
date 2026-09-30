@@ -47,4 +47,14 @@ class User extends Authenticatable
     {
         return $this->role !== 'guest';
     }
+
+    public function canAccessAudio(): bool
+    {
+        return self::roleCanAccessAudio($this->role);
+    }
+
+    public static function roleCanAccessAudio(?string $role): bool
+    {
+        return in_array($role, ['editor', 'admin'], true);
+    }
 }

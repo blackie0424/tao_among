@@ -4,7 +4,7 @@
     :imageUrl="fish.display_image_url || fish.image_url"
     :title="fish.name"
     :imageStyle="displayImgStyle"
-    :audioUrl="fish.audio_url"
+    :audioUrl="hasAudioAccess ? fish.audio_url : null"
     :index="index"
   />
 </template>
@@ -13,6 +13,8 @@
 import ItemCard from '@/Components/UI/ItemCard.vue'
 import { computed } from 'vue'
 import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
+import { usePage } from '@inertiajs/vue3'
+import { canAccessAudio } from '@/constants/roles'
 
 const props = defineProps({
   fish: {
@@ -28,4 +30,6 @@ const props = defineProps({
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(props.fish.display_image_position, props.fish.display_image_scale)
 )
+
+const hasAudioAccess = computed(() => canAccessAudio(usePage().props.auth?.user?.role))
 </script>

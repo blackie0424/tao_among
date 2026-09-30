@@ -77,6 +77,29 @@ it('isEditor 回傳 false 當 role 為 viewer', function () {
     expect($user->isEditor())->toBeFalse();
 });
 
+it('依角色判斷是否可存取影音', function (string $role, bool $expected) {
+    $user = User::factory()->create(['role' => $role]);
+
+    expect($user->canAccessAudio())->toBe($expected);
+})->with([
+    'guest cannot access audio' => ['guest', false],
+    'viewer cannot access audio' => ['viewer', false],
+    'editor can access audio' => ['editor', true],
+    'admin can access audio' => ['admin', true],
+]);
+
+
+it('可直接依角色值判斷影音權限', function (?string $role, bool $expected) {
+    expect(User::roleCanAccessAudio($role))->toBe($expected);
+})->with([
+    'guest' => ['guest', false],
+    'viewer' => ['viewer', false],
+    'editor' => ['editor', true],
+    'admin' => ['admin', true],
+    'unknown' => ['unknown', false],
+    'null' => [null, false],
+]);
+
 // =====================================================
 // LINE 使用者欄位
 // =====================================================

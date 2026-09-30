@@ -75,7 +75,7 @@
           </section>
 
           <!-- 發音 -->
-          <section v-show="activeTab === 'audio'">
+          <section v-if="hasAudioAccess" v-show="activeTab === 'audio'">
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
               <h2 class="text-elder-name font-bold text-elder-text">發音</h2>
               <div v-if="fish.audio_url" class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
@@ -115,6 +115,7 @@ import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvance
 import ReferenceKnowledgeSection from '@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue'
 import FishEditBar from '@/Components/Global/FishEditBar.vue'
 import Volume from '@/Components/UI/Volume.vue'
+import { canAccessAudio } from '@/constants/roles'
 
 const props = defineProps({
   fish: Object,
@@ -128,6 +129,7 @@ const props = defineProps({
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
+const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
 
 const mobileBackText = computed(() => {
   return (props.fish?.name?.length || 0) > 12 ? '...' : 'among no tao'
@@ -140,11 +142,13 @@ const ALL_TABS = [
   { key: 'advanced',  label: '進階知識', editorOnly: true },
   { key: 'reference', label: '文獻知識', editorOnly: true },
   { key: 'capture',   label: '捕獲紀錄' },
-  { key: 'audio',     label: '發音',     editorOnly: true },
+  { key: 'audio',     label: '發音',     audioOnly: true },
 ]
 
 const visibleTabs = computed(() =>
-  ALL_TABS.filter((t) => !t.editorOnly || isEditor.value)
+  ALL_TABS.filter((t) =>
+    (!t.editorOnly || isEditor.value) && (!t.audioOnly || hasAudioAccess.value)
+  )
 )
 
 const activeTab = ref('basic')

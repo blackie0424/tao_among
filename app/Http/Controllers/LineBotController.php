@@ -225,8 +225,9 @@ class LineBotController extends Controller
         $this->upsertLineUserByProfile($userId);
 
         $role = $this->lineUserService->getRole($userId);
-        // 判斷是否為 editor 角色（用於圖卡 editor 按鈕顯示）
-        $isEditor = in_array($role, ['editor', 'admin']);
+        // 編輯流程與影音顯示權限需分開判斷，避免日後規則分歧時互相放寬
+        $isEditor = in_array($role, ['editor', 'admin'], true);
+        $canAccessAudio = User::roleCanAccessAudio($role);
         $canBrowse = $role !== 'guest';
 
         // 空白訊息，回傳使用說明
@@ -331,19 +332,19 @@ class LineBotController extends Controller
 
         // 檢查是否為「隨機命名」關鍵字
         if (in_array(strtolower($text), ['隨機命名', 'random', '隨機'])) {
-            $this->handleRandomUnknownFish($replyToken, $isEditor);
+            $this->handleRandomUnknownFish($replyToken, $canAccessAudio);
 
             return;
         }
 
         // 搜尋魚類
-        $this->searchFish($text, $replyToken, $isEditor);
+        $this->searchFish($text, $replyToken, $canAccessAudio);
     }
 
     /**
      * 搜尋魚類並回應
      */
-    protected function searchFish(string $keyword, string $replyToken, bool $isEditor = false): void
+    protected function searchFish(string $keyword, string $replyToken, bool $canAccessAudio = false): void
     {
         try {
             // 建立搜尋請求
@@ -359,7 +360,7 @@ class LineBotController extends Controller
             $fishes = $data['data'] ?? [];
 
             // 建立回應訊息
-            $messages = $this->lineFishMessageBuilder->buildFishListMessage($fishes, $isEditor);
+            $messages = $this->lineFishMessageBuilder->buildFishListMessage($fishes, $canAccessAudio);
 
             // 回覆訊息
             $this->lineMessagingClient->replyMessage($replyToken, $messages);
@@ -386,7 +387,7 @@ class LineBotController extends Controller
     protected function handleImageMessage(MessageEvent $event, string $replyToken): void
     {
         $userId = $event->getSource()->getUserId();
-        $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin']);
+        $isEditor = in_array($this->lineUserService->getRole($userId), ['editor', 'admin'], true);
 
         if ($this->lineBatchCaptureFlowService->hasActiveState($userId) && ! $isEditor) {
             $this->lineBatchCaptureFlowService->handleUnauthorizedAccess($userId, $replyToken);
@@ -557,7 +558,7 @@ class LineBotController extends Controller
     /**
      * 處理「隨機命名」請求
      */
-    protected function handleRandomUnknownFish(string $replyToken, bool $isEditor = false): void
+    protected function handleRandomUnknownFish(string $replyToken, bool $canAccessAudio = false): void
     {
         try {
             // 查詢隨機的「我不知道」魚類
@@ -579,7 +580,7 @@ class LineBotController extends Controller
             $fish = $data['data'];
 
             // 建立帶 Quick Reply 的魚類卡片
-            $card = $this->lineFishMessageBuilder->buildFishCardWithQuickReply($fish, $isEditor);
+            $card = $this->lineFishMessageBuilder->buildFishCardWithQuickReply($fish, $canAccessAudio);
 
             // 回覆訊息
             $this->lineMessagingClient->replyMessage($replyToken, [$card]);
@@ -1072,9 +1073,12 @@ class LineBotController extends Controller
             'browse_knowledge',
             'random_unknown_fish',
             'view_captures',
-            'play_audio',
-            'no_audio',
         ];
+    }
+
+    protected function audioProtectedActions(): array
+    {
+        return ['play_audio', 'no_audio'];
     }
 
     protected function replyBrowsePermissionDenied(string $replyToken): void
@@ -1105,9 +1109,21 @@ class LineBotController extends Controller
             // 補漏網之魚：確保使用者有被記錄
             $this->upsertLineUserByProfile($userId);
 
-            // 取得使用者角色（用於 editor 按鈕顯示及受保護 action 檢查）
+            // 編輯 action 與影音 action 使用彼此獨立的權限判斷
             $role = $this->lineUserService->getRole($userId);
-            $isEditor = in_array($role, ['editor', 'admin']);
+            $isEditor = in_array($role, ['editor', 'admin'], true);
+            $canAccessAudio = User::roleCanAccessAudio($role);
+
+            if (in_array($action, $this->audioProtectedActions(), true) && ! $canAccessAudio) {
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage([
+                        'type' => 'text',
+                        'text' => '⚠️ 此功能僅限田調人員使用。',
+                    ]),
+                ]);
+
+                return;
+            }
 
             // 需要 editor/admin 角色的受保護 action
             // 注意：start_rename 與 start_add_audio 亦需保護，
@@ -1145,7 +1161,7 @@ class LineBotController extends Controller
             if ($action === 'browse_oyod') {
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
-                $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚', $isEditor);
+                $this->handleBrowseByFilter($replyToken, 'food_category', 'oyod', 1, 'Oyod 類魚', $canAccessAudio);
 
                 return;
             }
@@ -1154,7 +1170,7 @@ class LineBotController extends Controller
             if ($action === 'browse_rahet') {
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
-                $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚', $isEditor);
+                $this->handleBrowseByFilter($replyToken, 'food_category', 'rahet', 1, 'Rahet 類魚', $canAccessAudio);
 
                 return;
             }
@@ -1184,7 +1200,7 @@ class LineBotController extends Controller
                     $tribe = 'iraraley'; // Fallback
                 }
 
-                $this->handleBrowseByFilter($replyToken, 'tribe', $tribe, 1, ucfirst($tribe).' 部落', $isEditor);
+                $this->handleBrowseByFilter($replyToken, 'tribe', $tribe, 1, ucfirst($tribe).' 部落', $canAccessAudio);
 
                 return;
             }
@@ -1195,7 +1211,7 @@ class LineBotController extends Controller
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
 
-                $this->handleRandomBrowse($replyToken, $isEditor);
+                $this->handleRandomBrowse($replyToken, $canAccessAudio);
 
                 return;
             }
@@ -1207,7 +1223,7 @@ class LineBotController extends Controller
                 $this->clearBatchCaptureState($userId);
                 $this->clearLineKnowledgeState($userId);
 
-                $this->handleRandomUnknownFish($replyToken, $isEditor);
+                $this->handleRandomUnknownFish($replyToken, $canAccessAudio);
 
                 return;
             }
@@ -1543,10 +1559,10 @@ class LineBotController extends Controller
                         ];
                         $title = $titleMap["{$type}:{$value}"] ?? '魚類瀏覽';
                     }
-                    $this->handleBrowseByFilter($replyToken, $type, $value, $page, $title, $isEditor);
+                    $this->handleBrowseByFilter($replyToken, $type, $value, $page, $title, $canAccessAudio);
                 } else {
                     // 隨機瀏覽的下一頁
-                    $this->handleRandomBrowse($replyToken, $isEditor);
+                    $this->handleRandomBrowse($replyToken, $canAccessAudio);
                 }
 
                 return;
@@ -1558,7 +1574,7 @@ class LineBotController extends Controller
 
             // 處理隨機魚類請求
             if ($action === 'random_unknown_fish') {
-                $this->handleRandomUnknownFish($replyToken, $isEditor);
+                $this->handleRandomUnknownFish($replyToken, $canAccessAudio);
 
                 return;
             }
@@ -1757,7 +1773,7 @@ class LineBotController extends Controller
         string $filterValue,
         int $page,
         string $title,
-        bool $isEditor = false
+        bool $canAccessAudio = false
     ): void {
         try {
             $request = Request::create('/prefix/api/fishs/filter', 'GET', [
@@ -1786,7 +1802,7 @@ class LineBotController extends Controller
                 $nextPageData,
                 $title,
                 $contextTribes,
-                $isEditor
+                $canAccessAudio
             );
 
             $this->lineMessagingClient->replyMessage($replyToken, $messages);
@@ -1811,7 +1827,7 @@ class LineBotController extends Controller
     /**
      * 處理圖文選單「隨機瀏覽」
      */
-    protected function handleRandomBrowse(string $replyToken, bool $isEditor = false): void
+    protected function handleRandomBrowse(string $replyToken, bool $canAccessAudio = false): void
     {
         try {
             $request = Request::create('/prefix/api/fishs/random', 'GET', ['limit' => 10]);
@@ -1826,7 +1842,7 @@ class LineBotController extends Controller
                 'action=random_browse',
                 '隨機瀏覽',
                 null,
-                $isEditor
+                $canAccessAudio
             );
 
             // 額外加入 Quick Reply「再隨機一次」按鈕

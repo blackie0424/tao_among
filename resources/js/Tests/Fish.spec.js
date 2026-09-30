@@ -150,3 +150,18 @@ describe('isEditor', () => {
     expect(wrapper.find('[data-testid="reference-knowledge-section"]').exists()).toBe(true)
   })
 })
+
+describe('發音功能依角色顯示', () => {
+  it.each([
+    ['guest', false],
+    ['viewer', false],
+    ['editor', true],
+    ['admin', true],
+  ])('%s 的發音頁籤顯示為 %s', (role, expected) => {
+    mockUsePage.mockReturnValue({ props: { auth: { user: { id: 1, role } } } })
+
+    const wrapper = mountFish({ fish: makeFish({ audio_url: 'https://example.com/audio.m4a' }) })
+
+    expect(wrapper.text().includes('發音')).toBe(expected)
+  })
+})
