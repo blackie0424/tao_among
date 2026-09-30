@@ -14,7 +14,6 @@ it('建立與上傳雙選單但不設定全域預設或綁定所有使用者', f
         $mock->shouldReceive('create')->twice()->andReturn('viewer-menu-id', 'editor-menu-id');
         $mock->shouldReceive('uploadImage')->twice();
         $mock->shouldNotReceive('setDefault');
-        $mock->shouldNotReceive('linkToAll');
     });
     $this->app->instance(RichMenuServiceInterface::class, $service);
 

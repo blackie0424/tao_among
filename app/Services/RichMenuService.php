@@ -61,23 +61,30 @@ class RichMenuService implements RichMenuServiceInterface
 
     public function setDefault(string $richMenuId): void
     {
-        try {
-            $this->httpClient->post("{$this->apiBase}/richmenu/default", [
-                'headers' => ['Content-Type' => 'application/json'],
-                'body'    => json_encode(['richMenuId' => $richMenuId]),
-            ]);
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            $status = $e->getResponse()->getStatusCode();
-            Log::warning('RichMenuService: POST /richmenu/default failed', [
-                'status'     => $status,
-                'richMenuId' => $richMenuId,
-            ]);
-        }
+        $this->httpClient->post("{$this->apiBase}/user/all/richmenu/{$richMenuId}");
     }
 
-    public function linkToAll(string $richMenuId): void
+    public function getDefaultRichMenuId(): ?string
     {
-        $this->httpClient->post("{$this->apiBase}/user/all/richmenu/{$richMenuId}");
+        try {
+            $response = $this->httpClient->get("{$this->apiBase}/user/all/richmenu");
+            $result = json_decode($response->getBody()->getContents(), true);
+
+            return $result['richMenuId'] ?? null;
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $status = $e->getResponse()->getStatusCode();
+            if ($status === 404) {
+                return null;
+            }
+            if ($status === 403) {
+                throw new \RuntimeException(
+                    '全域預設由 LINE Official Account Manager 設定，請至 OA Manager 取消。',
+                    previous: $e
+                );
+            }
+
+            throw $e;
+        }
     }
 
     public function linkToUser(string $lineUserId, string $richMenuId): void
@@ -105,18 +112,14 @@ class RichMenuService implements RichMenuServiceInterface
 
     public function clearDefault(): void
     {
-        try {
-            $this->httpClient->delete("{$this->apiBase}/richmenu/default");
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            if ($e->getResponse()->getStatusCode() !== 404) {
-                throw $e;
-            }
-        }
+        $this->httpClient->delete("{$this->apiBase}/user/all/richmenu");
     }
 
     public function deleteAllMenus(): void
     {
-        $this->clearDefault();
+        if ($this->getDefaultRichMenuId() !== null) {
+            $this->clearDefault();
+        }
 
         $menus = $this->list();
         foreach ($menus as $menu) {

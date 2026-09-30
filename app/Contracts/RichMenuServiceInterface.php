@@ -20,9 +20,9 @@ interface RichMenuServiceInterface
     public function setDefault(string $richMenuId): void;
 
     /**
-     * 批量綁定所有使用者
+     * 取得 Messaging API 設定的系統預設圖文選單 ID
      */
-    public function linkToAll(string $richMenuId): void;
+    public function getDefaultRichMenuId(): ?string;
 
     /**
      * 綁定指定使用者

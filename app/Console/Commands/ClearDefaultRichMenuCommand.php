@@ -29,7 +29,24 @@ class ClearDefaultRichMenuCommand extends Command
         }
 
         try {
+            $currentMenuId = $this->richMenuService->getDefaultRichMenuId();
+
+            if ($currentMenuId === null) {
+                $this->info('ℹ️  目前沒有設定 Messaging API 全域預設圖文選單，未執行取消。');
+
+                return Command::SUCCESS;
+            }
+
+            $this->info("目前的 Messaging API 全域預設：{$currentMenuId}");
             $this->richMenuService->clearDefault();
+
+            $remainingMenuId = $this->richMenuService->getDefaultRichMenuId();
+            if ($remainingMenuId !== null) {
+                $this->error("❌ 取消後仍查到全域預設：{$remainingMenuId}");
+
+                return Command::FAILURE;
+            }
+
             $this->info('✅ 已取消 LINE 全域預設圖文選單，個別角色綁定不受影響。');
 
             return Command::SUCCESS;
