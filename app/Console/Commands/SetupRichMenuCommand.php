@@ -13,7 +13,7 @@ class SetupRichMenuCommand extends Command
                             {--editor-image= : 編輯者選單圖片路徑（預設 public/images/line/rich_menu_editor.png）}
                             {--dry-run : 只顯示設定內容，不實際建立}';
 
-    protected $description = '建立 LINE 雙圖文選單（viewer / editor），viewer 為全域預設，editor 供有角色使用者綁定';
+    protected $description = '建立 LINE 雙圖文選單（viewer / editor），兩種選單皆透過角色個別綁定';
 
     public function __construct(
         protected RichMenuServiceInterface $richMenuService
@@ -44,7 +44,7 @@ class SetupRichMenuCommand extends Command
         try {
             // 步驟 1：刪除所有舊選單
             $this->info('  刪除現有圖文選單...');
-            $this->richMenuService->deleteAll();
+            $this->richMenuService->deleteAllMenus();
 
             // 步驟 2：建立 viewer 選單（一般瀏覽者）
             $this->info('  建立 viewer 選單...');
@@ -72,10 +72,6 @@ class SetupRichMenuCommand extends Command
                 $this->info('  ✅ editor 圖片上傳成功');
             }
 
-            // 步驟 4：設定 viewer 為全域預設
-            $this->richMenuService->setDefault($viewerMenuId);
-            $this->richMenuService->linkToAll($viewerMenuId);
-            $this->info('  ✅ viewer 選單已設為全域預設');
 
             $this->info('');
             $this->info('🎉 雙圖文選單建立完成！');
@@ -86,7 +82,7 @@ class SetupRichMenuCommand extends Command
             $this->info("   LINE_VIEWER_RICH_MENU_ID={$viewerMenuId}");
             $this->info("   LINE_EDITOR_RICH_MENU_ID={$editorMenuId}");
             $this->info('');
-            $this->info('   ⚠️  user/all 綁定為非同步作業，約 1~2 分鐘後生效');
+            $this->info('   ℹ️  兩種選單僅透過角色個別綁定，不設定全域預設');
 
             Log::info('SetupRichMenuCommand completed', [
                 'viewerMenuId' => $viewerMenuId,
