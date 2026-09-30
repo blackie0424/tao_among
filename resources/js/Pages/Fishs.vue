@@ -7,31 +7,20 @@
     mobileBackText="首頁"
     :showBottomNav="false"
   >
-    <!-- Desktop Nav Slot: 搜尋與新增按鈕 -->
+    <!-- Desktop Nav Slot: 頁面標題與搜尋按鈕 -->
     <template #desktop-nav>
       <div data-testid="desktop-nav-content" class="flex min-w-0 items-center justify-between w-full">
         <span
           data-testid="desktop-page-title"
           class="min-w-0 truncate font-bold text-elder-text text-elder-name tracking-wide"
         >{{ PAGE_TITLE }}</span>
-        <FishListNavActions variant="desktop" :user="user" @toggle="handleSearchToggle" />
+        <FishListNavActions variant="desktop" @toggle="handleSearchToggle" />
       </div>
     </template>
 
-    <!-- Mobile Actions Slot: 搜尋按鈕 + 新增按鈕 -->
+    <!-- Mobile Actions Slot: 搜尋按鈕 -->
     <template #mobile-actions>
-      <FishListNavActions variant="mobile" :user="user" @toggle="handleSearchToggle" />
-    </template>
-
-    <!-- Header Extension Slot: Sticky Search Filter Bar -->
-    <template #header-extension>
-      <FishSearchStatsBar
-        variant="header"
-        :showTotalCount="false"
-        :totalCount="totalCount"
-        :appliedFilters="appliedFilters"
-        @remove-filter="removeFilter"
-      />
+      <FishListNavActions variant="mobile" @toggle="handleSearchToggle" />
     </template>
 
     <div class="container mx-auto px-4 pb-20 relative pt-6">
@@ -45,6 +34,15 @@
           :searchOptions="searchOptions"
           @submit="submitUnifiedSearch"
           @reset="resetUnifiedSearch"
+        />
+
+        <FishSearchStatsBar
+          variant="header"
+          :showTotalCount="false"
+          :totalCount="totalCount"
+          :appliedFilters="appliedFilters"
+          @remove-filter="removeFilter"
+          @clear-all="clearAllFilters"
         />
 
         <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
@@ -62,7 +60,7 @@
 </template>
 
 <script setup>
-import { Head, Link, usePage } from '@inertiajs/vue3'
+import { Head } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
@@ -78,7 +76,6 @@ import { useFishListCache } from '@/composables/useFishListCache'
 import { useFishSearch } from '@/composables/useFishSearch'
 
 const PAGE_TITLE = 'among no tao'
-const user = computed(() => usePage().props.auth?.user)
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -139,6 +136,7 @@ const {
   handleSearchToggle,
   submitUnifiedSearch,
   resetUnifiedSearch,
+  clearAllFilters,
   removeFilter,
 } = useFishSearch(currentFilters, nameQuery, doSearch)
 

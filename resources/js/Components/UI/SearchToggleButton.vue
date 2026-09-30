@@ -1,11 +1,13 @@
 <template>
   <button
-    class="inline-flex flex-col items-center justify-center bg-white dark:bg-gray-800 rounded-xl shadow px-3 min-h-touch-secondary hover:bg-blue-100 dark:hover:bg-blue-900 transition border border-gray-300 dark:border-gray-700"
-    @click="emitToggle"
+    type="button"
+    class="inline-flex min-h-touch-secondary items-center gap-2 rounded-xl bg-blue-700 px-4 text-elder-body font-bold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
     aria-label="展開搜尋篩選"
+    @click="$emit('toggle', $event)"
   >
     <svg
-      class="w-6 h-6 text-blue-700 dark:text-gray-200"
+      aria-hidden="true"
+      class="h-6 w-6"
       fill="none"
       stroke="currentColor"
       stroke-width="2"
@@ -14,11 +16,14 @@
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
-    <span class="text-elder-aux text-blue-700 dark:text-gray-200 leading-tight">搜尋</span>
+    <span>{{ label }}</span>
   </button>
 </template>
 
 <script setup>
-const emit = defineEmits(['toggle'])
-const emitToggle = () => emit('toggle')
+defineProps({
+  label: { type: String, default: '搜尋' },
+})
+
+defineEmits(['toggle'])
 </script>
