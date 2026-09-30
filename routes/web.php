@@ -58,7 +58,6 @@ Route::middleware(['auth', 'browse'])->group(function () {
     Route::get('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'indexPage'])->name('fish.tribal-classifications');
     Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index']);
     Route::get('/fish/{id}/knowledge-list', [FishNoteController::class, 'knowledgeList'])->name('fish.knowledge-list');
-    Route::get('/fish/{id}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
 
     // -------------------------------------------------
     // 田調人員以上（editor/admin）才可存取的寫入路由
@@ -109,7 +108,8 @@ Route::middleware(['auth', 'browse'])->group(function () {
         Route::put('/fish/{id}/reference-knowledge/{knowledge}', [ReferenceKnowledgeController::class, 'update'])->name('fish.reference-knowledge.update');
         Route::delete('/fish/{id}/reference-knowledge/{knowledge}', [ReferenceKnowledgeController::class, 'destroy'])->name('fish.reference-knowledge.destroy');
 
-        // 發音（寫入）
+        // 發音（讀取與寫入）
+        Route::get('/fish/{id}/audio-list', [FishAudioController::class, 'audioList'])->name('fish.audio-list');
         Route::get('/fish/{id}/audio/create', [FishAudioController::class, 'create'])->name('fish.audio.create');
         Route::get('/fish/{id}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
         Route::put('/fish/{id}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');

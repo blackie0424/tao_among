@@ -22,13 +22,13 @@
            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
            
            <!-- Audio Player -->
-           <div v-if="fish.audio_url" class="flex-shrink-0">
+           <div v-if="hasAudioAccess && fish.audio_url" class="flex-shrink-0">
                <Volume :audioUrl="fish.audio_url" />
            </div>
          </div>
 
           <!-- 管理區 (新增錄音) - 空間不足時換行 -->
-          <div v-if="user" class="flex items-center gap-1 flex-shrink-0">
+          <div v-if="hasAudioAccess" class="flex items-center gap-1 flex-shrink-0">
              <!-- Add Audio Button (保留供田調快速操作) -->
              <Link :href="`/fish/${fish.id}/audio/create`" class="text-gray-400 hover:text-rose-600 p-2 rounded-full hover:bg-gray-50 transition" title="新增錄音">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
@@ -45,6 +45,7 @@ import LazyImage from '@/Components/UI/LazyImage.vue'
 import { usePage, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
+import { canAccessAudio } from '@/constants/roles'
 
 const props = defineProps({
   fish: Object,
@@ -52,6 +53,7 @@ const props = defineProps({
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
 
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(
