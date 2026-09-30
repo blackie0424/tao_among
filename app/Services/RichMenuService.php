@@ -103,7 +103,7 @@ class RichMenuService implements RichMenuServiceInterface
         }
     }
 
-    public function deleteAll(): void
+    public function clearDefault(): void
     {
         try {
             $this->httpClient->delete("{$this->apiBase}/richmenu/default");
@@ -112,6 +112,11 @@ class RichMenuService implements RichMenuServiceInterface
                 throw $e;
             }
         }
+    }
+
+    public function deleteAllMenus(): void
+    {
+        $this->clearDefault();
 
         $menus = $this->list();
         foreach ($menus as $menu) {

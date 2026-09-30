@@ -30,14 +30,19 @@ interface RichMenuServiceInterface
     public function linkToUser(string $lineUserId, string $richMenuId): void;
 
     /**
-     * 解除指定使用者的個人選單綁定（還原為預設）
+     * 解除指定使用者的個人選單綁定
      */
     public function unlinkFromUser(string $lineUserId): void;
 
     /**
-     * 刪除所有現有圖文選單
+     * 取消系統預設圖文選單
      */
-    public function deleteAll(): void;
+    public function clearDefault(): void;
+
+    /**
+     * 取消預設並刪除所有現有圖文選單
+     */
+    public function deleteAllMenus(): void;
 
     /**
      * 取得所有圖文選單列表
