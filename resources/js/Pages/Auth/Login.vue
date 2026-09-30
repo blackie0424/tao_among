@@ -6,17 +6,17 @@
       <!-- 標題 -->
       <div class="text-center">
         <h2 class="text-3xl font-extrabold text-gray-900">among no tao</h2>
-        <p class="mt-2 text-sm text-gray-500">田野調查魚類資料系統</p>
+        <p class="mt-2 text-elder-body text-gray-500">田野調查魚類資料系統</p>
       </div>
 
       <!-- LINE Login 區塊 -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
         <div class="text-center">
-          <p class="text-sm font-medium text-gray-700">請使用 LINE 登入</p>
+          <p class="text-elder-body font-medium text-gray-700">請使用 LINE 登入</p>
         </div>
         <a
           href="/auth/line"
-          class="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-lg text-white font-medium text-sm transition hover:opacity-90 active:scale-95"
+          class="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-lg text-white font-medium text-elder-body min-h-touch-primary transition hover:opacity-90 active:scale-95"
           style="background-color: #06c755"
         >
           <!-- LINE 官方 icon -->
@@ -27,13 +27,13 @@
           </svg>
           使用 LINE 登入
         </a>
-        <p class="text-xs text-center text-gray-400">首次登入將自動建立帳號（guest 權限）</p>
+        <p class="text-elder-aux text-center text-gray-400">首次登入將自動建立帳號（guest 權限）</p>
       </div>
 
       <!-- 分隔線 -->
       <div class="flex items-center gap-3">
         <div class="flex-1 border-t border-gray-200"></div>
-        <span class="text-xs text-gray-400">管理員</span>
+        <span class="text-elder-aux text-gray-400">管理員</span>
         <div class="flex-1 border-t border-gray-200"></div>
       </div>
 
@@ -50,7 +50,7 @@
                 type="text"
                 autocomplete="email"
                 required
-                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 text-elder-body focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="管理員 Email"
               />
             </div>
@@ -63,20 +63,20 @@
                 type="password"
                 autocomplete="current-password"
                 required
-                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 text-elder-body focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="密碼"
               />
             </div>
           </div>
 
-          <div v-if="form.errors.email" class="text-red-500 text-xs text-center">
+          <div v-if="form.errors.email" class="text-red-500 text-elder-body text-center">
             {{ form.errors.email }}
           </div>
 
           <button
             type="submit"
             :disabled="form.processing"
-            class="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition"
+            class="w-full flex justify-center py-2 px-4 border border-transparent text-elder-body font-medium min-h-touch-primary rounded-lg text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition"
           >
             {{ form.processing ? '登入中…' : '管理員登入' }}
           </button>
@@ -84,7 +84,7 @@
       </div>
 
       <div class="text-center">
-        <a href="/" class="text-xs text-gray-400 hover:text-gray-600">回首頁</a>
+        <a href="/" class="inline-flex min-h-touch-secondary items-center justify-center px-4 text-elder-aux text-gray-400 hover:text-gray-600">回首頁</a>
       </div>
     </div>
   </div>
