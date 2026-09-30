@@ -4,7 +4,9 @@
   <FishAppLayout
     :pageTitle="fish.name"
     mobileBackUrl="/fishs"
-    :mobileBackText="mobileBackText"
+    mobileBackText="魚類列表"
+    :stickyMobile="false"
+    :showMobileTitle="false"
     :showEditMenu="false"
   >
     <!-- 桌面雙欄：主內容 + 編輯列 -->
@@ -13,7 +15,7 @@
       <div class="flex-1 min-w-0">
 
         <!-- 分區 Tab 導覽 -->
-        <div class="sticky top-20 z-20 bg-gray-50 -mx-4 px-4 pb-2">
+        <div class="sticky top-0 lg:top-20 z-20 bg-gray-50 -mx-4 px-4 pb-2">
           <div class="flex overflow-x-auto gap-1 no-scrollbar">
             <button
               v-for="tab in visibleTabs"
@@ -131,9 +133,6 @@ const user = computed(() => page.props.auth?.user)
 const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
 const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
 
-const mobileBackText = computed(() => {
-  return (props.fish?.name?.length || 0) > 12 ? '...' : 'among no tao'
-})
 
 // ─── 分區 Tab ─────────────────────────────────────────────
 const ALL_TABS = [

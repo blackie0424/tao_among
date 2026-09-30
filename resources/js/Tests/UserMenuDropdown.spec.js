@@ -90,6 +90,22 @@ describe('使用者資訊標頭', () => {
   })
 })
 
+
+describe('共用可用性', () => {
+  it('使用長者字級與足夠寬度，不含 text-xs/text-sm', () => {
+    const wrapper = mountDropdown({ user: makeEditor(), showUserInfo: true })
+    expect(wrapper.html()).not.toMatch(/text-(xs|sm)/)
+    expect(wrapper.find('.w-64').exists()).toBe(true)
+  })
+
+  it.each(['guest', 'viewer', 'editor', 'admin'])('%s 都有至少 56px 的登出入口', (role) => {
+    const wrapper = mountDropdown({ user: { name: role, role }, showUserInfo: true })
+    const logout = wrapper.findAll('a').find((link) => link.text() === '登出')
+    expect(logout).toBeTruthy()
+    expect(logout.classes()).toContain('min-h-touch-primary')
+  })
+})
+
 // ────────────────────────────────────────────────────
 // 田調工作區 / 魚種連結（editor & admin）
 // ────────────────────────────────────────────────────

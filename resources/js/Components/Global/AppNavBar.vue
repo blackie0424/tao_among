@@ -1,106 +1,62 @@
 <template>
-  <header class="sticky top-4 z-30">
-    <div
-      class="container mx-auto max-w-7xl bg-white shadow-sm border border-gray-200 rounded-2xl"
-    >
-      <div class="px-4 flex flex-col lg:flex-row lg:items-center justify-between">
-        <!-- Mobile Row 1: Nav & User -->
-        <div class="flex items-center justify-between w-full lg:hidden h-14">
-          <!-- Mobile Breadcrumb -->
-          <div
-            data-testid="mobile-breadcrumb"
-            class="flex items-center gap-1 shrink-0 overflow-hidden"
+  <header
+    class="z-30"
+    :class="stickyMobile ? 'sticky top-4' : 'relative lg:sticky lg:top-4'"
+  >
+    <div class="container mx-auto max-w-7xl rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <!-- Mobile navigation -->
+      <div class="flex h-16 w-full items-center gap-2 px-3 lg:hidden">
+        <div class="flex min-w-0 flex-1 items-center gap-2">
+          <Link
+            v-if="mobileBackUrl === '/'"
+            href="/"
+            data-testid="nav-brand"
+            class="shrink-0 text-elder-name font-bold text-elder-text"
           >
-            <!-- Home Link (Hide when breadcrumbPage exists) -->
+            among no tao
+          </Link>
+          <template v-else>
             <Link
-              v-if="!breadcrumbPage"
-              href="/"
-              class="font-medium text-gray-700 hover:text-gray-900 transition flex items-center gap-1 shrink-0"
+              :href="mobileBackUrl"
+              :aria-label="`返回${mobileBackText}`"
+              data-testid="nav-back-button"
+              class="inline-flex min-h-touch-secondary shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border-2 border-blue-700 bg-white px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                ></path>
-              </svg>
-              <span class="text-elder-aux">首頁</span>
+              ← {{ mobileBackText }}
             </Link>
-
-            <!-- Separator 1 -->
-            <svg
-              v-if="!breadcrumbPage"
-              class="w-4 h-4 text-gray-300 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <span
+              v-if="showMobileTitle"
+              data-testid="nav-mobile-title"
+              class="min-w-0 truncate text-elder-name font-bold text-elder-text"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              ></path>
-            </svg>
-
-            <!-- Intermediate Link -->
-            <template v-if="mobileBackUrl !== '/'">
-              <Link
-                :href="mobileBackUrl"
-                class="font-bold text-gray-700 hover:text-blue-600 transition shrink-0 whitespace-nowrap text-elder-aux sm:text-elder-body"
-              >
-                {{ mobileBackText }}
-              </Link>
-              <!-- Separator 2 -->
-              <svg
-                class="w-4 h-4 text-gray-300 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                ></path>
-              </svg>
-            </template>
-
-            <!-- Current Page Title -->
-            <span class="font-bold text-elder-text text-elder-name tracking-wide truncate">
               {{ pageTitle }}
             </span>
-          </div>
+          </template>
+        </div>
 
-          <!-- Right: User Menu -->
-          <div class="relative shrink-0">
-            <!-- Logged In: Avatar Button -->
+        <div class="flex shrink-0 items-center gap-2">
+          <slot name="mobile-actions" />
+          <div class="relative">
             <button
               v-if="user"
+              type="button"
+              aria-label="我的帳號"
+              data-testid="nav-user-button-mobile"
+              class="flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
               @click="showMobileUserMenu = !showMobileUserMenu"
-              class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                ></path>
+              <svg aria-hidden="true" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </button>
-            <!-- Guest: Login Link -->
             <Link
               v-else
               :href="loginUrl"
-              class="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-blue-600"
+              data-testid="nav-login-mobile"
+              class="inline-flex min-h-touch-secondary items-center rounded-xl px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
             >
               登入
             </Link>
-
-            <!-- Mobile User Dropdown -->
             <UserMenuDropdown
               v-if="showMobileUserMenu && user"
               :user="user"
@@ -109,151 +65,75 @@
             />
           </div>
         </div>
+      </div>
 
-        <!-- Mobile Row 2: Actions Slot -->
-        <div class="lg:hidden w-full border-t border-gray-200 py-2">
-          <slot name="mobile-actions" />
+      <!-- Desktop navigation -->
+      <div class="hidden h-[72px] w-full items-center gap-4 px-5 lg:flex">
+        <Link href="/" class="shrink-0 text-elder-name font-bold text-elder-text">
+          among no tao
+        </Link>
+        <nav aria-label="主要導覽" class="ml-3 flex shrink-0 gap-1">
+          <Link
+            href="/"
+            :aria-current="isHomePage ? 'page' : undefined"
+            :class="desktopNavClass(isHomePage)"
+          >
+            首頁
+          </Link>
+          <Link
+            href="/fishs"
+            :aria-current="isFishPage ? 'page' : undefined"
+            :class="desktopNavClass(isFishPage)"
+          >
+            魚類圖鑑
+          </Link>
+        </nav>
+
+        <div class="flex min-w-0 flex-1 items-center">
+          <slot name="desktop-nav">
+            <Link
+              v-if="mobileBackUrl !== '/'"
+              :href="mobileBackUrl"
+              :aria-label="`返回${mobileBackText}`"
+              data-testid="nav-back-button-desktop"
+              class="inline-flex min-h-touch-secondary items-center gap-1 whitespace-nowrap rounded-xl border-2 border-blue-700 bg-white px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+            >
+              ← {{ mobileBackText }}
+            </Link>
+          </slot>
         </div>
 
-        <!-- Desktop Nav (>= 1024px) -->
-        <div class="hidden lg:flex items-center gap-4 w-full h-14">
-          <!-- Desktop Navigation Links -->
-          <div class="flex items-center gap-2 shrink-0">
-            <!-- Home Link -->
-            <Link
-              href="/"
-              class="font-medium text-gray-700 hover:text-gray-900 transition flex items-center gap-1 text-elder-body"
+        <div class="ml-auto flex shrink-0 items-center gap-3">
+          <div v-if="user" class="relative">
+            <button
+              type="button"
+              aria-label="我的帳號"
+              data-testid="nav-user-button-desktop"
+              class="flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+              @click="showDesktopUserMenu = !showDesktopUserMenu"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                ></path>
+              <svg aria-hidden="true" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              首頁
-            </Link>
+            </button>
+            <UserMenuDropdown
+              v-if="showDesktopUserMenu"
+              :user="user"
+              :showUserInfo="true"
+              @close="showDesktopUserMenu = false"
+            />
           </div>
-
-          <!-- Fixed separator after Home Link; remains when desktop-nav is overridden -->
-          <svg
-            data-testid="desktop-home-separator"
-            class="w-4 h-4 text-gray-300 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <Link
+            v-else
+            :href="loginUrl"
+            data-testid="nav-login-desktop"
+            class="inline-flex min-h-touch-secondary items-center rounded-xl px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5l7 7-7 7"
-            ></path>
-          </svg>
-
-          <div class="flex-1 flex items-center min-w-0">
-            <slot name="desktop-nav">
-              <div class="flex items-center text-elder-body text-gray-700 gap-2 min-w-0">
-                <!-- Intermediate Link (if not going back to home) -->
-                <template v-if="mobileBackUrl !== '/'">
-                  <Link
-                    :href="mobileBackUrl"
-                    class="font-bold hover:text-blue-600 transition"
-                  >
-                    {{ mobileBackText }}
-                  </Link>
-                  <!-- Separator 2 -->
-                  <svg
-                    class="w-4 h-4 text-gray-300"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    ></path>
-                  </svg>
-                </template>
-
-                <!-- Current Page Title -->
-                <span
-                  data-testid="desktop-page-title"
-                  class="min-w-0 truncate font-bold text-elder-text text-elder-name tracking-wide"
-                >
-                  {{ pageTitle }}
-                </span>
-              </div>
-            </slot>
-          </div>
-
-          <!-- User Menu (Right aligned) -->
-          <div class="ml-auto flex items-center gap-3 shrink-0">
-            <!-- Admin / Editor: Dropdown Button -->
-            <div v-if="user?.role === 'admin' || user?.role === 'editor'" class="relative">
-              <button
-                @click="showDesktopAdminMenu = !showDesktopAdminMenu"
-                class="flex items-center gap-1.5 text-elder-body font-medium text-gray-700 hover:text-blue-600 transition"
-              >
-                <span
-                  v-if="roleLabel"
-                  data-testid="desktop-role-label"
-                  class="bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full text-xs font-medium"
-                >{{ roleLabel }}</span>
-                {{ user.name }}
-                <svg
-                  class="w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              <UserMenuDropdown
-                v-if="showDesktopAdminMenu"
-                :user="user"
-                @close="showDesktopAdminMenu = false"
-              />
-            </div>
-            <!-- Other Users: Name with Badge -->
-            <div v-else-if="user" class="text-elder-body font-medium text-gray-700 flex items-center gap-2">
-              <span
-                v-if="roleLabel"
-                data-testid="desktop-role-label"
-                class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-elder-aux"
-              >{{ roleLabel }}</span>
-              {{ user.name }}
-            </div>
-            <!-- Other Users Logout -->
-            <Link
-              v-if="user && user.role !== 'admin' && user.role !== 'editor'"
-              href="/logout"
-              method="post"
-              as="button"
-              class="text-elder-aux text-gray-700 hover:text-red-600"
-            >
-              登出
-            </Link>
-            <Link
-              v-if="!user"
-              :href="loginUrl"
-              class="text-elder-body text-blue-600 hover:text-blue-700 font-medium"
-            >
-              登入
-            </Link>
-          </div>
+            登入
+          </Link>
         </div>
       </div>
-      <!-- Header Extension Slot -->
+
       <slot name="header-extension" />
     </div>
   </header>
@@ -263,38 +143,37 @@
 import { computed, ref } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import UserMenuDropdown from '@/Components/Global/UserMenuDropdown.vue'
-import { ROLE_LABELS } from '@/constants/roles'
 
-defineProps({
-  pageTitle: {
-    type: String,
-    default: '基本資料',
-  },
-  breadcrumbPage: {
-    type: String,
-    default: '',
-  },
-  mobileBackUrl: {
-    type: String,
-    default: '/fishs',
-  },
-  mobileBackText: {
-    type: String,
-    default: '首頁',
-  },
+const props = defineProps({
+  pageTitle: { type: String, default: '基本資料' },
+  breadcrumbPage: { type: String, default: '' },
+  mobileBackUrl: { type: String, default: '/fishs' },
+  mobileBackText: { type: String, default: '首頁' },
+  stickyMobile: { type: Boolean, default: true },
+  showMobileTitle: { type: Boolean, default: true },
 })
 
 const page = usePage()
-const fish = computed(() => page.props.fish)
 const user = computed(() => page.props.auth?.user)
-const roleLabel = computed(() => ROLE_LABELS[user.value?.role])
+const currentUrl = computed(() => page.url || '')
+const isHomePage = computed(() => currentUrl.value === '/')
+const isFishPage = computed(
+  () => currentUrl.value.startsWith('/fishs') || currentUrl.value.startsWith('/fish/')
+)
+
+const desktopNavClass = (active) => [
+  'inline-flex min-h-touch-secondary items-center rounded-xl px-4 text-elder-body font-bold',
+  active
+    ? 'bg-blue-50 text-blue-700 shadow-[inset_0_-3px_0_#1d4ed8]'
+    : 'text-elder-subtext hover:bg-gray-100',
+]
 
 const loginUrl = computed(() => {
   if (typeof window === 'undefined') return '/login'
-  const currentUrl = window.location.pathname + window.location.search
-  return `/login?redirect=${encodeURIComponent(currentUrl)}`
+  const url = window.location.pathname + window.location.search
+  return `/login?redirect=${encodeURIComponent(url)}`
 })
 
 const showMobileUserMenu = ref(false)
-const showDesktopAdminMenu = ref(false)
+const showDesktopUserMenu = ref(false)
 </script>

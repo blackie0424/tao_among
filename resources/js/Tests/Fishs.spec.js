@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Fishs from '@/Pages/Fishs.vue'
 
+const { clearAllFiltersMock } = vi.hoisted(() => ({ clearAllFiltersMock: vi.fn() }))
+
 // ── Inertia mock ──────────────────────────────────────────────
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
@@ -20,15 +22,17 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
 
 // ── 子元件 mock（只驗證頁面層邏輯）──────────────────────────
 vi.mock('@/Components/FishList/FishListNavActions.vue', () => ({
-  default: { template: '<div />', props: ['variant', 'user'], emits: ['toggle'] },
+  default: { template: '<div data-testid="fish-list-nav-actions" />', props: ['variant'], emits: ['toggle'] },
 }))
 vi.mock('@/Components/FishList/FishSearchModal.vue', () => ({
-  default: { template: '<div />', props: ['show', 'filters', 'nameQuery', 'searchOptions'] },
+  default: { template: '<div data-testid="fish-search-modal" />', props: ['show', 'filters', 'nameQuery', 'searchOptions'] },
 }))
 vi.mock('@/Components/FishList/FishSearchStatsBar.vue', () => ({
   default: {
-    template: '<div />',
+    name: 'FishSearchStatsBar',
+    template: '<div data-testid="fish-search-stats" />',
     props: ['variant', 'showTotalCount', 'totalCount', 'appliedFilters'],
+    emits: ['remove-filter', 'clear-all'],
   },
 }))
 vi.mock('@/Components/FishList/FishSearchLoading.vue', () => ({
@@ -79,6 +83,7 @@ vi.mock('@/composables/useFishSearch', async () => {
       handleSearchToggle: vi.fn(),
       submitUnifiedSearch: vi.fn(),
       resetUnifiedSearch: vi.fn(),
+      clearAllFilters: clearAllFiltersMock,
       removeFilter: vi.fn(),
     }),
   }
@@ -109,6 +114,22 @@ const defaultProps = {
 
 
 const mountFishs = (propsData = {}) => mount(Fishs, { props: { ...defaultProps, ...propsData } })
+
+describe('搜尋列位置與事件', () => {
+  it('篩選列位於搜尋對話框後、魚類格線前', () => {
+    const wrapper = mountFishs()
+    const html = wrapper.html()
+    expect(html.indexOf('fish-search-modal')).toBeLessThan(html.indexOf('fish-search-stats'))
+    expect(html.indexOf('fish-search-stats')).toBeLessThan(html.indexOf('grid grid-cols-1'))
+  })
+
+  it('clear-all 事件交給 clearAllFilters', () => {
+    clearAllFiltersMock.mockClear()
+    const wrapper = mountFishs()
+    wrapper.getComponent({ name: 'FishSearchStatsBar' }).vm.$emit('clear-all')
+    expect(clearAllFiltersMock).toHaveBeenCalledOnce()
+  })
+})
 
 describe('Desktop 導覽標題', () => {
   it('標題容器可收縮且標題不換行並截斷', () => {

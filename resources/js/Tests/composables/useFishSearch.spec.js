@@ -158,4 +158,25 @@ describe('useFishSearch', () => {
       expect(showSearchDialog.value).toBe(false)
     })
   })
+
+  describe('clearAllFilters', () => {
+    it('清空所有欄位與名稱並立即重新搜尋', () => {
+      currentFilters = makeFilters({ tribe: '阿美族', food_category: '白肉魚', without_audio: 1 })
+      nameQuery = ref('飛魚')
+      const { clearAllFilters } = useFishSearch(currentFilters, nameQuery, onSearch)
+
+      clearAllFilters()
+
+      expect(currentFilters.value).toEqual({
+        name: '',
+        tribe: '',
+        food_category: '',
+        processing_method: '',
+        capture_location: '',
+        without_audio: '',
+      })
+      expect(nameQuery.value).toBe('')
+      expect(onSearch).toHaveBeenCalledOnce()
+    })
+  })
 })

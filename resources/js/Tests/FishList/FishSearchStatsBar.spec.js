@@ -7,78 +7,44 @@ const filters = [
   { key: 'name', label: '名稱', value: '飛魚' },
 ]
 
-describe('FishSearchStatsBar', () => {
-  // ─── default variant ──────────────────────────────────────────────────────
-
-  describe('variant="default"', () => {
-    it('有 appliedFilters 時渲染 chip', () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 10, appliedFilters: filters },
-      })
-      expect(wrapper.text()).toContain('部落：阿美族')
-      expect(wrapper.text()).toContain('名稱：飛魚')
-    })
-
-    it('showTotalCount=true 時顯示筆數', () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 42, appliedFilters: [], showTotalCount: true },
-      })
-      expect(wrapper.text()).toContain('42')
-    })
-
-    it('showTotalCount=false 時不顯示筆數', () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 42, appliedFilters: [], showTotalCount: false },
-      })
-      expect(wrapper.text()).not.toContain('42')
-    })
-
-    it('點擊 × 按鈕 emit remove-filter 事件', async () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 0, appliedFilters: filters },
-      })
-      await wrapper.find('button[aria-label="移除條件 部落"]').trigger('click')
-      expect(wrapper.emitted('remove-filter')).toEqual([['tribe']])
-    })
+const mountBar = (props = {}) =>
+  mount(FishSearchStatsBar, {
+    props: { totalCount: 10, appliedFilters: filters, ...props },
   })
 
-  // ─── header variant ───────────────────────────────────────────────────────
+describe('FishSearchStatsBar', () => {
+  it('chip 整顆可點並帶完整 aria-label，點擊傳出 key', async () => {
+    const wrapper = mountBar()
+    const chip = wrapper.get('button[aria-label="移除條件 部落：阿美族"]')
+    expect(chip.classes()).toContain('min-h-touch-secondary')
+    expect(chip.text()).toContain('部落：阿美族')
+    expect(chip.text()).toContain('✕')
+    await chip.trigger('click')
+    expect(wrapper.emitted('remove-filter')).toEqual([['tribe']])
+  })
 
-  describe('variant="header"', () => {
-    it('appliedFilters 為空時不渲染任何可見內容', () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 0, appliedFilters: [], variant: 'header' },
-      })
-      expect(wrapper.find('.border-t').exists()).toBe(false)
-    })
+  it('兩個以上條件顯示清除全部並 emit clear-all', async () => {
+    const wrapper = mountBar()
+    const clear = wrapper.findAll('button').find((button) => button.text() === '清除全部')
+    expect(clear).toBeTruthy()
+    await clear.trigger('click')
+    expect(wrapper.emitted('clear-all')).toHaveLength(1)
+  })
 
-    it('appliedFilters 有值時顯示外層 border-t 容器', () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 0, appliedFilters: filters, variant: 'header' },
-      })
-      expect(wrapper.find('.border-t').exists()).toBe(true)
-    })
+  it('只有一個條件時不顯示清除全部', () => {
+    const wrapper = mountBar({ appliedFilters: [filters[0]] })
+    expect(wrapper.text()).not.toContain('清除全部')
+  })
 
-    it('appliedFilters 有值時顯示 container 內層包裝', () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 0, appliedFilters: filters, variant: 'header' },
-      })
-      expect(wrapper.find('.container').exists()).toBe(true)
-    })
+  it('header variant 無條件時不渲染', () => {
+    const wrapper = mountBar({ appliedFilters: [], variant: 'header' })
+    expect(wrapper.html()).toBe('<!--v-if-->')
+  })
 
-    it('appliedFilters 有值時渲染 chip', () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 0, appliedFilters: filters, variant: 'header' },
-      })
-      expect(wrapper.text()).toContain('部落：阿美族')
-    })
-
-    it('點擊 × 按鈕 emit remove-filter 事件', async () => {
-      const wrapper = mount(FishSearchStatsBar, {
-        props: { totalCount: 0, appliedFilters: filters, variant: 'header' },
-      })
-      await wrapper.find('button[aria-label="移除條件 部落"]').trigger('click')
-      expect(wrapper.emitted('remove-filter')).toEqual([['tribe']])
-    })
+  it('showTotalCount 以長者字級顯示資料筆數', () => {
+    const wrapper = mountBar({ totalCount: 42, appliedFilters: [], showTotalCount: true })
+    expect(wrapper.text()).toContain('資料筆數')
+    expect(wrapper.text()).toContain('42')
+    expect(wrapper.get('.text-elder-body')).toBeTruthy()
   })
 })
