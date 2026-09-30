@@ -8,7 +8,7 @@ use LINE\Clients\MessagingApi\Model\TextMessage;
 
 class LineFishMessageBuilder
 {
-    public function buildFishCard(array $fish, ?array $contextTribes = null, bool $isEditor = false): FlexMessage
+    public function buildFishCard(array $fish, ?array $contextTribes = null, bool $canAccessAudio = false): FlexMessage
     {
         $primaryTribes = (! empty($contextTribes))
             ? $contextTribes
@@ -45,7 +45,7 @@ class LineFishMessageBuilder
             'color' => '#1a1a2e',
         ]];
 
-        if ($hasAudio) {
+        if ($hasAudio && $canAccessAudio) {
             $bodyContents[] = [
                 'type' => 'button',
                 'style' => 'primary',
@@ -202,7 +202,7 @@ class LineFishMessageBuilder
             ],
         ];
 
-        if ($isEditor) {
+        if ($canAccessAudio) {
             $footerContents[] = [
                 'type' => 'button',
                 'style' => 'secondary',
@@ -283,7 +283,7 @@ class LineFishMessageBuilder
         ]);
     }
 
-    public function buildFishListMessage(array $fishes, bool $isEditor = false): array
+    public function buildFishListMessage(array $fishes, bool $canAccessAudio = false): array
     {
         $count = count($fishes);
 
@@ -297,13 +297,13 @@ class LineFishMessageBuilder
         }
 
         if ($count === 1) {
-            return [$this->buildFishCardWithQuickReply($fishes[0], $isEditor)];
+            return [$this->buildFishCardWithQuickReply($fishes[0], $canAccessAudio)];
         }
 
         if ($count <= 10) {
             $bubbles = [];
             foreach ($fishes as $fish) {
-                $bubbles[] = $this->buildFishCard($fish, null, $isEditor)->getContents();
+                $bubbles[] = $this->buildFishCard($fish, null, $canAccessAudio)->getContents();
             }
 
             return [
@@ -431,9 +431,9 @@ class LineFishMessageBuilder
         ]);
     }
 
-    public function buildFishCardWithQuickReply(array $fish, bool $isEditor = false): FlexMessage
+    public function buildFishCardWithQuickReply(array $fish, bool $canAccessAudio = false): FlexMessage
     {
-        $card = $this->buildFishCard($fish, null, $isEditor);
+        $card = $this->buildFishCard($fish, null, $canAccessAudio);
         $quickReplyItems = [];
 
         if ($fish['name'] === '我不知道') {
@@ -455,7 +455,7 @@ class LineFishMessageBuilder
         return $card;
     }
 
-    public function buildFishBrowseCarousel(array $fishes, bool $hasMore, string $nextPageData, string $title, ?array $contextTribes = null, bool $isEditor = false): array
+    public function buildFishBrowseCarousel(array $fishes, bool $hasMore, string $nextPageData, string $title, ?array $contextTribes = null, bool $canAccessAudio = false): array
     {
         if (empty($fishes)) {
             return [
@@ -468,7 +468,7 @@ class LineFishMessageBuilder
 
         $bubbles = [];
         foreach ($fishes as $fish) {
-            $bubbles[] = $this->buildFishCard($fish, $contextTribes, $isEditor)->getContents();
+            $bubbles[] = $this->buildFishCard($fish, $contextTribes, $canAccessAudio)->getContents();
         }
 
         $carouselMessage = new FlexMessage([

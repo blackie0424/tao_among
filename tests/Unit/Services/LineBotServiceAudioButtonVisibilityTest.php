@@ -2,13 +2,14 @@
 
 use App\Services\Line\LineFishMessageBuilder;
 use LINE\Clients\MessagingApi\Model\FlexMessage;
+use ReflectionMethod;
 use Tests\TestCase;
 
 /**
  * TDD 測試：發音按鈕條件顯示
  *
  * 需求：
- * - 有音檔 → body 顯示「🔊 播放發音」按鈕，任何角色皆可使用
+ * - 有音檔且為 editor/admin → body 顯示「🔊 播放發音」按鈕
  * - 無音檔 → body 不顯示任何發音相關按鈕
  *   （editor 透過 footer 的「🎤 提供發音」按鈕新增錄音）
  */
@@ -32,6 +33,20 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
         ];
     }
 
+    /** Builder 的權限參數必須明確表達影音權限，避免與 editor 權限耦合。 */
+    public function test_audio_visibility_parameters_use_audio_access_semantics(): void
+    {
+        foreach (['buildFishCard', 'buildFishListMessage', 'buildFishCardWithQuickReply', 'buildFishBrowseCarousel'] as $method) {
+            $parameters = (new ReflectionMethod(LineFishMessageBuilder::class, $method))->getParameters();
+
+            $this->assertContains(
+                'canAccessAudio',
+                array_map(fn ($parameter) => $parameter->getName(), $parameters),
+                "{$method} 應以 canAccessAudio 表達影音權限"
+            );
+        }
+    }
+
     // ------------------------------------------------------------------
     // 有音檔
     // ------------------------------------------------------------------
@@ -40,7 +55,7 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
     public function test_with_audio_shows_play_button(): void
     {
         $fish = array_merge($this->baseFish, ['audio_url' => 'https://s3.example.com/audio.m4a']);
-        $message = $this->service->buildFishCard($fish);
+        $message = $this->service->buildFishCard($fish, null, true);
 
         $json = $this->extractBubbleJson($message);
         $bodyLabels = $this->extractBodyButtonLabels($json);
@@ -52,7 +67,7 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
     public function test_with_audio_no_no_audio_button(): void
     {
         $fish = array_merge($this->baseFish, ['audio_url' => 'https://s3.example.com/audio.m4a']);
-        $message = $this->service->buildFishCard($fish);
+        $message = $this->service->buildFishCard($fish, null, true);
 
         $json = $this->extractBubbleJson($message);
         $bodyLabels = $this->extractBodyButtonLabels($json);
@@ -61,8 +76,8 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
         $this->assertEmpty($noAudioButtons, '有音檔時不應顯示尚無發音相關按鈕');
     }
 
-    /** 有音檔時，viewer 也能看到「🔊 播放發音」（不受 isEditor 影響） */
-    public function test_with_audio_viewer_can_see_play_button(): void
+    /** 有音檔時，viewer 不會看到「🔊 播放發音」 */
+    public function test_with_audio_viewer_cannot_see_play_button(): void
     {
         $fish = array_merge($this->baseFish, ['audio_url' => 'https://s3.example.com/audio.m4a']);
         $message = $this->service->buildFishCard($fish, null, false); // viewer
@@ -70,7 +85,7 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $bodyLabels = $this->extractBodyButtonLabels($json);
 
-        $this->assertContains('🔊 播放發音', $bodyLabels);
+        $this->assertNotContains('🔊 播放發音', $bodyLabels);
     }
 
     // ------------------------------------------------------------------
