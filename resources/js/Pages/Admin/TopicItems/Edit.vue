@@ -43,7 +43,13 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">更換圖片（留空保留原圖）</label>
+          <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <label class="block text-sm font-medium text-gray-700">更換圖片（留空保留原圖）</label>
+            <label v-if="item.image_path" class="flex cursor-pointer items-center gap-2 text-sm text-red-600">
+              <input v-model="form.remove_image" name="remove_image" type="checkbox" class="rounded" @change="onRemoveImageChange" />
+              移除目前圖片
+            </label>
+          </div>
           <input
             type="file"
             accept="image/*"
@@ -53,12 +59,12 @@
           />
           <p v-if="uploading" class="mt-1 text-xs text-blue-600">上傳中...</p>
           <p v-if="imageError" class="mt-1 text-xs text-red-600">{{ imageError }}</p>
-          <p v-if="item.image_path && !imagePreview" class="mt-1 text-xs text-gray-400">目前：{{ item.image_path }}</p>
+          <p v-if="item.image_path && !imagePreview && !form.remove_image" class="mt-1 text-xs text-gray-400">目前：{{ item.image_path }}</p>
           <p v-if="errors.image_path" class="mt-1 text-xs text-red-600">{{ errors.image_path }}</p>
-          <div v-if="imagePreview" class="mt-3">
+          <div v-if="imagePreview && !form.remove_image" class="mt-3">
             <img :src="imagePreview" alt="預覽" class="max-h-40 rounded border" />
           </div>
-          <div v-else-if="item.image_url" class="mt-3">
+          <div v-else-if="item.image_url && !form.remove_image" class="mt-3">
             <img :src="item.image_url" alt="目前圖片" class="max-h-40 rounded border" />
           </div>
         </div>
@@ -101,6 +107,7 @@ const form = reactive({
   title: props.item.title,
   description: props.item.description ?? '',
   image_path: props.item.image_path ?? '',
+  remove_image: false,
   is_published: props.item.is_published,
 })
 const errors = ref({})
@@ -117,6 +124,7 @@ const {
 async function onFileChange(e) {
   const file = e.target.files?.[0]
   if (!file) return
+  form.remove_image = false
 
   const reader = new FileReader()
   reader.onload = (event) => { imagePreview.value = event.target.result }
@@ -130,11 +138,27 @@ async function onFileChange(e) {
   }
 }
 
+function onRemoveImageChange() {
+  if (form.remove_image) {
+    form.image_path = ''
+    imagePreview.value = null
+  } else {
+    form.image_path = props.item.image_path ?? ''
+  }
+}
+
 function submit() {
   processing.value = true
   errors.value = {}
 
-  router.put(`/admin/topic-items/${props.item.id}`, form, {
+  const data = {
+    topic_id: form.topic_id, title: form.title, description: form.description,
+    is_published: form.is_published,
+  }
+  if (form.image_path) data.image_path = form.image_path
+  if (form.remove_image) data.remove_image = true
+
+  router.put(`/admin/topic-items/${props.item.id}`, data, {
     onError: (e) => { errors.value = e },
     onFinish: () => { processing.value = false },
   })
