@@ -403,7 +403,7 @@ class FishSearchService implements FishSearchServiceInterface
 
     public function getLatestAt(): ?int
     {
-        $latest = Fish::max('updated_at');
+        $latest = Fish::withTrashed()->max('updated_at');
         if ($latest === null) {
             return null;
         }
