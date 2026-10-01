@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\StorageServiceInterface;
 use App\Models\Topic;
 use App\Models\TopicItem;
 use App\Models\User;
@@ -9,6 +10,9 @@ use Inertia\Testing\AssertableInertia as Assert;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->storageMock = $this->mock(StorageServiceInterface::class);
+    $this->storageMock->shouldReceive('getImageFolder')->andReturn('images')->byDefault();
+    $this->storageMock->shouldReceive('getWebpFolder')->andReturn('webp')->byDefault();
     $this->admin = User::factory()->admin()->create();
     $this->editor = User::factory()->lineEditor()->create();
     
@@ -229,4 +233,69 @@ it('admin 可以下移項目（限定同分類）', function () {
 
     expect($first->sort_order)->toBe(1);
     expect($second->sort_order)->toBe(0);
+});
+
+it('更新 topic-item 圖片時刪除不同路徑的舊檔', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create([
+        'image_path' => 'topic-items/original.jpg',
+    ]);
+    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/original.jpg')->andReturnTrue();
+
+    $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
+        'topic_id' => $this->topic->id,
+        'title' => $item->title,
+        'image_path' => 'topic-items/replacement.jpg',
+    ])->assertRedirect();
+
+    expect($item->refresh()->image_path)->toBe('topic-items/replacement.jpg');
+});
+
+it('更新 topic-item 圖片但路徑相同時不刪檔', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create([
+        'image_path' => 'topic-items/original.jpg',
+    ]);
+    $this->storageMock->shouldNotReceive('delete');
+
+    $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
+        'topic_id' => $this->topic->id,
+        'title' => $item->title,
+        'image_path' => 'topic-items/original.jpg',
+    ])->assertRedirect();
+});
+
+it('刪除 topic-item 時刪除對應圖片', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create([
+        'image_path' => 'topic-items/original.jpg',
+    ]);
+    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/original.jpg')->andReturnTrue();
+
+    $this->actingAs($this->admin)->delete("/admin/topic-items/{$item->id}")->assertRedirect();
+
+    $this->assertDatabaseMissing('topic_items', ['id' => $item->id]);
+});
+
+it('刪除 topic-item 圖片失敗時仍刪除資料', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create([
+        'image_path' => 'topic-items/original.jpg',
+    ]);
+    $this->storageMock->shouldReceive('delete')->once()->andThrow(new RuntimeException('storage unavailable'));
+
+    $this->actingAs($this->admin)->delete("/admin/topic-items/{$item->id}")->assertRedirect();
+
+    $this->assertDatabaseMissing('topic_items', ['id' => $item->id]);
+});
+
+it('更換 topic-item 圖片時刪除舊檔失敗仍更新資料', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create([
+        'image_path' => 'topic-items/original.jpg',
+    ]);
+    $this->storageMock->shouldReceive('delete')->once()->andThrow(new RuntimeException('storage unavailable'));
+
+    $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
+        'topic_id' => $this->topic->id,
+        'title' => $item->title,
+        'image_path' => 'topic-items/replacement.jpg',
+    ])->assertRedirect();
+
+    expect($item->refresh()->image_path)->toBe('topic-items/replacement.jpg');
 });

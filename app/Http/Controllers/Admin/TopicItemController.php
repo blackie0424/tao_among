@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\StorageServiceInterface;
 use App\Http\Controllers\BaseController;
 use App\Models\Topic;
 use App\Models\TopicItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TopicItemController extends BaseController
 {
+    public function __construct(private readonly StorageServiceInterface $storageService) {}
+
     public function index(Request $request): Response
     {
         $topicId = $request->query('topic_id');
@@ -98,7 +102,10 @@ class TopicItemController extends BaseController
             'is_published' => $data['is_published'] ?? false,
         ];
 
-        if (isset($data['image_path'])) {
+        if (! empty($data['image_path'])) {
+            if ($topicItem->image_path && $topicItem->image_path !== $data['image_path']) {
+                $this->deleteImage($topicItem->image_path);
+            }
             $updateData['image_path'] = $data['image_path'];
         }
 
@@ -111,10 +118,22 @@ class TopicItemController extends BaseController
     public function destroy(TopicItem $topicItem)
     {
         $topicId = $topicItem->topic_id;
+        if ($topicItem->image_path) {
+            $this->deleteImage($topicItem->image_path);
+        }
         $topicItem->delete();
 
         return redirect('/admin/topic-items?topic_id=' . $topicId)
             ->with('success', '知識項目已成功刪除');
+    }
+
+    private function deleteImage(string $imagePath): void
+    {
+        try {
+            $this->storageService->delete($imagePath);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete old topic item image: '.$e->getMessage());
+        }
     }
 
     public function togglePublished(TopicItem $topicItem)
