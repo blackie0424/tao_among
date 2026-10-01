@@ -502,6 +502,23 @@ it('GET /prefix/api/fishs/latest-at 回傳最新 updated_at（Unix ms）', funct
     expect($latestAt)->toBe((int) ($latest->fresh()->updated_at->getPreciseTimestamp(3)));
 });
 
+it('GET /prefix/api/fishs/latest-at 在魚類軟刪除後回傳更大的時間', function () {
+    $fish = Fish::factory()->create(['updated_at' => now()->subMinute()]);
+
+    $beforeDelete = $this->getJson('/prefix/api/fishs/latest-at')
+        ->assertOk()
+        ->json('data.latest_at');
+
+    $this->travel(1)->second();
+    $fish->delete();
+
+    $afterDelete = $this->getJson('/prefix/api/fishs/latest-at')
+        ->assertOk()
+        ->json('data.latest_at');
+
+    expect($afterDelete)->toBeGreaterThan($beforeDelete);
+});
+
 it('GET /prefix/api/fishs/latest-at 無資料時回傳 null', function () {
     $response = $this->getJson('/prefix/api/fishs/latest-at');
 
