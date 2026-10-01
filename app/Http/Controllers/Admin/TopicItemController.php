@@ -49,7 +49,7 @@ class TopicItemController extends BaseController
         $data = $request->validate([
             'topic_id' => 'required|exists:topics,id',
             'title' => 'required|string|max:255',
-            'image_path' => 'required|string',
+            'image_path' => 'nullable|string',
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
@@ -65,7 +65,7 @@ class TopicItemController extends BaseController
         TopicItem::create([
             'topic_id' => $data['topic_id'],
             'title' => $data['title'],
-            'image_path' => $data['image_path'],
+            'image_path' => ! empty($data['image_path']) ? $data['image_path'] : null,
             'description' => $data['description'] ?? null,
             'sort_order' => $data['sort_order'],
             'is_published' => $data['is_published'] ?? false,
@@ -89,6 +89,7 @@ class TopicItemController extends BaseController
             'topic_id' => 'required|exists:topics,id',
             'title' => 'required|string|max:255',
             'image_path' => 'nullable|string',
+            'remove_image' => 'nullable|boolean',
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
@@ -107,6 +108,11 @@ class TopicItemController extends BaseController
                 $this->deleteImage($topicItem->image_path);
             }
             $updateData['image_path'] = $data['image_path'];
+        } elseif (($data['remove_image'] ?? false) === true) {
+            if ($topicItem->image_path) {
+                $this->deleteImage($topicItem->image_path);
+            }
+            $updateData['image_path'] = null;
         }
 
         $topicItem->update($updateData);

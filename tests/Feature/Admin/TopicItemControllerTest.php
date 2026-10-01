@@ -299,3 +299,73 @@ it('更換 topic-item 圖片時刪除舊檔失敗仍更新資料', function () {
 
     expect($item->refresh()->image_path)->toBe('topic-items/replacement.jpg');
 });
+
+it('store 未帶圖片可建立 topic-item 並存為 null', function () {
+    $this->actingAs($this->admin)->post('/admin/topic-items', [
+        'topic_id' => $this->topic->id,
+        'title' => '純文字項目',
+    ])->assertRedirect();
+
+    expect(TopicItem::where('title', '純文字項目')->value('image_path'))->toBeNull();
+});
+
+it('store 圖片空字串會正規化為 null', function () {
+    $this->actingAs($this->admin)->post('/admin/topic-items', [
+        'topic_id' => $this->topic->id,
+        'title' => '空圖片項目',
+        'image_path' => '',
+    ])->assertRedirect();
+
+    expect(TopicItem::where('title', '空圖片項目')->value('image_path'))->toBeNull();
+});
+
+it('update remove_image 會清空 topic-item 圖片', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create(['image_path' => 'topic-items/original.jpg']);
+    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/original.jpg')->andReturnTrue();
+
+    $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
+        'topic_id' => $this->topic->id,
+        'title' => $item->title,
+        'remove_image' => true,
+    ])->assertRedirect();
+
+    expect($item->refresh()->image_path)->toBeNull();
+});
+
+it('update 未帶圖片欄位會保留 topic-item 原圖', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create(['image_path' => 'topic-items/original.jpg']);
+    $this->storageMock->shouldNotReceive('delete');
+
+    $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
+        'topic_id' => $this->topic->id,
+        'title' => '只更新標題',
+    ])->assertRedirect();
+
+    expect($item->refresh()->image_path)->toBe('topic-items/original.jpg');
+});
+
+it('update 同時送新圖與 remove_image 時以新圖為準', function () {
+    $item = TopicItem::factory()->for($this->topic, 'topic')->create(['image_path' => 'topic-items/original.jpg']);
+    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/original.jpg')->andReturnTrue();
+
+    $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
+        'topic_id' => $this->topic->id,
+        'title' => $item->title,
+        'image_path' => 'topic-items/replacement.jpg',
+        'remove_image' => true,
+    ])->assertRedirect();
+
+    expect($item->refresh()->image_path)->toBe('topic-items/replacement.jpg');
+});
+
+it('update 圖片空字串不會寫入怪值', function () {
+    $item = TopicItem::factory()->withoutImage()->for($this->topic, 'topic')->create();
+
+    $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
+        'topic_id' => $this->topic->id,
+        'title' => $item->title,
+        'image_path' => '',
+    ])->assertRedirect();
+
+    expect($item->refresh()->image_path)->toBeNull();
+});
