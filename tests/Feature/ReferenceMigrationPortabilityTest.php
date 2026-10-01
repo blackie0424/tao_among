@@ -35,12 +35,21 @@ it('creates the reference tables with the expected portable schema', function ()
         'deleted_at',
     ]))->toBeTrue();
 
-    $foreignKeyColumns = collect(Schema::getForeignKeys('reference_knowledge'))
-        ->flatMap(fn (array $foreignKey) => $foreignKey['columns'])
-        ->all();
+    $foreignKeys = collect(Schema::getForeignKeys('reference_knowledge'))
+        ->mapWithKeys(fn (array $foreignKey) => [
+            $foreignKey['columns'][0] => [
+                'table' => $foreignKey['foreign_table'],
+                'column' => $foreignKey['foreign_columns'][0],
+            ],
+        ]);
 
-    expect($foreignKeyColumns)
-        ->toEqualCanonicalizing(['fish_id', 'reference_id', 'created_by']);
+    expect($foreignKeys->sortKeys()->all())->toBe([
+        'created_by' => ['table' => 'users', 'column' => 'id'],
+        'fish_id' => ['table' => 'fish', 'column' => 'id'],
+        'reference_id' => ['table' => 'references', 'column' => 'id'],
+    ]);
+
+
 });
 
 it('keeps reference migrations free of database-specific ddl workarounds', function () {
