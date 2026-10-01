@@ -5,7 +5,7 @@
       class="block h-full group focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <!-- 圖片區域 - 完整貼合上半部 -->
-      <div class="relative">
+      <div v-if="imageUrl" data-testid="item-image-wrapper" class="relative">
         <LazyImage
           :src="imageUrl"
           :alt="title"
@@ -50,7 +50,7 @@ defineProps({
   },
   imageUrl: {
     type: String,
-    required: true,
+    default: null,
   },
   title: {
     type: String,
