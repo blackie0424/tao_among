@@ -33,6 +33,7 @@ class FieldResearcherSeeder extends Seeder
                     'name' => $researcher['name'],
                     'email' => $researcher['email'],
                     'password' => Hash::make($researcher['password']),
+                    'role' => 'editor',
                 ]);
             }
         }
