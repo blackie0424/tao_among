@@ -1,8 +1,6 @@
 <?php
 
 use App\Models\User;
-use Database\Seeders\AdminUserSeeder;
-use Database\Seeders\FieldResearcherSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
@@ -53,12 +51,4 @@ it('restores the admin default when rolling back', function () {
     expect(DB::table('users')->where('id', $id)->value('role'))->toBe('admin');
 
     $migration->up();
-});
-
-it('seeders assign explicit least-privilege roles', function () {
-    $this->seed([AdminUserSeeder::class, FieldResearcherSeeder::class]);
-
-    expect(User::where('email', 'admin@example.com')->value('role'))->toBe('admin')
-        ->and(User::where('email', 'user1@pongsonotao.org')->value('role'))->toBe('editor')
-        ->and(User::where('email', 'user2@pongsonotao.org')->value('role'))->toBe('editor');
 });

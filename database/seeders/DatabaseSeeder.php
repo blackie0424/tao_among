@@ -14,8 +14,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            AdminUserSeeder::class,
-            FieldResearcherSeeder::class,
             FishLabelSeeder::class,
             // FishSeeder::class, // 測試用，正式環境註解掉
         ]);
