@@ -153,5 +153,5 @@ Route::middleware(['auth', 'browse'])->group(function () {
     });
 });
 
-// 魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突）
+// 魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突
 Route::get('/fish/{id}', [FishController::class, 'getFish'])->middleware(['auth', 'browse']);
