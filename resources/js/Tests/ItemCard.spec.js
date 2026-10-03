@@ -15,15 +15,19 @@ describe('ItemCard optional image', () => {
     const wrapper = mount(ItemCard, { props: { href: '/item/1', imageUrl: '/image.jpg', title: '飛魚' } })
 
     expect(wrapper.get('[data-testid="item-image"]').attributes('src')).toBe('/image.jpg')
+    expect(wrapper.get('[data-testid="item-image-wrapper"]').classes()).toContain('h-[170px]')
     expect(wrapper.text()).toContain('飛魚')
   })
 
-  it.each([null, '', undefined])('圖片為 %s 時只渲染標題且沒有圖片框', (imageUrl) => {
+  it.each([null, '', undefined])('圖片為 %s 時渲染等高灰底區塊且沒有圖片', (imageUrl) => {
     const props = { href: '/item/1', title: '純文字項目' }
     if (imageUrl !== undefined) props.imageUrl = imageUrl
     const wrapper = mount(ItemCard, { props })
 
-    expect(wrapper.find('[data-testid="item-image-wrapper"]').exists()).toBe(false)
+    const placeholder = wrapper.get('[data-testid="item-image-placeholder"]')
+    expect(placeholder.classes()).toContain('h-[170px]')
+    expect(placeholder.classes()).toContain('bg-gray-100')
+    expect(placeholder.attributes('aria-hidden')).toBe('true')
     expect(wrapper.find('[data-testid="item-image"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('純文字項目')
   })
