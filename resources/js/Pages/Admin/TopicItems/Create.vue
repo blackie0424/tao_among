@@ -1,80 +1,35 @@
 <template>
   <Head title="新增知識項目" />
-
   <AdminLayout title="新增知識項目">
     <div class="mx-auto max-w-3xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <h1 class="mb-6 text-2xl font-bold text-gray-900">新增知識項目</h1>
-
-      <form @submit.prevent="submit" class="space-y-5">
+      <form class="space-y-5" @submit.prevent="submit">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">分類 <span class="text-red-500">*</span></label>
-          <select
-            v-model="form.topic_id"
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            :class="{ 'border-red-500': errors.topic_id }"
-          >
+          <label class="mb-1 block text-sm font-medium text-gray-700">分類 <span class="text-red-500">*</span></label>
+          <select v-model="form.topic_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" :class="{ 'border-red-500': errors.topic_id }">
             <option :value="null">請選擇分類</option>
-            <option v-for="topic in topics" :key="topic.id" :value="topic.id">
-              {{ topic.title }}
-            </option>
+            <option v-for="topic in topics" :key="topic.id" :value="topic.id">{{ topic.title }}</option>
           </select>
-          <p v-if="errors.topic_id" class="mt-1 text-xs text-red-600">{{ errors.topic_id }}</p>
+          <p v-if="errors.topic_id" class="mt-1 text-sm text-red-700">{{ errors.topic_id }}</p>
         </div>
-
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">標題 <span class="text-red-500">*</span></label>
-          <input
-            v-model="form.title"
-            type="text"
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            :class="{ 'border-red-500': errors.title }"
-          />
-          <p v-if="errors.title" class="mt-1 text-xs text-red-600">{{ errors.title }}</p>
+          <label class="mb-1 block text-sm font-medium text-gray-700">標題 <span class="text-red-500">*</span></label>
+          <input v-model="form.title" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+          <p v-if="errors.title" class="mt-1 text-sm text-red-700">{{ errors.title }}</p>
         </div>
-
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">說明文字</label>
-          <textarea
-            v-model="form.description"
-            rows="5"
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="詳細說明項目內容..."
-          />
+          <label class="mb-1 block text-sm font-medium text-gray-700">說明文字</label>
+          <textarea v-model="form.description" rows="5" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">上傳圖片</label>
-          <input
-            type="file"
-            accept="image/*"
-            class="block w-full text-sm text-gray-600"
-            :disabled="uploading"
-            @change="onFileChange"
-          />
-          <p v-if="uploading" class="mt-1 text-xs text-blue-600">上傳中...</p>
-          <p v-if="imageError" class="mt-1 text-xs text-red-600">{{ imageError }}</p>
-          <p v-if="errors.image_path" class="mt-1 text-xs text-red-600">{{ errors.image_path }}</p>
-          <div v-if="imagePreview" class="mt-3">
-            <img :src="imagePreview" alt="預覽" class="max-h-40 rounded border" />
-          </div>
-        </div>
+        <TopicItemMediaEditor v-model="form.media" :errors="errors" :disabled="processing" />
 
-        <div class="flex items-center gap-2">
-          <label class="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-            <input v-model="form.is_published" type="checkbox" class="rounded" />
-            已發布
-          </label>
-        </div>
-
+        <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+          <input v-model="form.is_published" type="checkbox" class="rounded" /> 已發布
+        </label>
         <div class="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            :disabled="processing || uploading"
-            class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            建立項目
-          </button>
-          <Link href="/admin/topic-items" class="text-sm text-gray-500 hover:text-gray-700">取消</Link>
+          <button type="submit" :disabled="processing" class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white disabled:opacity-50">建立項目</button>
+          <Link href="/admin/topic-items" class="text-sm text-gray-500">取消</Link>
         </div>
       </form>
     </div>
@@ -82,56 +37,31 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
+import TopicItemMediaEditor from '@/Components/Admin/TopicItemMediaEditor.vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
-import { useImageUpload } from '@/composables/useImageUpload'
 
-defineProps({
-  topics: Array,
-  selectedTopicId: Number,
-})
-
+const props = defineProps({ topics: Array, selectedTopicId: Number })
 const form = reactive({
-  topic_id: null,
+  topic_id: props.selectedTopicId ?? null,
   title: '',
   description: '',
-  image_path: '',
+  media: [],
   is_published: false,
 })
 const errors = ref({})
 const processing = ref(false)
 
-const {
-  imagePreview,
-  uploading,
-  uploadedFilename,
-  imageError,
-  uploadImage,
-} = useImageUpload({ autoUpload: false })
-
-async function onFileChange(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
-
-  const reader = new FileReader()
-  reader.onload = (event) => { imagePreview.value = event.target.result }
-  reader.readAsDataURL(file)
-
-  try {
-    const filename = await uploadImage(file, { folder: 'topic-items' })
-    form.image_path = `topic-items/${filename}`
-  } catch (err) {
-    errors.value = { ...errors.value, image_path: err.message || '上傳失敗' }
-  }
+function serializeMedia() {
+  return form.media.map(({ id, type, source }) => ({ ...(id ? { id } : {}), type, source }))
 }
 
 function submit() {
   processing.value = true
   errors.value = {}
-
-  router.post('/admin/topic-items', form, {
-    onError: (e) => { errors.value = e },
+  router.post('/admin/topic-items', { ...form, media: serializeMedia() }, {
+    onError: (value) => { errors.value = value },
     onFinish: () => { processing.value = false },
   })
 }
