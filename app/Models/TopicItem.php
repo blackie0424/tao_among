@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 
 class TopicItem extends Model
 {
@@ -17,7 +16,6 @@ class TopicItem extends Model
     protected $fillable = [
         'topic_id',
         'title',
-        'image_path',
         'description',
         'sort_order',
         'is_published',
@@ -28,7 +26,7 @@ class TopicItem extends Model
         'sort_order' => 'integer',
     ];
 
-    protected $appends = ['image_url'];
+    protected $appends = ['image_path', 'image_url'];
 
     public function topic(): BelongsTo
     {
@@ -42,17 +40,20 @@ class TopicItem extends Model
             ->orderBy('id');
     }
 
+    public function getImagePathAttribute(): ?string
+    {
+        return $this->orderedMedia()->firstWhere('type', TopicItemMedia::TYPE_IMAGE)?->source;
+    }
+
     public function getImageUrlAttribute(): ?string
     {
-        if (!$this->image_path) {
-            return null;
-        }
+        return $this->orderedMedia()->firstWhere('type', TopicItemMedia::TYPE_IMAGE)?->image_url;
+    }
 
-        if (str_starts_with($this->image_path, 'http')) {
-            return $this->image_path;
-        }
-
-        $disk = app()->environment('local', 'testing') ? 'public' : 's3';
-        return Storage::disk($disk)->url($this->image_path);
+    private function orderedMedia()
+    {
+        return $this->relationLoaded('media')
+            ? $this->media
+            : $this->media()->get();
     }
 }
