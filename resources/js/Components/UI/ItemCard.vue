@@ -5,7 +5,7 @@
       class="block h-full group focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <!-- 圖片區域 - 完整貼合上半部 -->
-      <div class="relative">
+      <div v-if="imageUrl" data-testid="item-image-wrapper" class="relative h-[170px]">
         <LazyImage
           :src="imageUrl"
           :alt="title"
@@ -15,6 +15,12 @@
           :imgStyle="imageStyle"
         />
       </div>
+      <div
+        v-else
+        data-testid="item-image-placeholder"
+        class="h-[170px] bg-gray-100"
+        aria-hidden="true"
+      ></div>
       <!-- 文字資訊區域 - 白色背景帶 padding -->
       <div class="p-4 bg-white">
         <div class="flex items-center justify-between min-h-touch-primary">
@@ -24,9 +30,9 @@
             {{ title }}
           </div>
           <!-- 音檔播放按鈕靠右 (選擇性) -->
-          <div 
-            v-if="audioUrl" 
-            class="ml-2 flex-shrink-0 flex flex-col items-center gap-0.5" 
+          <div
+            v-if="audioUrl"
+            class="ml-2 flex-shrink-0 flex flex-col items-center gap-0.5"
             @click.stop.prevent
           >
             <Volume :audioUrl="audioUrl" :large="true" />
@@ -50,7 +56,7 @@ defineProps({
   },
   imageUrl: {
     type: String,
-    required: true,
+    default: null,
   },
   title: {
     type: String,
