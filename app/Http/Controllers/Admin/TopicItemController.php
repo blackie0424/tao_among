@@ -24,7 +24,7 @@ class TopicItemController extends BaseController
     public function index(Request $request): Response
     {
         $topicId = $request->query('topic_id');
-        $query = TopicItem::with('topic')->orderBy('sort_order')->orderBy('id');
+        $query = TopicItem::with(['topic', 'media'])->orderBy('sort_order')->orderBy('id');
 
         if ($topicId) {
             $query->where('topic_id', $topicId);

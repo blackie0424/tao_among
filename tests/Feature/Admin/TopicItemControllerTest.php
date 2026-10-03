@@ -6,6 +6,7 @@ use App\Models\TopicItem;
 use App\Models\TopicItemMedia;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -204,4 +205,39 @@ it('admin 可以更新資料、切換發布狀態及調整項目順序', functio
         ->and($first->is_published)->toBeTrue()
         ->and($first->sort_order)->toBe(1)
         ->and($second->refresh()->sort_order)->toBe(0);
+});
+
+/**
+ * 後台列表的 $appends（image_path／image_url）會在序列化時讀取 media，
+ * 若未預先載入關聯，每一筆項目都會各發一次查詢（N+1）。
+ */
+it('後台項目列表只對 topic_item_media 查詢一次，不隨項目數量增加', function () {
+    foreach (range(1, 3) as $i) {
+        $item = TopicItem::create([
+            'topic_id' => $this->topic->id,
+            'title' => "項目{$i}",
+            'sort_order' => $i,
+            'is_published' => true,
+        ]);
+
+        TopicItemMedia::create([
+            'topic_item_id' => $item->id,
+            'type' => TopicItemMedia::TYPE_IMAGE,
+            'source' => "topic-items/item{$i}.jpg",
+            'sort_order' => 0,
+        ]);
+    }
+
+    $mediaQueries = 0;
+    DB::listen(function ($query) use (&$mediaQueries) {
+        if (str_contains($query->sql, 'topic_item_media')) {
+            $mediaQueries++;
+        }
+    });
+
+    $this->actingAs($this->admin)
+        ->get('/admin/topic-items')
+        ->assertOk();
+
+    expect($mediaQueries)->toBe(1);
 });
