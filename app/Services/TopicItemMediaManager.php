@@ -56,19 +56,39 @@ class TopicItemMediaManager
             return array_values(array_unique($pathsToDelete));
         });
 
-        $this->deleteImages($pathsToDelete);
+        $this->deleteImagesAfterCommit($pathsToDelete);
         $topicItem->unsetRelation('media');
     }
 
     public function deleteForItem(TopicItem $topicItem): void
     {
-        $imagePaths = $topicItem->media()
-            ->where('type', TopicItemMedia::TYPE_IMAGE)
-            ->pluck('source')
-            ->all();
+        DB::transaction(function () use ($topicItem): void {
+            $imagePaths = $topicItem->media()
+                ->where('type', TopicItemMedia::TYPE_IMAGE)
+                ->pluck('source')
+                ->all();
 
-        $topicItem->delete();
-        $this->deleteImages($imagePaths);
+            $topicItem->delete();
+            $this->deleteImagesAfterCommit($imagePaths);
+        });
+    }
+
+    /** @param array<int, string> $imagePaths */
+    private function deleteImagesAfterCommit(array $imagePaths): void
+    {
+        if ($imagePaths === []) {
+            return;
+        }
+
+        DB::afterCommit(function () use ($imagePaths): void {
+            $referencedPaths = TopicItemMedia::query()
+                ->where('type', TopicItemMedia::TYPE_IMAGE)
+                ->whereIn('source', $imagePaths)
+                ->pluck('source')
+                ->all();
+
+            $this->deleteImages(array_values(array_diff($imagePaths, $referencedPaths)));
+        });
     }
 
     /** @param array<int, string> $imagePaths */

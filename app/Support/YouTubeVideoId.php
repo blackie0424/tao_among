@@ -21,7 +21,7 @@ final class YouTubeVideoId
         $videoId = match (true) {
             in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com'], true)
                 && ($parts['path'] ?? '') === '/watch' => self::watchVideoId($parts['query'] ?? ''),
-            $host === 'youtu.be' => explode('/', trim($parts['path'] ?? '', '/'))[0] ?? null,
+            $host === 'youtu.be' => self::shortVideoId($parts['path'] ?? ''),
             default => null,
         };
 
@@ -37,5 +37,12 @@ final class YouTubeVideoId
         return isset($parameters['v']) && is_string($parameters['v'])
             ? $parameters['v']
             : null;
+    }
+
+    private static function shortVideoId(string $path): ?string
+    {
+        $segments = explode('/', trim($path, '/'));
+
+        return count($segments) === 1 ? $segments[0] : null;
     }
 }

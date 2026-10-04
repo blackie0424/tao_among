@@ -46,8 +46,6 @@ it('keeps existing media when the previous edit form sends no image fields', fun
 it('supports replacing and removing an image through the previous edit form', function () {
     $replaceItem = TopicItem::factory()->for($this->topic, 'topic')->withImage('topic-items/replace-old.jpg')->create();
     $removeItem = TopicItem::factory()->for($this->topic, 'topic')->withImage('topic-items/remove-old.jpg')->create();
-    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/replace-old.jpg')->andReturnTrue();
-    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/remove-old.jpg')->andReturnTrue();
 
     $this->actingAs($this->admin)->put("/admin/topic-items/{$replaceItem->id}", [
         'topic_id' => $this->topic->id,

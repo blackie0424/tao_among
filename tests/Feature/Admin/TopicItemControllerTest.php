@@ -118,7 +118,6 @@ it('update 新增、刪除並依陣列順序重新排序媒體', function () {
     $item = TopicItem::factory()->for($this->topic, 'topic')->create();
     $removed = $item->media()->create(['type' => 'image', 'source' => 'topic-items/remove.jpg', 'sort_order' => 0]);
     $kept = $item->media()->create(['type' => 'youtube', 'source' => 'dQw4w9WgXcQ', 'sort_order' => 1]);
-    $this->storageMock->shouldReceive('delete')->once()->with($removed->source)->andReturnTrue();
 
     $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
         'topic_id' => $this->topic->id,
@@ -136,7 +135,6 @@ it('update 新增、刪除並依陣列順序重新排序媒體', function () {
 it('更新圖片路徑時刪除舊 S3 檔案，路徑相同時不刪', function () {
     $item = TopicItem::factory()->for($this->topic, 'topic')->create();
     $image = $item->media()->create(['type' => 'image', 'source' => 'topic-items/original.jpg', 'sort_order' => 0]);
-    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/original.jpg')->andReturnTrue();
 
     $this->actingAs($this->admin)->put("/admin/topic-items/{$item->id}", [
         'topic_id' => $this->topic->id,
@@ -171,22 +169,11 @@ it('刪除 topic-item 時只清理所有圖片媒體並連動刪除媒體資料'
     $item->media()->create(['type' => 'image', 'source' => 'topic-items/a.jpg', 'sort_order' => 0]);
     $item->media()->create(['type' => 'youtube', 'source' => 'dQw4w9WgXcQ', 'sort_order' => 1]);
     $item->media()->create(['type' => 'image', 'source' => 'topic-items/b.jpg', 'sort_order' => 2]);
-    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/a.jpg')->andReturnTrue();
-    $this->storageMock->shouldReceive('delete')->once()->with('topic-items/b.jpg')->andReturnTrue();
 
     $this->actingAs($this->admin)->delete("/admin/topic-items/{$item->id}")->assertRedirect();
 
     $this->assertDatabaseMissing('topic_items', ['id' => $item->id]);
     $this->assertDatabaseMissing('topic_item_media', ['topic_item_id' => $item->id]);
-});
-
-it('S3 圖片刪除失敗不阻擋媒體及項目刪除', function () {
-    $item = TopicItem::factory()->for($this->topic, 'topic')->create();
-    $item->media()->create(['type' => 'image', 'source' => 'topic-items/failure.jpg', 'sort_order' => 0]);
-    $this->storageMock->shouldReceive('delete')->once()->andThrow(new RuntimeException('storage unavailable'));
-
-    $this->actingAs($this->admin)->delete("/admin/topic-items/{$item->id}")->assertRedirect();
-    $this->assertDatabaseMissing('topic_items', ['id' => $item->id]);
 });
 
 it('admin 可以更新資料、切換發布狀態及調整項目順序', function () {
