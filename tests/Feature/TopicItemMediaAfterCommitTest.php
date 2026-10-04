@@ -4,11 +4,19 @@ use App\Contracts\StorageServiceInterface;
 use App\Models\TopicItem;
 use App\Models\TopicItemMedia;
 use App\Services\TopicItemMediaManager;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-uses(DatabaseMigrations::class);
+uses(RefreshDatabase::class);
+
+afterEach(function () {
+    if (DB::transactionLevel() === 0) {
+        TopicItemMedia::query()->delete();
+        TopicItem::query()->delete();
+        DB::beginTransaction();
+    }
+});
 
 beforeEach(function () {
     $this->storage = $this->mock(StorageServiceInterface::class);
@@ -58,6 +66,7 @@ it('deletes only unreferenced images after the outer transaction commits', funct
     $this->storage->shouldNotReceive('delete')->with('topic-items/shared.jpg');
 
     $this->manager->deleteForItem($item);
+    DB::commit();
 
     $this->assertDatabaseMissing('topic_items', ['id' => $item->id]);
     $this->assertDatabaseHas('topic_item_media', [
@@ -74,6 +83,7 @@ it('keeps committed database changes when S3 deletion fails', function () {
     Log::shouldReceive('error')->once();
 
     $this->manager->deleteForItem($item);
+    DB::commit();
 
     $this->assertDatabaseMissing('topic_items', ['id' => $item->id]);
     $this->assertDatabaseMissing('topic_item_media', [
