@@ -56,7 +56,7 @@ class TopicItemMediaManager
             return array_values(array_unique($pathsToDelete));
         });
 
-        $this->deleteImages($pathsToDelete);
+        $this->deleteImagesAfterCommit($pathsToDelete);
         $topicItem->unsetRelation('media');
     }
 
@@ -69,7 +69,7 @@ class TopicItemMediaManager
                 ->all();
 
             $topicItem->delete();
-            $this->deleteImages($imagePaths);
+            $this->deleteImagesAfterCommit($imagePaths);
         });
     }
 
