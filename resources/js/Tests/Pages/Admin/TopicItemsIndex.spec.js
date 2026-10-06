@@ -60,6 +60,9 @@ describe('Admin/TopicItems/Index.vue', () => {
     const links = wrapper.findAll('a')
     const topicLink = links.find(l => l.attributes('href')?.includes('topic_id=1'))
     expect(topicLink).toBeTruthy()
+    const breadcrumb = wrapper.find('[data-testid="topic-items-breadcrumb"]')
+    expect(breadcrumb.text()).toContain('主題導覽')
+    expect(breadcrumb.text()).toContain('全部項目')
   })
 
   it('篩選分類時顯示可返回主題導覽的分類麵包屑', () => {

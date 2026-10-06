@@ -172,4 +172,17 @@ describe('AdminLayout', () => {
     expect(wrapper.text()).not.toContain('主題導覽分類')
     expect(wrapper.text()).not.toContain('主題導覽項目')
   })
+  it('在分類頁標示主題導覽入口為 active', async () => {
+    const { usePage } = await import('@inertiajs/vue3')
+    usePage.mockReturnValue({
+      props: { auth: { user: { name: 'Test Admin' } }, errors: {} },
+      url: '/admin/topics',
+    })
+
+    const wrapper = mount(AdminLayout, { props: { title: 'Test Page' } })
+    const topicLink = wrapper.findAllComponents(Link)
+      .find(link => link.text().trim() === '主題導覽')
+
+    expect(topicLink.classes()).toContain('nav-item--active')
+  })
 })
