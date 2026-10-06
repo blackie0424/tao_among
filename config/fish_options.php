@@ -83,6 +83,8 @@ return [
         'mamacik' => 'mamacik 夜間釣魚',
         'mitokzos' => 'mitokzos',
         'mipaltog' => 'mipaltog',
+        '船釣（拼板舟）' => '船釣（拼板舟）',
+        '船釣（機動船）' => '船釣（機動船）',
     ],
 
     /*
