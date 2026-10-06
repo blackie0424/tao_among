@@ -14,8 +14,12 @@ class LocationVisibilityService
 
     public function filter(mixed $payload, ?User $user): mixed
     {
-        return $user?->canAccessLocation()
+        return $this->filterForRole($payload, $user?->role);
+    }
+
+    public function filterForRole(mixed $payload, ?string $role): mixed
+    {
+        return User::roleCanAccessLocation($role)
             ? $payload
             : $this->fieldFilter->remove($payload, self::RESTRICTED_KEYS);
-    }
-}
+    }}

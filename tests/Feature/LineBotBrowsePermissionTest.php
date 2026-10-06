@@ -7,6 +7,7 @@ use App\Contracts\StorageServiceInterface;
 use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\LineBotController;
 use App\Models\Fish;
+use App\Models\CaptureRecord;
 use App\Services\UploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -220,6 +221,41 @@ class LineBotBrowsePermissionTest extends TestCase
         }
     }
 
+    /** @dataProvider locationVisibilityRoles */
+    public function test_view_captures_postback_respects_location_visibility(string $role, bool $shouldSeeLocation): void
+    {
+        $fish = Fish::factory()->create(['name' => '測試地名魚']);
+        CaptureRecord::factory()->create([
+            'fish_id' => $fish->id,
+            'location' => 'ZZ地名標記',
+            'tribe' => config('fish_options.tribes')[0],
+        ]);
+        $this->lineUserService->shouldReceive('getRole')->once()->andReturn($role);
+        $messages = $this->captureReply();
+
+        $this->invoke(
+            'handlePostback',
+            $this->postbackEvent(http_build_query([
+                'action' => 'view_captures',
+                'fish_id' => $fish->id,
+                'fish_name' => $fish->name,
+            ])),
+            self::REPLY_TOKEN
+        );
+
+        $json = json_encode($messages[0]->jsonSerialize(), JSON_UNESCAPED_UNICODE);
+        $this->assertSame($shouldSeeLocation, str_contains($json, 'ZZ地名標記'));
+        $this->assertStringContainsString(config('fish_options.tribes')[0], $json);
+    }
+
+    public static function locationVisibilityRoles(): array
+    {
+        return [
+            ['viewer', false],
+            ['editor', true],
+            ['admin', true],
+        ];
+    }
     private function captureReply(): \ArrayObject
     {
         $messages = new \ArrayObject();

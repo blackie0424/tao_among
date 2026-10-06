@@ -18,6 +18,7 @@ use App\Services\Line\LineMenuMessageBuilder;
 use App\Services\LineBatchCaptureFlowService;
 use App\Services\LineBatchCaptureMessageBuilder;
 use App\Services\LineCreateFish\LineCreateFishFormFlowService;
+use App\Services\LocationVisibilityService;
 use App\Services\UploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -62,6 +63,8 @@ class LineBotController extends Controller
 
     protected LineCreateFishReplyBuilder $createFishReplyBuilder;
 
+    protected LocationVisibilityService $locationVisibilityService;
+
     public function __construct(
         LineMessagingClientInterface $lineMessagingClient,
         ApiFishController $apiFishController,
@@ -74,7 +77,8 @@ class LineBotController extends Controller
         ?LineMenuMessageBuilder $lineMenuMessageBuilder = null,
         ?LineFishKnowledgeMessageBuilder $lineFishKnowledgeMessageBuilder = null,
         ?FishNoteService $fishNoteService = null,
-        ?LineCreateFishReplyBuilder $createFishReplyBuilder = null
+        ?LineCreateFishReplyBuilder $createFishReplyBuilder = null,
+        ?LocationVisibilityService $locationVisibilityService = null
     ) {
         $this->lineMessagingClient = $lineMessagingClient;
         $this->apiFishController = $apiFishController;
@@ -87,6 +91,7 @@ class LineBotController extends Controller
         $this->lineMenuMessageBuilder = $lineMenuMessageBuilder ?? app(LineMenuMessageBuilder::class);
         $this->fishNoteService = $fishNoteService ?? app(FishNoteService::class);
         $this->createFishReplyBuilder = $createFishReplyBuilder ?? app(LineCreateFishReplyBuilder::class);
+        $this->locationVisibilityService = $locationVisibilityService ?? app(LocationVisibilityService::class);
         $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
             ?? new LineBatchCaptureFlowService(
                 $lineMessagingClient,
@@ -1113,6 +1118,7 @@ class LineBotController extends Controller
             $role = $this->lineUserService->getRole($userId);
             $isEditor = in_array($role, ['editor', 'admin'], true);
             $canAccessAudio = User::roleCanAccessAudio($role);
+            $canAccessLocation = User::roleCanAccessLocation($role);
 
             if (in_array($action, $this->audioProtectedActions(), true) && ! $canAccessAudio) {
                 $this->lineMessagingClient->replyMessage($replyToken, [
@@ -1724,9 +1730,14 @@ class LineBotController extends Controller
 
                     if ($fish && ! empty($fish['capture_records'])) {
                         // 建立捕獲紀錄輪播訊息
-                        $message = $this->lineFishMessageBuilder->buildCaptureRecordsCarousel(
+                        $captureRecords = $this->locationVisibilityService->filterForRole(
                             $fish['capture_records'],
-                            $fish['name']
+                            $role
+                        );
+                        $message = $this->lineFishMessageBuilder->buildCaptureRecordsCarousel(
+                            $captureRecords,
+                            $fish['name'],
+                            $canAccessLocation
                         );
 
                         // 回覆訊息
