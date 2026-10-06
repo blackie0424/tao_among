@@ -154,4 +154,22 @@ describe('AdminLayout', () => {
     expect(alert.text()).toContain('第一個錯誤訊息')
     expect(alert.text()).not.toContain('第二個錯誤訊息')
   })
+
+  it('側邊選單只顯示一個主題導覽入口並涵蓋項目頁 active 狀態', async () => {
+    const { usePage } = await import('@inertiajs/vue3')
+    usePage.mockReturnValue({
+      props: { auth: { user: { name: 'Test Admin' } }, errors: {} },
+      url: '/admin/topic-items?topic_id=2',
+    })
+
+    const wrapper = mount(AdminLayout, { props: { title: 'Test Page' } })
+    const topicLinks = wrapper.findAllComponents(Link)
+      .filter(link => link.text().trim() === '主題導覽')
+
+    expect(topicLinks).toHaveLength(1)
+    expect(topicLinks[0].props('href')).toBe('/admin/topics')
+    expect(topicLinks[0].classes()).toContain('nav-item--active')
+    expect(wrapper.text()).not.toContain('主題導覽分類')
+    expect(wrapper.text()).not.toContain('主題導覽項目')
+  })
 })
