@@ -4,7 +4,7 @@ import AdminHub from '@/Pages/Admin/Hub.vue'
 
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div><slot /></div>' },
-  Link: { template: '<a><slot /></a>', props: ['href'] },
+  Link: { template: '<a :href="href"><slot /></a>', props: ['href'] },
 }))
 
 vi.mock('@/Layouts/AdminLayout.vue', () => ({
