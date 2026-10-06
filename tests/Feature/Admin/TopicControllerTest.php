@@ -2,8 +2,10 @@
 
 use App\Contracts\StorageServiceInterface;
 use App\Models\Topic;
+use App\Models\TopicItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -36,6 +38,33 @@ it('admin 可以瀏覽 topics 列表', function () {
             ->component('Admin/Topics/Index')
             ->has('topics', 4)
         );
+});
+
+it('topics index eager loads item counts with a fixed number of item queries', function () {
+    TopicItem::factory()->count(2)->for(Topic::firstOrFail(), 'topic')->create();
+
+    $phase = 'baseline';
+    $itemQueries = ['baseline' => 0, 'expanded' => 0];
+    DB::listen(function ($query) use (&$phase, &$itemQueries): void {
+        if (str_contains(strtolower($query->sql), 'topic_items')) {
+            $itemQueries[$phase]++;
+        }
+    });
+
+    $this->actingAs($this->admin)
+        ->get('/admin/topics')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('topics.0.items_count', 2)
+        );
+
+    Topic::factory()->count(3)->create();
+    $phase = 'expanded';
+
+    $this->get('/admin/topics')->assertOk();
+
+    expect($itemQueries['baseline'])->toBe(1)
+        ->and($itemQueries['expanded'])->toBe(1);
 });
 
 // --- Edit ---

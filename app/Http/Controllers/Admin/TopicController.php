@@ -17,7 +17,7 @@ class TopicController extends BaseController
     public function index(): Response
     {
         return Inertia::render('Admin/Topics/Index', [
-            'topics' => Topic::orderBy('sort_order')
+            'topics' => Topic::withCount('items')->orderBy('sort_order')
                 ->orderBy('id')
                 ->get(),
         ]);
