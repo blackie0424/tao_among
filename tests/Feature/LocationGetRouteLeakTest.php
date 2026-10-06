@@ -20,6 +20,7 @@ it('classifies every GET route and scans viewer data routes for location leaks',
     $topic = Topic::factory()->create(['slug' => 'route-scan-topic', 'is_published' => true]);
     $topicItem = TopicItem::factory()->create(['topic_id' => $topic->id, 'is_published' => true]);
     $viewer = User::factory()->lineViewer()->create();
+    $editor = User::factory()->lineEditor()->create();
 
     $scan = [
         '/' => '/',
@@ -116,4 +117,16 @@ it('classifies every GET route and scans viewer data routes for location leaks',
             ->and($response->getContent(), "GET {$uri} leaked capture location")
             ->not->toContain('ZZLOCATIONMARK');
     }
+
+    $editorCanObserveMarker = false;
+    $this->actingAs($editor);
+    foreach ($scan as $url) {
+        if (str_contains($this->get($url)->getContent(), 'ZZLOCATIONMARK')) {
+            $editorCanObserveMarker = true;
+            break;
+        }
+    }
+
+    expect($editorCanObserveMarker, 'Positive control failed: scanned routes cannot expose the marker')
+        ->toBeTrue();
 });
