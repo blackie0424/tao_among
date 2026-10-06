@@ -54,6 +54,24 @@
           </div>
         </Link>
 
+        <!-- 主題導覽 -->
+        <Link href="/admin/topics" class="hub-card">
+          <div class="hub-card__icon hub-card__icon--purple">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="hub-card__title">主題導覽</div>
+            <div class="hub-card__desc">管理四個主題分類與項目內容</div>
+          </div>
+          <div class="hub-card__stat">
+            <span class="hub-card__stat-num">{{ stats.topicCount }}</span>
+            <span class="hub-card__stat-label">個主題</span>
+          </div>
+        </Link>
+
         <!-- 魚類報表 -->
         <Link href="/fish-report" class="hub-card">
           <div class="hub-card__icon hub-card__icon--orange">
@@ -143,6 +161,7 @@ defineProps({
 .hub-card__icon--blue   { background: linear-gradient(135deg,#3b82f6,#6366f1); }
 .hub-card__icon--green  { background: linear-gradient(135deg,#10b981,#059669); }
 .hub-card__icon--indigo { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+.hub-card__icon--purple { background: linear-gradient(135deg,#8b5cf6,#7c3aed); }
 .hub-card__icon--orange { background: linear-gradient(135deg,#f97316,#f59e0b); }
 
 .hub-card__title {
