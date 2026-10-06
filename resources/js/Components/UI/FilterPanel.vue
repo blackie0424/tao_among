@@ -86,7 +86,7 @@
     </div>
 
     <!-- 地點搜尋：獨立一行（全寬） -->
-    <div class="mt-4">
+    <div v-if="canAccessLocation" class="mt-4">
       <label
         for="capture-location-search"
         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -137,6 +137,7 @@
 import { ref, watch, onMounted } from 'vue'
 
 const props = defineProps({
+  canAccessLocation: { type: Boolean, default: true },
   filters: {
     type: Object,
     default: () => ({}),

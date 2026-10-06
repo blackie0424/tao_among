@@ -27,6 +27,14 @@ describe('FilterPanel', () => {
     expect(wrapper.find('#fish-name-search').exists()).toBe(true)
   })
 
+  it('does not render location input without location access', () => {
+    wrapper = mount(FilterPanel, {
+      props: { ...defaultProps, canAccessLocation: false },
+    })
+
+    expect(wrapper.find('#capture-location-search').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('捕獲地點')
+  })
   it('displays correct title', () => {
     wrapper = mount(FilterPanel, {
       props: defaultProps,

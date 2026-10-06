@@ -32,6 +32,7 @@
           v-model:filters="currentFilters"
           v-model:nameQuery="nameQuery"
           :searchOptions="searchOptions"
+          :canAccessLocation="hasLocationAccess"
           @submit="submitUnifiedSearch"
           @reset="resetUnifiedSearch"
         />
@@ -60,8 +61,9 @@
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { canAccessLocation } from '@/constants/roles'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishListNavActions from '@/Components/FishList/FishListNavActions.vue'
@@ -76,6 +78,7 @@ import { useFishListCache } from '@/composables/useFishListCache'
 import { useFishSearch } from '@/composables/useFishSearch'
 
 const PAGE_TITLE = 'among no tao'
+const hasLocationAccess = computed(() => canAccessLocation(usePage().props.auth?.user?.role))
 
 const props = defineProps({
   items: { type: Array, default: () => [] },

@@ -55,7 +55,7 @@
             </select>
           </div>
           <!-- 文字：捕獲地點 -->
-          <div>
+          <div v-if="canAccessLocation">
             <label class="block mb-1 text-gray-600 dark:text-gray-300">捕獲地點</label>
             <input
               v-model="localFilters.capture_location"
@@ -107,6 +107,10 @@ const props = defineProps({
   show: {
     type: Boolean,
     default: false,
+  },
+  canAccessLocation: {
+    type: Boolean,
+    default: true,
   },
   filters: {
     type: Object,
