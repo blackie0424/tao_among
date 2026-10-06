@@ -101,10 +101,15 @@ it('魚類圖鑑使用未刪除魚種數且一般分類維持項目數', functio
 it('topics index counts fish with a fixed number of fish queries', function () {
     Fish::factory()->count(2)->create();
 
+    $fishTablePattern = '/\\bfrom\\s+[`"]?fish[`"]?(?:\\s|$)/i';
+    expect(preg_match($fishTablePattern, 'select count(*) from `fish` where deleted_at is null'))->toBe(1)
+        ->and(preg_match($fishTablePattern, 'select count(*) from "fish" where deleted_at is null'))->toBe(1)
+        ->and(preg_match($fishTablePattern, 'select * from "fish_audios"'))->toBe(0);
+
     $phase = 'baseline';
     $fishQueries = ['baseline' => 0, 'expanded' => 0];
-    DB::listen(function ($query) use (&$phase, &$fishQueries): void {
-        if (preg_match('/from [`"]?fish[`"]?/i', $query->sql)) {
+    DB::listen(function ($query) use (&$phase, &$fishQueries, $fishTablePattern): void {
+        if (preg_match($fishTablePattern, $query->sql)) {
             $fishQueries[$phase]++;
         }
     });
