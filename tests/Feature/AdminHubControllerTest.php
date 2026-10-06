@@ -29,7 +29,16 @@ it('returns the total topic count', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Hub')
-            ->where('stats.topicCount', Topic::count())
+            ->where('stats.topicCount', 4)
+        );
+
+    Topic::factory()->count(3)->create();
+
+    $this->get('/admin')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/Hub')
+            ->where('stats.topicCount', 7)
         );
 });
 
