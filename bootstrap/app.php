@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'editor' => \App\Http\Middleware\EnsureUserIsEditor::class,
             'browse' => \App\Http\Middleware\EnsureUserCanBrowse::class,
             'audio.visibility' => \App\Http\Middleware\FilterRestrictedAudio::class,
+            'location.visibility' => \App\Http\Middleware\FilterRestrictedLocation::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

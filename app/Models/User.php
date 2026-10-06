@@ -57,4 +57,13 @@ class User extends Authenticatable
     {
         return in_array($role, ['editor', 'admin'], true);
     }
+    public function canAccessLocation(): bool
+    {
+        return self::roleCanAccessLocation($this->role);
+    }
+
+    public static function roleCanAccessLocation(?string $role): bool
+    {
+        return in_array($role, ['editor', 'admin'], true);
+    }
 }
