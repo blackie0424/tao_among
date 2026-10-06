@@ -67,8 +67,8 @@
             <div class="hub-card__desc">管理四個主題分類與項目內容</div>
           </div>
           <div class="hub-card__stat">
-            <span class="hub-card__stat-num">{{ stats.topicItemCount }}</span>
-            <span class="hub-card__stat-label">筆項目</span>
+            <span class="hub-card__stat-num">{{ stats.topicCount }}</span>
+            <span class="hub-card__stat-label">個主題</span>
           </div>
         </Link>
 

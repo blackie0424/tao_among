@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fish;
-use App\Models\TopicItem;
+use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -27,7 +27,7 @@ class AdminHubController extends Controller
                 'audioCoverage' => $audioCoverage,
                 'pendingAudio'  => $pendingAudio,
                 'monthlyNew'    => $monthlyNew,
-                'topicItemCount' => TopicItem::count(),
+                'topicCount'     => Topic::count(),
             ],
             'pendingUsers' => $pendingUsers,
         ]);

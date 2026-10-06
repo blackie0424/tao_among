@@ -31,7 +31,7 @@
             <div class="min-w-0">
               <h2 class="text-xl font-bold text-gray-900">{{ topic.title }}</h2>
               <p class="mt-1 text-base font-medium" :class="topic.is_published ? `text-green-700` : `text-gray-500`">
-                {{ topic.is_published ? `已發布` : `草稿` }} · {{ topic.items_count }} 筆項目
+                {{ topic.is_published ? `已發布` : `草稿` }} · {{ topic.items_count }} {{ topic.is_fish_category ? `筆魚種` : `筆項目` }}
               </p>
               <p v-if="topic.is_fish_category" class="mt-2 text-base font-bold text-blue-700">前往前台魚類清單</p>
             </div>

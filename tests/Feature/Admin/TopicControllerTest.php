@@ -1,6 +1,7 @@
 <?php
 
 use App\Contracts\StorageServiceInterface;
+use App\Models\Fish;
 use App\Models\Topic;
 use App\Models\TopicItem;
 use App\Models\User;
@@ -41,7 +42,8 @@ it('admin 可以瀏覽 topics 列表', function () {
 });
 
 it('topics index eager loads item counts with a fixed number of item queries', function () {
-    TopicItem::factory()->count(2)->for(Topic::firstOrFail(), 'topic')->create();
+    $regularTopic = Topic::where('is_fish_category', false)->firstOrFail();
+    TopicItem::factory()->count(2)->for($regularTopic, 'topic')->create();
 
     $phase = 'baseline';
     $itemQueries = ['baseline' => 0, 'expanded' => 0];
@@ -55,7 +57,8 @@ it('topics index eager loads item counts with a fixed number of item queries', f
         ->get('/admin/topics')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('topics.0.items_count', 2)
+            ->where('topics', fn ($topics) => collect($topics)
+                ->firstWhere('id', $regularTopic->id)['items_count'] === 2)
         );
 
     Topic::factory()->count(3)->create();
@@ -67,6 +70,55 @@ it('topics index eager loads item counts with a fixed number of item queries', f
         ->and($itemQueries['expanded'])->toBe(1);
 });
 
+it('魚類圖鑑使用未刪除魚種數且一般分類維持項目數', function () {
+    $fishTopic = Topic::where('is_fish_category', true)->firstOrFail();
+    $regularTopic = Topic::where('is_fish_category', false)->firstOrFail();
+    TopicItem::factory()->count(2)->for($regularTopic, 'topic')->create();
+
+    $this->actingAs($this->admin)
+        ->get('/admin/topics')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('topics', function ($topics) use ($fishTopic, $regularTopic): bool {
+                $topics = collect($topics);
+
+                return $topics->firstWhere('id', $fishTopic->id)['items_count'] === 0
+                    && $topics->firstWhere('id', $regularTopic->id)['items_count'] === 2;
+            })
+        );
+
+    Fish::factory()->count(3)->create();
+    Fish::firstOrFail()->deleteQuietly();
+
+    $this->get('/admin/topics')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('topics', fn ($topics) => collect($topics)
+                ->firstWhere('id', $fishTopic->id)['items_count'] === 2)
+        );
+});
+
+it('topics index counts fish with a fixed number of fish queries', function () {
+    Fish::factory()->count(2)->create();
+
+    $phase = 'baseline';
+    $fishQueries = ['baseline' => 0, 'expanded' => 0];
+    DB::listen(function ($query) use (&$phase, &$fishQueries): void {
+        if (preg_match('/from [`"]?fish[`"]?/i', $query->sql)) {
+            $fishQueries[$phase]++;
+        }
+    });
+
+    $this->actingAs($this->admin)->get('/admin/topics')->assertOk();
+
+    Topic::factory()->count(3)->create();
+    $phase = 'expanded';
+
+    $this->get('/admin/topics')->assertOk();
+
+    expect($fishQueries['baseline'])->toBe(1)
+        ->and($fishQueries['expanded'])->toBe(1);
+});
 // --- Edit ---
 
 it('admin 可以瀏覽 topic 編輯頁面', function () {

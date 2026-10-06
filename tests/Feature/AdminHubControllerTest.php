@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Topic;
-use App\Models\TopicItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -22,9 +21,7 @@ it('counts guest users as pending approval', function () {
         );
 });
 
-it('returns the total topic item count', function () {
-    $topic = Topic::firstOrFail();
-    TopicItem::factory()->count(3)->for($topic, 'topic')->create();
+it('returns the total topic count', function () {
     $admin = User::factory()->admin()->create();
 
     $this->actingAs($admin)
@@ -32,11 +29,12 @@ it('returns the total topic item count', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Hub')
-            ->where('stats.topicItemCount', 3)
+            ->where('stats.topicCount', Topic::count())
         );
 });
 
-it('returns zero when there are no topic items', function () {
+it('returns zero when there are no topics', function () {
+    Topic::query()->delete();
     $admin = User::factory()->admin()->create();
 
     $this->actingAs($admin)
@@ -44,6 +42,6 @@ it('returns zero when there are no topic items', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Hub')
-            ->where('stats.topicItemCount', 0)
+            ->where('stats.topicCount', 0)
         );
 });
