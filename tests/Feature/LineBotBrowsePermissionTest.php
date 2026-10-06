@@ -227,7 +227,7 @@ class LineBotBrowsePermissionTest extends TestCase
         $fish = Fish::factory()->create(['name' => '測試地名魚']);
         CaptureRecord::factory()->create([
             'fish_id' => $fish->id,
-            'location' => 'ZZ地名標記',
+            'location' => 'ZZLOCATIONMARK',
             'tribe' => config('fish_options.tribes')[0],
         ]);
         $this->lineUserService->shouldReceive('getRole')->once()->andReturn($role);
@@ -244,7 +244,7 @@ class LineBotBrowsePermissionTest extends TestCase
         );
 
         $json = json_encode($messages[0]->jsonSerialize(), JSON_UNESCAPED_UNICODE);
-        $this->assertSame($shouldSeeLocation, str_contains($json, 'ZZ地名標記'));
+        $this->assertSame($shouldSeeLocation, str_contains($json, 'ZZLOCATIONMARK'));
         $this->assertStringContainsString(config('fish_options.tribes')[0], $json);
     }
 

@@ -14,8 +14,8 @@ it('classifies every GET route and scans viewer data routes for location leaks',
     $fish = Fish::factory()->create(['name' => '路由掃描魚']);
     CaptureRecord::factory()->create([
         'fish_id' => $fish->id,
-        'location' => 'ZZ地名標記',
-        'tribe' => config('fish_options.tribes')[0],
+        'location' => 'ZZLOCATIONMARK',
+        'tribe' => 'ivalino',
     ]);
     $topic = Topic::factory()->create(['slug' => 'route-scan-topic', 'is_published' => true]);
     $topicItem = TopicItem::factory()->create(['topic_id' => $topic->id, 'is_published' => true]);
@@ -37,7 +37,7 @@ it('classifies every GET route and scans viewer data routes for location leaks',
         'prefix/api/fish/{id}' => "/prefix/api/fish/{$fish->id}",
         'prefix/api/fish/{id}/compact' => "/prefix/api/fish/{$fish->id}/compact",
         'prefix/api/fish/{id}/notes' => "/prefix/api/fish/{$fish->id}/notes",
-        'prefix/api/fishs/filter' => '/prefix/api/fishs/filter?filter_type=tribe&filter_value='.config('fish_options.tribes')[0],
+        'prefix/api/fishs/filter' => '/prefix/api/fishs/filter?filter_type=tribe&filter_value='.'ivalino',
         'prefix/api/fishs/random' => '/prefix/api/fishs/random',
         'prefix/api/fishs/random-unknown' => '/prefix/api/fishs/random-unknown',
         'prefix/api/fishs/search' => '/prefix/api/fishs/search?q='.urlencode($fish->name),
@@ -114,6 +114,6 @@ it('classifies every GET route and scans viewer data routes for location leaks',
         expect($response->getStatusCode(), "GET {$uri} returned a server error")
             ->toBeLessThan(500)
             ->and($response->getContent(), "GET {$uri} leaked capture location")
-            ->not->toContain('ZZ地名標記');
+            ->not->toContain('ZZLOCATIONMARK');
     }
 });

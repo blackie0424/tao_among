@@ -16,7 +16,7 @@ it('removes capture location for a viewer through the real LINE webhook route', 
     $fish = Fish::factory()->create(['name' => 'Webhook地名魚']);
     CaptureRecord::factory()->create([
         'fish_id' => $fish->id,
-        'location' => 'ZZ地名標記',
+        'location' => 'ZZLOCATIONMARK',
         'tribe' => config('fish_options.tribes')[0],
     ]);
 
@@ -73,7 +73,7 @@ it('removes capture location for a viewer through the real LINE webhook route', 
     $response->assertOk()->assertJson(['status' => 'ok']);
     expect($messages)->toHaveCount(1);
     $json = json_encode($messages[0]->jsonSerialize(), JSON_UNESCAPED_UNICODE);
-    expect($json)->not->toContain('ZZ地名標記')
+    expect($json)->not->toContain('ZZLOCATIONMARK')
         ->and($json)->not->toContain('📍地點')
         ->and($json)->toContain(config('fish_options.tribes')[0]);
 });

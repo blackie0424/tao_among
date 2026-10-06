@@ -105,7 +105,7 @@ class LineFishMessageBuilderTest extends TestCase
         $message = $this->service->buildCaptureRecordsCarousel([
             [
                 'tribe' => 'iraraley',
-                'location' => 'ZZ地名標記',
+                'location' => 'ZZLOCATIONMARK',
                 'capture_method' => '釣魚',
                 'capture_date' => '2025-01-01',
                 'image_url' => 'https://example.com/capture.jpg',
@@ -114,7 +114,7 @@ class LineFishMessageBuilderTest extends TestCase
 
         $json = json_encode($message->jsonSerialize(), JSON_UNESCAPED_UNICODE);
 
-        $this->assertStringNotContainsString('ZZ地名標記', $json);
+        $this->assertStringNotContainsString('ZZLOCATIONMARK', $json);
         $this->assertStringNotContainsString('📍地點', $json);
         $this->assertStringContainsString('iraraley', $json);
     }

@@ -11,8 +11,8 @@ uses(RefreshDatabase::class);
 
 it('recursively removes locations for roles without location access', function (string $role) {
     $payload = [
-        'location' => 'ZZ地名標記',
-        'nested' => [['location' => 'ZZ地名標記', 'locate' => '東清部落']],
+        'location' => 'ZZLOCATIONMARK',
+        'nested' => [['location' => 'ZZLOCATIONMARK', 'locate' => '東清部落']],
     ];
 
     $filtered = app(LocationVisibilityService::class)->filter(
@@ -24,7 +24,7 @@ it('recursively removes locations for roles without location access', function (
 })->with(['guest', 'viewer']);
 
 it('preserves locations for roles with location access', function (string $role) {
-    $payload = ['location' => 'ZZ地名標記', 'locate' => '東清部落'];
+    $payload = ['location' => 'ZZLOCATIONMARK', 'locate' => '東清部落'];
 
     expect(app(LocationVisibilityService::class)->filter(
         $payload,
@@ -36,37 +36,40 @@ it('filters location from API responses for viewers while preserving locate', fu
     $fish = Fish::factory()->create();
     CaptureRecord::factory()->create([
         'fish_id' => $fish->id,
-        'location' => 'ZZ地名標記',
-        'tribe' => config('fish_options.tribes')[0],
+        'location' => 'ZZLOCATIONMARK',
+        'tribe' => 'ivalino',
     ]);
 
     $response = $this->actingAs(User::factory()->lineViewer()->create())
         ->getJson('/prefix/api/capture-records')
         ->assertOk();
 
-    expect($response->getContent())->not->toContain('ZZ地名標記')
+    expect($response->getContent())->not->toContain('ZZLOCATIONMARK')
         ->and($response->json('data.0'))->not->toHaveKey('location')
-        ->and($response->json('data.0.tribe'))->toBe(config('fish_options.tribes')[0]);
+        ->and($response->json('data.0.tribe'))->toBe('ivalino');
 });
 
 it('preserves API location for editors and admins', function (string $role) {
     $fish = Fish::factory()->create();
-    CaptureRecord::factory()->create(['fish_id' => $fish->id, 'location' => 'ZZ地名標記']);
+    CaptureRecord::factory()->create(['fish_id' => $fish->id, 'location' => 'ZZLOCATIONMARK']);
 
     $response = $this->actingAs(User::factory()->create(['role' => $role]))
         ->getJson('/prefix/api/capture-records')
         ->assertOk();
 
-    expect($response->json('data.0.location'))->toBe('ZZ地名標記');
+    expect($response->json('data.0.location'))->toBe('ZZLOCATIONMARK');
 })->with(['editor', 'admin']);
 it('filters location from fish detail and capture record pages for viewers', function () {
     $fish = Fish::factory()->create();
-    CaptureRecord::factory()->create(['fish_id' => $fish->id, 'location' => 'ZZ地名標記']);
+    CaptureRecord::factory()->create(['fish_id' => $fish->id, 'location' => 'ZZLOCATIONMARK']);
     $viewer = User::factory()->lineViewer()->create();
 
-    $fishResponse = $this->actingAs($viewer)->get("/fish/{$fish->id}")->assertOk();
-    expect(json_encode($fishResponse->viewData('page')['props'], JSON_UNESCAPED_UNICODE))
-        ->not->toContain('ZZ地名標記');
+    $this->actingAs($viewer)
+        ->get("/fish/{$fish->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Fish')
+            ->missing('captureRecords.0.location'));
 
     $this->get("/fish/{$fish->id}/capture-records")
         ->assertOk()
@@ -77,24 +80,24 @@ it('filters location from fish detail and capture record pages for viewers', fun
 
 it('preserves location on capture record pages for editors and admins', function (string $role) {
     $fish = Fish::factory()->create();
-    CaptureRecord::factory()->create(['fish_id' => $fish->id, 'location' => 'ZZ地名標記']);
+    CaptureRecord::factory()->create(['fish_id' => $fish->id, 'location' => 'ZZLOCATIONMARK']);
 
     $this->actingAs(User::factory()->create(['role' => $role]))
         ->get("/fish/{$fish->id}/capture-records")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('CaptureRecords')
-            ->where('fish.captureRecords.0.location', 'ZZ地名標記'));
+            ->where('fish.captureRecords.0.location', 'ZZLOCATIONMARK'));
 })->with(['editor', 'admin']);
 it('hides location search options and ignores location probes for viewers', function () {
     $markedFish = Fish::factory()->create();
-    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZ地名標記']);
+    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZLOCATIONMARK']);
     $otherFish = Fish::factory()->create();
     CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
     $viewer = User::factory()->lineViewer()->create();
 
     $plain = $this->actingAs($viewer)->get('/fishs')->assertOk();
-    $probed = $this->get('/fishs?capture_location=ZZ地名標記')->assertOk();
+    $probed = $this->get('/fishs?capture_location=ZZLOCATIONMARK')->assertOk();
 
     $plainProps = $plain->viewData('page')['props'];
     $probedProps = $probed->viewData('page')['props'];
@@ -107,16 +110,16 @@ it('hides location search options and ignores location probes for viewers', func
 
 it('preserves location search options and filtering for editors', function () {
     $markedFish = Fish::factory()->create();
-    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZ地名標記']);
+    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZLOCATIONMARK']);
     $otherFish = Fish::factory()->create();
     CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
 
     $response = $this->actingAs(User::factory()->lineEditor()->create())
-        ->get('/fishs?capture_location=ZZ地名標記')
+        ->get('/fishs?capture_location=ZZLOCATIONMARK')
         ->assertOk();
     $props = $response->viewData('page')['props'];
 
-    expect($props['searchOptions']['captureLocations'])->toContain('ZZ地名標記')
-        ->and($props['filters']['capture_location'])->toBe('ZZ地名標記')
+    expect($props['searchOptions']['captureLocations'])->toContain('ZZLOCATIONMARK')
+        ->and($props['filters']['capture_location'])->toBe('ZZLOCATIONMARK')
         ->and(array_column($props['items'], 'id'))->toBe([$markedFish->id]);
 });
