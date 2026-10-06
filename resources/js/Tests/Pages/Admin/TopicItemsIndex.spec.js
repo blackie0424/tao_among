@@ -60,5 +60,25 @@ describe('Admin/TopicItems/Index.vue', () => {
     const links = wrapper.findAll('a')
     const topicLink = links.find(l => l.attributes('href')?.includes('topic_id=1'))
     expect(topicLink).toBeTruthy()
+    const breadcrumb = wrapper.find('[data-testid="topic-items-breadcrumb"]')
+    expect(breadcrumb.text()).toContain('主題導覽')
+    expect(breadcrumb.text()).toContain('全部項目')
+  })
+
+  it('篩選分類時顯示可返回主題導覽的分類麵包屑', () => {
+    const topics = [
+      { id: 1, title: '魚類圖鑑' },
+      { id: 2, title: '漁獵方法' },
+    ]
+    const items = { data: [], current_page: 1, last_page: 1 }
+
+    const wrapper = mount(TopicItemsIndex, {
+      props: { topics, items, selectedTopicId: 2 },
+    })
+
+    const breadcrumb = wrapper.find('[data-testid="topic-items-breadcrumb"]')
+    expect(breadcrumb.text()).toContain('主題導覽')
+    expect(breadcrumb.text()).toContain('漁獵方法')
+    expect(breadcrumb.find('a').attributes('href')).toBe('/admin/topics')
   })
 })

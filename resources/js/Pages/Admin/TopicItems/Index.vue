@@ -2,6 +2,11 @@
   <Head title="主題導覽項目管理" />
 
   <AdminLayout title="主題導覽項目管理">
+    <nav data-testid="topic-items-breadcrumb" aria-label="麵包屑" class="mb-4 flex items-center gap-2 text-base text-gray-600">
+      <Link href="/admin/topics" class="font-bold text-blue-700 hover:underline">主題導覽</Link>
+      <span aria-hidden="true">/</span>
+      <span class="font-medium text-gray-900">{{ selectedTopic?.title ?? `全部項目` }}</span>
+    </nav>
     <div class="mb-6 flex items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">主題導覽項目管理</h1>
@@ -126,6 +131,7 @@
 
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 
 const props = defineProps({
@@ -133,6 +139,8 @@ const props = defineProps({
   topics: Array,
   selectedTopicId: Number,
 })
+
+const selectedTopic = computed(() => props.topics.find(topic => topic.id === props.selectedTopicId) ?? null)
 
 function togglePublished(id) {
   router.patch(`/admin/topic-items/${id}/toggle-published`, {}, {

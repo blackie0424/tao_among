@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Contracts\StorageServiceInterface;
 use App\Http\Controllers\BaseController;
+use App\Models\Fish;
 use App\Models\Topic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,10 +17,18 @@ class TopicController extends BaseController
 
     public function index(): Response
     {
+        $fishCount = Fish::count();
+        $topics = Topic::withCount('items')->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->each(function (Topic $topic) use ($fishCount): void {
+                if ($topic->is_fish_category) {
+                    $topic->items_count = $fishCount;
+                }
+            });
+
         return Inertia::render('Admin/Topics/Index', [
-            'topics' => Topic::orderBy('sort_order')
-                ->orderBy('id')
-                ->get(),
+            'topics' => $topics,
         ]);
     }
 
