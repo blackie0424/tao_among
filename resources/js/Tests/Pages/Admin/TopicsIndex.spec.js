@@ -60,7 +60,7 @@ describe('Admin/Topics/Index.vue', () => {
     expect(cards[0].find('[data-testid="topic-primary-link"]').attributes('href')).toBe('/fishs')
     expect(cards[0].text()).toContain('前往前台魚類清單')
     expect(cards[1].find('[data-testid="topic-primary-link"]').attributes('href')).toBe('/admin/topic-items?topic_id=2')
-    expect(cards[1].find('a[href="/admin/topics/2/edit"]').exists()).toBe(true)
+    expect(cards[1].find('[data-testid="topic-edit-link"]').attributes('href')).toBe('/admin/topics/2/edit')
     expect(cards[0].find('[data-testid="topic-image-placeholder"]').exists()).toBe(true)
     expect(cards[0].find('img').exists()).toBe(false)
     expect(cards[0].text()).toContain('0 筆項目')
