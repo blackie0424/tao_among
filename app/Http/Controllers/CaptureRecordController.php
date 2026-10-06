@@ -7,6 +7,7 @@ use App\Models\Fish;
 use App\Models\CaptureRecord;
 use App\Services\CaptureRecordBatchService;
 use App\Services\FishService;
+use App\Services\LocationVisibilityService;
 use App\Contracts\StorageServiceInterface;
 use App\Contracts\CaptureSessionServiceInterface;
 use App\Traits\HasFishImageUrl;
@@ -22,17 +23,20 @@ class CaptureRecordController extends Controller
     protected $storageService;
     protected $captureSessionService;
     protected CaptureRecordBatchService $captureRecordBatchService;
+    protected LocationVisibilityService $locationVisibilityService;
 
     public function __construct(
         FishService $fishService,
         StorageServiceInterface $storageService,
         CaptureSessionServiceInterface $captureSessionService,
-        ?CaptureRecordBatchService $captureRecordBatchService = null
+        ?CaptureRecordBatchService $captureRecordBatchService = null,
+        ?LocationVisibilityService $locationVisibilityService = null
     ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
         $this->captureSessionService = $captureSessionService;
         $this->captureRecordBatchService = $captureRecordBatchService ?? app(CaptureRecordBatchService::class);
+        $this->locationVisibilityService = $locationVisibilityService ?? app(LocationVisibilityService::class);
     }
 
     /**
@@ -49,6 +53,7 @@ class CaptureRecordController extends Controller
         // 確保 captureRecords 以正確的鍵名傳遞
         $fishData = $fishWithImage->toArray();
         $fishData['captureRecords'] = $fishWithImage->captureRecords->toArray();
+        $fishData = $this->locationVisibilityService->filter($fishData, request()->user());
         
         // 定義部落選項
         $tribes = config('fish_options.tribes');

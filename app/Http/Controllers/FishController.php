@@ -8,6 +8,7 @@ use App\Contracts\FishServiceInterface;
 use App\Contracts\FishSearchServiceInterface;
 use App\Contracts\CaptureSessionServiceInterface;
 use App\Services\AudioVisibilityService;
+use App\Services\LocationVisibilityService;
 use App\Http\Requests\BatchCreateFishRequest;
 use App\Http\Requests\UpdateFishRequest;
 use Illuminate\Support\Facades\DB;
@@ -28,19 +29,22 @@ class FishController extends Controller
     protected $fishSearchService;
     protected $captureSessionService;
     protected $audioVisibilityService;
+    protected $locationVisibilityService;
 
     public function __construct(
         FishServiceInterface $fishService,
         StorageServiceInterface $storageService,
         FishSearchServiceInterface $fishSearchService,
         CaptureSessionServiceInterface $captureSessionService,
-        AudioVisibilityService $audioVisibilityService
+        AudioVisibilityService $audioVisibilityService,
+        LocationVisibilityService $locationVisibilityService
     ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
         $this->fishSearchService = $fishSearchService;
         $this->captureSessionService = $captureSessionService;
         $this->audioVisibilityService = $audioVisibilityService;
+        $this->locationVisibilityService = $locationVisibilityService;
     }
 
     public function index()
@@ -53,6 +57,7 @@ class FishController extends Controller
         $details = $this->fishService->getFishDetails((int) $id);
         $details['tribes'] = config('fish_options.tribes');
         $details = $this->audioVisibilityService->filter($details, $request->user());
+        $details = $this->locationVisibilityService->filter($details, $request->user());
 
         return Inertia::render('Fish', $details);
     }
@@ -78,7 +83,10 @@ class FishController extends Controller
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
             // 精簡欄位 + 游標分頁（FR-002, FR-005）
-            'items' => $this->audioVisibilityService->filter($paginated['items'], $request->user()),
+            'items' => $this->locationVisibilityService->filter(
+                $this->audioVisibilityService->filter($paginated['items'], $request->user()),
+                $request->user()
+            ),
             'pageInfo' => $paginated['pageInfo'],
         ]);
     }
@@ -92,7 +100,10 @@ class FishController extends Controller
         $searchStats = $this->fishSearchService->getSearchStats($filters);
 
         return Inertia::render('Fish/Search', [
-            'fishs' => $this->audioVisibilityService->filter($fishs, $request->user()),
+            'fishs' => $this->locationVisibilityService->filter(
+                $this->audioVisibilityService->filter($fishs, $request->user()),
+                $request->user()
+            ),
             'filters' => $filters,
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
