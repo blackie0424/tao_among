@@ -67,12 +67,15 @@ class FishController extends Controller
         // Trace: FR-001 多條件後端搜尋, FR-003 比對規則, FR-007 perPage 正規化, FR-005 游標分頁, FR-002 精簡欄位
         // Trace: SC-004 首屏 payload 降幅（僅回傳白名單欄位給前端無限滾動）, SC-006 游標契約一致性（last_id 明碼, nextCursor 派生）
         // 使用 Request 清洗參數（忽略空白、perPage 正規化、游標驗證）
-        $filters = $request->cleaned();
+        $filters = $this->locationSafeFilters($request->cleaned(), $request);
 
         // 游標式分頁 + 精簡欄位（提供給前端無限滾動使用）
         $paginated = $this->fishSearchService->paginate($filters);
 
-        $searchOptions = $this->fishSearchService->getSearchOptions();
+        $searchOptions = $this->locationSafeSearchOptions(
+            $this->fishSearchService->getSearchOptions(),
+            $request
+        );
         // total_results 在 getSearchStats 內固定使用 Fish::count()，不受 $filters 影響
         // 但 tribe 需傳入以計算部落專屬統計（n, m）
         $searchStats = $this->fishSearchService->getSearchStats($filters);
@@ -93,10 +96,16 @@ class FishController extends Controller
 
     public function search(Request $request)
     {
-        $filters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
+        $filters = $this->locationSafeFilters(
+            $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']),
+            $request
+        );
         
         $fishs = $this->fishSearchService->search($filters);
-        $searchOptions = $this->fishSearchService->getSearchOptions();
+        $searchOptions = $this->locationSafeSearchOptions(
+            $this->fishSearchService->getSearchOptions(),
+            $request
+        );
         $searchStats = $this->fishSearchService->getSearchStats($filters);
 
         return Inertia::render('Fish/Search', [
@@ -110,6 +119,23 @@ class FishController extends Controller
         ]);
     }
 
+    private function locationSafeFilters(array $filters, Request $request): array
+    {
+        if (! $request->user()?->canAccessLocation()) {
+            unset($filters['capture_location']);
+        }
+
+        return $filters;
+    }
+
+    private function locationSafeSearchOptions(array $options, Request $request): array
+    {
+        if (! $request->user()?->canAccessLocation()) {
+            unset($options['captureLocations']);
+        }
+
+        return $options;
+    }
     /**
      * 顯示批次新增魚類頁面。
      */

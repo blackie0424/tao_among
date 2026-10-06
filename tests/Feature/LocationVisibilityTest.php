@@ -86,3 +86,37 @@ it('preserves location on capture record pages for editors and admins', function
             ->component('CaptureRecords')
             ->where('fish.captureRecords.0.location', 'ZZ地名標記'));
 })->with(['editor', 'admin']);
+it('hides location search options and ignores location probes for viewers', function () {
+    $markedFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZ地名標記']);
+    $otherFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
+    $viewer = User::factory()->lineViewer()->create();
+
+    $plain = $this->actingAs($viewer)->get('/fishs')->assertOk();
+    $probed = $this->get('/fishs?capture_location=ZZ地名標記')->assertOk();
+
+    $plainProps = $plain->viewData('page')['props'];
+    $probedProps = $probed->viewData('page')['props'];
+
+    expect($plainProps['searchOptions'])->not->toHaveKey('captureLocations')
+        ->and($probedProps['filters'])->not->toHaveKey('capture_location')
+        ->and(array_column($probedProps['items'], 'id'))
+        ->toBe(array_column($plainProps['items'], 'id'));
+});
+
+it('preserves location search options and filtering for editors', function () {
+    $markedFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZ地名標記']);
+    $otherFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
+
+    $response = $this->actingAs(User::factory()->lineEditor()->create())
+        ->get('/fishs?capture_location=ZZ地名標記')
+        ->assertOk();
+    $props = $response->viewData('page')['props'];
+
+    expect($props['searchOptions']['captureLocations'])->toContain('ZZ地名標記')
+        ->and($props['filters']['capture_location'])->toBe('ZZ地名標記')
+        ->and(array_column($props['items'], 'id'))->toBe([$markedFish->id]);
+});
