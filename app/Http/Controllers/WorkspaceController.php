@@ -36,10 +36,10 @@ class WorkspaceController extends Controller
             ->limit($limit)
             ->get($cols)
             ->map(fn ($f) => [
-            'id' => $f->id,
-            'name' => $f->name,
-            'image_url' => null,
-        ]);
+                'id' => $f->id,
+                'name' => $f->name,
+                'image_url' => null,
+            ]);
 
         $recentEdits = Fish::orderByDesc('updated_at')
             ->limit($limit)
