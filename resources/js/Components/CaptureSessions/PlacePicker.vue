@@ -19,6 +19,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { firstValidationError } from '@/utils/validationErrors'
 
 const props = defineProps({ modelValue: { type: [Number, String, null], default: null }, initialName: { type: String, default: '' } })
 const emit = defineEmits(['update:modelValue'])
@@ -61,10 +62,14 @@ async function createPlace() {
   })
   const body = await response.json()
   if (response.status === 422 && body.existing_place) {
-    message.value = body.message
+    message.value = firstValidationError({ place: body.message })
     suggestions.value = [body.existing_place]
     return
   }
-  if (response.ok) select(body.place)
+  if (response.ok) {
+    select(body.place)
+    return
+  }
+  message.value = firstValidationError(body.errors || { place: body.message })
 }
 </script>

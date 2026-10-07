@@ -19,6 +19,18 @@ it('normalizes place names with fixed canonical expectations', function (string 
     ['A', 'A', 'a'],
 ]);
 
+it('returns fixed Chinese validation messages for invalid places', function () {
+    $editor = User::factory()->lineEditor()->create();
+
+    $this->actingAs($editor)->post('/places', [
+        'name' => '',
+        'tao_name' => str_repeat('a', 256),
+    ])->assertSessionHasErrors([
+        'name' => '請輸入地名',
+        'tao_name' => '族語名稱不可超過 255 個字元',
+    ]);
+});
+
 it('returns the existing place for canonical duplicates', function () {
     $editor = User::factory()->lineEditor()->create();
     $existing = Place::factory()->create(['name' => 'A B', 'name_key' => 'a b']);

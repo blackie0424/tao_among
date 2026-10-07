@@ -6,6 +6,7 @@ use App\Models\Place;
 use App\Models\User;
 use App\Services\CaptureSessionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -199,21 +200,46 @@ it('allows an editor to delete an empty session over HTTP', function () {
     $this->assertDatabaseMissing('capture_sessions', ['id' => $session->id]);
 });
 
-it('rejects future capture dates on create and update', function () {
+it('uses the configured capture timezone for create and update date boundaries', function () {
     $editor = User::factory()->lineEditor()->create();
     $session = CaptureSession::factory()->create();
     $payload = [
-        'capture_date' => now()->addDay()->format('Y-m-d'),
+        'capture_date' => '2026-10-07',
         'tribe' => 'ivalino',
         'capture_method' => '釣魚',
         'place_id' => null,
         'notes' => null,
     ];
 
-    $this->actingAs($editor)->post('/capture-sessions', $payload)
-        ->assertSessionHasErrors('capture_date');
-    $this->put("/capture-sessions/{$session->id}", $payload)
-        ->assertSessionHasErrors('capture_date');
+    try {
+        Carbon::setTestNow('2026-10-07 15:59:59 UTC');
+        $this->actingAs($editor)->post('/capture-sessions', [...$payload, 'capture_date' => '2026-10-07'])
+            ->assertSessionDoesntHaveErrors();
+        $this->post('/capture-sessions', [...$payload, 'capture_date' => '2026-10-08'])
+            ->assertSessionHasErrors(['capture_date' => '日期不可晚於今天']);
+
+        Carbon::setTestNow('2026-10-07 16:00:00 UTC');
+        $this->put("/capture-sessions/{$session->id}", [...$payload, 'capture_date' => '2026-10-08'])
+            ->assertSessionDoesntHaveErrors();
+        $this->put("/capture-sessions/{$session->id}", [...$payload, 'capture_date' => '2026-10-09'])
+            ->assertSessionHasErrors(['capture_date' => '日期不可晚於今天']);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+it('returns fixed Chinese messages for invalid session fields', function () {
+    $editor = User::factory()->lineEditor()->create();
+
+    $this->actingAs($editor)->post('/capture-sessions', [
+        'capture_date' => '',
+        'tribe' => 'not-a-tribe',
+        'capture_method' => str_repeat('a', 256),
+    ])->assertSessionHasErrors([
+        'capture_date' => '請選擇日期',
+        'tribe' => '請選擇有效的部落',
+        'capture_method' => '捕獲方式不可超過 255 個字元',
+    ]);
 });
 
 it('blocks viewers from updating and deleting sessions', function () {

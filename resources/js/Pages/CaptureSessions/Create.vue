@@ -3,6 +3,7 @@
 import { Head, useForm } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import SessionForm from './Form.vue'
+import { formatLocalDate } from '@/utils/localDate'
 defineProps({ tribes: Array, captureMethods: Object })
-const form = useForm({ capture_date: new Date().toISOString().slice(0, 10), tribe: '', capture_method: '', place_id: null, notes: '' })
+const form = useForm({ capture_date: formatLocalDate(), tribe: '', capture_method: '', place_id: null, notes: '' })
 </script>

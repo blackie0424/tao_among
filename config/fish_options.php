@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'capture_timezone' => 'Asia/Taipei',
+
     /*
     |--------------------------------------------------------------------------
     | 部落選項
@@ -98,6 +100,6 @@ return [
     */
     'batch_upload' => [
         'max_files_desktop' => env('BATCH_UPLOAD_MAX_DESKTOP', 10),
-        'max_files_mobile'  => env('BATCH_UPLOAD_MAX_MOBILE', 5),
+        'max_files_mobile' => env('BATCH_UPLOAD_MAX_MOBILE', 5),
     ],
 ];

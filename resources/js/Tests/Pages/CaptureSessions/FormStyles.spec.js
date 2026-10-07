@@ -26,4 +26,16 @@ describe('CaptureSessions/Form styles', () => {
       expect(label.classes()).toContain('mb-1')
     }
   })
+
+  it('renders the first validation message as readable text', () => {
+    const form = {
+      capture_date: '2026-10-09', tribe: '', capture_method: '', place_id: null, notes: '',
+      errors: { capture_date: ['日期不可晚於今天'] }, processing: false,
+    }
+    const wrapper = mount(Form, { props: { form } })
+
+    expect(wrapper.get('[role="alert"]').text()).toBe('日期不可晚於今天')
+    expect(wrapper.get('[role="alert"]').text()).not.toContain('[')
+    expect(wrapper.get('[role="alert"]').text()).not.toContain('"')
+  })
 })

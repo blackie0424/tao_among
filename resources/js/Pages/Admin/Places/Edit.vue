@@ -14,14 +14,17 @@
         <label class="mb-1 block text-sm font-medium text-gray-700">備註</label>
         <textarea v-model="form.notes" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" :class="{ 'border-red-500': form.errors.notes }" />
       </div>
-      <p v-if="Object.keys(form.errors).length" class="text-red-600">{{ Object.values(form.errors)[0] }}</p>
+      <p v-if="firstError" class="text-red-600">{{ firstError }}</p>
       <button class="rounded-lg bg-blue-600 px-4 py-3 text-white">儲存</button>
     </form>
   </AdminLayout>
 </template>
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import { firstValidationError } from '@/utils/validationErrors'
 const props = defineProps({ place: Object })
 const form = useForm({ name: props.place.name, tao_name: props.place.tao_name || '', notes: props.place.notes || '' })
+const firstError = computed(() => firstValidationError(form.errors))
 </script>
