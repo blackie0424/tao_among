@@ -91,13 +91,50 @@ class LineFishMessageBuilderTest extends TestCase
                 'notes' => '備註',
                 'image_url' => 'https://example.com/capture.jpg',
             ],
-        ], '測試魚');
+        ], '測試魚', true);
 
         $json = json_decode(json_encode($message->jsonSerialize()), true);
 
         $this->assertSame('測試魚 的捕獲紀錄', $message->getAltText());
         $this->assertSame('carousel', $json['contents']['type'] ?? null);
         $this->assertCount(1, $json['contents']['contents'] ?? []);
+    }
+
+    public function test_capture_records_carousel_hides_location_without_access(): void
+    {
+        $message = $this->service->buildCaptureRecordsCarousel([
+            [
+                'tribe' => 'iraraley',
+                'location' => 'ZZLOCATIONMARK',
+                'capture_method' => '釣魚',
+                'capture_date' => '2025-01-01',
+                'image_url' => 'https://example.com/capture.jpg',
+            ],
+        ], '測試魚', false);
+
+        $json = json_encode($message->jsonSerialize(), JSON_UNESCAPED_UNICODE);
+
+        $this->assertStringNotContainsString('ZZLOCATIONMARK', $json);
+        $this->assertStringNotContainsString('📍地點', $json);
+        $this->assertStringContainsString('iraraley', $json);
+    }
+
+    public function test_capture_records_carousel_omits_empty_location_with_access(): void
+    {
+        $message = $this->service->buildCaptureRecordsCarousel([
+            [
+                'tribe' => 'iraraley',
+                'location' => '',
+                'capture_method' => '釣魚',
+                'capture_date' => '2025-01-01',
+                'image_url' => 'https://example.com/capture.jpg',
+            ],
+        ], '測試魚', true);
+
+        $json = json_encode($message->jsonSerialize(), JSON_UNESCAPED_UNICODE);
+
+        $this->assertStringNotContainsString('📍地點', $json);
+        $this->assertStringContainsString('iraraley', $json);
     }
 
     private function extractBubbleJson(FlexMessage $message): array

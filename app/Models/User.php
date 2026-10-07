@@ -29,7 +29,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
 
@@ -54,6 +54,16 @@ class User extends Authenticatable
     }
 
     public static function roleCanAccessAudio(?string $role): bool
+    {
+        return in_array($role, ['editor', 'admin'], true);
+    }
+
+    public function canAccessLocation(): bool
+    {
+        return self::roleCanAccessLocation($this->role);
+    }
+
+    public static function roleCanAccessLocation(?string $role): bool
     {
         return in_array($role, ['editor', 'admin'], true);
     }

@@ -15,6 +15,7 @@
         :tribes="searchOptions.tribes"
         :food-categories="searchOptions.dietaryClassifications"
         :processing-methods="searchOptions.processingMethods"
+        :can-access-location="hasLocationAccess"
         @filters-change="handleFiltersChange"
       />
 
@@ -41,13 +42,16 @@
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FilterPanel from '@/Components/UI/FilterPanel.vue'
 import SearchResults from '@/Components/UI/SearchResults.vue'
 import FabButton from '@/Components/UI/FabButton.vue'
+import { canAccessLocation } from '@/constants/roles'
+
+const hasLocationAccess = computed(() => canAccessLocation(usePage().props.auth?.user?.role))
 
 const props = defineProps({
   fishs: {

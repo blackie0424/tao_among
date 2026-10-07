@@ -82,6 +82,10 @@ describe('捕獲地點', () => {
     expect(wrapper.text()).toContain('朗島')
   })
 
+  it('location 為空字串時不應顯示捕獲地點區塊', () => {
+    const wrapper = mountCard({ record: makeRecord({ location: '' }) })
+    expect(wrapper.text()).not.toContain('捕獲地點')
+  })
   it('location 為 null 時不應顯示捕獲地點區塊', () => {
     const wrapper = mountCard({ record: makeRecord({ location: null }) })
     expect(wrapper.text()).not.toContain('捕獲地點')

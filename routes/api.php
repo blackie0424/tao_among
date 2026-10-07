@@ -1,13 +1,13 @@
 <?php
 
-use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\Api\ImageRotateController;
-use App\Http\Controllers\LineBotController;
-use App\Http\Controllers\UploadController;
-use App\Http\Controllers\FishNoteController;
-use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\FishMergeController;
+use App\Http\Controllers\FishNoteController;
+use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\TopicController;
+use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\UploadController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,7 +30,7 @@ Route::post('/line/webhook', [LineBotController::class, 'webhook']);
 // 首頁主題導覽分類
 Route::get('/topics', [TopicController::class, 'getPublishedCategories']);
 
-Route::middleware(['auth:sanctum', 'browse', 'audio.visibility'])->group(function () {
+Route::middleware(['auth:sanctum', 'browse', 'audio.visibility', 'location.visibility'])->group(function () {
     Route::get('/fish', [ApiFishController::class, 'getFishs']);
     Route::get('/capture-records', [ApiFishController::class, 'getAllCaptureRecords']);
     Route::get('/fishs/latest-at', [ApiFishController::class, 'getLatestAt']);

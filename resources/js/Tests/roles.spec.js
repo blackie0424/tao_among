@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROLE_LABELS, canAccessAudio } from '@/constants/roles'
+import { ROLE_LABELS, canAccessAudio, canAccessLocation } from '@/constants/roles'
 
 describe('角色中文名稱', () => {
   it('定義四種角色的統一名稱', () => {
@@ -23,5 +23,17 @@ describe('影音存取權限', () => {
     ['unknown', false],
   ])('%s 的判斷結果為 %s', (role, expected) => {
     expect(canAccessAudio(role)).toBe(expected)
+  })
+})
+
+describe('canAccessLocation', () => {
+  it.each([
+    ['guest', false],
+    ['viewer', false],
+    ['editor', true],
+    ['admin', true],
+    [null, false],
+  ])('returns location access for %s', (role, expected) => {
+    expect(canAccessLocation(role)).toBe(expected)
   })
 })

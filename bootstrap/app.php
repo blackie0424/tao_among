@@ -24,21 +24,22 @@ return Application::configure(basePath: dirname(__DIR__))
             'editor' => \App\Http\Middleware\EnsureUserIsEditor::class,
             'browse' => \App\Http\Middleware\EnsureUserCanBrowse::class,
             'audio.visibility' => \App\Http\Middleware\FilterRestrictedAudio::class,
+            'location.visibility' => \App\Http\Middleware\FilterRestrictedLocation::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Handle database connection errors
         $exceptions->render(function (\Illuminate\Database\QueryException $e, $request) {
-            \Log::error('Database query error: ' . $e->getMessage(), [
+            \Log::error('Database query error: '.$e->getMessage(), [
                 'sql' => $e->getSql(),
                 'bindings' => $e->getBindings(),
-                'request' => $request->all()
+                'request' => $request->all(),
             ]);
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '資料庫操作失敗，請稍後再試',
-                    'error' => 'database_error'
+                    'error' => 'database_error',
                 ], 500);
             }
 
@@ -47,12 +48,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Handle model not found exceptions
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
-            \Log::warning('Model not found: ' . $e->getMessage());
+            \Log::warning('Model not found: '.$e->getMessage());
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '找不到指定的資源',
-                    'error' => 'resource_not_found'
+                    'error' => 'resource_not_found',
                 ], 404);
             }
 
@@ -64,7 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '資料驗證失敗',
-                    'errors' => $e->errors()
+                    'errors' => $e->errors(),
                 ], 422);
             }
 
@@ -76,7 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('prefix/api/*') || $request->expectsJson()) {
                 return response()->json([
                     'message' => '請先登入',
-                    'error' => 'unauthenticated'
+                    'error' => 'unauthenticated',
                 ], 401);
             }
 
@@ -88,7 +89,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '沒有權限執行此操作',
-                    'error' => 'authorization_error'
+                    'error' => 'authorization_error',
                 ], 403);
             }
 
@@ -100,7 +101,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '找不到指定的頁面或資源',
-                    'error' => 'not_found'
+                    'error' => 'not_found',
                 ], 404);
             }
 
@@ -110,12 +111,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Handle timeout exceptions
         $exceptions->render(function (\Illuminate\Http\Client\ConnectionException $e, $request) {
-            \Log::error('Connection timeout: ' . $e->getMessage());
+            \Log::error('Connection timeout: '.$e->getMessage());
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '連線超時，請稍後再試',
-                    'error' => 'timeout_error'
+                    'error' => 'timeout_error',
                 ], 408);
             }
 
@@ -137,16 +138,16 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Log unexpected errors
-            \Log::error('Unexpected error: ' . $e->getMessage(), [
+            \Log::error('Unexpected error: '.$e->getMessage(), [
                 'exception' => $e,
                 'trace' => $e->getTraceAsString(),
-                'request' => $request->all()
+                'request' => $request->all(),
             ]);
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '系統發生錯誤，請稍後再試',
-                    'error' => 'internal_error'
+                    'error' => 'internal_error',
                 ], 500);
             }
 

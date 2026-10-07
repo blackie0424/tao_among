@@ -15,9 +15,11 @@ use App\Services\Line\LineCreateFishReplyBuilder;
 use App\Services\Line\LineFishKnowledgeMessageBuilder;
 use App\Services\Line\LineFishMessageBuilder;
 use App\Services\Line\LineMenuMessageBuilder;
+use App\Services\LineBatchCapture\State\Image\LineImageSet;
 use App\Services\LineBatchCaptureFlowService;
 use App\Services\LineBatchCaptureMessageBuilder;
 use App\Services\LineCreateFish\LineCreateFishFormFlowService;
+use App\Services\LocationVisibilityService;
 use App\Services\UploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +34,6 @@ use LINE\Webhook\Model\ImageMessageContent;
 use LINE\Webhook\Model\MessageEvent;
 use LINE\Webhook\Model\PostbackEvent;
 use LINE\Webhook\Model\TextMessageContent;
-use App\Services\LineBatchCapture\State\Image\LineImageSet;
 
 class LineBotController extends Controller
 {
@@ -62,6 +63,8 @@ class LineBotController extends Controller
 
     protected LineCreateFishReplyBuilder $createFishReplyBuilder;
 
+    protected LocationVisibilityService $locationVisibilityService;
+
     public function __construct(
         LineMessagingClientInterface $lineMessagingClient,
         ApiFishController $apiFishController,
@@ -74,7 +77,8 @@ class LineBotController extends Controller
         ?LineMenuMessageBuilder $lineMenuMessageBuilder = null,
         ?LineFishKnowledgeMessageBuilder $lineFishKnowledgeMessageBuilder = null,
         ?FishNoteService $fishNoteService = null,
-        ?LineCreateFishReplyBuilder $createFishReplyBuilder = null
+        ?LineCreateFishReplyBuilder $createFishReplyBuilder = null,
+        ?LocationVisibilityService $locationVisibilityService = null
     ) {
         $this->lineMessagingClient = $lineMessagingClient;
         $this->apiFishController = $apiFishController;
@@ -87,6 +91,7 @@ class LineBotController extends Controller
         $this->lineMenuMessageBuilder = $lineMenuMessageBuilder ?? app(LineMenuMessageBuilder::class);
         $this->fishNoteService = $fishNoteService ?? app(FishNoteService::class);
         $this->createFishReplyBuilder = $createFishReplyBuilder ?? app(LineCreateFishReplyBuilder::class);
+        $this->locationVisibilityService = $locationVisibilityService ?? app(LocationVisibilityService::class);
         $this->lineBatchCaptureFlowService = $lineBatchCaptureFlowService
             ?? new LineBatchCaptureFlowService(
                 $lineMessagingClient,
@@ -433,6 +438,7 @@ class LineBotController extends Controller
             // imageSet：多圖一次傳送，追蹤直到全部到齊後自動完成
             if ($imageSet !== null) {
                 $this->handleCreateFishImageSet($userId, $replyToken, $filename, $imageSet, $maxImages);
+
                 return;
             }
 
@@ -479,7 +485,7 @@ class LineBotController extends Controller
         int $maxImages,
     ): void {
         $cacheData = Cache::get("line_user_{$userId}_create_fish_indexed_images");
-        $indexed   = ($cacheData !== null && $cacheData['set_id'] === $imageSet->id())
+        $indexed = ($cacheData !== null && $cacheData['set_id'] === $imageSet->id())
             ? $cacheData['indexed']
             : [];
 
@@ -499,9 +505,9 @@ class LineBotController extends Controller
             $this->replyNameChoiceMessage($replyToken, count($all));
         } else {
             Cache::put("line_user_{$userId}_create_fish_indexed_images", [
-                'set_id'  => $imageSet->id(),
+                'set_id' => $imageSet->id(),
                 'indexed' => $indexed,
-                'total'   => $imageSet->total(),
+                'total' => $imageSet->total(),
             ], now()->addMinutes(15));
             Cache::put("line_user_{$userId}_create_fish_state", 'waiting_more_images', now()->addMinutes(15));
 
@@ -1113,6 +1119,7 @@ class LineBotController extends Controller
             $role = $this->lineUserService->getRole($userId);
             $isEditor = in_array($role, ['editor', 'admin'], true);
             $canAccessAudio = User::roleCanAccessAudio($role);
+            $canAccessLocation = User::roleCanAccessLocation($role);
 
             if (in_array($action, $this->audioProtectedActions(), true) && ! $canAccessAudio) {
                 $this->lineMessagingClient->replyMessage($replyToken, [
@@ -1151,7 +1158,6 @@ class LineBotController extends Controller
 
                 return;
             }
-
 
             // ==========================================
             // 圖文選單功能（Rich Menu）
@@ -1724,9 +1730,14 @@ class LineBotController extends Controller
 
                     if ($fish && ! empty($fish['capture_records'])) {
                         // 建立捕獲紀錄輪播訊息
-                        $message = $this->lineFishMessageBuilder->buildCaptureRecordsCarousel(
+                        $captureRecords = $this->locationVisibilityService->filterForRole(
                             $fish['capture_records'],
-                            $fish['name']
+                            $role
+                        );
+                        $message = $this->lineFishMessageBuilder->buildCaptureRecordsCarousel(
+                            $captureRecords,
+                            $fish['name'],
+                            $canAccessLocation
                         );
 
                         // 回覆訊息
@@ -1905,11 +1916,11 @@ class LineBotController extends Controller
 
             // 從 cache 讀取捕獲資料
             $captureData = [
-                'tribe'          => Cache::get("line_user_{$userId}_create_fish_tribe"),
-                'location'       => Cache::get("line_user_{$userId}_create_fish_location"),
+                'tribe' => Cache::get("line_user_{$userId}_create_fish_tribe"),
+                'location' => Cache::get("line_user_{$userId}_create_fish_location"),
                 'capture_method' => Cache::get("line_user_{$userId}_create_fish_capture_method"),
-                'capture_date'   => Cache::get("line_user_{$userId}_create_fish_capture_date"),
-                'notes'          => $notes,
+                'capture_date' => Cache::get("line_user_{$userId}_create_fish_capture_date"),
+                'notes' => $notes,
             ];
 
             // 立即清除所有流程狀態，確保即使後續步驟失敗也不殘留
@@ -2059,5 +2070,4 @@ class LineBotController extends Controller
         }
         $this->lineCreateFishFormFlowService->clearState($userId);
     }
-
 }

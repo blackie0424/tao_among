@@ -333,7 +333,7 @@ class LineFishMessageBuilder
         ];
     }
 
-    public function buildCaptureRecordsCarousel(array $captureRecords, string $fishName): FlexMessage
+    public function buildCaptureRecordsCarousel(array $captureRecords, string $fishName, bool $canAccessLocation): FlexMessage
     {
         $bubbles = [];
 
@@ -363,7 +363,7 @@ class LineFishMessageBuilder
                     'margin' => 'sm',
                 ];
             }
-            if (! empty($record['location'])) {
+            if ($canAccessLocation && ! empty($record['location'])) {
                 $bodyContents[] = [
                     'type' => 'text',
                     'text' => '📍地點:'.$record['location'],

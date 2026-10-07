@@ -6,3 +6,5 @@ export const ROLE_LABELS = Object.freeze({
 })
 
 export const canAccessAudio = (role) => role === 'editor' || role === 'admin'
+
+export const canAccessLocation = (role) => role === 'editor' || role === 'admin'

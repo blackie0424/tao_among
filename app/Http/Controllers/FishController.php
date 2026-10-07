@@ -2,45 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Contracts\StorageServiceInterface;
-use App\Contracts\FishServiceInterface;
-use App\Contracts\FishSearchServiceInterface;
 use App\Contracts\CaptureSessionServiceInterface;
-use App\Services\AudioVisibilityService;
+use App\Contracts\FishSearchServiceInterface;
+use App\Contracts\FishServiceInterface;
+use App\Contracts\StorageServiceInterface;
 use App\Http\Requests\BatchCreateFishRequest;
-use App\Http\Requests\UpdateFishRequest;
-use Illuminate\Support\Facades\DB;
-use App\Models\Fish;
-use App\Models\FishNote;
-use App\Models\CaptureRecord;
 use App\Http\Requests\FishSearchRequest;
-use Illuminate\Http\JsonResponse;
-use Illuminate\View\View;
-use Carbon\Carbon;
-use Inertia\Inertia;
+use App\Models\CaptureRecord;
+use App\Models\Fish;
+use App\Services\AudioVisibilityService;
+use App\Services\LocationVisibilityService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class FishController extends Controller
 {
     protected $fishService;
+
     protected $storageService;
+
     protected $fishSearchService;
+
     protected $captureSessionService;
+
     protected $audioVisibilityService;
+
+    protected $locationVisibilityService;
 
     public function __construct(
         FishServiceInterface $fishService,
         StorageServiceInterface $storageService,
         FishSearchServiceInterface $fishSearchService,
         CaptureSessionServiceInterface $captureSessionService,
-        AudioVisibilityService $audioVisibilityService
+        AudioVisibilityService $audioVisibilityService,
+        LocationVisibilityService $locationVisibilityService
     ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
         $this->fishSearchService = $fishSearchService;
         $this->captureSessionService = $captureSessionService;
         $this->audioVisibilityService = $audioVisibilityService;
+        $this->locationVisibilityService = $locationVisibilityService;
     }
 
     public function index()
@@ -53,6 +57,7 @@ class FishController extends Controller
         $details = $this->fishService->getFishDetails((int) $id);
         $details['tribes'] = config('fish_options.tribes');
         $details = $this->audioVisibilityService->filter($details, $request->user());
+        $details = $this->locationVisibilityService->filter($details, $request->user());
 
         return Inertia::render('Fish', $details);
     }
@@ -62,41 +67,75 @@ class FishController extends Controller
         // Trace: FR-001 多條件後端搜尋, FR-003 比對規則, FR-007 perPage 正規化, FR-005 游標分頁, FR-002 精簡欄位
         // Trace: SC-004 首屏 payload 降幅（僅回傳白名單欄位給前端無限滾動）, SC-006 游標契約一致性（last_id 明碼, nextCursor 派生）
         // 使用 Request 清洗參數（忽略空白、perPage 正規化、游標驗證）
-        $filters = $request->cleaned();
+        $filters = $this->locationSafeFilters($request->cleaned(), $request);
 
         // 游標式分頁 + 精簡欄位（提供給前端無限滾動使用）
         $paginated = $this->fishSearchService->paginate($filters);
 
-        $searchOptions = $this->fishSearchService->getSearchOptions();
+        $searchOptions = $this->locationSafeSearchOptions(
+            $this->fishSearchService->getSearchOptions(),
+            $request
+        );
         // total_results 在 getSearchStats 內固定使用 Fish::count()，不受 $filters 影響
         // 但 tribe 需傳入以計算部落專屬統計（n, m）
         $searchStats = $this->fishSearchService->getSearchStats($filters);
         // 傳給前端的篩選條件：保留前端使用的 key 名（food_category）
         $frontendFilters = array_intersect_key($filters, array_flip(['name', 'tribe', 'food_category', 'processing_method', 'capture_location', 'capture_method', 'without_audio']));
+
         return Inertia::render('Fishs', [
             'filters' => $frontendFilters,
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
             // 精簡欄位 + 游標分頁（FR-002, FR-005）
-            'items' => $this->audioVisibilityService->filter($paginated['items'], $request->user()),
+            'items' => $this->locationVisibilityService->filter(
+                $this->audioVisibilityService->filter($paginated['items'], $request->user()),
+                $request->user()
+            ),
             'pageInfo' => $paginated['pageInfo'],
         ]);
     }
 
     public function search(Request $request)
     {
-        $filters = $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']);
-        
+        $filters = $this->locationSafeFilters(
+            $request->only(['name', 'tribe', 'dietary_classification', 'processing_method', 'capture_location', 'capture_method']),
+            $request
+        );
+
         $fishs = $this->fishSearchService->search($filters);
-        $searchOptions = $this->fishSearchService->getSearchOptions();
+        $searchOptions = $this->locationSafeSearchOptions(
+            $this->fishSearchService->getSearchOptions(),
+            $request
+        );
         $searchStats = $this->fishSearchService->getSearchStats($filters);
 
         return Inertia::render('Fish/Search', [
-            'fishs' => $this->audioVisibilityService->filter($fishs, $request->user()),
+            'fishs' => $this->locationVisibilityService->filter(
+                $this->audioVisibilityService->filter($fishs, $request->user()),
+                $request->user()
+            ),
             'filters' => $filters,
             'searchOptions' => $searchOptions,
             'searchStats' => $searchStats,
         ]);
+    }
+
+    private function locationSafeFilters(array $filters, Request $request): array
+    {
+        if (! $request->user()?->canAccessLocation()) {
+            unset($filters['capture_location']);
+        }
+
+        return $filters;
+    }
+
+    private function locationSafeSearchOptions(array $options, Request $request): array
+    {
+        if (! $request->user()?->canAccessLocation()) {
+            unset($options['captureLocations']);
+        }
+
+        return $options;
     }
 
     /**
@@ -105,9 +144,9 @@ class FishController extends Controller
     public function batchCreate()
     {
         return Inertia::render('BatchCreateFish', [
-            'tribes'          => config('fish_options.tribes'),
+            'tribes' => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
-            'upload_limits'   => config('fish_options.batch_upload'),
+            'upload_limits' => config('fish_options.batch_upload'),
             'recent_sessions' => $this->captureSessionService->getRecentSessions(),
         ]);
     }
@@ -117,17 +156,17 @@ class FishController extends Controller
      */
     public function batchStore(BatchCreateFishRequest $request)
     {
-        $filenames     = $request->validated()['filenames'];
-        $name          = filled($request->input('name')) ? $request->input('name') : '我不知道';
-        $tribe         = $request->input('tribe', 'iraraley');
-        $location      = $request->input('location', '待補充');
+        $filenames = $request->validated()['filenames'];
+        $name = filled($request->input('name')) ? $request->input('name') : '我不知道';
+        $tribe = $request->input('tribe', 'iraraley');
+        $location = $request->input('location', '待補充');
         $captureMethod = $request->input('capture_method', 'mamasil');
-        $captureDate   = $request->input('capture_date', now()->toDateString());
-        $notes         = $request->input('notes', null);
+        $captureDate = $request->input('capture_date', now()->toDateString());
+        $notes = $request->input('notes', null);
 
         $fish = DB::transaction(function () use ($name, $filenames, $tribe, $location, $captureMethod, $captureDate, $notes) {
             $fish = Fish::create([
-                'name'  => $name,
+                'name' => $name,
                 'image' => $filenames[0],
             ]);
 
@@ -135,13 +174,13 @@ class FishController extends Controller
 
             foreach ($filenames as $index => $filename) {
                 $record = CaptureRecord::create([
-                    'fish_id'        => $fish->id,
-                    'image_path'     => $filename,
-                    'tribe'          => $tribe,
-                    'location'       => $location,
+                    'fish_id' => $fish->id,
+                    'image_path' => $filename,
+                    'tribe' => $tribe,
+                    'location' => $location,
                     'capture_method' => $captureMethod,
-                    'capture_date'   => $captureDate,
-                    'notes'          => $notes,
+                    'capture_date' => $captureDate,
+                    'notes' => $notes,
                 ]);
 
                 if ($index === 0) {
@@ -162,9 +201,10 @@ class FishController extends Controller
     {
         // 取得指定魚類資訊
         $fish = Fish::findOrFail($id);
+
         // 回傳編輯畫面，帶入魚類資訊
         return Inertia::render('EditFishName', [
-            'fish' => $fish
+            'fish' => $fish,
         ]);
     }
 
@@ -172,20 +212,20 @@ class FishController extends Controller
     {
         // 詳細的除錯資訊
         Log::info('=== 更新魚類名稱 DEBUG ===');
-        Log::info('Request method: ' . $request->method());
-        Log::info('Request URL: ' . $request->fullUrl());
-        Log::info('Request path: ' . $request->path());
-        Log::info('Fish ID: ' . $id);
+        Log::info('Request method: '.$request->method());
+        Log::info('Request URL: '.$request->fullUrl());
+        Log::info('Request path: '.$request->path());
+        Log::info('Fish ID: '.$id);
         Log::info('Request data: ', $request->all());
         Log::info('Headers: ', $request->headers->all());
         Log::info('========================');
-        
+
         $fish = Fish::findOrFail($id);
         $request->validate(['name' => 'required|string|max:255']);
         $fish->update(['name' => $request->name]);
-        
-        Log::info('魚類名稱已更新: ' . $fish->name);
-        
+
+        Log::info('魚類名稱已更新: '.$fish->name);
+
         // 加入 redirect + flash message
         return redirect("/fish/{$id}")
             ->with('success', "魚類名稱已更新為「{$fish->name}」！");
@@ -196,25 +236,25 @@ class FishController extends Controller
         try {
             $fish = Fish::findOrFail($id);
             $fishName = $fish->name;
-            
+
             // 執行軟刪除（會自動觸發級聯刪除）
             $fish->delete();
-            
+
             Log::info('魚類刪除成功', [
                 'fish_id' => $id,
-                'fish_name' => $fishName
+                'fish_name' => $fishName,
             ]);
-            
+
             // 使用標準 Inertia 流程：redirect + flash message
             return redirect('/fishs')->with('success', "魚類「{$fishName}」已成功刪除！");
-            
+
         } catch (\Exception $e) {
-            Log::error('魚類刪除錯誤: ' . $e->getMessage(), [
+            Log::error('魚類刪除錯誤: '.$e->getMessage(), [
                 'fish_id' => $id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
-            return back()->with('error', '刪除魚類時發生錯誤：' . $e->getMessage());
+
+            return back()->with('error', '刪除魚類時發生錯誤：'.$e->getMessage());
         }
     }
 
@@ -227,7 +267,7 @@ class FishController extends Controller
     public function updateDisplayImage(Request $request, $id)
     {
         $request->validate([
-            'capture_record_id' => 'required|integer|exists:capture_records,id'
+            'capture_record_id' => 'required|integer|exists:capture_records,id',
         ]);
 
         $fish = Fish::findOrFail($id);
@@ -235,13 +275,13 @@ class FishController extends Controller
 
         // 驗證捕獲紀錄是否屬於這條魚
         $captureRecord = $fish->captureRecords()->where('id', $captureRecordId)->first();
-        
-        if (!$captureRecord) {
+
+        if (! $captureRecord) {
             return back()->withErrors(['capture_record_id' => '捕獲紀錄不屬於此魚類']);
         }
 
         $fish->update([
-            'display_capture_record_id' => $captureRecordId
+            'display_capture_record_id' => $captureRecordId,
         ]);
 
         return back()->with('success', '已設定為圖鑑主圖');
@@ -250,7 +290,7 @@ class FishController extends Controller
     /**
      * 顯示魚類合併頁面
      *
-     * @param int $id 目標魚類 ID
+     * @param  int  $id  目標魚類 ID
      * @return \Inertia\Response
      */
     public function showMergePage($id)
@@ -269,5 +309,4 @@ class FishController extends Controller
             ],
         ]);
     }
-
 }
