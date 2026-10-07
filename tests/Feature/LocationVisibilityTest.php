@@ -131,3 +131,37 @@ it('preserves location search options and filtering for editors and admins', fun
         ->and($props['filters']['capture_location'])->toBe('ZZLOCATIONMARK')
         ->and(array_column($props['items'], 'id'))->toBe([$markedFish->id]);
 })->with(['editor', 'admin']);
+it('ignores location probes and hides location options on the search page for viewers', function () {
+    $markedFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZLOCATIONMARK']);
+    $otherFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
+    $viewer = User::factory()->lineViewer()->create();
+
+    $plain = $this->actingAs($viewer)->get('/search')->assertOk();
+    $probed = $this->get('/search?capture_location=ZZLOCATIONMARK')->assertOk();
+
+    $plainProps = $plain->viewData('page')['props'];
+    $probedProps = $probed->viewData('page')['props'];
+
+    expect(array_column($probedProps['fishs'], 'id'))
+        ->toBe(array_column($plainProps['fishs'], 'id'))
+        ->and($probedProps['filters'])->not->toHaveKey('capture_location')
+        ->and($probedProps['searchOptions'])->not->toHaveKey('captureLocations');
+});
+
+it('preserves location filtering and options on the search page for editors and admins', function (string $role) {
+    $markedFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZLOCATIONMARK']);
+    $otherFish = Fish::factory()->create();
+    CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
+
+    $response = $this->actingAs(User::factory()->create(['role' => $role]))
+        ->get('/search?capture_location=ZZLOCATIONMARK')
+        ->assertOk();
+    $props = $response->viewData('page')['props'];
+
+    expect($props['filters']['capture_location'])->toBe('ZZLOCATIONMARK')
+        ->and($props['searchOptions']['captureLocations'])->toContain('ZZLOCATIONMARK')
+        ->and(array_column($props['fishs'], 'id'))->toBe([$markedFish->id]);
+})->with(['editor', 'admin']);
