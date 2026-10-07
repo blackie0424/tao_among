@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\CaptureSessionServiceInterface;
+use App\Contracts\StorageServiceInterface;
 use App\Http\Requests\CaptureRecordRequest;
-use App\Models\Fish;
 use App\Models\CaptureRecord;
+use App\Models\Fish;
 use App\Services\CaptureRecordBatchService;
 use App\Services\FishService;
 use App\Services\LocationVisibilityService;
-use App\Contracts\StorageServiceInterface;
-use App\Contracts\CaptureSessionServiceInterface;
 use App\Traits\HasFishImageUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -20,9 +20,13 @@ class CaptureRecordController extends Controller
     use HasFishImageUrl;
 
     protected $fishService;
+
     protected $storageService;
+
     protected $captureSessionService;
+
     protected CaptureRecordBatchService $captureRecordBatchService;
+
     protected LocationVisibilityService $locationVisibilityService;
 
     public function __construct(
@@ -46,21 +50,21 @@ class CaptureRecordController extends Controller
     {
         // 取得指定魚類資訊和捕獲紀錄
         $fish = Fish::with(['captureRecords', 'displayCaptureRecord'])->findOrFail($fishId);
-        
+
         // 使用 Trait 處理魚類圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
-        
+
         // 確保 captureRecords 以正確的鍵名傳遞
         $fishData = $fishWithImage->toArray();
         $fishData['captureRecords'] = $fishWithImage->captureRecords->toArray();
         $fishData = $this->locationVisibilityService->filter($fishData, request()->user());
-        
+
         // 定義部落選項
         $tribes = config('fish_options.tribes');
-        
+
         return Inertia::render('CaptureRecords', [
             'fish' => $fishData,
-            'tribes' => $tribes
+            'tribes' => $tribes,
         ]);
     }
 
@@ -88,10 +92,10 @@ class CaptureRecordController extends Controller
         $fishWithImage = $this->assignFishImage($fish);
 
         return Inertia::render('BatchCreateCaptureRecord', [
-            'fish'            => $fishWithImage,
-            'tribes'          => config('fish_options.tribes'),
+            'fish' => $fishWithImage,
+            'tribes' => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
-            'upload_limits'   => config('fish_options.batch_upload'),
+            'upload_limits' => config('fish_options.batch_upload'),
             'recent_sessions' => $this->captureSessionService->getRecentSessions(),
         ]);
     }
@@ -124,23 +128,23 @@ class CaptureRecordController extends Controller
         $record = CaptureRecord::where('fish_id', $fishId)
             ->where('id', $recordId)
             ->firstOrFail();
-        
+
         // 使用 Trait 處理圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
-        
+
         // 定義部落選項
         $tribes = config('fish_options.tribes');
 
         // 定義捕獲方式選項
         $capture_methods = config('fish_options.capture_methods');
-        
+
         return Inertia::render('EditCaptureRecord', [
             'fish' => $fishWithImage,
             'record' => $record,
             'tribes' => $tribes,
-            'capture_methods' => $capture_methods
+            'capture_methods' => $capture_methods,
         ]);
-       
+
     }
 
     /**
@@ -165,17 +169,17 @@ class CaptureRecordController extends Controller
         ];
 
         // 處理圖片更新（如果有新圖片檔名）
-        if (!empty($validated['image_filename'])) {
+        if (! empty($validated['image_filename'])) {
             // 刪除舊圖片
             if ($record->image_path) {
                 try {
                     $this->storageService->delete($record->image_path);
                 } catch (\Exception $e) {
                     // 記錄錯誤但不阻止更新操作
-                    Log::error('Failed to delete old capture record image: ' . $e->getMessage());
+                    Log::error('Failed to delete old capture record image: '.$e->getMessage());
                 }
             }
-            
+
             $updateData['image_path'] = $validated['image_filename'];
         }
 
@@ -183,7 +187,7 @@ class CaptureRecordController extends Controller
 
         // 重新載入捕獲紀錄頁面
         return redirect()->route('fish.media-manager', $fishId)
-               ->with('success', "資料更新成功！");
+            ->with('success', '資料更新成功！');
     }
 
     /**
@@ -192,15 +196,15 @@ class CaptureRecordController extends Controller
     public function destroy($fishId, $recordId)
     {
         Log::info("Delete request received for fish: {$fishId}, record: {$recordId}");
-        
+
         $record = CaptureRecord::where('fish_id', $fishId)
             ->where('id', $recordId)
             ->firstOrFail();
-            
+
         // 執行軟刪除
         $record->delete();
-        
-        Log::info("Record deleted successfully, redirecting to capture records");
+
+        Log::info('Record deleted successfully, redirecting to capture records');
 
         return redirect()->route('fish.media-manager', $fishId)->with('success', '捕獲紀錄刪除成功');
     }

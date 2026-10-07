@@ -1,13 +1,13 @@
 <?php
 
-use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\Api\ImageRotateController;
-use App\Http\Controllers\LineBotController;
-use App\Http\Controllers\UploadController;
-use App\Http\Controllers\FishNoteController;
-use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\FishMergeController;
+use App\Http\Controllers\FishNoteController;
+use App\Http\Controllers\LineBotController;
 use App\Http\Controllers\TopicController;
+use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\UploadController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

@@ -13,9 +13,7 @@ class AudioVisibilityService
         'audios',
     ];
 
-    public function __construct(private readonly PayloadFieldFilter $fieldFilter)
-    {
-    }
+    public function __construct(private readonly PayloadFieldFilter $fieldFilter) {}
 
     public function filter(mixed $payload, ?User $user): mixed
     {

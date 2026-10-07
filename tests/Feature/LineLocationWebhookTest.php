@@ -20,7 +20,7 @@ it('applies location visibility through the real LINE webhook route', function (
         'tribe' => 'ivalino',
     ]);
 
-    $messages = new ArrayObject();
+    $messages = new ArrayObject;
     $messaging = Mockery::mock(LineMessagingClientInterface::class);
     $messaging->shouldReceive('validateSignature')->once()->andReturnTrue();
     $messaging->shouldReceive('getUserProfile')->once()->andReturn([

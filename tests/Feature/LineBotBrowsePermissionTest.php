@@ -6,8 +6,8 @@ use App\Contracts\LineUserServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Http\Controllers\ApiFishController;
 use App\Http\Controllers\LineBotController;
-use App\Models\Fish;
 use App\Models\CaptureRecord;
+use App\Models\Fish;
 use App\Services\UploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -42,7 +42,7 @@ class LineBotBrowsePermissionTest extends TestCase
 
         $this->lineUserService = \Mockery::mock(LineUserServiceInterface::class);
         $this->lineUserService->shouldReceive('upsert')
-            ->andReturn(new \App\Models\User())
+            ->andReturn(new \App\Models\User)
             ->byDefault();
 
         $this->controller = new LineBotController(
@@ -256,9 +256,10 @@ class LineBotBrowsePermissionTest extends TestCase
             ['admin', true],
         ];
     }
+
     private function captureReply(): \ArrayObject
     {
-        $messages = new \ArrayObject();
+        $messages = new \ArrayObject;
         $this->messagingClient->shouldReceive('replyMessage')
             ->once()
             ->andReturnUsing(function ($token, $replyMessages) use (&$messages): void {
@@ -289,15 +290,29 @@ class LineBotBrowsePermissionTest extends TestCase
     private function postbackEvent(string $data): object
     {
         $source = $this->source();
-        $postback = new class($data) {
+        $postback = new class($data)
+        {
             public function __construct(private string $data) {}
-            public function getData(): string { return $this->data; }
+
+            public function getData(): string
+            {
+                return $this->data;
+            }
         };
 
-        return new class($source, $postback) {
+        return new class($source, $postback)
+        {
             public function __construct(private object $source, private object $postback) {}
-            public function getSource(): object { return $this->source; }
-            public function getPostback(): object { return $this->postback; }
+
+            public function getSource(): object
+            {
+                return $this->source;
+            }
+
+            public function getPostback(): object
+            {
+                return $this->postback;
+            }
         };
     }
 
@@ -321,9 +336,14 @@ class LineBotBrowsePermissionTest extends TestCase
 
     private function source(): object
     {
-        return new class(self::USER_ID) {
+        return new class(self::USER_ID)
+        {
             public function __construct(private string $userId) {}
-            public function getUserId(): string { return $this->userId; }
+
+            public function getUserId(): string
+            {
+                return $this->userId;
+            }
         };
     }
 }
