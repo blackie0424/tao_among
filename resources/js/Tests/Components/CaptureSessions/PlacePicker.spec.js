@@ -66,5 +66,9 @@ describe('CaptureSessions/PlacePicker', () => {
 
     expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([null])
     expect(wrapper.get('[data-testid="create-place-panel"]').exists()).toBe(true)
+    for (const input of wrapper.findAll('input')) {
+      expect(input.classes()).toContain('border')
+    }
+    expect(wrapper.get('label').classes()).toContain('mb-1')
   })
 })

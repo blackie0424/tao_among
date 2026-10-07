@@ -141,3 +141,21 @@ it('filters place suggestions by normalized name or Tao name', function () {
     expect($taoIds->all())->toBe([$taoMatch->id])
         ->and($taoIds)->not->toContain($unrelated->id);
 });
+
+it('renders the admin place index with empty and populated data', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->get('/admin/places')->assertOk()
+        ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('Admin/Places/Index')
+            ->has('places.data', 0));
+
+    $place = Place::factory()->create(['name' => '東清灣', 'name_key' => '東清灣']);
+    CaptureSession::factory()->create(['place_id' => $place->id]);
+
+    $this->get('/admin/places')->assertOk()
+        ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->has('places.data', 1)
+            ->where('places.data.0.id', $place->id)
+            ->where('places.data.0.capture_sessions_count', 1));
+});

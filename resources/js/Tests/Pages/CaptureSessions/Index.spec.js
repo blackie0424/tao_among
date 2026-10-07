@@ -19,5 +19,11 @@ describe('CaptureSessions/Index', () => {
     expect(wrapper.text()).toContain('0 筆')
     expect(wrapper.text()).toContain('已有紀錄（含已刪除），不能刪除')
     expect(wrapper.findAll('a').filter(link => link.attributes('href') === '/capture-sessions/3')).toHaveLength(1)
+    for (const actions of wrapper.findAll('[data-testid="session-actions"]')) {
+      expect(actions.classes()).toEqual(expect.arrayContaining(['flex', 'items-center', 'gap-3']))
+      for (const action of actions.findAll('a')) {
+        expect(action.classes()).toEqual(expect.arrayContaining(['px-2', 'py-1']))
+      }
+    }
   })
 })
