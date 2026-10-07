@@ -100,6 +100,23 @@ it('rejects deletion when even a soft deleted record references the session', fu
     expect($session->fresh())->not->toBeNull();
 });
 
+it('renders the create page and returns the created session as JSON', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $payload = [
+        'capture_date' => '2026-10-01',
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_id' => null,
+        'notes' => null,
+    ];
+
+    $this->actingAs($editor)->get('/capture-sessions/create')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('CaptureSessions/Create'));
+    $this->postJson('/capture-sessions', $payload)->assertCreated()
+        ->assertJsonPath('session.capture_method', '釣魚')
+        ->assertJsonPath('session.place', null);
+});
+
 it('allows editors to create sessions and blocks viewers', function () {
     $payload = ['capture_date' => '2026-10-01', 'tribe' => 'ivalino', 'capture_method' => '釣魚', 'place_id' => null, 'notes' => null];
     $this->actingAs(User::factory()->lineViewer()->create())->post('/capture-sessions', $payload)->assertForbidden();

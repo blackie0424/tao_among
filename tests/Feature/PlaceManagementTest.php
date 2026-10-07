@@ -96,6 +96,15 @@ it('blocks editors from admin place management and blocks referenced deletion', 
     $this->actingAs(User::factory()->admin()->create())->delete("/admin/places/{$place->id}")->assertSessionHasErrors('place');
 });
 
+it('allows an admin to delete an unused place', function () {
+    $admin = User::factory()->admin()->create();
+    $place = Place::factory()->create();
+
+    $this->actingAs($admin)->delete("/admin/places/{$place->id}")
+        ->assertRedirect('/admin/places');
+    $this->assertDatabaseMissing('places', ['id' => $place->id]);
+});
+
 it('enforces canonical uniqueness in the database', function () {
     Place::factory()->create(['name' => 'A B', 'name_key' => 'a b']);
     expect(fn () => Place::factory()->create(['name' => 'Other', 'name_key' => 'a b']))
