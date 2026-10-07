@@ -19,6 +19,7 @@ class CaptureRecordFactory extends Factory
     {
         return [
             'fish_id' => Fish::factory(),
+            'session_id' => null,
             'image_path' => 'test-image-'.rand(1000, 9999).'.jpg',
             'tribe' => collect(['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'])->random(),
             'location' => 'Test Location '.rand(1, 100),

@@ -80,6 +80,7 @@ describe('CaptureRecord Model', function () {
 
         $expectedFillable = [
             'fish_id',
+            'session_id',
             'image_path',
             'tribe',
             'location',

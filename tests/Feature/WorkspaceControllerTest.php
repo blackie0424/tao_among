@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\CaptureSession;
 use App\Models\Fish;
+use App\Models\Place;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -82,6 +85,32 @@ describe('GET /workspace', function () {
             ->assertInertia(fn (Assert $page) => $page
                 ->where('limit', 20)
             );
+    });
+
+    it('待補地點只列未選地名情境且查詢次數不隨筆數增加', function () {
+        $editor = User::factory()->lineEditor()->create();
+        $place = Place::factory()->create();
+        CaptureSession::factory()->create(['place_id' => $place->id]);
+        CaptureSession::factory()->create(['place_id' => null, 'location_hint' => '舊文字提示']);
+
+        $phase = 'baseline';
+        $counts = ['baseline' => 0, 'expanded' => 0];
+        DB::listen(function ($query) use (&$phase, &$counts): void {
+            $sql = strtolower(str_replace(['\`', '"'], '', $query->sql));
+            if (str_contains($sql, ' from capture_sessions')) {
+                $counts[$phase]++;
+            }
+        });
+
+        $this->actingAs($editor, 'sanctum')->get('/workspace')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('pendingPlaces', 1)
+            ->where('pendingPlaces.0.location_hint', '舊文字提示'));
+
+        CaptureSession::factory()->count(3)->create(['place_id' => null]);
+        $phase = 'expanded';
+        $this->get('/workspace')->assertOk()->assertInertia(fn (Assert $page) => $page->has('pendingPlaces', 4));
+
+        expect($counts)->toBe(['baseline' => 1, 'expanded' => 1]);
     });
 
     it('首頁 / 對 editor 不再渲染 EditorHome', function () {

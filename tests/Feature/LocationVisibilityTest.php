@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\CaptureRecord;
+use App\Models\CaptureSession;
 use App\Models\Fish;
+use App\Models\Place;
 use App\Models\User;
 use App\Services\LocationVisibilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -168,3 +170,35 @@ it('preserves location filtering and options on the search page for editors and 
         ->and($props['searchOptions']['captureLocations'])->toContain('ZZLOCATIONMARK')
         ->and(array_column($props['fishs'], 'id'))->toBe([$markedFish->id]);
 })->with(['editor', 'admin']);
+
+it('removes every new location-related key recursively for viewers', function () {
+    $payload = [
+        'place' => ['name' => 'ZZPLACEMARK', 'name_key' => 'zzplacemark'],
+        'places' => [['tao_name' => 'ZZTAOMARK']],
+        'capture_session' => ['location_hint' => 'ZZHINTMARK'],
+        'capture_sessions' => [['place_name' => 'ZZPLACEMARK']],
+        'legacy_sessions' => [['location' => 'ZZLOCATIONMARK']],
+        'session_id' => 19,
+    ];
+
+    expect(app(LocationVisibilityService::class)->filterForRole($payload, 'viewer'))->toBe(['session_id' => 19]);
+});
+
+it('serializes relation keys exactly as restricted and hides place name keys', function () {
+    $place = Place::factory()->create([
+        'name' => 'ZZPLACEMARK',
+        'name_key' => 'zzplacemark',
+    ]);
+    $session = CaptureSession::factory()->create(['place_id' => $place->id]);
+    $record = CaptureRecord::factory()->create(['session_id' => $session->id])
+        ->load('captureSession.place');
+
+    $serialized = $record->toArray();
+
+    expect($serialized)->toHaveKey('capture_session')
+        ->and($serialized['capture_session'])->toHaveKey('place')
+        ->and($serialized['capture_session']['place'])->not->toHaveKey('name_key')
+        ->and(app(LocationVisibilityService::class)->filterForRole($serialized, 'viewer'))
+        ->not->toHaveKey('capture_session')
+        ->and($serialized)->toHaveKey('session_id', $session->id);
+});

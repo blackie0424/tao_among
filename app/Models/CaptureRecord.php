@@ -14,6 +14,7 @@ class CaptureRecord extends Model
 
     protected $fillable = [
         'fish_id',
+        'session_id',
         'image_path',
         'tribe',
         'location',
@@ -51,6 +52,11 @@ class CaptureRecord extends Model
     public function fish(): BelongsTo
     {
         return $this->belongsTo(Fish::class, 'fish_id');
+    }
+
+    public function captureSession(): BelongsTo
+    {
+        return $this->belongsTo(CaptureSession::class, 'session_id');
     }
 
     // 取得圖片 URL

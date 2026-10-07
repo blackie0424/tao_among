@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CaptureSession;
 use App\Models\Fish;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -49,10 +50,21 @@ class WorkspaceController extends Controller
                 'image_url' => $f->image_url,
             ]);
 
+        $pendingPlaces = CaptureSession::whereNull('place_id')
+            ->orderByDesc('capture_date')->orderByDesc('id')->limit($limit)->get()
+            ->map(fn (CaptureSession $session) => [
+                'id' => $session->id,
+                'capture_date' => $session->capture_date->format('Y-m-d'),
+                'tribe' => $session->tribe,
+                'capture_method' => $session->capture_method,
+                'location_hint' => $session->location_hint,
+            ]);
+
         return Inertia::render('EditorHome', [
             'needAudio' => $needAudio,
             'needPhoto' => $needPhoto,
             'recentEdits' => $recentEdits,
+            'pendingPlaces' => $pendingPlaces,
             'limit' => $limit,
         ]);
     }

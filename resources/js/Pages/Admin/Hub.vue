@@ -72,6 +72,12 @@
           </div>
         </Link>
 
+        <!-- 地名管理 -->
+        <Link href="/admin/places" class="hub-card">
+          <div class="hub-card__icon hub-card__icon--green"><span class="text-xl">⌖</span></div>
+          <div class="flex-1 min-w-0"><div class="hub-card__title">地名管理</div><div class="hub-card__desc">管理地名、族語名稱與使用狀態</div></div>
+        </Link>
+
         <!-- 魚類報表 -->
         <Link href="/fish-report" class="hub-card">
           <div class="hub-card__icon hub-card__icon--orange">
