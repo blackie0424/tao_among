@@ -118,6 +118,25 @@ class LineFishMessageBuilderTest extends TestCase
         $this->assertStringNotContainsString('📍地點', $json);
         $this->assertStringContainsString('iraraley', $json);
     }
+
+    public function test_capture_records_carousel_omits_empty_location_with_access(): void
+    {
+        $message = $this->service->buildCaptureRecordsCarousel([
+            [
+                'tribe' => 'iraraley',
+                'location' => '',
+                'capture_method' => '釣魚',
+                'capture_date' => '2025-01-01',
+                'image_url' => 'https://example.com/capture.jpg',
+            ],
+        ], '測試魚', true);
+
+        $json = json_encode($message->jsonSerialize(), JSON_UNESCAPED_UNICODE);
+
+        $this->assertStringNotContainsString('📍地點', $json);
+        $this->assertStringContainsString('iraraley', $json);
+    }
+
     private function extractBubbleJson(FlexMessage $message): array
     {
         return json_decode(json_encode($message->jsonSerialize()), true);

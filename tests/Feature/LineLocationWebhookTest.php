@@ -10,21 +10,21 @@ use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
-it('removes capture location for a viewer through the real LINE webhook route', function () {
+it('applies location visibility through the real LINE webhook route', function (string $role, bool $shouldSeeLocation) {
     Cache::flush();
     config(['line.channel_secret' => 'test-line-secret']);
     $fish = Fish::factory()->create(['name' => 'Webhook地名魚']);
     CaptureRecord::factory()->create([
         'fish_id' => $fish->id,
         'location' => 'ZZLOCATIONMARK',
-        'tribe' => config('fish_options.tribes')[0],
+        'tribe' => 'ivalino',
     ]);
 
     $messages = new ArrayObject();
     $messaging = Mockery::mock(LineMessagingClientInterface::class);
     $messaging->shouldReceive('validateSignature')->once()->andReturnTrue();
     $messaging->shouldReceive('getUserProfile')->once()->andReturn([
-        'displayName' => 'Viewer',
+        'displayName' => ucfirst($role),
         'pictureUrl' => null,
     ]);
     $messaging->shouldReceive('replyMessage')->once()
@@ -34,8 +34,8 @@ it('removes capture location for a viewer through the real LINE webhook route', 
     $this->app->instance(LineMessagingClientInterface::class, $messaging);
 
     $lineUsers = Mockery::mock(LineUserServiceInterface::class);
-    $lineUsers->shouldReceive('upsert')->once()->andReturn(new User(['role' => 'viewer']));
-    $lineUsers->shouldReceive('getRole')->once()->andReturn('viewer');
+    $lineUsers->shouldReceive('upsert')->once()->andReturn(new User(['role' => $role]));
+    $lineUsers->shouldReceive('getRole')->once()->andReturn($role);
     $this->app->instance(LineUserServiceInterface::class, $lineUsers);
 
     $payload = [
@@ -44,8 +44,8 @@ it('removes capture location for a viewer through the real LINE webhook route', 
             'type' => 'postback',
             'mode' => 'active',
             'timestamp' => 1720000000000,
-            'source' => ['type' => 'user', 'userId' => 'Uviewer'],
-            'webhookEventId' => '01WEBHOOKLOCATION',
+            'source' => ['type' => 'user', 'userId' => "U{$role}"],
+            'webhookEventId' => "01WEBHOOKLOCATION{$role}",
             'deliveryContext' => ['isRedelivery' => false],
             'replyToken' => 'reply-token-location',
             'postback' => [
@@ -73,7 +73,11 @@ it('removes capture location for a viewer through the real LINE webhook route', 
     $response->assertOk()->assertJson(['status' => 'ok']);
     expect($messages)->toHaveCount(1);
     $json = json_encode($messages[0]->jsonSerialize(), JSON_UNESCAPED_UNICODE);
-    expect($json)->not->toContain('ZZLOCATIONMARK')
-        ->and($json)->not->toContain('📍地點')
-        ->and($json)->toContain(config('fish_options.tribes')[0]);
-});
+    expect(str_contains($json, 'ZZLOCATIONMARK'))->toBe($shouldSeeLocation)
+        ->and(str_contains($json, '📍地點'))->toBe($shouldSeeLocation)
+        ->and($json)->toContain('ivalino');
+})->with([
+    'viewer' => ['viewer', false],
+    'editor' => ['editor', true],
+    'admin' => ['admin', true],
+]);

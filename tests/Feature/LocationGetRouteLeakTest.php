@@ -4,6 +4,7 @@ use App\Models\CaptureRecord;
 use App\Models\Fish;
 use App\Models\Topic;
 use App\Models\TopicItem;
+use App\Models\TribalClassification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,7 @@ it('classifies every GET route and scans viewer data routes for location leaks',
     ]);
     $topic = Topic::factory()->create(['slug' => 'route-scan-topic', 'is_published' => true]);
     $topicItem = TopicItem::factory()->create(['topic_id' => $topic->id, 'is_published' => true]);
+    $classification = TribalClassification::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino']);
     $viewer = User::factory()->lineViewer()->create();
     $editor = User::factory()->lineEditor()->create();
 
@@ -31,6 +33,7 @@ it('classifies every GET route and scans viewer data routes for location leaks',
         'fish/{id}/knowledge-list' => "/fish/{$fish->id}/knowledge-list",
         'fish/{id}/reference-knowledge' => "/fish/{$fish->id}/reference-knowledge",
         'fish/{id}/tribal-classifications' => "/fish/{$fish->id}/tribal-classifications",
+        'login' => '/login',
         'fishs' => '/fishs',
         'search' => '/search',
         'prefix/api/capture-records' => '/prefix/api/capture-records',
@@ -38,6 +41,12 @@ it('classifies every GET route and scans viewer data routes for location leaks',
         'prefix/api/fish/{id}' => "/prefix/api/fish/{$fish->id}",
         'prefix/api/fish/{id}/compact' => "/prefix/api/fish/{$fish->id}/compact",
         'prefix/api/fish/{id}/notes' => "/prefix/api/fish/{$fish->id}/notes",
+        'prefix/api/fish/{fish_id}/tribal-classifications' => "/prefix/api/fish/{$fish->id}/tribal-classifications",
+        'prefix/api/fishs/latest-at' => '/prefix/api/fishs/latest-at',
+        'prefix/api/health-check' => '/prefix/api/health-check',
+        'prefix/api/topics' => '/prefix/api/topics',
+        'prefix/api/tribal-classifications/{id}' => "/prefix/api/tribal-classifications/{$classification->id}",
+        'prefix/api/user' => '/prefix/api/user',
         'prefix/api/fishs/filter' => '/prefix/api/fishs/filter?filter_type=tribe&filter_value='.'ivalino',
         'prefix/api/fishs/random' => '/prefix/api/fishs/random',
         'prefix/api/fishs/random-unknown' => '/prefix/api/fishs/random-unknown',
@@ -80,13 +89,6 @@ it('classifies every GET route and scans viewer data routes for location leaks',
         'fish/{id}/reference-knowledge/{knowledge}/edit' => 'editor only form requiring knowledge fixture',
         'fish/{id}/tribal-classifications/create' => 'editor only form',
         'line-users' => 'admin only',
-        'login' => 'authentication form without fish data',
-        'prefix/api/fish/{fish_id}/tribal-classifications' => 'tribal classification payload has no capture location',
-        'prefix/api/fishs/latest-at' => 'timestamp only',
-        'prefix/api/health-check' => 'health status only',
-        'prefix/api/topics' => 'topic categories without capture records',
-        'prefix/api/tribal-classifications/{id}' => 'tribal classification payload has no capture location',
-        'prefix/api/user' => 'current user only',
         'sanctum/csrf-cookie' => 'framework CSRF endpoint',
         'storage/{path}' => 'local storage file endpoint',
         'swagger/documentation' => 'Swagger UI',
