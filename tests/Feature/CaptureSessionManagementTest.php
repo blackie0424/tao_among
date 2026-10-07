@@ -157,3 +157,76 @@ it('keeps session list relation query counts fixed as rows increase', function (
     expect($counts['baseline'])->toBe(['places' => 1, 'records' => 1])
         ->and($counts['expanded'])->toBe(['places' => 1, 'records' => 1]);
 });
+
+it('supports the editor edit page and synchronizes an HTTP update to records and workspace state', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $place = Place::factory()->create(['name' => '東清灣', 'name_key' => '東清灣']);
+    $session = CaptureSession::factory()->create([
+        'capture_date' => '2026-10-01',
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_id' => null,
+    ]);
+    $record = CaptureRecord::factory()->create(['session_id' => $session->id, 'location' => null]);
+
+    $this->actingAs($editor)->get("/capture-sessions/{$session->id}/edit")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('CaptureSessions/Edit')
+            ->where('session.id', $session->id));
+
+    $this->put("/capture-sessions/{$session->id}", [
+        'capture_date' => '2026-10-02',
+        'tribe' => 'yayo',
+        'capture_method' => '船釣（拼板舟）',
+        'place_id' => $place->id,
+        'notes' => '已補地名',
+    ])->assertRedirect('/capture-sessions');
+
+    expect($session->fresh()->only(['tribe', 'capture_method', 'place_id']))
+        ->toBe(['tribe' => 'yayo', 'capture_method' => '船釣（拼板舟）', 'place_id' => $place->id])
+        ->and($record->fresh()->location)->toBe('東清灣');
+    $this->get('/workspace')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('pendingPlaces', 0));
+});
+
+it('allows an editor to delete an empty session over HTTP', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $session = CaptureSession::factory()->create();
+
+    $this->actingAs($editor)->delete("/capture-sessions/{$session->id}")
+        ->assertRedirect('/capture-sessions');
+    $this->assertDatabaseMissing('capture_sessions', ['id' => $session->id]);
+});
+
+it('rejects future capture dates on create and update', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $session = CaptureSession::factory()->create();
+    $payload = [
+        'capture_date' => now()->addDay()->format('Y-m-d'),
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_id' => null,
+        'notes' => null,
+    ];
+
+    $this->actingAs($editor)->post('/capture-sessions', $payload)
+        ->assertSessionHasErrors('capture_date');
+    $this->put("/capture-sessions/{$session->id}", $payload)
+        ->assertSessionHasErrors('capture_date');
+});
+
+it('blocks viewers from updating and deleting sessions', function () {
+    $viewer = User::factory()->lineViewer()->create();
+    $session = CaptureSession::factory()->create();
+    $payload = [
+        'capture_date' => '2026-10-01',
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_id' => null,
+        'notes' => null,
+    ];
+
+    $this->actingAs($viewer)->put("/capture-sessions/{$session->id}", $payload)->assertForbidden();
+    $this->delete("/capture-sessions/{$session->id}")->assertForbidden();
+});

@@ -7,7 +7,7 @@
         {{ place.name }}<span v-if="place.tao_name" class="text-gray-500">（{{ place.tao_name }}）</span>
       </button>
     </div>
-    <div v-if="query && !suggestions.length" class="rounded-lg border p-3 space-y-2">
+    <div v-if="query && !suggestions.length && !hasSelection" data-testid="create-place-panel" class="rounded-lg border p-3 space-y-2">
       <p class="text-sm text-gray-600">找不到地名，可就地新增。</p>
       <input v-model="taoName" class="w-full rounded-lg border-gray-300" placeholder="族語名稱（可留空）" />
       <button type="button" class="px-3 py-2 rounded-lg bg-teal-600 text-white" @click="createPlace">新增並選取</button>
@@ -27,6 +27,7 @@ const taoName = ref('')
 const suggestions = ref([])
 const selectedName = ref(props.initialName)
 const message = ref('')
+const hasSelection = ref(Boolean(props.modelValue && props.initialName))
 let timer
 
 watch(() => props.initialName, value => { if (!query.value) query.value = value || '' })
@@ -34,6 +35,7 @@ watch(() => props.initialName, value => { if (!query.value) query.value = value 
 function search() {
   emit('update:modelValue', null)
   selectedName.value = ''
+  hasSelection.value = false
   clearTimeout(timer)
   if (!query.value.trim()) { suggestions.value = []; return }
   timer = setTimeout(async () => {
@@ -47,6 +49,7 @@ function select(place) {
   query.value = place.name
   selectedName.value = place.name
   suggestions.value = []
+  hasSelection.value = true
   message.value = ''
 }
 

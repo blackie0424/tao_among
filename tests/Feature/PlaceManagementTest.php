@@ -117,3 +117,27 @@ it('suggests at most ten matching existing places', function () {
     $response = $this->actingAs($editor)->getJson('/places/suggest?q=東清')->assertOk();
     expect($response->json('places'))->toHaveCount(10);
 });
+
+it('blocks editors from updating and deleting places through admin routes', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $place = Place::factory()->create();
+
+    $this->actingAs($editor)->put("/admin/places/{$place->id}", ['name' => '新名稱'])
+        ->assertForbidden();
+    $this->delete("/admin/places/{$place->id}")->assertForbidden();
+});
+
+it('filters place suggestions by normalized name or Tao name', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $nameMatch = Place::factory()->create(['name' => '東清灣', 'name_key' => '東清灣', 'tao_name' => null]);
+    $taoMatch = Place::factory()->create(['name' => '朗島灣', 'name_key' => '朗島灣', 'tao_name' => 'Iraraley Coast']);
+    $unrelated = Place::factory()->create(['name' => '紅頭灣', 'name_key' => '紅頭灣', 'tao_name' => 'Imorod']);
+
+    $nameIds = collect($this->actingAs($editor)->getJson('/places/suggest?q=東清')->assertOk()->json('places'))->pluck('id');
+    expect($nameIds->all())->toBe([$nameMatch->id])
+        ->and($nameIds)->not->toContain($unrelated->id);
+
+    $taoIds = collect($this->getJson('/places/suggest?q=Iraraley')->assertOk()->json('places'))->pluck('id');
+    expect($taoIds->all())->toBe([$taoMatch->id])
+        ->and($taoIds)->not->toContain($unrelated->id);
+});

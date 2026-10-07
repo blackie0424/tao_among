@@ -139,8 +139,20 @@ it('classifies every GET route and scans viewer data routes for location leaks',
         }
     }
 
+    $scanExposesLocation = false;
+    $this->actingAs($editor);
+    foreach ($scan as $url) {
+        $response = $this->get($url);
+        if (stripos($response->getContent(), 'ZZLOCATIONMARK') !== false) {
+            $scanExposesLocation = true;
+            break;
+        }
+    }
+    expect($scanExposesLocation, 'Positive control failed: no scanned editor route exposes ZZLOCATIONMARK')
+        ->toBeTrue();
+
     $editorResponse = $this->actingAs($editor)->get('/capture-sessions')->assertOk();
-    expect(collect($markers)->contains(
-        fn (string $marker): bool => stripos($editorResponse->getContent(), $marker) !== false
-    ), 'Positive control failed: editor route cannot expose any marker')->toBeTrue();
+    expect(stripos($editorResponse->getContent(), 'ZZPLACEMARK'))->not->toBeFalse()
+        ->and(stripos($editorResponse->getContent(), 'ZZTAOMARK'))->not->toBeFalse()
+        ->and(stripos($editorResponse->getContent(), 'ZZHINTMARK'))->not->toBeFalse();
 });
