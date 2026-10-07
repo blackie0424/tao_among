@@ -96,7 +96,7 @@ describe('GET /workspace', function () {
         $phase = 'baseline';
         $counts = ['baseline' => 0, 'expanded' => 0];
         DB::listen(function ($query) use (&$phase, &$counts): void {
-            $sql = strtolower(str_replace(['\`', '"'], '', $query->sql));
+            $sql = strtolower(str_replace(['`', '"'], '', $query->sql));
             if (str_contains($sql, ' from capture_sessions')) {
                 $counts[$phase]++;
             }

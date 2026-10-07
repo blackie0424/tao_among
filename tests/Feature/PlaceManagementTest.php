@@ -31,7 +31,7 @@ it('maps a unique-key race to the existing-place 422 response', function () {
     $editor = User::factory()->lineEditor()->create();
     $inserted = false;
     DB::listen(function ($query) use (&$inserted): void {
-        $sql = strtolower(str_replace(['\`', '"'], '', $query->sql));
+        $sql = strtolower(str_replace(['`', '"'], '', $query->sql));
         if (! $inserted && str_contains($sql, 'select') && str_contains($sql, 'from places') && str_contains($sql, 'name_key')) {
             $inserted = true;
             Place::factory()->create(['name' => 'Race Bay', 'name_key' => 'race bay']);
@@ -77,7 +77,7 @@ it('rolls back a place rename when linked-record synchronization fails', functio
     $record = CaptureRecord::factory()->create(['session_id' => $session->id, 'location' => '舊地名']);
 
     \Illuminate\Support\Facades\DB::listen(function ($query): void {
-        $sql = strtolower(str_replace(['\`', '"'], '', $query->sql));
+        $sql = strtolower(str_replace(['`', '"'], '', $query->sql));
         if (str_starts_with($sql, 'update capture_records')) {
             throw new RuntimeException('forced place synchronization failure');
         }
