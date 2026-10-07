@@ -1,26 +1,24 @@
 <?php
 
-use App\Http\Controllers\FishController;
-use App\Http\Controllers\FishNoteController;
-use App\Http\Controllers\FishAudioController;
-use App\Http\Controllers\KnowledgeHubController;
-use App\Http\Controllers\CaptureRecordController;
-use App\Http\Controllers\TribalClassificationController;
-use App\Http\Controllers\FishManagementController;
-use App\Http\Controllers\FishReportController;
-use App\Http\Controllers\LineUserController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LineLoginController;
-use App\Http\Controllers\ReferenceController;
-use App\Http\Controllers\ReferenceKnowledgeController;
-
-use App\Http\Controllers\AdminHubController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\WorkspaceController;
-use App\Http\Controllers\TopicController;
 use App\Http\Controllers\Admin\TopicController as AdminTopicController;
 use App\Http\Controllers\Admin\TopicItemController;
-
+use App\Http\Controllers\AdminHubController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CaptureRecordController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FishAudioController;
+use App\Http\Controllers\FishController;
+use App\Http\Controllers\FishManagementController;
+use App\Http\Controllers\FishNoteController;
+use App\Http\Controllers\FishReportController;
+use App\Http\Controllers\KnowledgeHubController;
+use App\Http\Controllers\LineLoginController;
+use App\Http\Controllers\LineUserController;
+use App\Http\Controllers\ReferenceController;
+use App\Http\Controllers\ReferenceKnowledgeController;
+use App\Http\Controllers\TopicController;
+use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
 // =====================================================
