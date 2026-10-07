@@ -10,9 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class FilterRestrictedLocation
 {
-    public function __construct(private readonly LocationVisibilityService $locationVisibility)
-    {
-    }
+    public function __construct(private readonly LocationVisibilityService $locationVisibility) {}
 
     public function handle(Request $request, Closure $next): Response
     {

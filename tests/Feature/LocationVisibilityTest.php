@@ -59,6 +59,7 @@ it('preserves API location for editors and admins', function (string $role) {
 
     expect($response->json('data.0.location'))->toBe('ZZLOCATIONMARK');
 })->with(['editor', 'admin']);
+
 it('filters location from fish detail and capture record pages for viewers', function () {
     $fish = Fish::factory()->create();
     CaptureRecord::factory()->create(['fish_id' => $fish->id, 'location' => 'ZZLOCATIONMARK']);
@@ -97,6 +98,7 @@ it('preserves location on fish detail and capture record pages for editors and a
             ->component('CaptureRecords')
             ->where('fish.captureRecords.0.location', 'ZZLOCATIONMARK'));
 })->with(['editor', 'admin']);
+
 it('hides location search options and ignores location probes for viewers', function () {
     $markedFish = Fish::factory()->create();
     CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZLOCATIONMARK']);
@@ -131,6 +133,7 @@ it('preserves location search options and filtering for editors and admins', fun
         ->and($props['filters']['capture_location'])->toBe('ZZLOCATIONMARK')
         ->and(array_column($props['items'], 'id'))->toBe([$markedFish->id]);
 })->with(['editor', 'admin']);
+
 it('ignores location probes and hides location options on the search page for viewers', function () {
     $markedFish = Fish::factory()->create();
     CaptureRecord::factory()->create(['fish_id' => $markedFish->id, 'location' => 'ZZLOCATIONMARK']);
