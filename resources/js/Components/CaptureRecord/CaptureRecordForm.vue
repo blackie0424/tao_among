@@ -231,6 +231,7 @@ import LazyImage from '@/Components/UI/LazyImage.vue'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 import { useImageUpload } from '@/composables/useImageUpload'
 import { useCaptureFormFields } from '@/composables/useCaptureFormFields'
+import { formatLocalDate } from '@/utils/localDate'
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -255,7 +256,7 @@ const processing = ref(false)
 const selectedFileName = ref('')
 const canSubmit = ref(true)
 
-const today = computed(() => new Date().toISOString().split('T')[0])
+const today = computed(() => formatLocalDate())
 
 // ── Composables ──
 const {
@@ -277,7 +278,7 @@ onMounted(() => {
     form.location = props.record.location || ''
     form.capture_method = props.record.capture_method || ''
     form.capture_date = props.record.capture_date
-      ? new Date(props.record.capture_date).toISOString().split('T')[0]
+      ? String(props.record.capture_date).slice(0, 10)
       : ''
     form.notes = props.record.notes || ''
     form.image_position = props.record.image_position || 'center'

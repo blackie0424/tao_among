@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\CaptureRecord;
 use App\Models\Fish;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,12 +19,13 @@ class CaptureRecordFactory extends Factory
     {
         return [
             'fish_id' => Fish::factory(),
-            'image_path' => 'test-image-' . rand(1000, 9999) . '.jpg',
+            'session_id' => null,
+            'image_path' => 'test-image-'.rand(1000, 9999).'.jpg',
             'tribe' => collect(['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'])->random(),
-            'location' => 'Test Location ' . rand(1, 100),
+            'location' => 'Test Location '.rand(1, 100),
             'capture_method' => collect(['網捕', '釣魚', '陷阱', '徒手捕捉', '魚叉'])->random(),
             'capture_date' => now()->subDays(rand(1, 365))->format('Y-m-d'),
-            'notes' => 'Test capture notes ' . rand(1000, 9999),
+            'notes' => 'Test capture notes '.rand(1000, 9999),
         ];
     }
 

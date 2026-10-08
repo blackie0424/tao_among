@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Contracts\StorageServiceInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Contracts\StorageServiceInterface;
 
 class CaptureRecord extends Model
 {
@@ -14,6 +14,7 @@ class CaptureRecord extends Model
 
     protected $fillable = [
         'fish_id',
+        'session_id',
         'image_path',
         'tribe',
         'location',
@@ -32,7 +33,7 @@ class CaptureRecord extends Model
     ];
 
     protected $appends = [
-        'image_url'
+        'image_url',
     ];
 
     protected static function booted()
@@ -42,7 +43,7 @@ class CaptureRecord extends Model
             if ($record->image_path) {
                 $storage = app(StorageServiceInterface::class);
                 $imageFolder = $storage->getImageFolder();
-                $storage->delete($imageFolder . '/' . $record->image_path);
+                $storage->delete($imageFolder.'/'.$record->image_path);
             }
         });
     }
@@ -53,18 +54,24 @@ class CaptureRecord extends Model
         return $this->belongsTo(Fish::class, 'fish_id');
     }
 
+    public function captureSession(): BelongsTo
+    {
+        return $this->belongsTo(CaptureSession::class, 'session_id');
+    }
+
     // 取得圖片 URL
     public function getImageUrlAttribute()
     {
-        if (!$this->image_path) {
+        if (! $this->image_path) {
             return null;
         }
-        
+
         $storage = app(\App\Contracts\StorageServiceInterface::class);
         $hasWebp = null;
         if ($this->relationLoaded('fish') && $this->fish) {
             $hasWebp = $this->fish->has_webp ?? null;
         }
+
         return $storage->getUrl('images', $this->image_path, $hasWebp);
     }
 }

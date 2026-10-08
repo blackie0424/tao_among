@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CaptureSession;
 use App\Models\Fish;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,22 +22,22 @@ class WorkspaceController extends Controller
             ->limit($limit)
             ->get($cols)
             ->map(fn ($f) => [
-                'id'        => $f->id,
-                'name'      => $f->name,
+                'id' => $f->id,
+                'name' => $f->name,
                 'image_url' => $f->image_url,
             ]);
 
         $needPhoto = Fish::where(function ($q) {
-                $q->whereNull('image')
-                  ->orWhere('image', '')
-                  ->orWhere('image', 'default.png');
-            })
+            $q->whereNull('image')
+                ->orWhere('image', '')
+                ->orWhere('image', 'default.png');
+        })
             ->orderBy('id')
             ->limit($limit)
             ->get($cols)
             ->map(fn ($f) => [
-                'id'        => $f->id,
-                'name'      => $f->name,
+                'id' => $f->id,
+                'name' => $f->name,
                 'image_url' => null,
             ]);
 
@@ -44,16 +45,27 @@ class WorkspaceController extends Controller
             ->limit($limit)
             ->get($cols)
             ->map(fn ($f) => [
-                'id'        => $f->id,
-                'name'      => $f->name,
+                'id' => $f->id,
+                'name' => $f->name,
                 'image_url' => $f->image_url,
             ]);
 
+        $pendingPlaces = CaptureSession::whereNull('place_id')
+            ->orderByDesc('capture_date')->orderByDesc('id')->limit($limit)->get()
+            ->map(fn (CaptureSession $session) => [
+                'id' => $session->id,
+                'capture_date' => $session->capture_date->format('Y-m-d'),
+                'tribe' => $session->tribe,
+                'capture_method' => $session->capture_method,
+                'location_hint' => $session->location_hint,
+            ]);
+
         return Inertia::render('EditorHome', [
-            'needAudio'   => $needAudio,
-            'needPhoto'   => $needPhoto,
+            'needAudio' => $needAudio,
+            'needPhoto' => $needPhoto,
             'recentEdits' => $recentEdits,
-            'limit'       => $limit,
+            'pendingPlaces' => $pendingPlaces,
+            'limit' => $limit,
         ]);
     }
 
@@ -62,6 +74,7 @@ class WorkspaceController extends Controller
         if ($value === null || $value === '') {
             return self::DEFAULT_LIMIT;
         }
+
         return max(10, min(50, (int) $value));
     }
 }

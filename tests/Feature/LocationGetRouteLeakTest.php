@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\CaptureRecord;
+use App\Models\CaptureSession;
 use App\Models\Fish;
+use App\Models\Place;
 use App\Models\Topic;
 use App\Models\TopicItem;
 use App\Models\TribalClassification;
@@ -13,11 +15,20 @@ uses(RefreshDatabase::class);
 
 it('classifies every GET route and scans viewer data routes for location leaks', function () {
     $fish = Fish::factory()->create(['name' => '路由掃描魚']);
+    $place = Place::factory()->create([
+        'name' => 'ZZPLACEMARK',
+        'name_key' => 'zzplacemark',
+        'tao_name' => 'ZZTAOMARK',
+    ]);
+    $session = CaptureSession::factory()->create(['place_id' => $place->id]);
+    CaptureSession::factory()->create(['place_id' => null, 'location_hint' => 'ZZHINTMARK']);
     CaptureRecord::factory()->create([
         'fish_id' => $fish->id,
+        'session_id' => $session->id,
         'location' => 'ZZLOCATIONMARK',
         'tribe' => 'ivalino',
     ]);
+    $markers = ['ZZLOCATIONMARK', 'ZZPLACEMARK', 'ZZTAOMARK', 'ZZHINTMARK'];
     $topic = Topic::factory()->create(['slug' => 'route-scan-topic', 'is_published' => true]);
     $topicItem = TopicItem::factory()->create(['topic_id' => $topic->id, 'is_published' => true]);
     $classification = TribalClassification::factory()->create(['fish_id' => $fish->id, 'tribe' => 'ivalino']);
@@ -57,6 +68,8 @@ it('classifies every GET route and scans viewer data routes for location leaks',
 
     $excluded = [
         'admin' => 'admin only',
+        'admin/places' => 'admin only place manager',
+        'admin/places/{place}/edit' => 'admin only place editor',
         'admin/references' => 'admin only',
         'admin/references/create' => 'admin only',
         'admin/references/{reference}/edit' => 'admin only and requires a reference',
@@ -72,6 +85,10 @@ it('classifies every GET route and scans viewer data routes for location leaks',
         'docs' => 'Swagger documentation',
         'docs/asset/{asset}' => 'Swagger static asset',
         'fish-report' => 'admin report page',
+        'capture-sessions' => 'editor only session list',
+        'capture-sessions/create' => 'editor only session form',
+        'capture-sessions/{session}/edit' => 'editor only session editor',
+        'places/suggest' => 'editor only place search',
         'fish/batch-create' => 'editor only',
         'fish/{id}/audio-list' => 'editor only media manager',
         'fish/{id}/audio/create' => 'editor only form',
@@ -115,20 +132,27 @@ it('classifies every GET route and scans viewer data routes for location leaks',
     foreach ($scan as $uri => $url) {
         $response = $this->get($url);
         expect($response->getStatusCode(), "GET {$uri} returned a server error")
-            ->toBeLessThan(500)
-            ->and($response->getContent(), "GET {$uri} leaked capture location")
-            ->not->toContain('ZZLOCATIONMARK');
-    }
-
-    $editorCanObserveMarker = false;
-    $this->actingAs($editor);
-    foreach ($scan as $url) {
-        if (str_contains($this->get($url)->getContent(), 'ZZLOCATIONMARK')) {
-            $editorCanObserveMarker = true;
-            break;
+            ->toBeLessThan(500);
+        foreach ($markers as $marker) {
+            expect(stripos($response->getContent(), $marker), "GET {$uri} leaked {$marker}")
+                ->toBeFalse();
         }
     }
 
-    expect($editorCanObserveMarker, 'Positive control failed: scanned routes cannot expose the marker')
+    $scanExposesLocation = false;
+    $this->actingAs($editor);
+    foreach ($scan as $url) {
+        $response = $this->get($url);
+        if (stripos($response->getContent(), 'ZZLOCATIONMARK') !== false) {
+            $scanExposesLocation = true;
+            break;
+        }
+    }
+    expect($scanExposesLocation, 'Positive control failed: no scanned editor route exposes ZZLOCATIONMARK')
         ->toBeTrue();
+
+    $editorResponse = $this->actingAs($editor)->get('/capture-sessions')->assertOk();
+    expect(stripos($editorResponse->getContent(), 'ZZPLACEMARK'))->not->toBeFalse()
+        ->and(stripos($editorResponse->getContent(), 'ZZTAOMARK'))->not->toBeFalse()
+        ->and(stripos($editorResponse->getContent(), 'ZZHINTMARK'))->not->toBeFalse();
 });

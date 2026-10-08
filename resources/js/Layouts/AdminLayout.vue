@@ -87,6 +87,15 @@
         </Link>
 
         <Link
+          href="/admin/places"
+          class="nav-item"
+          :class="{ 'nav-item--active': currentUrl.startsWith('/admin/places') }"
+          @click="sidebarOpen = false"
+        >
+          <span class="w-5 text-center">⌖</span><span>地名管理</span>
+        </Link>
+
+        <Link
           href="/fish-report"
           class="nav-item"
           :class="{ 'nav-item--active': currentUrl.startsWith('/fish-report') }"

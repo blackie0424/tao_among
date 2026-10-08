@@ -7,10 +7,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 describe('CaptureRecord Model', function () {
-    
+
     it('can create a capture record', function () {
         $fish = Fish::factory()->create();
-        
+
         $captureRecord = CaptureRecord::factory()->create([
             'fish_id' => $fish->id,
             'image_path' => 'test-image.jpg',
@@ -18,7 +18,7 @@ describe('CaptureRecord Model', function () {
             'location' => 'Test Location',
             'capture_method' => '網捕',
             'capture_date' => '2024-01-15',
-            'notes' => 'Test capture notes'
+            'notes' => 'Test capture notes',
         ]);
 
         expect($captureRecord)->toBeInstanceOf(CaptureRecord::class);
@@ -34,7 +34,7 @@ describe('CaptureRecord Model', function () {
     it('belongs to a fish', function () {
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
-            'fish_id' => $fish->id
+            'fish_id' => $fish->id,
         ]);
 
         expect($captureRecord->fish)->toBeInstanceOf(Fish::class);
@@ -44,7 +44,7 @@ describe('CaptureRecord Model', function () {
 
     it('casts capture_date to date', function () {
         $captureRecord = CaptureRecord::factory()->create([
-            'capture_date' => '2024-01-15'
+            'capture_date' => '2024-01-15',
         ]);
 
         expect($captureRecord->capture_date)->toBeInstanceOf(\Illuminate\Support\Carbon::class);
@@ -76,10 +76,11 @@ describe('CaptureRecord Model', function () {
     });
 
     it('has correct fillable attributes', function () {
-        $captureRecord = new CaptureRecord();
-        
+        $captureRecord = new CaptureRecord;
+
         $expectedFillable = [
             'fish_id',
+            'session_id',
             'image_path',
             'tribe',
             'location',
@@ -94,14 +95,14 @@ describe('CaptureRecord Model', function () {
     });
 
     it('has image_url in appends', function () {
-        $captureRecord = new CaptureRecord();
-        
+        $captureRecord = new CaptureRecord;
+
         expect($captureRecord->getAppends())->toContain('image_url');
     });
 
     it('can be created with all valid tribe values', function () {
         $validTribes = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'];
-        
+
         foreach ($validTribes as $tribe) {
             $captureRecord = CaptureRecord::factory()->forTribe($tribe)->create();
             expect($captureRecord->tribe)->toBe($tribe);
@@ -110,7 +111,7 @@ describe('CaptureRecord Model', function () {
 
     it('can store various capture methods', function () {
         $methods = ['網捕', '釣魚', '陷阱', '徒手捕捉', '魚叉'];
-        
+
         foreach ($methods as $method) {
             $captureRecord = CaptureRecord::factory()->withMethod($method)->create();
             expect($captureRecord->capture_method)->toBe($method);
@@ -119,7 +120,7 @@ describe('CaptureRecord Model', function () {
 
     it('can store long location names', function () {
         $longLocation = str_repeat('很長的地點名稱', 10);
-        
+
         $captureRecord = CaptureRecord::factory()->atLocation($longLocation)->create();
 
         expect($captureRecord->location)->toBe($longLocation);
@@ -127,9 +128,9 @@ describe('CaptureRecord Model', function () {
 
     it('can store long notes', function () {
         $longNotes = str_repeat('這是一個很長的捕獲備註。', 100);
-        
+
         $captureRecord = CaptureRecord::factory()->create([
-            'notes' => $longNotes
+            'notes' => $longNotes,
         ]);
 
         expect($captureRecord->notes)->toBe($longNotes);
@@ -141,12 +142,12 @@ describe('CaptureRecord Model', function () {
             'simple.jpg',
             'folder/image.png',
             'deep/folder/structure/image.webp',
-            'uuid-12345-67890.jpg'
+            'uuid-12345-67890.jpg',
         ];
-        
+
         foreach ($imagePaths as $imagePath) {
             $captureRecord = CaptureRecord::factory()->create([
-                'image_path' => $imagePath
+                'image_path' => $imagePath,
             ]);
             expect($captureRecord->image_path)->toBe($imagePath);
         }
@@ -154,7 +155,7 @@ describe('CaptureRecord Model', function () {
 
     it('can handle today capture date', function () {
         $captureRecord = CaptureRecord::factory()->today()->create();
-        
+
         expect($captureRecord->capture_date->format('Y-m-d'))->toBe(now()->format('Y-m-d'));
     });
 });

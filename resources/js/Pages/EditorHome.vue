@@ -35,8 +35,21 @@
       </div>
     </div>
 
-    <!-- 三欄 Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="flex flex-wrap gap-3 mb-6">
+      <Link href="/capture-sessions/create" class="px-4 py-2 rounded-xl bg-teal-600 text-white font-bold">新增情境</Link>
+      <Link href="/capture-sessions" class="px-4 py-2 rounded-xl border border-teal-600 text-teal-700 font-bold">情境清單</Link>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <section data-testid="pending-places">
+        <h2 class="text-sm font-bold text-gray-700 mb-2">待補地點 <span class="text-xs text-gray-400 font-normal">（{{ pendingPlaces.length }} 筆）</span></h2>
+        <div v-if="pendingPlaces.length" class="bg-white rounded-xl border divide-y">
+          <Link v-for="session in pendingPlaces" :key="session.id" :href="`/capture-sessions/${session.id}/edit`" class="block px-4 py-3 hover:bg-blue-50">
+            <span class="font-medium">{{ session.capture_date }}</span><span class="text-sm text-gray-500 block">{{ session.tribe }} · {{ session.capture_method }}</span>
+          </Link>
+        </div>
+        <p v-else class="text-sm text-gray-400">沒有待補的情境</p>
+      </section>
 
       <!-- 待補發音 -->
       <section>
@@ -147,6 +160,7 @@ defineProps({
   needAudio:   { type: Array, default: () => [] },
   needPhoto:   { type: Array, default: () => [] },
   recentEdits: { type: Array, default: () => [] },
+  pendingPlaces: { type: Array, default: () => [] },
   limit:       { type: Number, default: 20 },
 })
 

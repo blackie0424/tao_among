@@ -1,26 +1,27 @@
 <?php
 
-use App\Http\Controllers\FishController;
-use App\Http\Controllers\FishNoteController;
-use App\Http\Controllers\FishAudioController;
-use App\Http\Controllers\KnowledgeHubController;
-use App\Http\Controllers\CaptureRecordController;
-use App\Http\Controllers\TribalClassificationController;
-use App\Http\Controllers\FishManagementController;
-use App\Http\Controllers\FishReportController;
-use App\Http\Controllers\LineUserController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LineLoginController;
-use App\Http\Controllers\ReferenceController;
-use App\Http\Controllers\ReferenceKnowledgeController;
-
-use App\Http\Controllers\AdminHubController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\WorkspaceController;
-use App\Http\Controllers\TopicController;
+use App\Http\Controllers\Admin\PlaceController as AdminPlaceController;
 use App\Http\Controllers\Admin\TopicController as AdminTopicController;
 use App\Http\Controllers\Admin\TopicItemController;
-
+use App\Http\Controllers\AdminHubController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CaptureRecordController;
+use App\Http\Controllers\CaptureSessionController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FishAudioController;
+use App\Http\Controllers\FishController;
+use App\Http\Controllers\FishManagementController;
+use App\Http\Controllers\FishNoteController;
+use App\Http\Controllers\FishReportController;
+use App\Http\Controllers\KnowledgeHubController;
+use App\Http\Controllers\LineLoginController;
+use App\Http\Controllers\LineUserController;
+use App\Http\Controllers\PlaceController;
+use App\Http\Controllers\ReferenceController;
+use App\Http\Controllers\ReferenceKnowledgeController;
+use App\Http\Controllers\TopicController;
+use App\Http\Controllers\TribalClassificationController;
+use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
 // =====================================================
@@ -66,6 +67,14 @@ Route::middleware(['auth', 'browse'])->group(function () {
 
         // 田調工作區
         Route::get('/workspace', [WorkspaceController::class, 'index'])->name('workspace');
+        Route::get('/capture-sessions', [CaptureSessionController::class, 'index'])->name('capture-sessions.index');
+        Route::get('/capture-sessions/create', [CaptureSessionController::class, 'create'])->name('capture-sessions.create');
+        Route::post('/capture-sessions', [CaptureSessionController::class, 'store'])->name('capture-sessions.store');
+        Route::get('/capture-sessions/{session}/edit', [CaptureSessionController::class, 'edit'])->name('capture-sessions.edit');
+        Route::put('/capture-sessions/{session}', [CaptureSessionController::class, 'update'])->name('capture-sessions.update');
+        Route::delete('/capture-sessions/{session}', [CaptureSessionController::class, 'destroy'])->name('capture-sessions.destroy');
+        Route::post('/places', [PlaceController::class, 'store'])->name('places.store');
+        Route::get('/places/suggest', [PlaceController::class, 'suggest'])->name('places.suggest');
 
         // 魚類基本管理
         // 注意：/fish/batch-create 必須在 /fish/{id} 之前定義
@@ -131,6 +140,10 @@ Route::middleware(['auth', 'browse'])->group(function () {
         Route::post('/admin/references', [ReferenceController::class, 'store'])->name('admin.references.store');
         Route::get('/admin/references/{reference}/edit', [ReferenceController::class, 'edit'])->name('admin.references.edit');
         Route::put('/admin/references/{reference}', [ReferenceController::class, 'update'])->name('admin.references.update');
+        Route::get('/admin/places', [AdminPlaceController::class, 'index'])->name('admin.places.index');
+        Route::get('/admin/places/{place}/edit', [AdminPlaceController::class, 'edit'])->name('admin.places.edit');
+        Route::put('/admin/places/{place}', [AdminPlaceController::class, 'update'])->name('admin.places.update');
+        Route::delete('/admin/places/{place}', [AdminPlaceController::class, 'destroy'])->name('admin.places.destroy');
 
         // 主題導覽分類管理
         Route::get('/admin/topics', [AdminTopicController::class, 'index'])->name('admin.topics.index');
