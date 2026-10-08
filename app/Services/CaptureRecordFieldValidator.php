@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\CaptureDate;
 use Illuminate\Support\Facades\Validator;
 
 class CaptureRecordFieldValidator
@@ -15,7 +16,7 @@ class CaptureRecordFieldValidator
             'tribe' => 'required|in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley',
             'location' => 'required|string|max:255',
             'capture_method' => 'required|string|max:255',
-            'capture_date' => 'required|date|before_or_equal:today',
+            'capture_date' => 'required|date|before_or_equal:'.CaptureDate::today(),
             'notes' => 'nullable|string|max:65535',
             'image_filename' => $requireImageFilename ? 'required|string' : 'nullable|string',
             'image_position' => 'nullable|in:center,top,bottom,left,right',
@@ -91,7 +92,7 @@ class CaptureRecordFieldValidator
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     public function validateSharedData(array $data, bool $requireImageFilename = true): array
