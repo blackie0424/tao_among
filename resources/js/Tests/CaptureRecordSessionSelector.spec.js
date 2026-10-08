@@ -1,85 +1,87 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 
+const sessions = [
+  {
+    id: 7,
+    capture_date: '2026-10-08',
+    tribe: 'ivalino',
+    capture_method: 'mamasil',
+    place_name: '測試灣',
+    location_hint: null,
+    record_count: 2,
+  },
+  {
+    id: 8,
+    capture_date: '2026-10-07',
+    tribe: 'yayo',
+    capture_method: '非自捕（見到或他人提供）',
+    place_name: null,
+    location_hint: null,
+    record_count: 0,
+  },
+]
+
+const legacyCombos = [{
+  capture_date: '2026-10-01',
+  tribe: 'iraraley',
+  capture_method: '釣魚',
+  location: null,
+  record_count: 3,
+}]
+
 describe('CaptureRecordSessionSelector', () => {
-  const defaultSessions = [
-    {
-      tribe: 'ivalino',
-      location: '溪流A',
-      capture_method: '網捕',
-      capture_date: '2024-05-01',
-      record_count: 3,
-    },
-    {
-      tribe: 'iranmeilek',
-      location: '水庫B',
-      capture_method: '釣魚',
-      capture_date: '2024-04-15',
-      record_count: 1,
-    },
-  ]
-
-  it('renders a list of session options', () => {
+  it('shows real session semantics including zero and missing place', () => {
     const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { sessions: defaultSessions },
+      props: { selectableSessions: sessions },
     })
 
-    expect(wrapper.text()).toContain('溪流A')
-    expect(wrapper.text()).toContain('水庫B')
+    const options = wrapper.findAll('[data-testid="session-option"]')
+    expect(options).toHaveLength(2)
+    expect(options[0].text()).toContain('測試灣')
+    expect(options[0].text()).toContain('2 筆')
+    expect(options[1].text()).toContain('未標地點')
+    expect(options[1].text()).toContain('0 筆')
   })
 
-  it('displays capture_date, tribe, location, capture_method and record_count', () => {
+  it('emits only the selected real session id', async () => {
     const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { sessions: defaultSessions },
+      props: { selectableSessions: sessions },
     })
 
-    expect(wrapper.text()).toContain('2024-05-01')
-    expect(wrapper.text()).toContain('ivalino')
-    expect(wrapper.text()).toContain('網捕')
-    expect(wrapper.text()).toContain('3')
+    await wrapper.findAll('[data-testid="session-option"]')[0].trigger('click')
+
+    expect(wrapper.emitted('select')[0][0]).toEqual({ session_id: 7, legacy_combo: null })
   })
 
-  it('emits select event with session data when an option is clicked', async () => {
+  it('shows and emits a canonical legacy combo without extra fields', async () => {
     const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { sessions: defaultSessions },
+      props: { legacyCombos },
     })
 
-    const buttons = wrapper.findAll('[data-testid="session-option"]')
-    expect(buttons.length).toBe(2)
+    const option = wrapper.find('[data-testid="legacy-combo-option"]')
+    expect(option.text()).toContain('未標地點')
+    expect(option.text()).toContain('3 筆・舊資料')
 
-    await buttons[0].trigger('click')
-
-    expect(wrapper.emitted('select')).toBeTruthy()
-    expect(wrapper.emitted('select')[0][0]).toEqual(defaultSessions[0])
+    await option.trigger('click')
+    expect(wrapper.emitted('select')[0][0]).toEqual({
+      session_id: null,
+      legacy_combo: {
+        capture_date: '2026-10-01',
+        tribe: 'iraraley',
+        capture_method: '釣魚',
+        location: null,
+      },
+    })
   })
 
-  it('renders a manual input option', () => {
-    const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { sessions: defaultSessions },
-    })
+  it('shows a create-session link and no options when both lists are empty', () => {
+    const wrapper = mount(CaptureRecordSessionSelector)
 
-    expect(wrapper.find('[data-testid="manual-option"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('手動填寫')
-  })
-
-  it('emits select with null when manual option is clicked', async () => {
-    const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { sessions: defaultSessions },
-    })
-
-    await wrapper.find('[data-testid="manual-option"]').trigger('click')
-
-    expect(wrapper.emitted('select')).toBeTruthy()
-    expect(wrapper.emitted('select')[0][0]).toBeNull()
-  })
-
-  it('renders correctly with empty sessions', () => {
-    const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { sessions: [] },
-    })
-
-    expect(wrapper.find('[data-testid="manual-option"]').exists()).toBe(true)
-    expect(wrapper.findAll('[data-testid="session-option"]').length).toBe(0)
+    expect(wrapper.find('[data-testid="session-empty-state"]').text()).toContain('還沒有情境')
+    expect(wrapper.find('a').attributes('href')).toBe('/capture-sessions/create')
+    expect(wrapper.findAll('[data-testid="session-option"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-testid="legacy-combo-option"]')).toHaveLength(0)
   })
 })

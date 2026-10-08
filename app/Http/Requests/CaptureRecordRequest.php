@@ -22,7 +22,7 @@ class CaptureRecordRequest extends FormRequest
      */
     public function rules(): array
     {
-        return app(CaptureRecordFieldValidator::class)->rules($this->isMethod('POST'));
+        return app(CaptureRecordFieldValidator::class)->webSessionCreateRules();
     }
 
     /**

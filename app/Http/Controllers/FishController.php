@@ -8,9 +8,9 @@ use App\Contracts\FishServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Http\Requests\BatchCreateFishRequest;
 use App\Http\Requests\FishSearchRequest;
-use App\Models\CaptureRecord;
 use App\Models\Fish;
 use App\Services\AudioVisibilityService;
+use App\Services\CaptureRecordBatchService;
 use App\Services\LocationVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,13 +31,16 @@ class FishController extends Controller
 
     protected $locationVisibilityService;
 
+    protected CaptureRecordBatchService $captureRecordBatchService;
+
     public function __construct(
         FishServiceInterface $fishService,
         StorageServiceInterface $storageService,
         FishSearchServiceInterface $fishSearchService,
         CaptureSessionServiceInterface $captureSessionService,
         AudioVisibilityService $audioVisibilityService,
-        LocationVisibilityService $locationVisibilityService
+        LocationVisibilityService $locationVisibilityService,
+        ?CaptureRecordBatchService $captureRecordBatchService = null
     ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
@@ -45,6 +48,7 @@ class FishController extends Controller
         $this->captureSessionService = $captureSessionService;
         $this->audioVisibilityService = $audioVisibilityService;
         $this->locationVisibilityService = $locationVisibilityService;
+        $this->captureRecordBatchService = $captureRecordBatchService ?? app(CaptureRecordBatchService::class);
     }
 
     public function index()
@@ -147,7 +151,8 @@ class FishController extends Controller
             'tribes' => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
             'upload_limits' => config('fish_options.batch_upload'),
-            'recent_sessions' => $this->captureSessionService->getRecentSessions(),
+            'selectable_sessions' => $this->captureSessionService->getSelectableSessions(),
+            'legacy_combos' => $this->captureSessionService->getLegacyCombos(),
         ]);
     }
 
@@ -156,39 +161,25 @@ class FishController extends Controller
      */
     public function batchStore(BatchCreateFishRequest $request)
     {
-        $filenames = $request->validated()['filenames'];
-        $name = filled($request->input('name')) ? $request->input('name') : '我不知道';
-        $tribe = $request->input('tribe', 'iraraley');
-        $location = $request->input('location', '待補充');
-        $captureMethod = $request->input('capture_method', 'mamasil');
-        $captureDate = $request->input('capture_date', now()->toDateString());
-        $notes = $request->input('notes', null);
+        $validated = $request->validated();
+        $filenames = $validated['filenames'];
+        $name = filled($validated['name'] ?? null) ? $validated['name'] : '我不知道';
 
-        $fish = DB::transaction(function () use ($name, $filenames, $tribe, $location, $captureMethod, $captureDate, $notes) {
+        $fish = DB::transaction(function () use ($validated, $filenames, $name) {
             $fish = Fish::create([
                 'name' => $name,
                 'image' => $filenames[0],
             ]);
 
-            $firstRecordId = null;
+            $records = $this->captureRecordBatchService->createForFishFromSession(
+                $fish,
+                $filenames,
+                $validated['session_id'] ?? null,
+                $validated['legacy_combo'] ?? null,
+                $validated['notes'] ?? null,
+            );
 
-            foreach ($filenames as $index => $filename) {
-                $record = CaptureRecord::create([
-                    'fish_id' => $fish->id,
-                    'image_path' => $filename,
-                    'tribe' => $tribe,
-                    'location' => $location,
-                    'capture_method' => $captureMethod,
-                    'capture_date' => $captureDate,
-                    'notes' => $notes,
-                ]);
-
-                if ($index === 0) {
-                    $firstRecordId = $record->id;
-                }
-            }
-
-            $fish->update(['display_capture_record_id' => $firstRecordId]);
+            $fish->update(['display_capture_record_id' => $records[0]->id]);
 
             return $fish;
         });

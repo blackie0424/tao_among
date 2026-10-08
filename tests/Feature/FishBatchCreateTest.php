@@ -1,183 +1,114 @@
 <?php
 
-use App\Models\Fish;
 use App\Models\CaptureRecord;
+use App\Models\CaptureSession;
+use App\Models\Fish;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
-// ─────────────────────────────────────────────
-// GET /fish/batch-create
-// ─────────────────────────────────────────────
-
-it('renders batch create page with required props', function () {
+it('renders batch create page with session selection props', function () {
     $user = User::factory()->create();
+    CaptureSession::factory()->create();
 
-    $response = $this->actingAs($user)->get('/fish/batch-create');
-
-    $response->assertStatus(200)
-        ->assertInertia(
-            fn (Assert $page) => $page
-                ->component('BatchCreateFish')
-                ->has('tribes')
-                ->has('capture_methods')
-                ->has('upload_limits')
-                ->where('upload_limits.max_files_desktop', fn ($v) => is_int($v) && $v > 0)
-                ->where('upload_limits.max_files_mobile', fn ($v) => is_int($v) && $v > 0)
-        );
+    $this->actingAs($user)->get('/fish/batch-create')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('BatchCreateFish')
+            ->has('selectable_sessions', 1)
+            ->has('legacy_combos')
+            ->has('upload_limits'));
 });
 
 it('redirects unauthenticated users away from batch create page', function () {
-    $response = $this->get('/fish/batch-create');
-
-    $response->assertStatus(302);
+    $this->get('/fish/batch-create')->assertRedirect();
 });
 
-// ─────────────────────────────────────────────
-// POST /fish/batch-create
-// ─────────────────────────────────────────────
-
-it('creates fish and multiple capture records from batch create', function () {
+it('creates a fish and all records from the selected session', function () {
     $user = User::factory()->create();
-
-    $payload = [
-        'name'           => 'Batch Fish',
-        'filenames'      => ['photo1.jpg', 'photo2.jpg', 'photo3.jpg'],
-        'tribe'          => 'iraraley',
-        'location'       => '海邊',
+    $session = CaptureSession::factory()->create([
+        'capture_date' => '2026-05-01',
+        'tribe' => 'iraraley',
         'capture_method' => 'mamasil',
-        'capture_date'   => '2026-05-01',
-        'notes'          => '測試備註',
-    ];
+        'location_hint' => '海邊',
+    ]);
 
-    $response = $this->actingAs($user)->post('/fish/batch-create', $payload);
+    $response = $this->actingAs($user)->post('/fish/batch-create', [
+        'name' => 'Batch Fish',
+        'filenames' => ['photo1.jpg', 'photo2.jpg', 'photo3.jpg'],
+        'session_id' => $session->id,
+        'notes' => '測試備註',
+    ]);
 
-    // 建立一筆 Fish
-    $fish = Fish::where('name', 'Batch Fish')->first();
-    expect($fish)->not->toBeNull();
+    $fish = Fish::where('name', 'Batch Fish')->firstOrFail();
+    $records = CaptureRecord::where('fish_id', $fish->id)->get();
 
-    // 建立 3 筆 CaptureRecord
-    expect(CaptureRecord::where('fish_id', $fish->id)->count())->toBe(3);
+    expect($records)->toHaveCount(3);
+    foreach ($records as $record) {
+        expect($record->session_id)->toBe($session->id)
+            ->and($record->tribe)->toBe('iraraley')
+            ->and($record->location)->toBe('海邊')
+            ->and($record->capture_method)->toBe('mamasil')
+            ->and($record->capture_date->format('Y-m-d'))->toBe('2026-05-01')
+            ->and($record->notes)->toBe('測試備註');
+    }
 
-    // 重定向至詳情頁
-    $response->assertRedirect("/fish/{$fish->id}");
-    $response->assertSessionHas('success');
+    $response->assertRedirect("/fish/{$fish->id}")->assertSessionHas('success');
 });
 
-it('uses first filename as fish display image', function () {
+it('uses the first filename as display image and defaults an empty name', function () {
     $user = User::factory()->create();
+    $session = CaptureSession::factory()->create();
 
-    $payload = [
-        'name'      => 'Display Fish',
+    $this->actingAs($user)->post('/fish/batch-create', [
+        'name' => '',
         'filenames' => ['first.jpg', 'second.jpg'],
-    ];
+        'session_id' => $session->id,
+    ])->assertRedirect();
 
-    $this->actingAs($user)->post('/fish/batch-create', $payload);
-
-    $fish = Fish::where('name', 'Display Fish')->first();
-    $firstRecord = CaptureRecord::where('fish_id', $fish->id)
-        ->where('image_path', 'first.jpg')
-        ->first();
+    $fish = Fish::where('name', '我不知道')->firstOrFail();
+    $firstRecord = CaptureRecord::where('fish_id', $fish->id)->where('image_path', 'first.jpg')->firstOrFail();
 
     expect($fish->display_capture_record_id)->toBe($firstRecord->id);
 });
 
-it('uses default name when name is empty or missing', function () {
+it('requires both filenames and a session source without writing partial data', function (array $payload, array $errors) {
     $user = User::factory()->create();
 
-    $payload = [
-        'name'      => '',
+    $this->actingAs($user)->post('/fish/batch-create', ['name' => 'Invalid Fish', ...$payload])
+        ->assertSessionHasErrors($errors);
+
+    expect(Fish::where('name', 'Invalid Fish')->count())->toBe(0)
+        ->and(CaptureRecord::count())->toBe(0);
+})->with([
+    'missing filenames' => [['session_id' => 1], ['filenames']],
+    'empty filenames' => [['filenames' => [], 'session_id' => 1], ['filenames']],
+    'invalid filename entries' => [['filenames' => [123, null], 'session_id' => 1], ['filenames.0', 'filenames.1']],
+    'missing session selection' => [['filenames' => ['photo.jpg']], ['session_id', 'legacy_combo']],
+]);
+
+it('rejects client context fields and writes no fish', function () {
+    $user = User::factory()->create();
+    $session = CaptureSession::factory()->create();
+
+    $this->actingAs($user)->post('/fish/batch-create', [
+        'name' => 'Forged Fish',
         'filenames' => ['photo.jpg'],
-    ];
+        'session_id' => $session->id,
+        'location' => '偽造地點',
+    ])->assertSessionHasErrors('location');
 
-    $this->actingAs($user)->post('/fish/batch-create', $payload);
-
-    $fish = Fish::where('name', '我不知道')->first();
-    expect($fish)->not->toBeNull();
-});
-
-it('creates capture records with shared capture info for each photo', function () {
-    $user = User::factory()->create();
-
-    $payload = [
-        'name'           => 'Info Fish',
-        'filenames'      => ['a.jpg', 'b.jpg'],
-        'tribe'          => 'iraraley',
-        'location'       => '溪流',
-        'capture_method' => 'mamasil',
-        'capture_date'   => '2026-04-15',
-        'notes'          => '共用備註',
-    ];
-
-    $this->actingAs($user)->post('/fish/batch-create', $payload);
-
-    $fish = Fish::where('name', 'Info Fish')->first();
-    $records = CaptureRecord::where('fish_id', $fish->id)->get();
-
-    foreach ($records as $record) {
-        expect($record->tribe)->toBe('iraraley');
-        expect($record->location)->toBe('溪流');
-        expect($record->capture_method)->toBe('mamasil');
-        expect($record->notes)->toBe('共用備註');
-    }
-});
-
-it('fails validation when filenames is missing', function () {
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)->post('/fish/batch-create', [
-        'name' => 'No Files Fish',
-    ]);
-
-    $response->assertSessionHasErrors('filenames');
-});
-
-it('fails validation when filenames is empty array', function () {
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)->post('/fish/batch-create', [
-        'name'      => 'Empty Files Fish',
-        'filenames' => [],
-    ]);
-
-    $response->assertSessionHasErrors('filenames');
-});
-
-it('fails validation when a filename entry is not a string', function () {
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)->post('/fish/batch-create', [
-        'name'      => 'Bad Files Fish',
-        'filenames' => [123, null],
-    ]);
-
-    $response->assertSessionHasErrors(['filenames.0', 'filenames.1']);
+    expect(Fish::where('name', 'Forged Fish')->count())->toBe(0);
 });
 
 it('redirects unauthenticated users away from batch create post', function () {
-    $response = $this->post('/fish/batch-create', [
-        'name'      => 'Sneaky Fish',
+    $this->post('/fish/batch-create', [
+        'name' => 'Sneaky Fish',
         'filenames' => ['photo.jpg'],
-    ]);
+        'session_id' => 1,
+    ])->assertRedirect();
 
-    $response->assertStatus(302);
     expect(Fish::count())->toBe(0);
-});
-
-it('rolls back all changes when an error occurs mid-batch', function () {
-    $user = User::factory()->create();
-
-    // 傳入包含 null 的 filenames 讓批次中途拋出例外
-    $payload = [
-        'name'      => 'Rollback Fish',
-        'filenames' => ['ok.jpg', null],
-    ];
-
-    $this->actingAs($user)->post('/fish/batch-create', $payload);
-
-    // 驗證失敗時不應有任何資料寫入
-    expect(Fish::where('name', 'Rollback Fish')->count())->toBe(0);
-    expect(CaptureRecord::count())->toBe(0);
 });

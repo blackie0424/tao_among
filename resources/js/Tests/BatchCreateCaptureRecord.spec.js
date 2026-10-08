@@ -1,128 +1,91 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import BatchCreateCaptureRecord from '@/Pages/BatchCreateCaptureRecord.vue'
 
-// ─── Inertia mock ────────────────────────────────────────────────────────────
-vi.mock('@inertiajs/vue3', () => ({
-  router: {
-    post: vi.fn(),
-    visit: vi.fn(),
-  },
-}))
-
-// ─── BatchCaptureImageUploader mock ──────────────────────────────────────────
+vi.mock('@inertiajs/vue3', () => ({ router: { post: vi.fn(), visit: vi.fn() } }))
 vi.mock('@/Components/CaptureRecord/BatchCaptureImageUploader.vue', () => ({
   default: {
     name: 'BatchCaptureImageUploader',
     props: ['maxFiles', 'isLineApp'],
     emits: ['uploaded', 'upload-error'],
-    expose: ['uploadAll', 'addFiles', 'items'],
-    setup(_, { expose }) {
-      const uploadAll = vi.fn()
-      const addFiles = vi.fn()
-      const items = []
-      expose({ uploadAll, addFiles, items })
-      return { uploadAll, addFiles, items }
-    },
+    setup(_, { expose }) { expose({ uploadAll: vi.fn(), items: [] }); return {} },
     template: '<div data-testid="mock-uploader" />',
   },
 }))
-
-// ─── FormActionBar mock ───────────────────────────────────────────────────────
 vi.mock('@/Components/Global/FormActionBar.vue', () => ({
   default: {
     name: 'FormActionBar',
-    props: ['title', 'goBack', 'showSubmit', 'submitNote', 'submitLabel', 'showLoading'],
-    template: `<div><button data-testid="submit-btn" v-if="showSubmit" @click="submitNote">{{ submitLabel }}</button></div>`,
+    props: ['showSubmit', 'submitNote', 'submitLabel'],
+    template: '<button v-if="showSubmit" data-testid="submit-btn" @click="submitNote">{{ submitLabel }}</button>',
   },
 }))
 
+const defaultProps = {
+  fish: { id: 4, name: '測試魚', display_image_url: 'fish.jpg' },
+  tribes: ['ivalino'],
+  capture_methods: { mamasil: 'mamasil' },
+  upload_limits: { max_files_desktop: 10, max_files_mobile: 5 },
+  selectable_sessions: [{
+    id: 12,
+    capture_date: '2026-10-08',
+    tribe: 'ivalino',
+    capture_method: 'mamasil',
+    place_name: null,
+    location_hint: null,
+    record_count: 0,
+  }],
+  legacy_combos: [],
+}
+
+async function advance(wrapper, files = ['one.jpg']) {
+  wrapper.findComponent({ name: 'BatchCaptureImageUploader' }).vm.$emit('uploaded', files)
+  await nextTick()
+}
+
 describe('BatchCreateCaptureRecord', () => {
-  const defaultProps = {
-    fish: {
-      id: 1,
-      name: '苦花',
-      display_image_url: 'fish.jpg',
-      image_url: 'fish.jpg',
-    },
-    tribes: ['ivalino', 'iranmeilek', 'iratay'],
-    capture_methods: { 網捕: '網捕', 釣魚: '釣魚' },
-    upload_limits: { max_files_desktop: 10, max_files_mobile: 5 },
-  }
+  beforeEach(() => vi.clearAllMocks())
 
-  const recentSessions = [
-    {
-      tribe: 'ivalino',
-      location: '溪流A',
-      capture_method: '網捕',
-      capture_date: '2024-05-01',
-      record_count: 3,
-    },
-  ]
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('renders Step 1 by default', () => {
+  it('requires a selection and shows zero-count missing-place semantics', async () => {
     const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
-    expect(wrapper.find('[data-testid="mock-uploader"]').exists()).toBe(true)
+    await advance(wrapper)
+
+    expect(wrapper.find('[data-testid="session-option"]').text()).toContain('未標地點')
+    expect(wrapper.find('[data-testid="session-option"]').text()).toContain('0 筆')
+    expect(wrapper.find('[data-testid="submit-btn"]').exists()).toBe(false)
   })
 
-  it('shows CaptureRecordSessionSelector in Step 2 when recent_sessions provided', async () => {
-    const wrapper = mount(BatchCreateCaptureRecord, {
-      props: { ...defaultProps, recent_sessions: recentSessions },
-    })
+  it('posts each image with the selected session and disables submit while pending', async () => {
+    const { router } = await import('@inertiajs/vue3')
+    let firstOptions
+    router.post.mockImplementation((_url, _data, options) => { firstOptions = options })
 
-    // 模擬 Step 1 上傳完成，進入 Step 2
-    await wrapper.vm.onUploaded(['file1.jpg'])
-    await nextTick()
-
-    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('溪流A')
-  })
-
-  it('fills sharedForm fields when a session option is selected', async () => {
-    const wrapper = mount(BatchCreateCaptureRecord, {
-      props: { ...defaultProps, recent_sessions: recentSessions },
-    })
-
-    await wrapper.vm.onUploaded(['file1.jpg'])
-    await nextTick()
-
+    const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
+    await advance(wrapper, ['one.jpg', 'two.jpg'])
     await wrapper.find('[data-testid="session-option"]').trigger('click')
     await nextTick()
-
-    expect(wrapper.vm.sharedForm.tribe).toBe('ivalino')
-    expect(wrapper.vm.sharedForm.location).toBe('溪流A')
-    expect(wrapper.vm.sharedForm.capture_date).toBe('2024-05-01')
-    expect(wrapper.vm.sharedForm.capture_method).toBe('網捕')
-  })
-
-  it('shows manual form fields directly when no recent_sessions provided', async () => {
-    const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
-
-    await wrapper.vm.onUploaded(['file1.jpg'])
+    await wrapper.find('[data-testid="submit-btn"]').trigger('click')
     await nextTick()
 
-    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(false)
-    // 部落選單應直接顯示
-    expect(wrapper.find('select').exists()).toBe(true)
+    expect(router.post).toHaveBeenCalledWith('/fish/4/capture-records', {
+      image_filename: 'one.jpg',
+      session_id: 12,
+      legacy_combo: null,
+      notes: '',
+    }, expect.any(Object))
+    expect(wrapper.find('[data-testid="submit-btn"]').exists()).toBe(false)
+
+    firstOptions.onSuccess()
   })
 
-  it('hides selector and shows form after manual option clicked', async () => {
+  it('shows the create-session empty state and cannot submit', async () => {
     const wrapper = mount(BatchCreateCaptureRecord, {
-      props: { ...defaultProps, recent_sessions: recentSessions },
+      props: { ...defaultProps, selectable_sessions: [] },
     })
+    await advance(wrapper)
 
-    await wrapper.vm.onUploaded(['file1.jpg'])
-    await nextTick()
-
-    await wrapper.find('[data-testid="manual-option"]').trigger('click')
-    await nextTick()
-
-    expect(wrapper.find('[data-testid="session-option"]').exists()).toBe(false)
-    expect(wrapper.find('select').exists()).toBe(true)
+    expect(wrapper.text()).toContain('還沒有情境')
+    expect(wrapper.find('a[href="/capture-sessions/create"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="submit-btn"]').exists()).toBe(false)
   })
 })
