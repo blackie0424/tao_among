@@ -278,7 +278,7 @@ onMounted(() => {
     form.location = props.record.location || ''
     form.capture_method = props.record.capture_method || ''
     form.capture_date = props.record.capture_date
-      ? formatLocalDate(new Date(`${props.record.capture_date}T00:00:00`))
+      ? String(props.record.capture_date).slice(0, 10)
       : ''
     form.notes = props.record.notes || ''
     form.image_position = props.record.image_position || 'center'

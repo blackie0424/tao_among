@@ -238,6 +238,18 @@ describe('CaptureRecordForm', () => {
       expect(wrapper.find('#notes').exists()).toBe(true)
     })
 
+    it.each([
+      ['2026-10-07', '2026-10-07'],
+      ['2026-10-07T00:00:00.000000Z', '2026-10-07'],
+    ])('以真實或純日期格式預填捕獲日期：%s', async (captureDate, expected) => {
+      const wrapper = mount(CaptureRecordForm, {
+        props: { ...editProps, record: { ...editProps.record, capture_date: captureDate } },
+      })
+      await nextTick()
+
+      expect(wrapper.get('#capture_date').element.value).toBe(expected)
+    })
+
     it('有 record prop 時以 record 資料預填欄位', async () => {
       const wrapper = mount(CaptureRecordForm, { props: editProps })
       await nextTick()
