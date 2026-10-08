@@ -44,8 +44,26 @@ async function advance(wrapper, files = ['one.jpg']) {
 }
 
 describe('BatchCreateCaptureRecord', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true })
+    Object.defineProperty(window, 'navigator', { value: { userAgent: 'Mozilla/5.0' }, writable: true })
+  })
 
+  it.each([
+    [1280, 10],
+    [375, 5],
+  ])('uses the configured upload limit at viewport width %i', (width, expected) => {
+    Object.defineProperty(window, 'innerWidth', { value: width, writable: true })
+    const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
+    expect(wrapper.findComponent({ name: 'BatchCaptureImageUploader' }).props('maxFiles')).toBe(expected)
+  })
+
+  it('identifies the LINE browser for the uploader', () => {
+    Object.defineProperty(window, 'navigator', { value: { userAgent: 'Mozilla/5.0 Line/12.0.0' }, writable: true })
+    const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
+    expect(wrapper.findComponent({ name: 'BatchCaptureImageUploader' }).props('isLineApp')).toBe(true)
+  })
   it('requires a selection and shows zero-count missing-place semantics', async () => {
     const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
     await advance(wrapper)

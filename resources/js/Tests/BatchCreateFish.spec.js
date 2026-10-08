@@ -51,8 +51,10 @@ async function advanceToSelection(wrapper, filenames = ['one.jpg']) {
 }
 
 describe('BatchCreateFish', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const { router } = await import('@inertiajs/vue3')
+    router.post.mockReset()
     Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true })
     Object.defineProperty(window, 'navigator', { value: { userAgent: 'Mozilla/5.0' }, writable: true })
   })
@@ -67,6 +69,32 @@ describe('BatchCreateFish', () => {
     expect(wrapper.find('[data-testid="submit-btn"]').exists()).toBe(false)
   })
 
+  it.each([
+    [1280, 10],
+    [375, 5],
+  ])('uses the configured upload limit at viewport width %i', (width, expected) => {
+    Object.defineProperty(window, 'innerWidth', { value: width, writable: true })
+    const wrapper = mount(BatchCreateFish, { props: defaultProps })
+    expect(wrapper.findComponent({ name: 'BatchCaptureImageUploader' }).props('maxFiles')).toBe(expected)
+  })
+
+  it('marks the created fish in the list cache after a successful response', async () => {
+    const { markFishCreated } = await import('@/utils/fishListCache')
+    const { router } = await import('@inertiajs/vue3')
+    router.post.mockImplementation((_url, _data, options) => options.onSuccess({ props: { fish: { id: 42 } } }))
+    const wrapper = mount(BatchCreateFish, { props: defaultProps })
+    await advanceToSelection(wrapper)
+    await wrapper.find('[data-testid="session-option"]').trigger('click')
+    wrapper.vm.doSubmit()
+    await nextTick()
+    expect(markFishCreated).toHaveBeenCalledWith(42)
+  })
+
+  it('identifies the LINE browser for the uploader', () => {
+    Object.defineProperty(window, 'navigator', { value: { userAgent: 'Mozilla/5.0 Line/12.0.0' }, writable: true })
+    const wrapper = mount(BatchCreateFish, { props: defaultProps })
+    expect(wrapper.findComponent({ name: 'BatchCaptureImageUploader' }).props('isLineApp')).toBe(true)
+  })
   it('submits only the selected session contract and disables submit while pending', async () => {
     const { router } = await import('@inertiajs/vue3')
     const wrapper = mount(BatchCreateFish, { props: defaultProps })
