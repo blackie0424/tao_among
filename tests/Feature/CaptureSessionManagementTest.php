@@ -115,7 +115,9 @@ it('renders the create page and returns the created session as JSON', function (
         ->assertInertia(fn (Assert $page) => $page->component('CaptureSessions/Create'));
     $this->postJson('/capture-sessions', $payload)->assertCreated()
         ->assertJsonPath('session.capture_method', '釣魚')
-        ->assertJsonPath('session.place', null);
+        ->assertJsonPath('session.place_id', null)
+        ->assertJsonPath('session.place_name', null)
+        ->assertJsonPath('session.record_count', 0);
 });
 
 it('allows editors to create sessions and blocks viewers', function () {
@@ -255,4 +257,28 @@ it('blocks viewers from updating and deleting sessions', function () {
 
     $this->actingAs($viewer)->put("/capture-sessions/{$session->id}", $payload)->assertForbidden();
     $this->delete("/capture-sessions/{$session->id}")->assertForbidden();
+});
+
+it('uses the same selectable-session contract for JSON creation and the picker list', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $place = Place::factory()->create(['name' => '選擇器地名', 'name_key' => '選擇器地名']);
+    $payload = [
+        'capture_date' => '2026-10-01',
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_id' => $place->id,
+        'notes' => '建立時備註',
+    ];
+
+    $created = $this->actingAs($editor)->postJson('/capture-sessions', $payload)
+        ->assertCreated()
+        ->json('session');
+    $listed = collect(app(CaptureSessionService::class)->getSelectableSessions())
+        ->firstWhere('id', $created['id']);
+
+    expect($created)->toHaveKeys([
+        'id', 'capture_date', 'tribe', 'capture_method', 'place_id', 'place_name', 'location_hint', 'record_count',
+    ])->and($created)->toBe($listed)
+        ->and($created['place_name'])->toBe('選擇器地名')
+        ->and($created['record_count'])->toBe(0);
 });

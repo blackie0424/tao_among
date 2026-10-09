@@ -16,7 +16,7 @@
       <section v-if="step === 2" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h2 class="text-base font-semibold text-gray-800 mb-4">第二步：選擇情境</h2>
         <p class="text-sm text-gray-500 mb-4">選擇的情境會套用至本批次 <span class="font-semibold text-gray-700">{{ uploadedFilenames.length }}</span> 張照片。</p>
-        <CaptureRecordSessionSelector :selectable-sessions="selectable_sessions" :legacy-combos="legacy_combos" @select="onSessionSelect" />
+        <CaptureRecordSessionSelector :selectable-sessions="selectable_sessions" :legacy-combos="legacy_combos" :tribes="tribes" :capture-methods="capture_methods" @select="onSessionSelect" />
         <p v-if="formErrors.session_id" class="mb-3 text-sm text-red-600">{{ formErrors.session_id }}</p>
         <p v-if="formErrors.legacy_combo" class="mb-3 text-sm text-red-600">{{ formErrors.legacy_combo }}</p>
         <div><label class="block text-sm font-medium text-gray-700 mb-1">備註（選填）</label><textarea v-model="notes" rows="2" placeholder="相關備註" class="w-full px-3 py-2 border border-gray-300 rounded-md" /></div>

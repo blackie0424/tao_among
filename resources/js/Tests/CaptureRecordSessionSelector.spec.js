@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
+
+const { apiFetch } = vi.hoisted(() => ({ apiFetch: vi.fn() }))
+vi.mock('@/utils/apiFetch', () => ({ apiFetch }))
 
 const sessions = [
   {
@@ -8,6 +11,7 @@ const sessions = [
     capture_date: '2026-10-08',
     tribe: 'ivalino',
     capture_method: 'mamasil',
+    place_id: 2,
     place_name: '測試灣',
     location_hint: null,
     record_count: 2,
@@ -17,6 +21,7 @@ const sessions = [
     capture_date: '2026-10-07',
     tribe: 'yayo',
     capture_method: '非自捕（見到或他人提供）',
+    place_id: null,
     place_name: null,
     location_hint: null,
     record_count: 0,
@@ -31,13 +36,30 @@ const legacyCombos = [{
   record_count: 3,
 }]
 
-describe('CaptureRecordSessionSelector', () => {
-  it('shows real session semantics including zero and missing place', () => {
-    const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { selectableSessions: sessions },
-    })
+const defaultProps = {
+  selectableSessions: sessions,
+  legacyCombos,
+  tribes: ['ivalino', 'yayo'],
+  captureMethods: { mamasil: 'mamasil', 釣魚: '釣魚' },
+}
 
+function mountSelector(props = {}) {
+  return mount(CaptureRecordSessionSelector, { props: { ...defaultProps, ...props } })
+}
+
+async function fillInlineForm(wrapper) {
+  const selects = wrapper.findAll('select')
+  await selects[0].setValue('ivalino')
+  await selects[1].setValue('mamasil')
+}
+
+describe('CaptureRecordSessionSelector', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('shows real session semantics including zero and missing place', () => {
+    const wrapper = mountSelector({ legacyCombos: [] })
     const options = wrapper.findAll('[data-testid="session-option"]')
+
     expect(options).toHaveLength(2)
     expect(options[0].text()).toContain('測試灣')
     expect(options[0].text()).toContain('2 筆')
@@ -46,24 +68,17 @@ describe('CaptureRecordSessionSelector', () => {
   })
 
   it('emits only the selected real session id', async () => {
-    const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { selectableSessions: sessions },
-    })
-
+    const wrapper = mountSelector()
     await wrapper.findAll('[data-testid="session-option"]')[0].trigger('click')
-
     expect(wrapper.emitted('select')[0][0]).toEqual({ session_id: 7, legacy_combo: null })
   })
 
   it('shows and emits a canonical legacy combo without extra fields', async () => {
-    const wrapper = mount(CaptureRecordSessionSelector, {
-      props: { legacyCombos },
-    })
-
+    const wrapper = mountSelector({ selectableSessions: [] })
     const option = wrapper.find('[data-testid="legacy-combo-option"]')
+
     expect(option.text()).toContain('未標地點')
     expect(option.text()).toContain('3 筆・舊資料')
-
     await option.trigger('click')
     expect(wrapper.emitted('select')[0][0]).toEqual({
       session_id: null,
@@ -76,12 +91,77 @@ describe('CaptureRecordSessionSelector', () => {
     })
   })
 
-  it('shows a create-session link and no options when both lists are empty', () => {
-    const wrapper = mount(CaptureRecordSessionSelector)
-
+  it('offers inline creation even when both lists are empty', async () => {
+    const wrapper = mountSelector({ selectableSessions: [], legacyCombos: [] })
     expect(wrapper.find('[data-testid="session-empty-state"]').text()).toContain('還沒有情境')
-    expect(wrapper.find('a').attributes('href')).toBe('/capture-sessions/create')
-    expect(wrapper.findAll('[data-testid="session-option"]')).toHaveLength(0)
-    expect(wrapper.findAll('[data-testid="legacy-combo-option"]')).toHaveLength(0)
+
+    await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+    expect(wrapper.find('[data-testid="inline-session-form"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('日期')
+  })
+
+  it('prepends, selects, and renders the selectable response contract after creation', async () => {
+    apiFetch.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        session: {
+          id: 99,
+          capture_date: '2026-10-09',
+          tribe: 'ivalino',
+          capture_method: 'mamasil',
+          place_id: 3,
+          place_name: '新地點',
+          location_hint: null,
+          record_count: 0,
+        },
+      }),
+    })
+    const wrapper = mountSelector({ selectableSessions: [], legacyCombos: [] })
+
+    await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+    await fillInlineForm(wrapper)
+    await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+    await Promise.resolve()
+
+    const option = wrapper.find('[data-testid="session-option"]')
+    expect(apiFetch).toHaveBeenCalledWith('/capture-sessions', expect.objectContaining({ method: 'POST' }))
+    expect(option.exists()).toBe(true)
+    expect(option.text()).toContain('新地點')
+    expect(option.text()).toContain('0 筆')
+    expect(wrapper.emitted('select')[0][0]).toEqual({ session_id: 99, legacy_combo: null })
+    expect(wrapper.find('[data-testid="inline-session-form"]').exists()).toBe(false)
+  })
+
+  it('shows the first 422 validation error without leaving the inline form', async () => {
+    apiFetch.mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ errors: { capture_date: ['日期不可晚於今天'] } }),
+    })
+    const wrapper = mountSelector()
+
+    await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+    await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+    await Promise.resolve()
+
+    expect(wrapper.find('[role="alert"]').text()).toBe('日期不可晚於今天')
+    expect(wrapper.find('[data-testid="inline-session-form"]').exists()).toBe(true)
+  })
+
+  it('locks synchronously so a double click sends one request', async () => {
+    let resolveRequest
+    apiFetch.mockReturnValue(new Promise(resolve => { resolveRequest = resolve }))
+    const wrapper = mountSelector()
+
+    await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+    await fillInlineForm(wrapper)
+    const submit = wrapper.find('[data-testid="submit-inline-session"]')
+    await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+    await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+
+    expect(apiFetch).toHaveBeenCalledTimes(1)
+    expect(submit.attributes('disabled')).toBeDefined()
+
+    resolveRequest({ ok: false, json: vi.fn().mockResolvedValue({ errors: { form: ['失敗'] } }) })
+    await Promise.resolve()
   })
 })

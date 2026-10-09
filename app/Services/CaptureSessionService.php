@@ -43,16 +43,26 @@ class CaptureSessionService implements CaptureSessionServiceInterface
             ->orderByDesc('id')
             ->limit(20)
             ->get()
-            ->map(fn (CaptureSession $session) => [
-                'id' => $session->id,
-                'capture_date' => $session->capture_date->format('Y-m-d'),
-                'tribe' => $session->tribe,
-                'capture_method' => $session->capture_method,
-                'place_name' => $session->place?->name,
-                'location_hint' => $session->location_hint,
-                'record_count' => (int) $session->capture_records_count,
-            ])
+            ->map(fn (CaptureSession $session) => $this->presentSelectable($session))
             ->all();
+    }
+
+    /** @return array<string, int|string|null> */
+    public function presentSelectable(CaptureSession $session): array
+    {
+
+        $session->loadMissing('place');
+
+        return [
+            'id' => $session->id,
+            'capture_date' => $session->capture_date->format('Y-m-d'),
+            'tribe' => $session->tribe,
+            'capture_method' => $session->capture_method,
+            'place_id' => $session->place_id,
+            'place_name' => $session->place?->name,
+            'location_hint' => $session->location_hint,
+            'record_count' => (int) ($session->capture_records_count ?? 0),
+        ];
     }
 
     /** @return array<int, array<string, mixed>> */

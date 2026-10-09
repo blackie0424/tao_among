@@ -43,7 +43,7 @@ class CaptureSessionController extends Controller
     {
         $session = $this->service->create($request->validated());
         if ($request->expectsJson()) {
-            return response()->json(['session' => $session->load('place')], 201);
+            return response()->json(['session' => $this->service->presentSelectable($session->load('place')->loadCount('captureRecords'))], 201);
         }
 
         return redirect('/capture-sessions')->with('success', '情境已建立');
