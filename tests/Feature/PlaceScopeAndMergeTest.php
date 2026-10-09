@@ -273,3 +273,15 @@ it('uses stable ascending locks for the forward merge direction too', function (
     expect($queries[$placeLockIndex])->toContain("in ({$first->id}, {$second->id})")
         ->and($placeLockIndex)->toBeLessThan($sessionReadIndex);
 });
+
+it('rejects assigning a shared place when another tribe session only has a deleted record', function () {
+    $place = Place::factory()->create(['name' => '共用礁岩', 'name_key' => '共用礁岩']);
+    $session = CaptureSession::factory()->create(['place_id' => $place->id, 'tribe' => 'yayo']);
+    $record = CaptureRecord::factory()->create(['session_id' => $session->id, 'location' => '共用礁岩']);
+    $record->delete();
+
+    expect(fn () => app(PlaceService::class)->update($place, ['name' => '共用礁岩', 'tribe' => 'ivalino']))
+        ->toThrow(ValidationException::class, '此地名被其他部落的情境使用');
+    expect($place->fresh()->only(['tribe', 'scope_key']))->toBe(['tribe' => null, 'scope_key' => ''])
+        ->and($record->fresh()->location)->toBe('共用礁岩');
+});
