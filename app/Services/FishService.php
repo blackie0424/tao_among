@@ -14,8 +14,11 @@ class FishService implements FishServiceInterface
 {
     protected $storageService;
 
-    public function __construct(StorageServiceInterface $storageService)
+    protected CaptureRecordPresenter $captureRecordPresenter;
+
+    public function __construct(StorageServiceInterface $storageService, ?CaptureRecordPresenter $captureRecordPresenter = null)
     {
+        $this->captureRecordPresenter = $captureRecordPresenter ?? app(CaptureRecordPresenter::class);
         $this->storageService = $storageService;
     }
 
@@ -114,7 +117,7 @@ class FishService implements FishServiceInterface
     {
         $fish = Fish::with([
             'tribalClassifications',
-            'captureRecords',
+            'captureRecords.captureSession:id,notes',
             'notes' => fn ($q) => $q->orderBy('created_at', 'desc'),
             'referenceKnowledge' => fn ($q) => $q
                 ->with('reference')
@@ -128,11 +131,13 @@ class FishService implements FishServiceInterface
 
         // 套用媒體 URL 規則
         $fish = $this->decorateFishMedia($fish);
+        $captureRecords = collect($this->captureRecordPresenter->presentManyWithSessionNotes($fish->captureRecords));
+        $fish->unsetRelation('captureRecords');
 
         return [
             'fish' => $fish,
             'tribalClassifications' => $fish->tribalClassifications,
-            'captureRecords' => $fish->captureRecords,
+            'captureRecords' => $captureRecords,
             'fishNotes' => $this->groupFishNotesByType($fish->notes),
             'referenceKnowledge' => $fish->referenceKnowledge,
         ];

@@ -178,6 +178,7 @@ it('removes every new location-related key recursively for viewers', function ()
         'capture_session' => ['location_hint' => 'ZZHINTMARK'],
         'capture_sessions' => [['place_name' => 'ZZPLACEMARK']],
         'legacy_sessions' => [['location' => 'ZZLOCATIONMARK']],
+        'session_notes' => 'ZZSESSIONNOTEMARK',
         'session_id' => 19,
     ];
 

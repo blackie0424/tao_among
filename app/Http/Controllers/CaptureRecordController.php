@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateCaptureRecordRequest;
 use App\Models\CaptureRecord;
 use App\Models\Fish;
 use App\Services\CaptureRecordBatchService;
+use App\Services\CaptureRecordPresenter;
 use App\Services\FishService;
 use App\Services\LocationVisibilityService;
 use App\Traits\HasFishImageUrl;
@@ -30,18 +31,22 @@ class CaptureRecordController extends Controller
 
     protected LocationVisibilityService $locationVisibilityService;
 
+    protected CaptureRecordPresenter $captureRecordPresenter;
+
     public function __construct(
         FishService $fishService,
         StorageServiceInterface $storageService,
         CaptureSessionServiceInterface $captureSessionService,
         ?CaptureRecordBatchService $captureRecordBatchService = null,
-        ?LocationVisibilityService $locationVisibilityService = null
+        ?LocationVisibilityService $locationVisibilityService = null,
+        ?CaptureRecordPresenter $captureRecordPresenter = null
     ) {
         $this->fishService = $fishService;
         $this->storageService = $storageService;
         $this->captureSessionService = $captureSessionService;
         $this->captureRecordBatchService = $captureRecordBatchService ?? app(CaptureRecordBatchService::class);
         $this->locationVisibilityService = $locationVisibilityService ?? app(LocationVisibilityService::class);
+        $this->captureRecordPresenter = $captureRecordPresenter ?? app(CaptureRecordPresenter::class);
     }
 
     /**
@@ -50,14 +55,16 @@ class CaptureRecordController extends Controller
     public function index($fishId)
     {
         // 取得指定魚類資訊和捕獲紀錄
-        $fish = Fish::with(['captureRecords', 'displayCaptureRecord'])->findOrFail($fishId);
+        $fish = Fish::with(['captureRecords.captureSession:id,notes', 'displayCaptureRecord'])->findOrFail($fishId);
 
         // 使用 Trait 處理魚類圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
 
         // 確保 captureRecords 以正確的鍵名傳遞
+        $captureRecords = $this->captureRecordPresenter->presentManyWithSessionNotes($fishWithImage->captureRecords);
+        $fishWithImage->unsetRelation('captureRecords');
         $fishData = $fishWithImage->toArray();
-        $fishData['captureRecords'] = $fishWithImage->captureRecords->toArray();
+        $fishData['captureRecords'] = $captureRecords;
         $fishData = $this->locationVisibilityService->filter($fishData, request()->user());
 
         // 定義部落選項
