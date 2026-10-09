@@ -1,11 +1,11 @@
 <?php
 
-use Tests\TestCase;
+use App\Models\CaptureRecord;
 use App\Models\Fish;
 use App\Models\TribalClassification;
-use App\Models\CaptureRecord;
 use App\Services\FishStatisticsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
@@ -13,7 +13,7 @@ it('returns total fish count', function () {
     Fish::factory()->count(5)->create();
     Fish::factory()->count(3)->create(); // 總共8條魚
 
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['total_fish'])->toBe(8);
@@ -33,7 +33,7 @@ it('returns food category statistics by tribe', function () {
     // iranmeilek部落：1個不食用
     TribalClassification::factory()->forTribe('iranmeilek')->withFoodCategory('不食用')->create(['fish_id' => $fish1->id]);
 
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['food_categories_by_tribe']['ivalino']['oyod'])->toBe(2);
@@ -48,24 +48,24 @@ it('returns capture method statistics by tribe', function () {
     // ivalino部落：2個網捕, 1個釣魚
     CaptureRecord::factory()->forTribe('ivalino')->create([
         'fish_id' => $fish1->id,
-        'capture_method' => '網捕'
+        'capture_method' => '網捕',
     ]);
     CaptureRecord::factory()->forTribe('ivalino')->create([
         'fish_id' => $fish2->id,
-        'capture_method' => '網捕'
+        'capture_method' => '網捕',
     ]);
     CaptureRecord::factory()->forTribe('ivalino')->create([
         'fish_id' => $fish1->id,
-        'capture_method' => '釣魚'
+        'capture_method' => '釣魚',
     ]);
 
     // iranmeilek部落：1個魚叉
     CaptureRecord::factory()->forTribe('iranmeilek')->create([
         'fish_id' => $fish1->id,
-        'capture_method' => '魚叉'
+        'capture_method' => '魚叉',
     ]);
 
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['capture_methods_by_tribe']['ivalino']['網捕'])->toBe(2);
@@ -90,7 +90,7 @@ it('returns processing method statistics', function () {
     // 不食用：1個 — 使用 imowrod 部落，確保唯一性
     TribalClassification::factory()->forTribe('imowrod')->create(['fish_id' => $fish1->id, 'processing_method' => '不食用']);
 
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['processing_methods']['去魚鱗'])->toBe(3);
@@ -114,7 +114,7 @@ it('excludes soft deleted records from statistics', function () {
     ]);
     $deletedClassification->delete();
 
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['food_categories_by_tribe'])->toHaveKey('ivalino');           // 正常筆數應出現
@@ -123,7 +123,7 @@ it('excludes soft deleted records from statistics', function () {
 });
 
 it('returns empty statistics when no data exists', function () {
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['total_fish'])->toBe(0);
@@ -146,7 +146,7 @@ it('returns processing method statistics by tribe', function () {
     // iranmeilek 部落：剝皮 1 筆
     TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish1->id, 'processing_method' => '剝皮']);
 
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['processing_methods_by_tribe']['ivalino']['去魚鱗'])->toBe(2);
@@ -169,10 +169,27 @@ it('returns fish count by tribe', function () {
     TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish1->id]);
     TribalClassification::factory()->forTribe('iranmeilek')->create(['fish_id' => $fish2->id]);
 
-    $service = new FishStatisticsService();
+    $service = new FishStatisticsService;
     $stats = $service->getStatistics();
 
     expect($stats['fish_count_by_tribe']['ivalino'])->toBe(3);
     expect($stats['fish_count_by_tribe']['iranmeilek'])->toBe(2);
     expect($stats['fish_count_by_tribe'])->not->toHaveKey('imowrod');
+});
+
+it('reports non-self capture as an independent method without changing other counts', function () {
+    $fish = Fish::factory()->create();
+    CaptureRecord::factory()->count(2)->forTribe('ivalino')->create([
+        'fish_id' => $fish->id,
+        'capture_method' => 'mamasil',
+    ]);
+    CaptureRecord::factory()->forTribe('ivalino')->create([
+        'fish_id' => $fish->id,
+        'capture_method' => '非自捕（見到或他人提供）',
+    ]);
+
+    $methods = (new FishStatisticsService)->getStatistics()['capture_methods_by_tribe']['ivalino'];
+
+    expect($methods['mamasil'])->toBe(2)
+        ->and($methods['非自捕（見到或他人提供）'])->toBe(1);
 });

@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->service = new CaptureRecordBatchService();
+    $this->service = new CaptureRecordBatchService;
 });
 
 it('creates one capture record per filename with shared payload', function () {
@@ -18,11 +18,11 @@ it('creates one capture record per filename with shared payload', function () {
         $fish,
         ['first.jpg', 'second.jpg'],
         [
-            'tribe'          => 'ivalino',
-            'location'       => '大武溪上游',
+            'tribe' => 'ivalino',
+            'location' => '大武溪上游',
             'capture_method' => 'mapazat',
-            'capture_date'   => '2026-05-15',
-            'notes'          => '同批次上傳',
+            'capture_date' => '2026-05-15',
+            'notes' => '同批次上傳',
         ]
     );
 
@@ -43,10 +43,10 @@ it('throws validation exception when no filenames are provided', function () {
         $fish,
         [],
         [
-            'tribe'          => 'ivalino',
-            'location'       => '大武溪上游',
+            'tribe' => 'ivalino',
+            'location' => '大武溪上游',
             'capture_method' => 'mapazat',
-            'capture_date'   => '2026-05-15',
+            'capture_date' => '2026-05-15',
         ]
     );
 })->throws(ValidationException::class, '請上傳捕獲照片');
@@ -58,11 +58,11 @@ it('throws validation exception when shared payload is invalid', function () {
         $fish,
         ['first.jpg'],
         [
-            'tribe'          => 'ivalino',
-            'location'       => '大武溪上游',
+            'tribe' => 'ivalino',
+            'location' => '大武溪上游',
             'capture_method' => 'mapazat',
-            'capture_date'   => now()->addDay()->toDateString(),
-            'notes'          => null,
+            'capture_date' => now()->addDays(2)->toDateString(),
+            'notes' => null,
         ]
     );
 })->throws(ValidationException::class, '捕獲日期不能是未來日期');

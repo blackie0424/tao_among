@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\CaptureSessionServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Http\Requests\CaptureRecordRequest;
+use App\Http\Requests\UpdateCaptureRecordRequest;
 use App\Models\CaptureRecord;
 use App\Models\Fish;
 use App\Services\CaptureRecordBatchService;
@@ -96,7 +97,8 @@ class CaptureRecordController extends Controller
             'tribes' => config('fish_options.tribes'),
             'capture_methods' => config('fish_options.capture_methods'),
             'upload_limits' => config('fish_options.batch_upload'),
-            'recent_sessions' => $this->captureSessionService->getRecentSessions(),
+            'selectable_sessions' => $this->captureSessionService->getSelectableSessions(),
+            'legacy_combos' => $this->captureSessionService->getLegacyCombos(),
         ]);
     }
 
@@ -114,7 +116,13 @@ class CaptureRecordController extends Controller
             return redirect()->back()->withErrors(['image' => '請上傳捕獲照片'])->withInput();
         }
 
-        $this->captureRecordBatchService->createForFish($fish, [$validated['image_filename']], $validated);
+        $this->captureRecordBatchService->createForFishFromSession(
+            $fish,
+            [$validated['image_filename']],
+            $validated['session_id'] ?? null,
+            $validated['legacy_combo'] ?? null,
+            $validated['notes'] ?? null,
+        );
 
         return redirect()->route('fish.media-manager', $fishId)->with('success', '捕獲紀錄新增成功');
     }
@@ -150,23 +158,25 @@ class CaptureRecordController extends Controller
     /**
      * Update the specified capture record in storage.
      */
-    public function update(CaptureRecordRequest $request, $fishId, $recordId)
+    public function update(UpdateCaptureRecordRequest $request, $fishId, $recordId)
     {
-        $record = CaptureRecord::where('fish_id', $fishId)
-            ->where('id', $recordId)
-            ->firstOrFail();
-
+        $record = $request->captureRecord();
         $validated = $request->validated();
 
         $updateData = [
-            'tribe' => $validated['tribe'],
-            'location' => $validated['location'],
-            'capture_method' => $validated['capture_method'],
-            'capture_date' => $validated['capture_date'],
             'notes' => $validated['notes'] ?? null,
             'image_position' => $validated['image_position'] ?? null,
             'image_scale' => $validated['image_scale'] ?? null,
         ];
+
+        if (! $record->session_id) {
+            $updateData += [
+                'tribe' => $validated['tribe'],
+                'location' => $validated['location'],
+                'capture_method' => $validated['capture_method'],
+                'capture_date' => $validated['capture_date'],
+            ];
+        }
 
         // 處理圖片更新（如果有新圖片檔名）
         if (! empty($validated['image_filename'])) {

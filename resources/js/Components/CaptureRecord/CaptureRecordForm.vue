@@ -98,13 +98,24 @@
 
     <!-- ── Step 2 / Edit mode：部落、地點、日期 ── -->
     <template v-if="isEditMode || step === 2">
-      <!-- 過往捕獲資訊選擇器（僅 create mode） -->
       <CaptureRecordSessionSelector
-        v-if="!isEditMode && sessionSelectorVisible"
-        :sessions="recent_sessions"
+        v-if="!isEditMode"
+        :selectable-sessions="selectable_sessions"
+        :legacy-combos="legacy_combos"
         @select="onSessionSelect"
       />
-      <template v-if="isEditMode || !sessionSelectorVisible">
+      <div v-if="!isEditMode && errors.session_id" class="text-red-500 text-base mt-1">{{ errors.session_id }}</div>
+      <div v-if="!isEditMode && errors.legacy_combo" class="text-red-500 text-base mt-1">{{ errors.legacy_combo }}</div>
+      <div v-if="isEditMode && linkedToSession" data-testid="linked-session-fields" class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-base">
+        <dl class="space-y-2">
+          <div><dt class="font-medium">部落</dt><dd>{{ form.tribe }}</dd></div>
+          <div><dt class="font-medium">地點</dt><dd>{{ form.location || '未標地點' }}</dd></div>
+          <div><dt class="font-medium">日期</dt><dd>{{ form.capture_date }}</dd></div>
+          <div><dt class="font-medium">方式</dt><dd>{{ form.capture_method }}</dd></div>
+        </dl>
+        <a :href="'/capture-sessions/' + record.session_id + '/edit'" class="mt-3 inline-block text-blue-700 underline">到情境修改</a>
+      </div>
+      <template v-if="isEditMode && !linkedToSession">
         <div>
           <label for="tribe" class="block text-xl font-medium text-gray-700 mb-2">
             捕獲部落 <span class="text-red-500">*</span>
@@ -152,7 +163,7 @@
 
     <!-- ── Step 3 / Edit mode：捕獲方式、備註 ── -->
     <template v-if="isEditMode || step === 3">
-      <div>
+      <div v-if="isEditMode && !linkedToSession">
         <label for="capture_method" class="block text-xl font-medium text-gray-700 mb-2">
           捕獲方式 <span class="text-red-500">*</span>
         </label>
@@ -239,16 +250,18 @@ const props = defineProps({
   capture_methods: [Array, Object],
   fishName: String,
   fishImage: String,
-  recent_sessions: { type: Array, default: () => [] },
+  selectable_sessions: { type: Array, default: () => [] },
+  legacy_combos: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['submit', 'statusChange'])
 
 const isEditMode = computed(() => !!props.record)
+const linkedToSession = computed(() => !!props.record?.session_id)
 
 // ── Create mode state ──
 const step = ref(1)
-const sessionSelectorVisible = ref(false)
+const selection = ref(null)
 const imageFilename = ref(null)
 const processing = ref(false)
 
@@ -344,11 +357,10 @@ function nextStep() {
   if (step.value === 1) {
     doUploadStep().then((ok) => { if (ok) step.value = 2 })
   } else if (step.value === 2) {
-    const e = {}
-    if (!form.tribe) e.tribe = '請選擇部落'
-    if (!form.location) e.location = '請輸入地點'
-    if (!form.capture_date) e.capture_date = '請選擇日期'
-    if (Object.keys(e).length) { errors.value = e; return }
+    if (!selection.value) {
+      errors.value = { session_id: '請選擇情境' }
+      return
+    }
     errors.value = {}
     step.value = 3
   }
@@ -360,17 +372,29 @@ function prevStep() {
 
 // ── Submit ──
 function finalSubmit() {
-  if (!form.capture_method) {
-    errors.value = { capture_method: '請選擇捕獲方式' }
+  if (!selection.value) {
+    errors.value = { session_id: '請選擇情境' }
     return
   }
-  emit('submit', { ...buildFormData(), image_filename: imageFilename.value })
+  emit('submit', {
+    session_id: selection.value.session_id,
+    legacy_combo: selection.value.legacy_combo,
+    notes: form.notes,
+    image_filename: imageFilename.value,
+  })
 }
 
 function submitForm() {
   if (isEditMode.value) {
-    if (!validateCaptureFields()) return
-    const formData = { ...buildFormData(), _method: 'PUT' }
+    if (!linkedToSession.value && !validateCaptureFields()) return
+    const formData = linkedToSession.value
+      ? {
+          notes: form.notes,
+          image_position: form.image_position,
+          image_scale: form.image_scale,
+          _method: 'PUT',
+        }
+      : { ...buildFormData(), _method: 'PUT' }
     if (uploadedFilename.value) formData.image_filename = uploadedFilename.value
     emit('submit', formData)
     return
@@ -391,18 +415,12 @@ function setPrefillImage(filename) {
   if (filename) {
     imageFilename.value = filename
     step.value = 2
-    if (props.recent_sessions?.length > 0) sessionSelectorVisible.value = true
   }
 }
 
-function onSessionSelect(session) {
-  if (session) {
-    form.tribe = session.tribe
-    form.location = session.location
-    form.capture_date = session.capture_date
-    form.capture_method = session.capture_method
-  }
-  sessionSelectorVisible.value = false
+function onSessionSelect(value) {
+  selection.value = value
+  errors.value = {}
 }
 
 function setErrors(e) {

@@ -17,7 +17,8 @@
         :capture_methods="capture_methods"
         :fishName="fish.name"
         :fishImage="fish.display_image_url || fish.image_url"
-        :recent_sessions="recent_sessions"
+        :selectable_sessions="selectable_sessions"
+        :legacy_combos="legacy_combos"
         @submit="onFormSubmit"
         ref="formRef"
       />
@@ -39,10 +40,8 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  recent_sessions: {
-    type: Array,
-    default: () => [],
-  },
+  selectable_sessions: { type: Array, default: () => [] },
+  legacy_combos: { type: Array, default: () => [] },
 })
 
 const formRef = ref(null)

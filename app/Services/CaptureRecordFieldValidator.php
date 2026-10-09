@@ -12,6 +12,33 @@ class CaptureRecordFieldValidator
      */
     public function rules(bool $requireImageFilename = true): array
     {
+        return $this->legacyLineRules($requireImageFilename);
+    }
+
+    /** @return array<string, string|array<int, string>> */
+    public function webSessionCreateRules(bool $requireImageFilename = true): array
+    {
+        return [
+            'session_id' => ['required_without:legacy_combo', 'nullable', 'integer', 'exists:capture_sessions,id', 'prohibits:legacy_combo'],
+            'legacy_combo' => ['required_without:session_id', 'nullable', 'array', 'prohibits:session_id'],
+            'legacy_combo.capture_date' => ['required_with:legacy_combo', 'date'],
+            'legacy_combo.tribe' => ['required_with:legacy_combo', 'in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley'],
+            'legacy_combo.capture_method' => ['required_with:legacy_combo', 'string', 'max:255'],
+            'legacy_combo.location' => ['nullable', 'string', 'max:255'],
+            'tribe' => ['prohibited'],
+            'location' => ['prohibited'],
+            'capture_method' => ['prohibited'],
+            'capture_date' => ['prohibited'],
+            'notes' => ['nullable', 'string', 'max:65535'],
+            'image_filename' => [$requireImageFilename ? 'required' : 'nullable', 'string'],
+            'image_position' => ['nullable', 'in:center,top,bottom,left,right'],
+            'image_scale' => ['nullable', 'numeric', 'min:0.8', 'max:2.0'],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function legacyLineRules(bool $requireImageFilename = true): array
+    {
         return [
             'tribe' => 'required|in:ivalino,iranmeilek,imowrod,iratay,yayo,iraraley',
             'location' => 'required|string|max:255',
@@ -47,6 +74,15 @@ class CaptureRecordFieldValidator
             'image_scale.numeric' => '圖片縮放比例必須是數字',
             'image_scale.min' => '圖片縮放比例最小為 0.8',
             'image_scale.max' => '圖片縮放比例最大為 2.0',
+            'session_id.required_without' => '請選擇情境',
+            'session_id.exists' => '這個情境已不存在，請重新選擇',
+            'session_id.prohibits' => '情境與舊資料只能擇一',
+            'legacy_combo.required_without' => '請選擇情境',
+            'legacy_combo.prohibits' => '情境與舊資料只能擇一',
+            'tribe.prohibited' => '部落由情境帶入，不能另行指定',
+            'location.prohibited' => '地點由情境帶入，不能另行指定',
+            'capture_method.prohibited' => '方式由情境帶入，不能另行指定',
+            'capture_date.prohibited' => '日期由情境帶入，不能另行指定',
         ];
     }
 

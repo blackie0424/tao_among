@@ -8,32 +8,32 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->service = new CaptureSessionService();
+    $this->service = app(CaptureSessionService::class);
 });
 
 it('returns distinct capture session combinations ordered by date descending', function () {
     $fish = Fish::factory()->create();
 
     CaptureRecord::factory()->create([
-        'fish_id'        => $fish->id,
-        'tribe'          => 'iranmeilek',
-        'location'       => '大武溪',
+        'fish_id' => $fish->id,
+        'tribe' => 'iranmeilek',
+        'location' => '大武溪',
         'capture_method' => 'mamasil',
-        'capture_date'   => '2026-05-04',
+        'capture_date' => '2026-05-04',
     ]);
     CaptureRecord::factory()->create([
-        'fish_id'        => $fish->id,
-        'tribe'          => 'iranmeilek',
-        'location'       => '大武溪',
+        'fish_id' => $fish->id,
+        'tribe' => 'iranmeilek',
+        'location' => '大武溪',
         'capture_method' => 'mamasil',
-        'capture_date'   => '2026-05-04',
+        'capture_date' => '2026-05-04',
     ]);
     CaptureRecord::factory()->create([
-        'fish_id'        => $fish->id,
-        'tribe'          => 'ivalino',
-        'location'       => '新武呂溪',
+        'fish_id' => $fish->id,
+        'tribe' => 'ivalino',
+        'location' => '新武呂溪',
         'capture_method' => 'mapazat',
-        'capture_date'   => '2026-04-20',
+        'capture_date' => '2026-04-20',
     ]);
 
     $sessions = $this->service->getRecentSessions();
@@ -47,11 +47,11 @@ it('each session contains tribe, location, capture_method, capture_date and reco
     $fish = Fish::factory()->create();
 
     CaptureRecord::factory()->create([
-        'fish_id'        => $fish->id,
-        'tribe'          => 'ivalino',
-        'location'       => '知本溪',
+        'fish_id' => $fish->id,
+        'tribe' => 'ivalino',
+        'location' => '知本溪',
         'capture_method' => 'mapazat',
-        'capture_date'   => '2026-05-01',
+        'capture_date' => '2026-05-01',
     ]);
 
     $sessions = $this->service->getRecentSessions();
@@ -67,18 +67,18 @@ it('excludes sessions where location is LINE Bot', function () {
     $fish = Fish::factory()->create();
 
     CaptureRecord::factory()->create([
-        'fish_id'        => $fish->id,
-        'tribe'          => 'iraraley',
-        'location'       => 'LINE Bot',
+        'fish_id' => $fish->id,
+        'tribe' => 'iraraley',
+        'location' => 'LINE Bot',
         'capture_method' => '未知',
-        'capture_date'   => '2026-05-04',
+        'capture_date' => '2026-05-04',
     ]);
     CaptureRecord::factory()->create([
-        'fish_id'        => $fish->id,
-        'tribe'          => 'iranmeilek',
-        'location'       => '大武溪',
+        'fish_id' => $fish->id,
+        'tribe' => 'iranmeilek',
+        'location' => '大武溪',
         'capture_method' => 'mamasil',
-        'capture_date'   => '2026-05-03',
+        'capture_date' => '2026-05-03',
     ]);
 
     $sessions = $this->service->getRecentSessions();
@@ -98,11 +98,11 @@ it('limits results to 20 sessions', function () {
 
     for ($i = 1; $i <= 25; $i++) {
         CaptureRecord::factory()->create([
-            'fish_id'        => $fish->id,
-            'tribe'          => 'ivalino',
-            'location'       => "地點{$i}",
+            'fish_id' => $fish->id,
+            'tribe' => 'ivalino',
+            'location' => "地點{$i}",
             'capture_method' => 'mamasil',
-            'capture_date'   => '2026-05-01',
+            'capture_date' => '2026-05-01',
         ]);
     }
 
