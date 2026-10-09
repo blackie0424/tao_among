@@ -18,7 +18,7 @@ interface FishServiceInterface
 
     public function decorateFishMedia(Fish $fish): Fish;
 
-    public function getFishDetails(int $id): array;
+    public function getFishDetails(int $id, bool $includeSessionNotes = false): array;
 
     /**
      * 從 LINE Bot 建立魚類資料（不含捕獲紀錄），供後續填寫表單使用

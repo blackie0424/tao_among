@@ -113,11 +113,11 @@ class FishService implements FishServiceInterface
      *
      * @return array{fish: Fish, tribalClassifications: mixed, captureRecords: mixed, fishNotes: array<string, array<int, array<string, mixed>>>}
      */
-    public function getFishDetails(int $id): array
+    public function getFishDetails(int $id, bool $includeSessionNotes = false): array
     {
         $fish = Fish::with([
             'tribalClassifications',
-            'captureRecords.captureSession:id,notes',
+            $includeSessionNotes ? 'captureRecords.captureSession:id,notes' : 'captureRecords',
             'notes' => fn ($q) => $q->orderBy('created_at', 'desc'),
             'referenceKnowledge' => fn ($q) => $q
                 ->with('reference')
@@ -131,8 +131,13 @@ class FishService implements FishServiceInterface
 
         // 套用媒體 URL 規則
         $fish = $this->decorateFishMedia($fish);
-        $captureRecords = collect($this->captureRecordPresenter->presentManyWithSessionNotes($fish->captureRecords));
-        $fish->unsetRelation('captureRecords');
+        $captureRecords = $includeSessionNotes
+            ? collect($this->captureRecordPresenter->presentManyWithSessionNotes($fish->captureRecords))
+            : $fish->captureRecords;
+
+        if ($includeSessionNotes) {
+            $fish->unsetRelation('captureRecords');
+        }
 
         return [
             'fish' => $fish,
