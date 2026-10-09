@@ -65,6 +65,20 @@ describe('CaptureRecordSessionSelector', () => {
     expect(options[0].text()).toContain('2 筆')
     expect(options[1].text()).toContain('未標地點')
     expect(options[1].text()).toContain('0 筆')
+    expect(wrapper.find('[data-testid="session-empty-state"]').exists()).toBe(false)
+  })
+
+  it('orders session and legacy summaries as date, method, tribe, then place', () => {
+    const wrapper = mountSelector()
+    const sessionText = wrapper.findAll('[data-testid="session-option"]')[0].text()
+    const legacyText = wrapper.find('[data-testid="legacy-combo-option"]').text()
+
+    expect(sessionText.indexOf('2026-10-08')).toBeLessThan(sessionText.indexOf('mamasil'))
+    expect(sessionText.indexOf('mamasil')).toBeLessThan(sessionText.indexOf('ivalino'))
+    expect(sessionText.indexOf('ivalino')).toBeLessThan(sessionText.indexOf('測試灣'))
+    expect(legacyText.indexOf('2026-10-01')).toBeLessThan(legacyText.indexOf('釣魚'))
+    expect(legacyText.indexOf('釣魚')).toBeLessThan(legacyText.indexOf('iraraley'))
+    expect(legacyText.indexOf('iraraley')).toBeLessThan(legacyText.indexOf('未標地點'))
   })
 
   it('emits only the selected real session id', async () => {
@@ -130,6 +144,42 @@ describe('CaptureRecordSessionSelector', () => {
     expect(option.text()).toContain('0 筆')
     expect(wrapper.emitted('select')[0][0]).toEqual({ session_id: 99, legacy_combo: null })
     expect(wrapper.find('[data-testid="inline-session-form"]').exists()).toBe(false)
+  })
+
+  it('selects an already listed reused session without prepending and explains why', async () => {
+    apiFetch.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ session: { ...sessions[0], reused: true } }),
+    })
+    const wrapper = mountSelector({ legacyCombos: [] })
+
+    await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+    await fillInlineForm(wrapper)
+    await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+    await Promise.resolve()
+
+    expect(wrapper.findAll('[data-testid="session-option"]')).toHaveLength(2)
+    expect(wrapper.emitted('select')[0][0]).toEqual({ session_id: 7, legacy_combo: null })
+    expect(wrapper.find('[data-testid="session-reused-message"]').text()).toBe('已有相同情境,已為你選取')
+  })
+
+  it('prepends a reused session absent from the source list and explains why', async () => {
+    apiFetch.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        session: { id: 99, capture_date: '2026-10-09', tribe: 'ivalino', capture_method: 'mamasil', place_id: 3, place_name: '新地點', location_hint: null, record_count: 0, reused: true },
+      }),
+    })
+    const wrapper = mountSelector({ legacyCombos: [] })
+
+    await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+    await fillInlineForm(wrapper)
+    await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+    await Promise.resolve()
+
+    expect(wrapper.findAll('[data-testid="session-option"]')).toHaveLength(3)
+    expect(wrapper.emitted('select')[0][0]).toEqual({ session_id: 99, legacy_combo: null })
+    expect(wrapper.find('[data-testid="session-reused-message"]').text()).toBe('已有相同情境,已為你選取')
   })
 
   it('shows the first 422 validation error without leaving the inline form', async () => {

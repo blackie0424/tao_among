@@ -41,12 +41,15 @@ class CaptureSessionController extends Controller
 
     public function store(CaptureSessionRequest $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
-        $session = $this->service->create($request->validated());
+        $result = $this->service->create($request->validated());
+        $session = $result['session'];
         if ($request->expectsJson()) {
-            return response()->json(['session' => $this->service->presentSelectable($session->load('place')->loadCount('captureRecords'))], 201);
+            return response()->json([
+                'session' => $this->service->presentSelectable($session->load('place')->loadCount('captureRecords'), $result['reused']),
+            ], $result['reused'] ? 200 : 201);
         }
 
-        return redirect('/capture-sessions')->with('success', '情境已建立');
+        return redirect('/capture-sessions')->with('success', $result['reused'] ? '已有相同情境,未重複建立' : '情境已建立');
     }
 
     public function edit(CaptureSession $session): Response

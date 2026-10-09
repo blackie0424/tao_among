@@ -27,9 +27,10 @@
     <div v-if="hasOptions" class="space-y-4">
       <div v-if="allSelectableSessions.length" class="flex flex-col gap-2">
         <button v-for="session in allSelectableSessions" :key="'session-' + session.id" data-testid="session-option" type="button" :class="optionClass(selectionKey === 'session-' + session.id)" @click="selectSession(session)">
-          <span class="font-medium">{{ session.capture_date }}</span>
-          · {{ session.place_name || session.location_hint || '未標地點' }}
-          · {{ session.tribe }} · {{ session.capture_method }}
+          <span class="inline-flex flex-wrap items-baseline gap-x-1">
+            <span class="whitespace-nowrap font-medium">{{ session.capture_date }} · {{ session.capture_method }} · {{ session.tribe }}</span>
+            <span class="min-w-0 break-words">· {{ session.place_name || session.location_hint || '未標地點' }}</span>
+          </span>
           <span class="ml-1 text-xs">（{{ session.record_count }} 筆）</span>
         </button>
       </div>
@@ -37,15 +38,17 @@
         <p class="mb-2 text-sm font-medium text-gray-600">由舊資料建立情境</p>
         <div class="flex flex-col gap-2">
           <button v-for="combo in legacyCombos" :key="legacyKey(combo)" data-testid="legacy-combo-option" type="button" :class="optionClass(selectionKey === 'legacy-' + legacyKey(combo))" @click="selectLegacy(combo)">
-            <span class="font-medium">{{ combo.capture_date }}</span>
-            · {{ combo.location || '未標地點' }}
-            · {{ combo.tribe }} · {{ combo.capture_method }}
+            <span class="inline-flex flex-wrap items-baseline gap-x-1">
+              <span class="whitespace-nowrap font-medium">{{ combo.capture_date }} · {{ combo.capture_method }} · {{ combo.tribe }}</span>
+              <span class="min-w-0 break-words">· {{ combo.location || '未標地點' }}</span>
+            </span>
             <span class="ml-1 text-xs">（{{ combo.record_count }} 筆・舊資料）</span>
           </button>
         </div>
       </div>
     </div>
-    <div v-else data-testid="session-empty-state" class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+    <p v-if="reusedMessage" data-testid="session-reused-message" role="status" class="mb-3 text-sm text-teal-700">{{ reusedMessage }}</p>
+    <div v-if="!hasOptions" data-testid="session-empty-state" class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
       <p class="font-medium">還沒有情境</p>
       <p class="mt-1">可直接新增情境後繼續記錄。</p>
     </div>
@@ -72,6 +75,7 @@ const isInlineFormOpen = ref(false)
 const processing = ref(false)
 const formErrors = ref({})
 const createdSessions = ref([])
+const reusedMessage = ref('')
 const inlineForm = reactive({
   capture_date: formatLocalDate(),
   tribe: '',
@@ -93,6 +97,7 @@ function optionClass(selected) {
 
 function openInlineForm() {
   formErrors.value = {}
+  reusedMessage.value = ''
   isInlineFormOpen.value = true
 }
 
@@ -113,8 +118,12 @@ async function createSession() {
       return
     }
 
-    createdSessions.value.unshift(payload.session)
-    selectSession(payload.session)
+    const existing = allSelectableSessions.value.find(session => session.id === payload.session.id)
+    if (!existing) {
+      createdSessions.value.unshift(payload.session)
+    }
+    selectSession(existing || payload.session)
+    reusedMessage.value = payload.session.reused ? '已有相同情境,已為你選取' : ''
     isInlineFormOpen.value = false
   } catch {
     formErrors.value = { form: '建立情境失敗，請稍後再試' }

@@ -47,8 +47,8 @@ class CaptureSessionService implements CaptureSessionServiceInterface
             ->all();
     }
 
-    /** @return array<string, int|string|null> */
-    public function presentSelectable(CaptureSession $session): array
+    /** @return array<string, bool|int|string|null> */
+    public function presentSelectable(CaptureSession $session, bool $reused = false): array
     {
 
         $session->loadMissing('place');
@@ -62,6 +62,7 @@ class CaptureSessionService implements CaptureSessionServiceInterface
             'place_name' => $session->place?->name,
             'location_hint' => $session->location_hint,
             'record_count' => (int) ($session->capture_records_count ?? 0),
+            'reused' => $reused,
         ];
     }
 
@@ -192,9 +193,27 @@ class CaptureSessionService implements CaptureSessionServiceInterface
         ]);
     }
 
-    public function create(array $data): CaptureSession
+    /** @return array{session: CaptureSession, reused: bool} */
+    public function create(array $data): array
     {
-        return DB::transaction(fn (): CaptureSession => CaptureSession::create($this->prepareData($data)));
+        return DB::transaction(function () use ($data): array {
+            $attributes = $this->prepareData($data);
+
+            if ($attributes['place_id'] !== null) {
+                $existing = CaptureSession::query()
+                    ->whereDate('capture_date', $attributes['capture_date'])
+                    ->where('tribe', $attributes['tribe'])
+                    ->where('capture_method', $attributes['capture_method'])
+                    ->where('place_id', $attributes['place_id'])
+                    ->first();
+
+                if ($existing) {
+                    return ['session' => $existing, 'reused' => true];
+                }
+            }
+
+            return ['session' => CaptureSession::create($attributes), 'reused' => false];
+        });
     }
 
     public function update(CaptureSession $session, array $data): CaptureSession
