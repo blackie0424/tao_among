@@ -13,7 +13,6 @@
     <div class="flex gap-6 items-start">
       <!-- 主內容 -->
       <div class="flex-1 min-w-0">
-
         <!-- 分區 Tab 導覽 -->
         <div class="sticky top-0 lg:top-20 z-20 bg-gray-50 -mx-4 px-4 pb-2">
           <div class="flex overflow-x-auto gap-1 no-scrollbar">
@@ -32,20 +31,12 @@
         <!-- Tab 內容 -->
         <div class="mt-4">
           <!-- 基本 -->
-          <section v-show="activeTab === 'basic'">
-            <FishGridLayout>
-              <template #top-extra>
-                <TribalClassificationSummary
-                  :classifications="tribalClassifications"
-                  :tribes="tribes"
-                  :fishId="fish.id"
-                />
-              </template>
-            </FishGridLayout>
+          <section v-show="activeTab === 'basic'" data-testid="basic-tab">
+            <FishGridLayout />
           </section>
 
           <!-- 地方知識 -->
-          <section v-show="activeTab === 'local'">
+          <section v-show="activeTab === 'local'" data-testid="local-tab">
             <TribalClassificationSummary
               :classifications="tribalClassifications"
               :tribes="tribes"
@@ -55,7 +46,11 @@
 
           <!-- 進階知識 -->
           <section v-show="activeTab === 'advanced'">
-            <FishAdvancedKnowledgeSection :fishNotes="fishNotes" :isEditor="isEditor" :user="user" />
+            <FishAdvancedKnowledgeSection
+              :fishNotes="fishNotes"
+              :isEditor="isEditor"
+              :user="user"
+            />
           </section>
 
           <!-- 文獻知識（editor/admin 限定） -->
@@ -133,20 +128,19 @@ const user = computed(() => page.props.auth?.user)
 const isEditor = computed(() => ['editor', 'admin'].includes(user.value?.role))
 const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
 
-
 // ─── 分區 Tab ─────────────────────────────────────────────
 const ALL_TABS = [
-  { key: 'basic',     label: '基本' },
-  { key: 'local',     label: '地方知識' },
-  { key: 'advanced',  label: '進階知識', editorOnly: true },
+  { key: 'basic', label: '基本' },
+  { key: 'local', label: '地方知識' },
+  { key: 'advanced', label: '進階知識', editorOnly: true },
   { key: 'reference', label: '文獻知識', editorOnly: true },
-  { key: 'capture',   label: '捕獲紀錄' },
-  { key: 'audio',     label: '發音',     audioOnly: true },
+  { key: 'capture', label: '捕獲紀錄' },
+  { key: 'audio', label: '發音', audioOnly: true },
 ]
 
 const visibleTabs = computed(() =>
-  ALL_TABS.filter((t) =>
-    (!t.editorOnly || isEditor.value) && (!t.audioOnly || hasAudioAccess.value)
+  ALL_TABS.filter(
+    (t) => (!t.editorOnly || isEditor.value) && (!t.audioOnly || hasAudioAccess.value)
   )
 )
 
@@ -177,7 +171,9 @@ function switchTab(key) {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
   white-space: nowrap;
   min-height: 2.5rem;
 }
@@ -190,6 +186,11 @@ function switchTab(key) {
   color: #1d4ed8;
   font-weight: 600;
 }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 </style>
