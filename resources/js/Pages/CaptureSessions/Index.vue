@@ -6,8 +6,8 @@
       <article v-for="session in sessions.data" :key="session.id" class="rounded-xl border bg-white p-4">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <h2 class="font-bold">{{ locationLabel(session) }}</h2>
-            <p class="text-sm text-gray-600">{{ session.capture_date }} · {{ session.tribe }} · {{ session.capture_method }}</p>
+            <p class="whitespace-nowrap text-sm text-gray-600">{{ session.capture_date }} · {{ session.capture_method }} · {{ session.tribe }}</p>
+            <h2 class="mt-1 break-words font-bold">{{ locationLabel(session) }}</h2>
             <p class="text-sm">{{ session.record_count }} 筆</p>
           </div>
           <div data-testid="session-actions" class="flex items-center gap-3 text-sm">

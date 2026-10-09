@@ -76,8 +76,12 @@
           >備註：{{ record.notes }}</span
         >
       </div>
+      <div v-if="record.session_notes" class="mb-1">
+        <span class="text-lg md:text-xl font-medium text-gray-800 break-words">情境備註：{{ record.session_notes }}</span>
+      </div>
     </div>
   </div>
+
 
   <!-- 旋轉 Modal -->
   <ImageRotateModal

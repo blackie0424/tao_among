@@ -115,7 +115,72 @@ it('renders the create page and returns the created session as JSON', function (
         ->assertInertia(fn (Assert $page) => $page->component('CaptureSessions/Create'));
     $this->postJson('/capture-sessions', $payload)->assertCreated()
         ->assertJsonPath('session.capture_method', '釣魚')
-        ->assertJsonPath('session.place', null);
+        ->assertJsonPath('session.place_id', null)
+        ->assertJsonPath('session.place_name', null)
+        ->assertJsonPath('session.record_count', 0);
+});
+
+it('reuses an existing placed session while preserving its notes', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $place = Place::factory()->create(['name' => '重用灣', 'name_key' => '重用灣']);
+    $payload = [
+        'capture_date' => '2026-10-01',
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_id' => $place->id,
+        'notes' => '第一筆備註',
+    ];
+
+    $first = $this->actingAs($editor)->postJson('/capture-sessions', $payload)
+        ->assertCreated()
+        ->assertJsonPath('session.reused', false)
+        ->json('session');
+    $second = $this->postJson('/capture-sessions', [...$payload, 'notes' => '不可覆蓋'])
+        ->assertOk()
+        ->assertJsonPath('session.reused', true)
+        ->json('session');
+
+    expect(CaptureSession::count())->toBe(1)
+        ->and($second['id'])->toBe($first['id'])
+        ->and(CaptureSession::findOrFail($first['id'])->notes)->toBe('第一筆備註');
+});
+
+it('creates distinct sessions when any identifying value differs or place is missing', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $place = Place::factory()->create(['name' => '差異灣', 'name_key' => '差異灣']);
+    $base = ['capture_date' => '2026-10-01', 'tribe' => 'ivalino', 'capture_method' => '釣魚', 'place_id' => $place->id, 'notes' => null];
+
+    $this->actingAs($editor)->postJson('/capture-sessions', $base)->assertCreated();
+    foreach ([
+        [...$base, 'capture_date' => '2026-10-02'],
+        [...$base, 'tribe' => 'yayo'],
+        [...$base, 'capture_method' => '網捕'],
+        [...$base, 'place_id' => Place::factory()->create(['name' => '另一灣', 'name_key' => '另一灣'])->id],
+    ] as $payload) {
+        $this->postJson('/capture-sessions', $payload)->assertCreated()->assertJsonPath('session.reused', false);
+    }
+    $withoutPlace = ['capture_date' => '2026-10-03', 'tribe' => 'ivalino', 'capture_method' => '釣魚', 'place_id' => null, 'notes' => null];
+    $this->postJson('/capture-sessions', $withoutPlace)->assertCreated();
+    $this->postJson('/capture-sessions', $withoutPlace)->assertCreated();
+
+    expect(CaptureSession::count())->toBe(7);
+});
+
+it('reuses a resolved place name and flashes a duplicate message for form creation', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $place = Place::factory()->create(['name' => '文字灣', 'name_key' => '文字灣']);
+    $payload = ['capture_date' => '2026-10-01', 'tribe' => 'ivalino', 'capture_method' => '釣魚', 'place_id' => $place->id, 'notes' => null];
+
+    $this->actingAs($editor)->post('/capture-sessions', $payload)->assertRedirect('/capture-sessions');
+    $this->post('/capture-sessions', [
+        'capture_date' => '2026-10-01',
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_name' => '文字灣',
+        'notes' => '忽略',
+    ])->assertRedirect('/capture-sessions')->assertSessionHas('success', '已有相同情境,未重複建立');
+
+    expect(CaptureSession::count())->toBe(1);
 });
 
 it('allows editors to create sessions and blocks viewers', function () {
@@ -255,4 +320,28 @@ it('blocks viewers from updating and deleting sessions', function () {
 
     $this->actingAs($viewer)->put("/capture-sessions/{$session->id}", $payload)->assertForbidden();
     $this->delete("/capture-sessions/{$session->id}")->assertForbidden();
+});
+
+it('uses the same selectable-session contract for JSON creation and the picker list', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $place = Place::factory()->create(['name' => '選擇器地名', 'name_key' => '選擇器地名']);
+    $payload = [
+        'capture_date' => '2026-10-01',
+        'tribe' => 'ivalino',
+        'capture_method' => '釣魚',
+        'place_id' => $place->id,
+        'notes' => '建立時備註',
+    ];
+
+    $created = $this->actingAs($editor)->postJson('/capture-sessions', $payload)
+        ->assertCreated()
+        ->json('session');
+    $listed = collect(app(CaptureSessionService::class)->getSelectableSessions())
+        ->firstWhere('id', $created['id']);
+
+    expect($created)->toHaveKeys([
+        'id', 'capture_date', 'tribe', 'capture_method', 'place_id', 'place_name', 'location_hint', 'record_count', 'reused',
+    ])->and($created)->toBe($listed)
+        ->and($created['place_name'])->toBe('選擇器地名')
+        ->and($created['record_count'])->toBe(0);
 });

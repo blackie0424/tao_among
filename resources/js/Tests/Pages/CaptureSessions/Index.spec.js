@@ -26,4 +26,14 @@ describe('CaptureSessions/Index', () => {
       }
     }
   })
+  it('orders each summary as date, method, tribe, then place', () => {
+    const wrapper = mount(Index, { props: { sessions: { data: [
+      { id: 1, capture_date: '2026-10-01', tribe: 'ivalino', capture_method: '釣魚', place: { name: '東清灣' }, location_hint: null, record_count: 0, can_delete: true },
+    ] } } })
+    const text = wrapper.find('article').text()
+
+    expect(text.indexOf('2026-10-01')).toBeLessThan(text.indexOf('釣魚'))
+    expect(text.indexOf('釣魚')).toBeLessThan(text.indexOf('ivalino'))
+    expect(text.indexOf('ivalino')).toBeLessThan(text.indexOf('東清灣'))
+  })
 })

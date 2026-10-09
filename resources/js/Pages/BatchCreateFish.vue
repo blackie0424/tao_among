@@ -46,6 +46,8 @@
         <CaptureRecordSessionSelector
           :selectable-sessions="selectable_sessions"
           :legacy-combos="legacy_combos"
+          :tribes="tribes"
+          :capture-methods="capture_methods"
           @select="onSessionSelect"
         />
         <p v-if="formErrors.session_id" class="mb-3 text-sm text-red-600">{{ formErrors.session_id }}</p>

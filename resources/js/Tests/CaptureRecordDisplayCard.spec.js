@@ -139,3 +139,18 @@ describe('捕獲說明', () => {
     expect(wrapper.text()).not.toContain('捕獲說明')
   })
 })
+
+describe('情境備註', () => {
+  it('與捕獲說明分開顯示情境備註', () => {
+    const wrapper = mountCard({ record: makeRecord({ notes: '單筆備註', session_notes: '這次出海備註' }) })
+    expect(wrapper.text()).toContain('捕獲說明')
+    expect(wrapper.text()).toContain('單筆備註')
+    expect(wrapper.text()).toContain('情境備註')
+    expect(wrapper.text()).toContain('這次出海備註')
+  })
+
+  it.each([null, ''])('session_notes 為 %j 時不顯示情境備註', (sessionNotes) => {
+    const wrapper = mountCard({ record: makeRecord({ session_notes: sessionNotes }) })
+    expect(wrapper.text()).not.toContain('情境備註')
+  })
+})

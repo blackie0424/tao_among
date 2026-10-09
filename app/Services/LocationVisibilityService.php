@@ -8,7 +8,7 @@ class LocationVisibilityService
 {
     private const RESTRICTED_KEYS = [
         'location', 'place', 'places', 'place_name', 'name_key', 'tao_name',
-        'location_hint', 'capture_session', 'capture_sessions', 'legacy_sessions',
+        'location_hint', 'capture_session', 'capture_sessions', 'legacy_sessions', 'session_notes',
     ];
 
     public function __construct(private readonly PayloadFieldFilter $fieldFilter) {}
