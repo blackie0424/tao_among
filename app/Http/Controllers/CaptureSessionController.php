@@ -41,7 +41,7 @@ class CaptureSessionController extends Controller
 
     public function store(CaptureSessionRequest $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
-        $session = CaptureSession::create($request->validated());
+        $session = $this->service->create($request->validated());
         if ($request->expectsJson()) {
             return response()->json(['session' => $session->load('place')], 201);
         }

@@ -33,9 +33,9 @@ it('returns fixed Chinese validation messages for invalid places', function () {
 
 it('returns the existing place for canonical duplicates', function () {
     $editor = User::factory()->lineEditor()->create();
-    $existing = Place::factory()->create(['name' => 'A B', 'name_key' => 'a b']);
+    $existing = Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => 'A B', 'name_key' => 'a b']);
 
-    $this->actingAs($editor)->postJson('/places', ['name' => '  a　b  '])
+    $this->actingAs($editor)->postJson('/places', ['name' => '  a　b  ', 'tribe' => 'ivalino'])
         ->assertStatus(422)->assertJsonPath('existing_place.id', $existing->id)->assertJsonPath('existing_place.name', 'A B');
 });
 
@@ -46,11 +46,11 @@ it('maps a unique-key race to the existing-place 422 response', function () {
         $sql = strtolower(str_replace(['`', '"'], '', $query->sql));
         if (! $inserted && str_contains($sql, 'select') && str_contains($sql, 'from places') && str_contains($sql, 'name_key')) {
             $inserted = true;
-            Place::factory()->create(['name' => 'Race Bay', 'name_key' => 'race bay']);
+            Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => 'Race Bay', 'name_key' => 'race bay']);
         }
     });
 
-    $this->actingAs($editor)->postJson('/places', ['name' => 'Race Bay'])
+    $this->actingAs($editor)->postJson('/places', ['name' => 'Race Bay', 'tribe' => 'ivalino'])
         ->assertStatus(422)
         ->assertJsonPath('existing_place.name', 'Race Bay');
     expect(Place::where('name_key', 'race bay')->count())->toBe(1);
@@ -118,8 +118,8 @@ it('allows an admin to delete an unused place', function () {
 });
 
 it('enforces canonical uniqueness in the database', function () {
-    Place::factory()->create(['name' => 'A B', 'name_key' => 'a b']);
-    expect(fn () => Place::factory()->create(['name' => 'Other', 'name_key' => 'a b']))
+    Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => 'A B', 'name_key' => 'a b']);
+    expect(fn () => Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => 'Other', 'name_key' => 'a b']))
         ->toThrow(\Illuminate\Database\QueryException::class);
 });
 

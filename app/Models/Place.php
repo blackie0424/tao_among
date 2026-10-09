@@ -10,9 +10,11 @@ class Place extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'name_key', 'tao_name', 'notes'];
+    protected $fillable = ['tribe', 'scope_key', 'name', 'name_key', 'tao_name', 'notes', 'is_provisional'];
 
     protected $hidden = ['name_key'];
+
+    protected $casts = ['is_provisional' => 'boolean'];
 
     public function captureSessions(): HasMany
     {

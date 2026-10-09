@@ -182,10 +182,15 @@ class CaptureSessionService implements CaptureSessionServiceInterface
         ]);
     }
 
+    public function create(array $data): CaptureSession
+    {
+        return DB::transaction(fn (): CaptureSession => CaptureSession::create($this->prepareData($data)));
+    }
+
     public function update(CaptureSession $session, array $data): CaptureSession
     {
         return DB::transaction(function () use ($session, $data): CaptureSession {
-            $session->update($data);
+            $session->update($this->prepareData($data));
             $attributes = $this->recordAttributes($session->refresh());
             CaptureRecord::withTrashed()->where('session_id', $session->id)->update($attributes);
 
@@ -200,6 +205,22 @@ class CaptureSessionService implements CaptureSessionServiceInterface
         }
 
         $session->delete();
+    }
+
+    private function prepareData(array $data): array
+    {
+        $tribe = $data['tribe'];
+        $placeName = $data['place_name'] ?? null;
+        unset($data['place_name']);
+
+        if (is_string($placeName) && trim($placeName) !== '') {
+            $data['place_id'] = $this->placeService->resolveName($placeName, $tribe)?->id;
+        } else {
+            $data['place_id'] = $data['place_id'] ?? null;
+            $this->placeService->assertCompatible($data['place_id'], $tribe);
+        }
+
+        return $data;
     }
 
     /** @return array{display:?string,key:?string} */

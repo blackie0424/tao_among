@@ -143,6 +143,8 @@ Route::middleware(['auth', 'browse'])->group(function () {
         Route::get('/admin/places', [AdminPlaceController::class, 'index'])->name('admin.places.index');
         Route::get('/admin/places/{place}/edit', [AdminPlaceController::class, 'edit'])->name('admin.places.edit');
         Route::put('/admin/places/{place}', [AdminPlaceController::class, 'update'])->name('admin.places.update');
+        Route::post('/admin/places/{place}/confirm', [AdminPlaceController::class, 'confirm'])->name('admin.places.confirm');
+        Route::post('/admin/places/{place}/merge', [AdminPlaceController::class, 'merge'])->name('admin.places.merge');
         Route::delete('/admin/places/{place}', [AdminPlaceController::class, 'destroy'])->name('admin.places.destroy');
 
         // 主題導覽分類管理
