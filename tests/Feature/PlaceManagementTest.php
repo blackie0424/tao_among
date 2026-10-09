@@ -83,6 +83,22 @@ it('allows case-only renames and rejects canonical duplicates', function () {
     expect($place->fresh()->name)->toBe('EAST BAY');
 });
 
+it('maps an update unique-key race to a validation error', function () {
+    $place = Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => '原名', 'name_key' => '原名']);
+    $inserted = false;
+    DB::listen(function ($query) use (&$inserted): void {
+        $sql = strtolower(str_replace(['`', '"'], '', $query->sql));
+        if (! $inserted && str_contains($sql, 'select exists') && str_contains($sql, 'from places') && str_contains($sql, 'name_key')) {
+            $inserted = true;
+            Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => '競態新名', 'name_key' => '競態新名']);
+        }
+    });
+
+    expect(fn () => app(PlaceService::class)->update($place, ['name' => '競態新名', 'tribe' => 'ivalino']))
+        ->toThrow(\Illuminate\Validation\ValidationException::class);
+    expect($place->fresh()->name)->toBe('原名');
+});
+
 it('rolls back a place rename when linked-record synchronization fails', function () {
     $place = Place::factory()->create(['name' => '舊地名', 'name_key' => '舊地名']);
     $session = CaptureSession::factory()->create(['place_id' => $place->id]);

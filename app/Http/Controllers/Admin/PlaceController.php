@@ -34,7 +34,7 @@ class PlaceController extends Controller
         return Inertia::render('Admin/Places/Edit', [
             'place' => $place,
             'tribes' => config('fish_options.tribes'),
-            'mergeTargets' => Place::whereKeyNot($place->id)->orderBy('name')->get(['id', 'tribe', 'name']),
+            'mergeTargets' => $this->service->mergeTargetsFor($place),
         ]);
     }
 

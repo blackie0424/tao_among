@@ -76,6 +76,22 @@ it('blocks assigning a used shared place to a mismatched tribe', function () {
     expect($place->fresh()->tribe)->toBeNull()->and($place->fresh()->scope_key)->toBe('');
 });
 
+it('lists only merge targets compatible with every source session tribe', function () {
+    $admin = User::factory()->admin()->create();
+    $source = Place::factory()->create();
+    CaptureSession::factory()->create(['place_id' => $source->id, 'tribe' => 'ivalino']);
+    $shared = Place::factory()->create(['name' => '共用', 'name_key' => '共用']);
+    $sameTribe = Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => '同部落', 'name_key' => '同部落']);
+    $otherTribe = Place::factory()->create(['tribe' => 'yayo', 'scope_key' => 'yayo', 'name' => '其他部落', 'name_key' => '其他部落']);
+
+    $targets = $this->actingAs($admin)->get("/admin/places/{$source->id}/edit")->assertOk()
+        ->viewData('page')['props']['mergeTargets'];
+
+    expect(collect($targets)->pluck('id')->all())
+        ->toContain($shared->id, $sameTribe->id)
+        ->not->toContain($otherTribe->id);
+});
+
 it('merges a place atomically including soft deleted records', function () {
     $source = Place::factory()->create(['name' => '描述地名', 'name_key' => '描述地名']);
     $target = Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => '正式地名', 'name_key' => '正式地名']);

@@ -6,6 +6,7 @@ use App\Models\CaptureRecord;
 use App\Models\CaptureSession;
 use App\Models\Place;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -107,19 +108,50 @@ class PlaceService
                 throw ValidationException::withMessages(['name' => '已有同名地名']);
             }
 
-            $locked->update([
-                ...$normalized,
-                'tribe' => $tribe,
-                'scope_key' => $scopeKey,
-                'tao_name' => $data['tao_name'] ?? null,
-                'notes' => $data['notes'] ?? null,
-                'is_provisional' => $data['is_provisional'] ?? $locked->is_provisional,
-            ]);
+            try {
+                $locked->update([
+                    ...$normalized,
+                    'tribe' => $tribe,
+                    'scope_key' => $scopeKey,
+                    'tao_name' => $data['tao_name'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                    'is_provisional' => $data['is_provisional'] ?? $locked->is_provisional,
+                ]);
+            } catch (QueryException $exception) {
+                $duplicateExists = Place::where('scope_key', $scopeKey)
+                    ->where('name_key', $normalized['name_key'])
+                    ->whereKeyNot($locked->id)
+                    ->exists();
+                if (! $duplicateExists) {
+                    throw $exception;
+                }
+
+                throw ValidationException::withMessages(['name' => '已有同名地名']);
+            }
             $sessionIds = $locked->captureSessions()->pluck('id');
             CaptureRecord::withTrashed()->whereIn('session_id', $sessionIds)->update(['location' => $locked->name]);
 
             return $locked->refresh();
         });
+    }
+
+    /** @return Collection<int, Place> */
+    public function mergeTargetsFor(Place $source): Collection
+    {
+        $sourceTribes = $source->captureSessions()->distinct()->pluck('tribe');
+
+        return Place::query()
+            ->whereKeyNot($source->id)
+            ->when($sourceTribes->isNotEmpty(), function ($query) use ($sourceTribes): void {
+                $query->where(function ($query) use ($sourceTribes): void {
+                    $query->whereNull('tribe');
+                    if ($sourceTribes->count() === 1) {
+                        $query->orWhere('tribe', $sourceTribes->first());
+                    }
+                });
+            })
+            ->orderBy('name')
+            ->get(['id', 'tribe', 'name']);
     }
 
     public function confirm(Place $place): Place
