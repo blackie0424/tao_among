@@ -30,14 +30,6 @@
         >
           田調工作區
         </Link>
-        <Link
-          href="/fish/batch-create"
-          data-testid="link-batch-create"
-          class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-gray-50 hover:text-blue-700 transition"
-          @click="$emit('close')"
-        >
-          ＋ 新增魚種
-        </Link>
       </template>
 
       <!-- Admin Links -->
