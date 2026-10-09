@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\PlaceService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
@@ -67,6 +68,30 @@ it('marks editor places provisional and admin places confirmed', function () {
         ->and(Place::find($adminId)->is_provisional)->toBeFalse();
 });
 
+it('ignores request scope keys and confirms only provisional places when saved', function () {
+    $admin = User::factory()->admin()->create();
+    $pending = Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'is_provisional' => true]);
+    $confirmed = Place::factory()->create(['tribe' => 'yayo', 'scope_key' => 'yayo', 'is_provisional' => false]);
+
+    $this->actingAs($admin)->put("/admin/places/{$pending->id}", ['name' => $pending->name, 'tribe' => 'ivalino', 'scope_key' => 'forged'])->assertRedirect('/admin/places');
+    $this->put("/admin/places/{$confirmed->id}", ['name' => $confirmed->name, 'tribe' => 'yayo', 'scope_key' => 'forged'])->assertRedirect('/admin/places');
+
+    expect($pending->fresh()->only(['scope_key', 'is_provisional']))->toBe(['scope_key' => 'ivalino', 'is_provisional' => false])
+        ->and($confirmed->fresh()->only(['scope_key', 'is_provisional']))->toBe(['scope_key' => 'yayo', 'is_provisional' => false]);
+});
+
+it('validates an existing place when a capture session changes tribe', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $local = Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino']);
+    $shared = Place::factory()->create();
+    $session = CaptureSession::factory()->create(['tribe' => 'ivalino', 'place_id' => $local->id]);
+    $payload = ['capture_date' => '2026-10-01', 'tribe' => 'yayo', 'capture_method' => '釣魚', 'notes' => null];
+
+    $this->actingAs($editor)->put("/capture-sessions/{$session->id}", [...$payload, 'place_id' => $local->id])->assertSessionHasErrors(['place_id' => '這個地名不屬於所選部落']);
+    expect($session->fresh()->only(['tribe', 'place_id']))->toBe(['tribe' => 'ivalino', 'place_id' => $local->id]);
+    $this->put("/capture-sessions/{$session->id}", [...$payload, 'place_id' => $shared->id])->assertRedirect();
+    expect($session->fresh()->only(['tribe', 'place_id']))->toBe(['tribe' => 'yayo', 'place_id' => $shared->id]);
+});
 it('blocks assigning a used shared place to a mismatched tribe', function () {
     $place = Place::factory()->create();
     CaptureSession::factory()->create(['place_id' => $place->id, 'tribe' => 'yayo']);
@@ -142,4 +167,40 @@ it('merges places through the admin endpoint', function () {
     $this->actingAs($admin)->post("/admin/places/{$source->id}/merge", ['target_place_id' => $target->id])
         ->assertRedirect('/admin/places');
     expect($session->fresh()->place_id)->toBe($target->id);
+});
+
+it('rejects merging a place into itself', function () {
+    $admin = User::factory()->admin()->create();
+    $place = Place::factory()->create();
+    $this->actingAs($admin)->post("/admin/places/{$place->id}/merge", ['target_place_id' => $place->id])->assertSessionHasErrors(['target_place_id' => '不能併入同一個地名']);
+    expect($place->fresh())->not->toBeNull();
+});
+
+it('rolls back every merge write when record synchronization fails', function () {
+    $source = Place::factory()->create(['name' => '來源', 'name_key' => '來源']);
+    $target = Place::factory()->create(['name' => '目標', 'name_key' => '目標']);
+    $session = CaptureSession::factory()->create(['place_id' => $source->id]);
+    CaptureRecord::factory()->create(['session_id' => $session->id, 'location' => '來源']);
+    DB::listen(function ($query): void {
+        if (str_contains($query->sql, 'update "capture_records"')) {
+            throw new RuntimeException('forced synchronization failure');
+        }
+    });
+    expect(fn () => app(PlaceService::class)->merge($source, $target))->toThrow(RuntimeException::class);
+    expect($session->fresh()->place_id)->toBe($source->id)->and($source->fresh())->not->toBeNull()->and(CaptureRecord::first()->location)->toBe('來源');
+});
+
+it('locks both places in stable id order before reading source sessions', function () {
+    $first = Place::factory()->create();
+    $second = Place::factory()->create();
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        if (str_contains($query->sql, 'from "places"') || str_contains($query->sql, 'from "capture_sessions"')) {
+            $queries[] = [$query->sql, $query->bindings];
+        }
+    });
+    app(PlaceService::class)->merge($second, $first);
+    $placeLockIndex = collect($queries)->search(fn ($query) => str_contains($query[0], 'from "places"') && str_contains($query[0], 'order by "id" asc'));
+    $sessionReadIndex = collect($queries)->search(fn ($query) => str_contains($query[0], 'from "capture_sessions"'));
+    expect($queries[$placeLockIndex][0])->toContain("in ({$first->id}, {$second->id})")->and($placeLockIndex)->toBeLessThan($sessionReadIndex);
 });
