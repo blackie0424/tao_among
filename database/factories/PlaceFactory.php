@@ -13,6 +13,14 @@ class PlaceFactory extends Factory
     {
         $name = '地名 '.fake()->unique()->numberBetween(1, 1000000);
 
-        return ['name' => $name, 'name_key' => mb_strtolower($name), 'tao_name' => null, 'notes' => null];
+        return [
+            'tribe' => null,
+            'scope_key' => '',
+            'name' => $name,
+            'name_key' => mb_strtolower($name),
+            'tao_name' => null,
+            'notes' => null,
+            'is_provisional' => false,
+        ];
     }
 }

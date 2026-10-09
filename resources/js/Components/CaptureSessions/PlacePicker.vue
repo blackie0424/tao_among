@@ -1,75 +1,71 @@
 <template>
   <div class="space-y-2">
     <label class="mb-1 block text-sm font-medium text-gray-700">地名（可留空）</label>
-    <input v-model="query" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="輸入地名搜尋" @input="search" />
-    <div v-if="suggestions.length" class="rounded-lg border bg-white divide-y">
-      <button v-for="place in suggestions" :key="place.id" type="button" class="w-full text-left px-3 py-2 hover:bg-blue-50" @click="select(place)">
+    <input v-model="query" type="text" :disabled="!tribe" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" :placeholder="tribe ? '輸入地名搜尋' : '請先選擇部落'" @input="search" />
+    <div v-if="suggestions.length" class="divide-y rounded-lg border bg-white">
+      <button v-for="place in suggestions" :key="place.id" type="button" class="w-full px-3 py-2 text-left hover:bg-blue-50" @click="select(place)">
         {{ place.name }}<span v-if="place.tao_name" class="text-gray-500">（{{ place.tao_name }}）</span>
+        <span v-if="place.tribe === null" class="ml-2 text-xs text-gray-500">共用</span>
       </button>
     </div>
-    <div v-if="query && !suggestions.length && !hasSelection" data-testid="create-place-panel" class="rounded-lg border p-3 space-y-2">
-      <p class="text-sm text-gray-600">找不到地名，可就地新增。</p>
-      <input v-model="taoName" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="族語名稱（可留空）" />
-      <button type="button" class="px-3 py-2 rounded-lg bg-teal-600 text-white" @click="createPlace">新增並選取</button>
-    </div>
-    <p v-if="selectedName" class="text-sm text-teal-700">已選：{{ selectedName }}</p>
-    <p v-if="message" role="alert" class="text-sm text-amber-700">{{ message }}</p>
+    <p v-if="hasSelection" data-testid="selected-place" class="text-sm text-teal-700">已選：{{ selectedName }}</p>
+    <p v-else-if="query.trim()" data-testid="provisional-place-hint" class="text-sm text-amber-700">將建立待確認地名：{{ query.trim() }}（管理者之後確認）</p>
   </div>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue'
-import { firstValidationError } from '@/utils/validationErrors'
 
-const props = defineProps({ modelValue: { type: [Number, String, null], default: null }, initialName: { type: String, default: '' } })
-const emit = defineEmits(['update:modelValue'])
-const query = ref(props.initialName)
-const taoName = ref('')
+const props = defineProps({
+  modelValue: { type: [Number, String, null], default: null },
+  placeName: { type: String, default: '' },
+  tribe: { type: String, default: '' },
+  initialName: { type: String, default: '' },
+})
+const emit = defineEmits(['update:modelValue', 'update:placeName'])
+const query = ref(props.initialName || props.placeName)
 const suggestions = ref([])
 const selectedName = ref(props.initialName)
-const message = ref('')
 const hasSelection = ref(Boolean(props.modelValue && props.initialName))
 let timer
 
-watch(() => props.initialName, value => { if (!query.value) query.value = value || '' })
+watch(() => props.initialName, value => {
+  if (!query.value) query.value = value || ''
+})
+
+watch(() => props.tribe, (value, previous) => {
+  if (value === previous) return
+  emit('update:modelValue', null)
+  emit('update:placeName', query.value.trim())
+  selectedName.value = ''
+  hasSelection.value = false
+  suggestions.value = []
+  if (query.value.trim()) search()
+})
 
 function search() {
   emit('update:modelValue', null)
+  emit('update:placeName', query.value.trim())
   selectedName.value = ''
   hasSelection.value = false
   clearTimeout(timer)
-  if (!query.value.trim()) { suggestions.value = []; return }
+  if (!props.tribe || !query.value.trim()) {
+    suggestions.value = []
+    return
+  }
   timer = setTimeout(async () => {
-    const response = await fetch(`/places/suggest?q=${encodeURIComponent(query.value)}`, { headers: { Accept: 'application/json' } })
+    const params = new URLSearchParams({ q: query.value, tribe: props.tribe })
+    const response = await fetch(`/places/suggest?${params.toString()}`, { headers: { Accept: 'application/json' } })
     suggestions.value = (await response.json()).places || []
   }, 200)
 }
 
 function select(place) {
   emit('update:modelValue', place.id)
+  emit('update:placeName', '')
   query.value = place.name
   selectedName.value = place.name
   suggestions.value = []
   hasSelection.value = true
-  message.value = ''
-}
-
-async function createPlace() {
-  const response = await fetch('/places', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-    body: JSON.stringify({ name: query.value, tao_name: taoName.value || null }),
-  })
-  const body = await response.json()
-  if (response.status === 422 && body.existing_place) {
-    message.value = firstValidationError({ place: body.message })
-    suggestions.value = [body.existing_place]
-    return
-  }
-  if (response.ok) {
-    select(body.place)
-    return
-  }
-  message.value = firstValidationError(body.errors || { place: body.message })
 }
 </script>

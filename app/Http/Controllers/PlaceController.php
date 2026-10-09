@@ -15,15 +15,17 @@ class PlaceController extends Controller
 
     public function store(PlaceRequest $request): JsonResponse
     {
-        $normalized = $this->service->normalize($request->string('name')->toString());
-        if ($existing = Place::where('name_key', $normalized['name_key'])->first()) {
+        $data = $request->validated();
+        $normalized = $this->service->normalize($data['name']);
+        $scopeKey = PlaceService::scopeKey($data['tribe'] ?? null);
+        if ($existing = Place::where('scope_key', $scopeKey)->where('name_key', $normalized['name_key'])->first()) {
             return $this->duplicate($existing);
         }
 
         try {
-            $place = Place::create([...$normalized, 'tao_name' => $request->input('tao_name'), 'notes' => $request->input('notes')]);
+            $place = $this->service->create($data, $request->user()->role !== 'admin');
         } catch (QueryException $exception) {
-            $existing = Place::where('name_key', $normalized['name_key'])->first();
+            $existing = Place::where('scope_key', $scopeKey)->where('name_key', $normalized['name_key'])->first();
             if (! $existing) {
                 throw $exception;
             }
@@ -37,10 +39,13 @@ class PlaceController extends Controller
     public function suggest(Request $request): JsonResponse
     {
         $query = $this->service->normalize((string) $request->query('q', ''))['name_key'];
+        $tribe = $request->query('tribe');
         $escaped = addcslashes($query, '%_\\');
         $places = Place::query()
+            ->when($tribe !== null && $tribe !== '', fn ($builder) => $builder->whereIn('scope_key', [PlaceService::scopeKey((string) $tribe), '']))
             ->where(fn ($builder) => $builder->where('name_key', 'like', "%{$escaped}%")->orWhere('tao_name', 'like', "%{$escaped}%"))
-            ->orderBy('name')->limit(10)->get(['id', 'name', 'tao_name']);
+            ->when($tribe !== null && $tribe !== '', fn ($builder) => $builder->orderByRaw('CASE WHEN scope_key = ? THEN 0 ELSE 1 END', [PlaceService::scopeKey((string) $tribe)]))
+            ->orderBy('name')->orderBy('id')->limit(10)->get(['id', 'tribe', 'name', 'tao_name', 'is_provisional']);
 
         return response()->json(['places' => $places]);
     }
