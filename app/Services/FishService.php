@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use \Carbon\Carbon;
-
-use App\Models\Fish;
-use App\Models\CaptureRecord;
-use App\Http\Resources\FishResource;
-use App\Contracts\StorageServiceInterface;
 use App\Contracts\FishServiceInterface;
+use App\Contracts\StorageServiceInterface;
+use App\Http\Resources\FishResource;
+use App\Models\CaptureRecord;
+use App\Models\Fish;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class FishService implements FishServiceInterface
@@ -23,6 +22,7 @@ class FishService implements FishServiceInterface
     public function getAllFishes()
     {
         $fishes = Fish::with('tribalClassifications')->orderBy('id', 'desc')->get();
+
         return FishResource::collection($fishes);
     }
 
@@ -37,6 +37,7 @@ class FishService implements FishServiceInterface
     public function getFishById($id)
     {
         $fish = Fish::findOrFail($id);
+
         return $this->decorateFishMedia($fish);
     }
 
@@ -48,11 +49,12 @@ class FishService implements FishServiceInterface
             },
             'audios' => function ($query) {
                 $query->orderByDesc('id')->limit(1); // 只取最新一筆 audio 物件
-            }
+            },
         ])->findOrFail($id);
         // 先處理 url
-        
+
         $result = $fish ? $this->assignImageUrls([$fish])[0] : null;
+
         return $result;
     }
 
@@ -159,13 +161,13 @@ class FishService implements FishServiceInterface
     /**
      * 從 LINE Bot 建立魚類資料（不含捕獲紀錄），供後續填寫表單使用
      *
-     * @param string|null $name 魚類名稱，null 時使用預設值「我不知道」
-     * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
+     * @param  string|null  $name  魚類名稱，null 時使用預設值「我不知道」
+     * @param  string[]  $filenames  已上傳至 S3 的圖片檔名陣列（basename only）
      */
     public function createFishWithImages(?string $name, array $filenames): Fish
     {
         return Fish::create([
-            'name'  => $name ?: '我不知道',
+            'name' => $name ?: '我不知道',
             'image' => $filenames[0],
         ]);
     }
@@ -173,33 +175,33 @@ class FishService implements FishServiceInterface
     /**
      * 從 LINE Bot 建立魚類記錄（含批次捕獲記錄）
      *
-     * @param string|null $name 魚類名稱，null 時使用預設值「我不知道」
-     * @param string[] $filenames 已上傳至 S3 的圖片檔名陣列（basename only）
+     * @param  string|null  $name  魚類名稱，null 時使用預設值「我不知道」
+     * @param  string[]  $filenames  已上傳至 S3 的圖片檔名陣列（basename only）
      */
     public function createFishFromLine(?string $name, array $filenames, array $captureData = []): Fish
     {
-        $fishName       = $name ?: '我不知道';
-        $tribe          = $captureData['tribe']          ?? 'iraraley';
-        $location       = $captureData['location']       ?? 'LINE Bot';
-        $captureMethod  = $captureData['capture_method'] ?? '未知';
-        $captureDate    = $captureData['capture_date']   ?? now()->toDateString();
-        $notes          = $captureData['notes']          ?? null;
+        $fishName = $name ?: '我不知道';
+        $tribe = $captureData['tribe'] ?? 'iraraley';
+        $location = $captureData['location'] ?? 'LINE Bot';
+        $captureMethod = $captureData['capture_method'] ?? '未知';
+        $captureDate = $captureData['capture_date'] ?? now()->toDateString();
+        $notes = $captureData['notes'] ?? null;
 
         $fish = Fish::create([
-            'name'  => $fishName,
+            'name' => $fishName,
             'image' => $filenames[0],
         ]);
 
         $firstRecordId = null;
         foreach ($filenames as $index => $filename) {
             $record = CaptureRecord::create([
-                'fish_id'        => $fish->id,
-                'image_path'     => $filename,
-                'tribe'          => $tribe,
-                'location'       => $location,
+                'fish_id' => $fish->id,
+                'image_path' => $filename,
+                'tribe' => $tribe,
+                'location' => $location,
                 'capture_method' => $captureMethod,
-                'capture_date'   => $captureDate,
-                'notes'          => $notes,
+                'capture_date' => $captureDate,
+                'notes' => $notes,
             ]);
             if ($index === 0) {
                 $firstRecordId = $record->id;
