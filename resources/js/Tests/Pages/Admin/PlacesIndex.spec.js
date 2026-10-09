@@ -6,38 +6,33 @@ import AdminLayout from '@/Layouts/AdminLayout.vue'
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
   Link: { template: '<a :href="href"><slot /></a>', props: ['href', 'method', 'as'] },
-  usePage: vi.fn(() => ({
-    props: { auth: { user: { name: 'Test Admin' } }, errors: {} },
-    url: '/admin/places',
-  })),
+  usePage: vi.fn(() => ({ props: { auth: { user: { name: 'Test Admin' } }, errors: {} }, url: '/admin/places' })),
 }))
 
 describe('Admin/Places/Index', () => {
-  it('renders the empty state inside the real AdminLayout', () => {
-    const wrapper = mount(Index, { props: { places: { data: [] } } })
-
+  it('renders the empty state and fixed zero provisional count', () => {
+    const wrapper = mount(Index, { props: { places: { data: [] }, provisionalCount: 0, showProvisional: false } })
     expect(wrapper.findComponent(AdminLayout).exists()).toBe(true)
     expect(wrapper.get('[data-testid="places-empty-state"]').text()).toContain('尚無地名')
-    expect(wrapper.text()).toContain('地名會在新增或編輯情境時建立')
-    expect(wrapper.findAll('a').some(link => link.attributes('href') === '/capture-sessions/create' && link.text() === '新增情境')).toBe(true)
+    expect(wrapper.text()).toContain('待確認（0）')
   })
 
-  it('renders place rows and aligned actions inside the real AdminLayout', () => {
-    const wrapper = mount(Index, { props: { places: { data: [
-      { id: 1, name: '東清灣', tao_name: 'Tao', capture_sessions_count: 2 },
-      { id: 2, name: '朗島灣', tao_name: null, capture_sessions_count: 0 },
+  it('renders tribe shared provisional badge counts and actions', () => {
+    const wrapper = mount(Index, { props: { provisionalCount: 1, showProvisional: false, places: { data: [
+      { id: 1, tribe: 'ivalino', name: '東清灣', tao_name: 'Tao', is_provisional: true, capture_sessions_count: 2 },
+      { id: 2, tribe: null, name: '朗島灣', tao_name: null, is_provisional: false, capture_sessions_count: 0 },
     ] } } })
+    expect(wrapper.text()).toContain('待確認（1）')
+    expect(wrapper.text()).toContain('ivalino')
+    expect(wrapper.text()).toContain('共用')
+    expect(wrapper.text()).toContain('待確認')
+    expect(wrapper.findAll('a').some(link => link.attributes('href') === '/admin/places/1/confirm')).toBe(true)
+    expect(wrapper.findAll('a').some(link => link.attributes('href') === '/admin/places/2')).toBe(true)
+  })
 
-    expect(wrapper.findComponent(AdminLayout).exists()).toBe(true)
-    expect(wrapper.find('[data-testid="places-empty-state"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('使用中 2 次出海')
-    expect(wrapper.text()).toContain('使用中 0 次出海')
-    expect(wrapper.findAll('a').filter(link => link.attributes('href') === '/admin/places/2')).toHaveLength(1)
-    for (const actions of wrapper.findAll('[data-testid="place-actions"]')) {
-      expect(actions.classes()).toEqual(expect.arrayContaining(['flex', 'items-center', 'gap-3']))
-      for (const action of actions.findAll('a')) {
-        expect(action.classes()).toEqual(expect.arrayContaining(['px-2', 'py-1']))
-      }
-    }
+  it('explains an empty provisional filter without implying the page is broken', () => {
+    const wrapper = mount(Index, { props: { places: { data: [] }, provisionalCount: 0, showProvisional: true } })
+    expect(wrapper.get('[data-testid="places-empty-state"]').text()).toContain('沒有待確認地名')
+    expect(wrapper.text()).toContain('目前所有地名都已確認')
   })
 })

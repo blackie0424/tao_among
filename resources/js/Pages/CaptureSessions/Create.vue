@@ -5,5 +5,5 @@ import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import SessionForm from './Form.vue'
 import { formatLocalDate } from '@/utils/localDate'
 defineProps({ tribes: Array, captureMethods: Object })
-const form = useForm({ capture_date: formatLocalDate(), tribe: '', capture_method: '', place_id: null, notes: '' })
+const form = useForm({ capture_date: formatLocalDate(), tribe: '', capture_method: '', place_id: null, place_name: '', notes: '' })
 </script>
