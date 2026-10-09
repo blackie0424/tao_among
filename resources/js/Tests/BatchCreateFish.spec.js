@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import BatchCreateFish from '@/Pages/BatchCreateFish.vue'
+const { apiFetch } = vi.hoisted(() => ({ apiFetch: vi.fn() }))
+vi.mock('@/utils/apiFetch', () => ({ apiFetch }))
 
 vi.mock('@/utils/fishListCache', () => ({ markFishCreated: vi.fn() }))
 vi.mock('@inertiajs/vue3', () => ({
@@ -132,4 +134,24 @@ describe('BatchCreateFish', () => {
     await nextTick()
     expect(wrapper.find('[data-testid="upload-error"]').text()).toContain('圖片失敗')
   })
+})
+it('keeps uploaded photos and fish name after inline session creation', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue({ session: { ...session, id: 21, place_name: '新地點', record_count: 0 } }),
+  })
+  const wrapper = mount(BatchCreateFish, { props: defaultProps })
+  await advanceToSelection(wrapper, ['one.jpg', 'two.jpg'])
+  await wrapper.find('[data-testid="fish-name-input"]').setValue('飛魚')
+  await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+  const selects = wrapper.findAll('select')
+  await selects[0].setValue('ivalino')
+  await selects[1].setValue('mamasil')
+  await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+  await Promise.resolve()
+  await nextTick()
+
+  expect(wrapper.find('[data-testid="fish-name-input"]').element.value).toBe('飛魚')
+  expect(wrapper.find('[data-testid="step-2"]').text()).toContain('2 張照片')
+  expect(wrapper.find('[data-testid="session-option"]').text()).toContain('新地點')
 })

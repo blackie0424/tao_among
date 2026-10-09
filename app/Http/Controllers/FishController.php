@@ -58,7 +58,7 @@ class FishController extends Controller
 
     public function getFish($id, Request $request)
     {
-        $details = $this->fishService->getFishDetails((int) $id);
+        $details = $this->fishService->getFishDetails((int) $id, includeSessionNotes: true);
         $details['tribes'] = config('fish_options.tribes');
         $details = $this->audioVisibilityService->filter($details, $request->user());
         $details = $this->locationVisibilityService->filter($details, $request->user());

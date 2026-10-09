@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import BatchCreateCaptureRecord from '@/Pages/BatchCreateCaptureRecord.vue'
+const { apiFetch } = vi.hoisted(() => ({ apiFetch: vi.fn() }))
+vi.mock('@/utils/apiFetch', () => ({ apiFetch }))
 
 vi.mock('@inertiajs/vue3', () => ({ router: { post: vi.fn(), visit: vi.fn() } }))
 vi.mock('@/Components/CaptureRecord/BatchCaptureImageUploader.vue', () => ({
@@ -103,7 +105,25 @@ describe('BatchCreateCaptureRecord', () => {
     await advance(wrapper)
 
     expect(wrapper.text()).toContain('還沒有情境')
-    expect(wrapper.find('a[href="/capture-sessions/create"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="open-inline-session-form"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="submit-btn"]').exists()).toBe(false)
   })
+})
+it('keeps uploaded photos after inline session creation', async () => {
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue({ session: { ...defaultProps.selectable_sessions[0], id: 22, place_name: '新地點', record_count: 0 } }),
+  })
+  const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
+  await advance(wrapper, ['one.jpg', 'two.jpg'])
+  await wrapper.find('[data-testid="open-inline-session-form"]').trigger('click')
+  const selects = wrapper.findAll('select')
+  await selects[0].setValue('ivalino')
+  await selects[1].setValue('mamasil')
+  await wrapper.find('[data-testid="inline-session-form"]').trigger('submit')
+  await Promise.resolve()
+  await nextTick()
+
+  expect(wrapper.text()).toContain('2 張照片')
+  expect(wrapper.find('[data-testid="session-option"]').text()).toContain('新地點')
 })
