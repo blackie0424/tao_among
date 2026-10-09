@@ -104,21 +104,47 @@ describe('AppNavBar', () => {
   })
 
   describe('桌機主導覽', () => {
-    it('魚類頁將魚類圖鑑標為目前頁面', () => {
-      const wrapper = mountNavBar({}, makeAdminUser(), '/fishs?tribe=iraraley')
-      const fishLink = wrapper.findAll('a').find((link) => link.text() === '魚類圖鑑')
-      expect(fishLink.attributes('aria-current')).toBe('page')
+    it('只有首頁與 among no tao 兩個主要連結，且文字不截斷', () => {
+      const wrapper = mountNavBar()
+      const nav = wrapper.get('nav[aria-label="主要導覽"]')
+      const links = nav.findAll('a')
+
+      expect(links.map((link) => [link.text(), link.attributes('href')])).toEqual([
+        ['首頁', '/'],
+        ['among no tao', '/fishs'],
+      ])
+      expect(links.every((link) => !link.classes().includes('truncate'))).toBe(true)
     })
 
-    it('首頁將首頁標為目前頁面', () => {
-      const wrapper = mountNavBar({}, makeAdminUser(), '/')
-      const homeLink = wrapper.findAll('a').find((link) => link.text() === '首頁')
-      expect(homeLink.attributes('aria-current')).toBe('page')
+    it.each([
+      ['/', 'desktop-nav-home'],
+      ['/fishs', 'desktop-nav-fishs'],
+      ['/fish/1', 'desktop-nav-fishs'],
+      ['/search', 'desktop-nav-fishs'],
+      ['/workspace', null],
+    ])('%s 的高亮符合所屬導覽', (url, activeTestId) => {
+      const wrapper = mountNavBar({}, makeAdminUser(), url)
+      const home = wrapper.get('[data-testid="desktop-nav-home"]')
+      const fishs = wrapper.get('[data-testid="desktop-nav-fishs"]')
+
+      expect(home.attributes('aria-current')).toBe(
+        activeTestId === 'desktop-nav-home' ? 'page' : undefined
+      )
+      expect(fishs.attributes('aria-current')).toBe(
+        activeTestId === 'desktop-nav-fishs' ? 'page' : undefined
+      )
     })
 
-    it('未覆寫 desktop-nav 時依返回目標顯示桌機返回按鈕', () => {
-      const wrapper = mountNavBar({ mobileBackUrl: '/fishs', mobileBackText: '魚類列表' })
-      expect(wrapper.get('[data-testid="nav-back-button-desktop"]').attributes('href')).toBe('/fishs')
+    it.each(['/', '/fishs'])('返回目標為 %s 時不顯示桌機返回按鈕', (mobileBackUrl) => {
+      const wrapper = mountNavBar({ mobileBackUrl })
+      expect(wrapper.find('[data-testid="nav-back-button-desktop"]').exists()).toBe(false)
+    })
+
+    it('返回目標為魚頁時保留桌機返回按鈕', () => {
+      const wrapper = mountNavBar({ mobileBackUrl: '/fish/1', mobileBackText: '飛魚' })
+      expect(wrapper.get('[data-testid="nav-back-button-desktop"]').attributes('href')).toBe(
+        '/fish/1'
+      )
     })
   })
 

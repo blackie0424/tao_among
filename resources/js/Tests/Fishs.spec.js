@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Fishs from '@/Pages/Fishs.vue'
 
-const { clearAllFiltersMock } = vi.hoisted(() => ({ clearAllFiltersMock: vi.fn() }))
+const { clearAllFiltersMock, handleSearchToggleMock } = vi.hoisted(() => ({
+  clearAllFiltersMock: vi.fn(),
+  handleSearchToggleMock: vi.fn(),
+}))
 
 // ── Inertia mock ──────────────────────────────────────────────
 vi.mock('@inertiajs/vue3', () => ({
@@ -22,10 +25,18 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
 
 // ── 子元件 mock（只驗證頁面層邏輯）──────────────────────────
 vi.mock('@/Components/FishList/FishListNavActions.vue', () => ({
-  default: { template: '<div data-testid="fish-list-nav-actions" />', props: ['variant'], emits: ['toggle'] },
+  default: {
+    template:
+      '<button :data-variant="variant" data-testid="fish-list-nav-actions" @click="$emit(\'toggle\')">搜尋</button>',
+    props: ['variant'],
+    emits: ['toggle'],
+  },
 }))
 vi.mock('@/Components/FishList/FishSearchModal.vue', () => ({
-  default: { template: '<div data-testid="fish-search-modal" />', props: ['show', 'filters', 'nameQuery', 'searchOptions'] },
+  default: {
+    template: '<div data-testid="fish-search-modal" />',
+    props: ['show', 'filters', 'nameQuery', 'searchOptions'],
+  },
 }))
 vi.mock('@/Components/FishList/FishSearchStatsBar.vue', () => ({
   default: {
@@ -80,7 +91,7 @@ vi.mock('@/composables/useFishSearch', async () => {
     useFishSearch: () => ({
       showSearchDialog: ref(false),
       appliedFilters: ref([]),
-      handleSearchToggle: vi.fn(),
+      handleSearchToggle: handleSearchToggleMock,
       submitUnifiedSearch: vi.fn(),
       resetUnifiedSearch: vi.fn(),
       clearAllFilters: clearAllFiltersMock,
@@ -112,7 +123,6 @@ const defaultProps = {
   searchStats: {},
 }
 
-
 const mountFishs = (propsData = {}) => mount(Fishs, { props: { ...defaultProps, ...propsData } })
 
 describe('搜尋列位置與事件', () => {
@@ -131,15 +141,20 @@ describe('搜尋列位置與事件', () => {
   })
 })
 
-describe('Desktop 導覽標題', () => {
-  it('標題容器可收縮且標題不換行並截斷', () => {
+describe('搜尋入口', () => {
+  it('不提供重複桌機標題，桌機搜尋入口位於內容區', () => {
     const wrapper = mountFishs()
-    const container = wrapper.get('[data-testid="desktop-nav-content"]')
-    const title = wrapper.get('[data-testid="desktop-page-title"]')
+    expect(wrapper.find('[data-testid="desktop-page-title"]').exists()).toBe(false)
+    const entry = wrapper.get('[data-testid="desktop-search-entry"]')
+    expect(entry.element.closest('main')).not.toBeNull()
+    expect(entry.find('[data-variant="desktop"]').exists()).toBe(true)
+  })
 
-    expect(container.classes()).toContain('min-w-0')
-    expect(title.classes()).toContain('min-w-0')
-    expect(title.classes()).toContain('truncate')
+  it.each(['desktop', 'mobile'])('%s 搜尋入口仍開啟相同 modal', async (variant) => {
+    handleSearchToggleMock.mockClear()
+    const wrapper = mountFishs()
+    await wrapper.get(`[data-variant="${variant}"]`).trigger('click')
+    expect(handleSearchToggleMock).toHaveBeenCalledOnce()
   })
 })
 
