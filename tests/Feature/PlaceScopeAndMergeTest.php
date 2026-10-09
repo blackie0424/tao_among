@@ -206,3 +206,70 @@ it('locks both places in stable id order before reading source sessions', functi
     $sessionReadIndex = collect($queries)->search(fn ($query) => str_contains($query[0], 'from "capture_sessions"'));
     expect($queries[$placeLockIndex][0])->toContain("in ({$first->id}, {$second->id})")->and($placeLockIndex)->toBeLessThan($sessionReadIndex);
 });
+
+it('reuses the winning place when concurrent name resolution hits the unique key', function () {
+    $inserted = false;
+    DB::listen(function ($query) use (&$inserted): void {
+        $sql = strtolower(str_replace(['`', '"'], '', $query->sql));
+        if (! $inserted && str_contains($sql, 'select') && str_contains($sql, 'from places') && str_contains($sql, 'name_key')) {
+            $inserted = true;
+            Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => '競態地名', 'name_key' => '競態地名', 'is_provisional' => true]);
+        }
+    });
+
+    $resolved = app(PlaceService::class)->resolveName('競態地名', 'ivalino');
+    expect($resolved->name)->toBe('競態地名')
+        ->and(Place::where('scope_key', 'ivalino')->where('name_key', '競態地名')->count())->toBe(1);
+});
+
+it('treats a blank typed place name as no place', function () {
+    $editor = User::factory()->lineEditor()->create();
+    $payload = ['capture_date' => '2026-10-01', 'tribe' => 'ivalino', 'capture_method' => '釣魚', 'notes' => null];
+
+    $response = $this->actingAs($editor)->postJson('/capture-sessions', [...$payload, 'place_name' => "  \u{3000}  "])->assertCreated();
+    expect($response->json('session.place_id'))->toBeNull()
+        ->and(Place::count())->toBe(0);
+});
+
+it('releases the old scope when changing tribe and rejects an occupied new scope', function () {
+    $place = Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => '港口', 'name_key' => '港口']);
+    app(PlaceService::class)->update($place, ['name' => '港口', 'tribe' => 'yayo']);
+    $replacement = app(PlaceService::class)->create(['name' => '港口', 'tribe' => 'ivalino'], false);
+    $occupied = Place::factory()->create(['tribe' => 'iraraley', 'scope_key' => 'iraraley', 'name' => '港口', 'name_key' => '港口']);
+
+    expect(fn () => app(PlaceService::class)->update($place->fresh(), ['name' => '港口', 'tribe' => 'iraraley']))->toThrow(ValidationException::class)
+        ->and($replacement->scope_key)->toBe('ivalino')
+        ->and($place->fresh()->scope_key)->toBe('yayo')
+        ->and($occupied->fresh()->scope_key)->toBe('iraraley');
+});
+
+it('allows a shared place used only by one tribe to move there and back to shared', function () {
+    $place = Place::factory()->create(['name' => '礁岩', 'name_key' => '礁岩']);
+    $session = CaptureSession::factory()->create(['place_id' => $place->id, 'tribe' => 'ivalino']);
+    $record = CaptureRecord::factory()->create(['session_id' => $session->id, 'location' => '礁岩']);
+    $record->delete();
+
+    app(PlaceService::class)->update($place, ['name' => '礁岩', 'tribe' => 'ivalino']);
+    expect($place->fresh()->only(['tribe', 'scope_key']))->toBe(['tribe' => 'ivalino', 'scope_key' => 'ivalino']);
+    app(PlaceService::class)->update($place->fresh(), ['name' => '礁岩', 'tribe' => null]);
+    expect($place->fresh()->only(['tribe', 'scope_key']))->toBe(['tribe' => null, 'scope_key' => ''])
+        ->and($record->fresh()->location)->toBe('礁岩');
+});
+
+it('uses stable ascending locks for the forward merge direction too', function () {
+    $first = Place::factory()->create();
+    $second = Place::factory()->create();
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        $sql = str_replace('`', '"', $query->sql);
+        if (str_contains($sql, 'from "places"') || str_contains($sql, 'from "capture_sessions"')) {
+            $queries[] = $sql;
+        }
+    });
+
+    app(PlaceService::class)->merge($first, $second);
+    $placeLockIndex = collect($queries)->search(fn ($sql) => str_contains($sql, 'from "places"') && str_contains($sql, 'order by "id" asc'));
+    $sessionReadIndex = collect($queries)->search(fn ($sql) => str_contains($sql, 'from "capture_sessions"'));
+    expect($queries[$placeLockIndex])->toContain("in ({$first->id}, {$second->id})")
+        ->and($placeLockIndex)->toBeLessThan($sessionReadIndex);
+});
