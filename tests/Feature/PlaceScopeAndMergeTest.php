@@ -182,7 +182,8 @@ it('rolls back every merge write when record synchronization fails', function ()
     $session = CaptureSession::factory()->create(['place_id' => $source->id]);
     CaptureRecord::factory()->create(['session_id' => $session->id, 'location' => '來源']);
     DB::listen(function ($query): void {
-        if (str_contains($query->sql, 'update "capture_records"')) {
+        $sql = str_replace('`', '"', $query->sql);
+        if (str_contains($sql, 'update "capture_records"')) {
             throw new RuntimeException('forced synchronization failure');
         }
     });
@@ -195,8 +196,9 @@ it('locks both places in stable id order before reading source sessions', functi
     $second = Place::factory()->create();
     $queries = [];
     DB::listen(function ($query) use (&$queries): void {
-        if (str_contains($query->sql, 'from "places"') || str_contains($query->sql, 'from "capture_sessions"')) {
-            $queries[] = [$query->sql, $query->bindings];
+        $sql = str_replace('`', '"', $query->sql);
+        if (str_contains($sql, 'from "places"') || str_contains($sql, 'from "capture_sessions"')) {
+            $queries[] = [$sql, $query->bindings];
         }
     });
     app(PlaceService::class)->merge($second, $first);
