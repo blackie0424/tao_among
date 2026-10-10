@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Contracts\CaptureSessionServiceInterface;
 use App\Models\CaptureRecord;
 use App\Models\CaptureSession;
-use App\Models\Place;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -182,7 +181,9 @@ class CaptureSessionService implements CaptureSessionServiceInterface
             throw ValidationException::withMessages(['legacy_combo' => '這組舊資料已不存在，請重新選擇']);
         }
 
-        $place = $location['key'] === null ? null : Place::query()->where('name_key', $location['key'])->first();
+        $place = $location['key'] === null
+            ? null
+            : $this->placeService->findForTribe($location['key'], $combo['tribe']);
 
         return CaptureSession::create([
             'capture_date' => $combo['capture_date'],
