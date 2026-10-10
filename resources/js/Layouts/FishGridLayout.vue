@@ -1,18 +1,10 @@
 <template>
   <div class="space-y-8 md:space-y-10 w-full">
-    
     <!-- 頂部：核心識別 -->
-    <div v-if="!hideTop" :class="[
-      'w-full',
-      hideTopOnMobile ? 'hidden lg:block' : ''
-    ]">
+    <div v-if="!hideTop" :class="['w-full', hideTopOnMobile ? 'hidden lg:block' : '']">
       <section>
         <FishDetailTop :fish="fish" />
       </section>
-      <!-- 頂部額外內容插槽 - 由頁面自行決定要顯示什麼 -->
-      <div v-if="$slots['top-extra']" class="mt-6">
-        <slot name="top-extra" />
-      </div>
     </div>
 
     <!-- 中部：主要內容 -->
@@ -40,11 +32,11 @@ const fish = computed(() => page.props.fish)
 defineProps({
   hideTopOnMobile: {
     type: Boolean,
-    default: false
+    default: false,
   },
   hideTop: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 </script>

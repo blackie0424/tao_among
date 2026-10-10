@@ -1,6 +1,9 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mount, enableAutoUnmount } from '@vue/test-utils'
 import Fish from '@/Pages/Fish.vue'
+import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
+import { nextTick } from 'vue'
+import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 
 // jsdom 缺少 matchMedia，補上 stub
 Object.defineProperty(window, 'matchMedia', {
@@ -17,6 +20,8 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
+enableAutoUnmount(afterEach)
+
 const mockUsePage = vi.fn(() => ({ props: { auth: { user: null } } }))
 
 // Mock Inertia
@@ -31,7 +36,15 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
   default: {
     name: 'FishAppLayout',
     template: '<div><slot /></div>',
-    props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showBottomNav', 'showEditMenu', 'stickyMobile', 'showMobileTitle'],
+    props: [
+      'pageTitle',
+      'mobileBackUrl',
+      'mobileBackText',
+      'showBottomNav',
+      'showEditMenu',
+      'stickyMobile',
+      'showMobileTitle',
+    ],
   },
 }))
 
@@ -47,7 +60,6 @@ vi.mock('@/Layouts/FishGridLayout.vue', () => ({
   default: {
     template: `
       <div>
-        <slot name="top-extra" />
         <slot name="middle" />
         <slot name="bottom" />
       </div>
@@ -93,6 +105,7 @@ const makeFish = (overrides = {}) => ({
 
 const mountFish = (propsData = {}) =>
   mount(Fish, {
+    attachTo: document.body,
     props: {
       fish: makeFish(),
       tribalClassifications: [],
@@ -103,6 +116,67 @@ const mountFish = (propsData = {}) =>
       ...propsData,
     },
   })
+
+describe('地方知識只出現在地方知識分頁', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/fish/1')
+    mockUsePage.mockReturnValue({ props: { auth: { user: null } } })
+  })
+
+  it('基本 section 在有資料或無資料時都不含地方知識摘要', () => {
+    for (const tribalClassifications of [[], [{ tribe: '測試部落', food_category: '測試分類' }]]) {
+      const wrapper = mountFish({ tribalClassifications, tribes: ['測試部落'] })
+      const basic = wrapper.get('[data-testid="basic-tab"]')
+      expect(basic.isVisible()).toBe(true)
+      expect(Object.keys(wrapper.getComponent(FishGridLayout).vm.$slots)).toEqual([])
+      expect(basic.findComponent(TribalClassificationSummary).exists()).toBe(false)
+      expect(basic.text()).not.toContain('尚未紀錄')
+      wrapper.unmount()
+    }
+  })
+
+  it('摘要整頁只有一個、保留傳值與 v-show，且支援直接開啟地方知識分頁', async () => {
+    const tribalClassifications = [{ tribe: '測試部落', food_category: '測試分類' }]
+    const tribes = ['測試部落']
+    const wrapper = mountFish({ tribalClassifications, tribes })
+    expect(wrapper.findAllComponents(TribalClassificationSummary)).toHaveLength(1)
+    const local = wrapper.get('[data-testid="local-tab"]')
+    const summary = local.getComponent(TribalClassificationSummary)
+    expect(local.isVisible()).toBe(false)
+    expect(summary.props()).toEqual({ classifications: tribalClassifications, tribes, fishId: 1 })
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '地方知識')
+      .trigger('click')
+    expect(local.isVisible()).toBe(true)
+    expect(wrapper.get('[data-testid="basic-tab"]').isVisible()).toBe(false)
+    expect(local.getComponent(TribalClassificationSummary).vm).toBe(summary.vm)
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('local')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '基本')
+      .trigger('click')
+    expect(local.isVisible()).toBe(false)
+    expect(local.getComponent(TribalClassificationSummary).vm).toBe(summary.vm)
+    wrapper.unmount()
+
+    window.history.replaceState({}, '', '/fish/1?tab=local')
+    const direct = mountFish({ tribes })
+    await nextTick()
+    expect(direct.get('[data-testid="local-tab"]').isVisible()).toBe(true)
+    expect(
+      direct.get('[data-testid="basic-tab"]').findComponent(TribalClassificationSummary).exists()
+    ).toBe(false)
+    expect(direct.findAllComponents(TribalClassificationSummary)).toHaveLength(1)
+    expect(direct.getComponent(TribalClassificationSummary).props()).toEqual({
+      classifications: [],
+      tribes,
+      fishId: 1,
+    })
+    direct.unmount()
+    window.history.replaceState({}, '', '/fish/1')
+  })
+})
 
 // ──────────────────────────────────────────────
 // 詳細頁導覽行為
