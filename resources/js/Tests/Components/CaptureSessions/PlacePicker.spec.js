@@ -63,3 +63,13 @@ describe('CaptureSessions/PlacePicker', () => {
     expect(fetchMock.mock.calls.at(-1)[0]).toContain('tribe=yayo')
   })
 })
+
+it('labels a null tribe suggestion as unspecified', async () => {
+  vi.useFakeTimers()
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ json: async () => ({ places: [{ id: 7, tribe: null, name: 'ZZPLACEMARK' }] }) }))
+  const wrapper = mountPicker()
+  await wrapper.get('input').setValue('ZZ')
+  await vi.advanceTimersByTimeAsync(200)
+  expect(wrapper.text()).toContain('未指定部落')
+  expect(wrapper.text()).not.toContain('共用')
+})

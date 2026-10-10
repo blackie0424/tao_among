@@ -63,7 +63,9 @@ it('marks editor places provisional and admin places confirmed', function () {
     $admin = User::factory()->admin()->create();
 
     $editorId = $this->actingAs($editor)->postJson('/places', ['name' => '待確認', 'tribe' => 'ivalino'])->assertCreated()->json('place.id');
-    $adminId = $this->actingAs($admin)->postJson('/places', ['name' => '共用正式', 'tribe' => null])->assertCreated()->json('place.id');
+    $this->actingAs($admin)->postJson('/places', ['name' => '正式', 'tribe' => null])->assertUnprocessable()->assertJsonValidationErrors('tribe');
+    expect(Place::count())->toBe(1);
+    $adminId = $this->postJson('/places', ['name' => '正式', 'tribe' => 'ivalino'])->assertCreated()->json('place.id');
     expect(Place::find($editorId)->is_provisional)->toBeTrue()
         ->and(Place::find($adminId)->is_provisional)->toBeFalse();
 });

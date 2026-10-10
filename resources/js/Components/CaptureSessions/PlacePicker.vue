@@ -5,7 +5,7 @@
     <div v-if="suggestions.length" class="divide-y rounded-lg border bg-white">
       <button v-for="place in suggestions" :key="place.id" type="button" class="w-full px-3 py-2 text-left hover:bg-blue-50" @click="select(place)">
         {{ place.name }}<span v-if="place.tao_name" class="text-gray-500">（{{ place.tao_name }}）</span>
-        <span v-if="place.tribe === null" class="ml-2 text-xs text-gray-500">共用</span>
+        <span v-if="place.tribe === null" class="ml-2 text-xs text-gray-500">未指定部落</span>
       </button>
     </div>
     <p v-if="hasSelection" data-testid="selected-place" class="text-sm text-teal-700">已選：{{ selectedName }}</p>

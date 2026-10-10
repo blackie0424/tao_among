@@ -64,21 +64,21 @@ it('updates linked live and deleted records when an admin renames a place', func
     $deleted = CaptureRecord::factory()->create(['session_id' => $session->id, 'location' => '舊地名']);
     $deleted->delete();
 
-    $this->actingAs($admin)->put("/admin/places/{$place->id}", ['name' => '新地名'])->assertRedirect('/admin/places');
+    $this->actingAs($admin)->put("/admin/places/{$place->id}", ['name' => '新地名', 'tribe' => 'ivalino'])->assertRedirect('/admin/places');
     expect($live->fresh()->location)->toBe('新地名')->and($deleted->fresh()->location)->toBe('新地名');
 });
 
 it('allows case-only renames and rejects canonical duplicates', function () {
     $admin = User::factory()->admin()->create();
     $place = Place::factory()->create(['name' => 'East Bay', 'name_key' => 'east bay']);
-    Place::factory()->create(['name' => 'Other Bay', 'name_key' => 'other bay']);
+    Place::factory()->create(['tribe' => 'ivalino', 'scope_key' => 'ivalino', 'name' => 'Other Bay', 'name_key' => 'other bay']);
 
-    $this->actingAs($admin)->put("/admin/places/{$place->id}", ['name' => 'EAST BAY'])
+    $this->actingAs($admin)->put("/admin/places/{$place->id}", ['name' => 'EAST BAY', 'tribe' => 'ivalino'])
         ->assertRedirect('/admin/places');
     expect($place->fresh()->only(['name', 'name_key']))
         ->toBe(['name' => 'EAST BAY', 'name_key' => 'east bay']);
 
-    $this->put("/admin/places/{$place->id}", ['name' => ' other　bay '])
+    $this->put("/admin/places/{$place->id}", ['name' => ' other　bay ', 'tribe' => 'ivalino'])
         ->assertSessionHasErrors('name');
     expect($place->fresh()->name)->toBe('EAST BAY');
 });

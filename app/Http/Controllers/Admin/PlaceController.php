@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PlaceRequest;
 use App\Models\Place;
 use App\Services\PlaceService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,6 +28,46 @@ class PlaceController extends Controller
             'places' => $places,
             'provisionalCount' => $provisionalCount,
             'showProvisional' => $request->boolean('provisional'),
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('Admin/Places/Create', [
+            'tribes' => config('fish_options.tribes'),
+        ]);
+    }
+
+    public function store(PlaceRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        $normalized = $this->service->normalize($data['name']);
+        $existingQuery = Place::where('scope_key', PlaceService::scopeKey($data['tribe']))
+            ->where('name_key', $normalized['name_key']);
+
+        if ($existing = $existingQuery->first()) {
+            $this->rejectDuplicate($existing);
+        }
+
+        try {
+            $this->service->create($data, false);
+        } catch (QueryException $exception) {
+            if ($existing = $existingQuery->first()) {
+                $this->rejectDuplicate($existing);
+            }
+
+            throw $exception;
+        }
+
+        return redirect('/admin/places')->with('success', '地名已新增');
+    }
+
+    private function rejectDuplicate(Place $place): never
+    {
+        throw ValidationException::withMessages([
+            'name' => $place->is_provisional
+                ? '此部落已有同名的待確認地名，請到待確認清單確認'
+                : '此部落已有同名地名',
         ]);
     }
 

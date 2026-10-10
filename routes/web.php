@@ -141,6 +141,8 @@ Route::middleware(['auth', 'browse'])->group(function () {
         Route::get('/admin/references/{reference}/edit', [ReferenceController::class, 'edit'])->name('admin.references.edit');
         Route::put('/admin/references/{reference}', [ReferenceController::class, 'update'])->name('admin.references.update');
         Route::get('/admin/places', [AdminPlaceController::class, 'index'])->name('admin.places.index');
+        Route::get('/admin/places/create', [AdminPlaceController::class, 'create'])->name('admin.places.create');
+        Route::post('/admin/places', [AdminPlaceController::class, 'store'])->name('admin.places.store');
         Route::get('/admin/places/{place}/edit', [AdminPlaceController::class, 'edit'])->name('admin.places.edit');
         Route::put('/admin/places/{place}', [AdminPlaceController::class, 'update'])->name('admin.places.update');
         Route::post('/admin/places/{place}/confirm', [AdminPlaceController::class, 'confirm'])->name('admin.places.confirm');
