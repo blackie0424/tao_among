@@ -7,17 +7,6 @@
     mobileBackText="首頁"
     :showBottomNav="false"
   >
-    <!-- Desktop Nav Slot: 頁面標題與搜尋按鈕 -->
-    <template #desktop-nav>
-      <div data-testid="desktop-nav-content" class="flex min-w-0 items-center justify-between w-full">
-        <span
-          data-testid="desktop-page-title"
-          class="min-w-0 truncate font-bold text-elder-text text-elder-name tracking-wide"
-        >{{ PAGE_TITLE }}</span>
-        <FishListNavActions variant="desktop" @toggle="handleSearchToggle" />
-      </div>
-    </template>
-
     <!-- Mobile Actions Slot: 搜尋按鈕 -->
     <template #mobile-actions>
       <FishListNavActions variant="mobile" @toggle="handleSearchToggle" />
@@ -26,6 +15,10 @@
     <div class="container mx-auto px-4 pb-20 relative pt-6">
       <!-- 內容區 -->
       <main ref="scrollHost">
+        <div data-testid="desktop-search-entry" class="mb-4 hidden justify-end lg:flex">
+          <FishListNavActions variant="desktop" @toggle="handleSearchToggle" />
+        </div>
+
         <!-- 統一搜尋對話框元件 -->
         <FishSearchModal
           v-model:show="showSearchDialog"

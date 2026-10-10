@@ -90,7 +90,6 @@ describe('使用者資訊標頭', () => {
   })
 })
 
-
 describe('共用可用性', () => {
   it('使用長者字級與足夠寬度，不含 text-xs/text-sm', () => {
     const wrapper = mountDropdown({ user: makeEditor(), showUserInfo: true })
@@ -109,7 +108,7 @@ describe('共用可用性', () => {
 // ────────────────────────────────────────────────────
 // 田調工作區 / 魚種連結（editor & admin）
 // ────────────────────────────────────────────────────
-describe('田調工作區與魚種連結', () => {
+describe('各角色選單項目', () => {
   it('admin：應顯示田調工作區連結，指向 /workspace', () => {
     const wrapper = mountDropdown({ user: makeAdmin() })
     const link = wrapper.find('[data-testid="link-workspace"]')
@@ -124,18 +123,15 @@ describe('田調工作區與魚種連結', () => {
     expect(link.attributes('href')).toBe('/workspace')
   })
 
-  it('admin：應顯示新增魚種連結，指向 /fish/batch-create', () => {
-    const wrapper = mountDropdown({ user: makeAdmin() })
-    const link = wrapper.find('[data-testid="link-batch-create"]')
-    expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('/fish/batch-create')
-  })
-
-  it('editor：應顯示新增魚種連結，指向 /fish/batch-create', () => {
-    const wrapper = mountDropdown({ user: makeEditor() })
-    const link = wrapper.find('[data-testid="link-batch-create"]')
-    expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('/fish/batch-create')
+  it.each([
+    ['viewer', makeUser(), ['登出']],
+    ['editor', makeEditor(), ['田調工作區', '登出']],
+    ['admin', makeAdmin(), ['田調工作區', '系統管理後台', '登出']],
+  ])('%s 只顯示角色可用項目且沒有新增魚種', (_role, user, expectedItems) => {
+    const wrapper = mountDropdown({ user })
+    const itemTexts = wrapper.findAll('a').map((link) => link.text().trim())
+    expect(itemTexts).toEqual(expectedItems)
+    expect(wrapper.find('[data-testid="link-batch-create"]').exists()).toBe(false)
   })
 
   it('一般使用者：不應顯示田調工作區連結', () => {
