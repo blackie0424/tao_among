@@ -69,6 +69,7 @@ it('classifies every GET route and scans viewer data routes for location leaks',
     $excluded = [
         'admin' => 'admin only',
         'admin/places' => 'admin only place manager',
+        'admin/places/create' => 'admin only place creation form; non-admin access covered by AdminPlaceCreateTest',
         'admin/places/{place}/edit' => 'admin only place editor',
         'admin/references' => 'admin only',
         'admin/references/create' => 'admin only',

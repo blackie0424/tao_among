@@ -5,7 +5,7 @@
       <div>
         <label class="mb-1 block text-sm font-medium text-gray-700">部落</label>
         <select v-model="form.tribe" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-          <option :value="null">共用</option>
+          <option :value="null" disabled>請選擇部落</option>
           <option v-for="tribe in tribes" :key="tribe" :value="tribe">{{ tribe }}</option>
         </select>
       </div>
@@ -19,7 +19,7 @@
       <h2 class="font-bold">併入既有地名</h2>
       <select v-model="mergeForm.target_place_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required>
         <option value="" disabled>請選擇目標地名</option>
-        <option v-for="target in mergeTargets" :key="target.id" :value="target.id">{{ target.tribe || '共用' }}｜{{ target.name }}</option>
+        <option v-for="target in mergeTargets" :key="target.id" :value="target.id">{{ target.tribe || '未指定部落' }}｜{{ target.name }}</option>
       </select>
       <p v-if="mergeError" class="text-red-600">{{ mergeError }}</p>
       <button class="rounded-lg bg-amber-600 px-4 py-3 text-white">併入</button>

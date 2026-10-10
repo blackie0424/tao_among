@@ -15,6 +15,10 @@ describe('Admin/Places/Index', () => {
     expect(wrapper.findComponent(AdminLayout).exists()).toBe(true)
     expect(wrapper.get('[data-testid="places-empty-state"]').text()).toContain('尚無地名')
     expect(wrapper.text()).toContain('待確認（0）')
+    expect(wrapper.get('[data-testid="places-empty-state"]').text()).toContain('按「新增地名」建立，或由田調人員在新增情境時輸入')
+    expect(wrapper.find('a[href="/capture-sessions/create"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="places-empty-state"] a').text()).toBe('新增地名')
+    expect(wrapper.get('[data-testid="places-empty-state"] a').attributes('href')).toBe('/admin/places/create')
   })
 
   it('renders tribe shared provisional badge counts and actions', () => {
@@ -24,7 +28,10 @@ describe('Admin/Places/Index', () => {
     ] } } })
     expect(wrapper.text()).toContain('待確認（1）')
     expect(wrapper.text()).toContain('ivalino')
-    expect(wrapper.text()).toContain('共用')
+    expect(wrapper.text()).toContain('未指定部落')
+    expect(wrapper.text()).not.toContain('共用')
+    expect(wrapper.text()).toContain('使用中 0 次出海')
+    expect(wrapper.find('[data-testid="places-empty-state"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('待確認')
     expect(wrapper.findAll('a').some(link => link.attributes('href') === '/admin/places/1/confirm')).toBe(true)
     expect(wrapper.findAll('a').some(link => link.attributes('href') === '/admin/places/2')).toBe(true)
@@ -35,4 +42,12 @@ describe('Admin/Places/Index', () => {
     expect(wrapper.get('[data-testid="places-empty-state"]').text()).toContain('沒有待確認地名')
     expect(wrapper.text()).toContain('目前所有地名都已確認')
   })
+})
+
+it.each([false, true])('offers creation outside the empty state with provisional filter %s', showProvisional => {
+  const wrapper = mount(Index, { props: { places: { data: [] }, showProvisional } })
+  expect(wrapper.findComponent(AdminLayout).exists()).toBe(true)
+  const links = wrapper.findAll('a[href="/admin/places/create"]')
+  expect(links.some(link => !link.element.closest('[data-testid="places-empty-state"]'))).toBe(true)
+  expect(links[0].text()).toBe('新增地名')
 })

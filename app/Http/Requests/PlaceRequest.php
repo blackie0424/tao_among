@@ -14,14 +14,9 @@ class PlaceRequest extends FormRequest
 
     public function rules(): array
     {
-        $tribeRules = ['nullable', Rule::in(config('fish_options.tribes'))];
-        if ($this->user()?->role !== 'admin') {
-            $tribeRules[0] = 'required';
-        }
-
         return [
             'name' => ['required', 'string', 'max:191'],
-            'tribe' => $tribeRules,
+            'tribe' => ['required', Rule::in(config('fish_options.tribes'))],
             'tao_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ];
