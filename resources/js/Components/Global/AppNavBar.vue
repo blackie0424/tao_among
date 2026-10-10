@@ -1,8 +1,5 @@
 <template>
-  <header
-    class="z-30"
-    :class="stickyMobile ? 'sticky top-4' : 'relative lg:sticky lg:top-4'"
-  >
+  <header class="z-30" :class="stickyMobile ? 'sticky top-4' : 'relative lg:sticky lg:top-4'">
     <div class="container mx-auto max-w-7xl rounded-2xl border border-gray-200 bg-white shadow-sm">
       <!-- Mobile navigation -->
       <div class="flex h-16 w-full items-center gap-2 px-3 lg:hidden">
@@ -45,8 +42,19 @@
               class="flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
               @click="showMobileUserMenu = !showMobileUserMenu"
             >
-              <svg aria-hidden="true" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              <svg
+                aria-hidden="true"
+                class="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
               </svg>
             </button>
             <Link
@@ -69,12 +77,10 @@
 
       <!-- Desktop navigation -->
       <div class="hidden h-[72px] w-full items-center gap-4 px-5 lg:flex">
-        <Link href="/" class="shrink-0 text-elder-name font-bold text-elder-text">
-          among no tao
-        </Link>
-        <nav aria-label="主要導覽" class="ml-3 flex shrink-0 gap-1">
+        <nav aria-label="主要導覽" class="flex shrink-0 gap-1">
           <Link
             href="/"
+            data-testid="desktop-nav-home"
             :aria-current="isHomePage ? 'page' : undefined"
             :class="desktopNavClass(isHomePage)"
           >
@@ -82,17 +88,18 @@
           </Link>
           <Link
             href="/fishs"
+            data-testid="desktop-nav-fishs"
             :aria-current="isFishPage ? 'page' : undefined"
             :class="desktopNavClass(isFishPage)"
           >
-            魚類圖鑑
+            among no tao
           </Link>
         </nav>
 
         <div class="flex min-w-0 flex-1 items-center">
           <slot name="desktop-nav">
             <Link
-              v-if="mobileBackUrl !== '/'"
+              v-if="mobileBackUrl !== '/' && mobileBackUrl !== '/fishs'"
               :href="mobileBackUrl"
               :aria-label="`返回${mobileBackText}`"
               data-testid="nav-back-button-desktop"
@@ -112,8 +119,19 @@
               class="flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
               @click="showDesktopUserMenu = !showDesktopUserMenu"
             >
-              <svg aria-hidden="true" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              <svg
+                aria-hidden="true"
+                class="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
               </svg>
             </button>
             <UserMenuDropdown
@@ -158,7 +176,10 @@ const user = computed(() => page.props.auth?.user)
 const currentUrl = computed(() => page.url || '')
 const isHomePage = computed(() => currentUrl.value === '/')
 const isFishPage = computed(
-  () => currentUrl.value.startsWith('/fishs') || currentUrl.value.startsWith('/fish/')
+  () =>
+    currentUrl.value.startsWith('/fishs') ||
+    currentUrl.value.startsWith('/fish/') ||
+    currentUrl.value.startsWith('/search')
 )
 
 const desktopNavClass = (active) => [
