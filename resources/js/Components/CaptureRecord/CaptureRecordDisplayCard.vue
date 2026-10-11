@@ -21,6 +21,12 @@
         </span>
         <span class="text-lg font-semibold text-gray-800">第 {{ index + 1 }} 筆紀錄</span>
       </div>
+      <Link
+        v-if="canEdit"
+        :href="`/fish/${fishId}/capture-records/${record.id}/edit`"
+        class="inline-flex items-center min-h-touch-primary px-3 text-elder-body text-blue-700 underline"
+        >編輯</Link
+      >
     </div>
 
     <!-- 卡片內容區 -->
@@ -72,12 +78,17 @@
           </div>
         </div>
       </div>
-      <div v-if="record.session_notes" class="mt-3 bg-teal-50 rounded-lg p-4 border border-teal-200">
+      <div
+        v-if="record.session_notes"
+        class="mt-3 bg-teal-50 rounded-lg p-4 border border-teal-200"
+      >
         <div class="flex items-start gap-2">
           <span class="text-teal-600 text-lg leading-none mt-0.5">🗒️</span>
           <div>
             <span class="text-base font-medium text-teal-800 block mb-1">情境備註</span>
-            <p class="text-base text-gray-800 leading-relaxed whitespace-pre-line break-words">{{ record.session_notes }}</p>
+            <p class="text-base text-gray-800 leading-relaxed whitespace-pre-line break-words">
+              {{ record.session_notes }}
+            </p>
           </div>
         </div>
       </div>
@@ -86,10 +97,13 @@
 </template>
 
 <script setup>
+import { Link } from '@inertiajs/vue3'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import { formatDate } from '@/utils/formatDate'
 
 defineProps({
+  fishId: { type: [Number, String], default: null },
+  canEdit: { type: Boolean, default: false },
   record: { type: Object, required: true },
   index: { type: Number, required: true },
   fishName: { type: String, default: '' },

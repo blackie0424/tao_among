@@ -3,6 +3,7 @@ import { mount, enableAutoUnmount } from '@vue/test-utils'
 import Fish from '@/Pages/Fish.vue'
 import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
 import { nextTick } from 'vue'
+import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 
 // jsdom 缺少 matchMedia，補上 stub
@@ -27,7 +28,7 @@ const mockUsePage = vi.fn(() => ({ props: { auth: { user: null } } }))
 // Mock Inertia
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
-  Link: { template: '<a><slot /></a>', props: ['href'] },
+  Link: { template: '<a :href="href"><slot /></a>', props: ['href'] },
   usePage: () => mockUsePage(),
 }))
 
@@ -41,15 +42,10 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
       'mobileBackUrl',
       'mobileBackText',
       'showBottomNav',
-      'showEditMenu',
       'stickyMobile',
       'showMobileTitle',
     ],
   },
-}))
-
-vi.mock('@/Components/Global/FishEditBar.vue', () => ({
-  default: { template: '<div />', props: ['fishId', 'canEdit', 'variant'] },
 }))
 
 vi.mock('@/Components/UI/Volume.vue', () => ({
@@ -71,13 +67,6 @@ vi.mock('@/Components/TribalClassification/TribalClassificationSummary.vue', () 
   default: {
     template: '<div />',
     props: ['classifications', 'tribes', 'fishId'],
-  },
-}))
-
-vi.mock('@/Components/CaptureRecord/CaptureRecordSection.vue', () => ({
-  default: {
-    template: '<div data-testid="capture-record-section" />',
-    props: ['captureRecords', 'fishName', 'user'],
   },
 }))
 
@@ -230,5 +219,115 @@ describe('發音功能依角色顯示', () => {
     const wrapper = mountFish({ fish: makeFish({ audio_url: 'https://example.com/audio.m4a' }) })
 
     expect(wrapper.text().includes('發音')).toBe(expected)
+  })
+})
+
+const expectedActions = [
+  [
+    'basic',
+    '基本',
+    [
+      ['編輯名稱', '/fish/1/edit'],
+      ['管理照片', '/fish/1/media-manager'],
+    ],
+  ],
+  ['local', '地方知識', [['新增地方知識', '/fish/1/tribal-classifications/create']]],
+  ['advanced', '進階知識', [['管理進階知識', '/fish/1/knowledge-manager']]],
+  ['reference', '文獻知識', [['管理文獻知識', '/fish/1/reference-knowledge']]],
+  [
+    'capture',
+    '捕獲紀錄',
+    [
+      ['新增捕獲紀錄', '/fish/1/capture-records/batch-create'],
+      ['管理捕獲紀錄', '/fish/1/capture-records'],
+    ],
+  ],
+  ['audio', '發音', [['新增發音', '/fish/1/audio/create']]],
+]
+const readActions = (section) =>
+  section
+    .get('[data-testid="tab-edit-actions"]')
+    .findAll('a')
+    .map((a) => [a.text(), a.attributes('href')])
+
+describe.each(['editor', 'admin'])('%s 分頁編輯入口', (role) => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/fish/1')
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role } } } })
+  })
+  it.each(expectedActions)(
+    '%s 入口在 section 頂部且文字與目的地正確',
+    async (_key, label, expected) => {
+      const wrapper = mountFish({ captureRecords: [{ id: 23, image_url: '/test.jpg' }] })
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === label)
+        .trigger('click')
+      const section = wrapper
+        .findAll('section')
+        .find((s) => s.isVisible() && s.find('[data-testid="tab-edit-actions"]').exists())
+      expect(section).toBeTruthy()
+      expect(section.element.firstElementChild.dataset.testid).toBe('tab-edit-actions')
+      expect(readActions(section)).toEqual(expected)
+      if (_key === 'audio')
+        expect(section.get('a[href="/fish/1/audio-list"]').text()).toBe('管理所有發音')
+      if (_key === 'capture')
+        expect(section.get('a[href="/fish/1/capture-records/23/edit"]').text()).toBe('編輯')
+    }
+  )
+})
+
+describe('分頁入口權限與空狀態', () => {
+  it.each([null, { role: 'guest' }, { role: 'viewer' }])(
+    '%j 的入口與紀錄卡編輯在 DOM 中不存在',
+    async (user) => {
+      window.history.replaceState({}, '', '/fish/1')
+      mockUsePage.mockReturnValue({ props: { auth: { user } } })
+      const wrapper = mountFish({ captureRecords: [{ id: 23, image_url: '/test.jpg' }] })
+      expect(wrapper.find('[data-testid="tab-edit-actions"]').exists()).toBe(false)
+      expect(wrapper.findAll('a')).toHaveLength(0)
+      expect(wrapper.findAll('button').map((b) => b.text())).toEqual([
+        '基本',
+        '地方知識',
+        '捕獲紀錄',
+      ])
+      expect(wrapper.getComponent(CaptureRecordSection).props()).toMatchObject({
+        fishId: 1,
+        canEdit: false,
+      })
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === '捕獲紀錄')
+        .trigger('click')
+      expect(wrapper.text()).not.toContain('編輯')
+    }
+  )
+  it('editor 空資料時五個分頁仍有入口，直接連入捕獲分頁也可用', async () => {
+    window.history.replaceState({}, '', '/fish/1?tab=capture')
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+    const wrapper = mountFish()
+    await nextTick()
+    expect(wrapper.get('a[href="/fish/1/capture-records/batch-create"]').isVisible()).toBe(true)
+    for (const [_key, label, expected] of expectedActions.slice(1)) {
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === label)
+        .trigger('click')
+      const section = wrapper
+        .findAll('section')
+        .find((s) => s.isVisible() && s.find('[data-testid="tab-edit-actions"]').exists())
+      expect(readActions(section)).toEqual(expected)
+    }
+    expect(wrapper.getComponent(CaptureRecordSection).props()).toMatchObject({
+      fishId: 1,
+      canEdit: true,
+    })
+  })
+  it('魚頁沒有集中式編輯入口', () => {
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+    const wrapper = mountFish()
+    expect(wrapper.text()).not.toContain('編輯這筆資料')
+    expect(wrapper.findAll('[data-testid="tab-edit-actions"]')).toHaveLength(6)
+    expect(wrapper.find('aside').exists()).toBe(false)
   })
 })

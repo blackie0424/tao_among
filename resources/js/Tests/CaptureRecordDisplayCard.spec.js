@@ -9,6 +9,10 @@ vi.mock('@/Components/UI/LazyImage.vue', () => ({
   },
 }))
 
+vi.mock('@inertiajs/vue3', () => ({
+  Link: { template: '<a :href="href"><slot /></a>', props: ['href'] },
+}))
+
 const makeRecord = (overrides = {}) => ({
   id: 1,
   capture_date: '2024-03-05T00:00:00.000Z',
@@ -142,7 +146,9 @@ describe('捕獲說明', () => {
 
 describe('情境備註', () => {
   it('與捕獲說明分開顯示情境備註', () => {
-    const wrapper = mountCard({ record: makeRecord({ notes: '單筆備註', session_notes: '這次出海備註' }) })
+    const wrapper = mountCard({
+      record: makeRecord({ notes: '單筆備註', session_notes: '這次出海備註' }),
+    })
     expect(wrapper.text()).toContain('捕獲說明')
     expect(wrapper.text()).toContain('單筆備註')
     expect(wrapper.text()).toContain('情境備註')
@@ -152,5 +158,23 @@ describe('情境備註', () => {
   it.each([null, ''])('session_notes 為 %j 時不顯示情境備註', (sessionNotes) => {
     const wrapper = mountCard({ record: makeRecord({ session_notes: sessionNotes }) })
     expect(wrapper.text()).not.toContain('情境備註')
+  })
+})
+
+describe('紀錄編輯連結', () => {
+  it.each([null, 17])('canEdit 為真時不論情境 %j 都顯示編輯與正確目的地', (capture_session_id) => {
+    const wrapper = mountCard({
+      record: makeRecord({ id: 23, capture_session_id }),
+      fishId: 42,
+      canEdit: true,
+    })
+    expect(wrapper.get('a').text()).toBe('編輯')
+    expect(wrapper.get('a').attributes('href')).toBe('/fish/42/capture-records/23/edit')
+  })
+  it('canEdit 為假時不渲染編輯', () => {
+    expect(mountCard({ fishId: 42, canEdit: false }).find('a').exists()).toBe(false)
+  })
+  it('未傳 canEdit 時不渲染編輯', () => {
+    expect(mountCard({ fishId: 42 }).find('a').exists()).toBe(false)
   })
 })
