@@ -88,13 +88,9 @@ it('does not emit session notes from management or API outlets', function () {
     ['fish' => $fish] = sessionNotesFixture();
     $editor = User::factory()->lineEditor()->create();
 
-    $this->actingAs($editor)->get("/fish/{$fish->id}/media-manager")->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->missing('captureRecords.0.session_notes')
-        ->missing('fish.capture_records.0.session_notes'))
+    $this->actingAs($editor)->get("/fish/{$fish->id}/media-manager")->assertNotFound()
         ->assertDontSee('ZZSESSIONNOTEMARK');
-    $this->get("/fish/{$fish->id}/knowledge-manager")->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->missing('captureRecords.0.session_notes')
-        ->missing('fish.capture_records.0.session_notes'))
+    $this->get("/fish/{$fish->id}/knowledge-manager")->assertNotFound()
         ->assertDontSee('ZZSESSIONNOTEMARK');
 
     $this->getJson("/prefix/api/fish/{$fish->id}")->assertOk()

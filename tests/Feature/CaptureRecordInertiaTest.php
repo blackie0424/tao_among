@@ -104,7 +104,7 @@ describe('Capture Record Inertia Endpoints', function () {
             'notes' => 'Test capture notes',
         ]);
 
-        $response->assertRedirect("/fish/{$fish->id}/media-manager")
+        $response->assertRedirect("/fish/{$fish->id}?tab=capture")
             ->assertSessionHas('success', '捕獲紀錄新增成功');
 
         $this->assertDatabaseHas('capture_records', [
@@ -204,7 +204,7 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}/media-manager");
+        $response->assertRedirect("/fish/{$fish->id}?tab=capture");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,
@@ -238,7 +238,7 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}/media-manager");
+        $response->assertRedirect("/fish/{$fish->id}?tab=capture");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,
@@ -275,7 +275,7 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $response = $this->actingAs($user)->delete("/fish/{$fish->id}/capture-records/{$captureRecord->id}");
 
-        $response->assertRedirect("/fish/{$fish->id}/media-manager")
+        $response->assertRedirect("/fish/{$fish->id}/capture-records")
             ->assertSessionHas('success', '捕獲紀錄刪除成功');
 
         $this->assertSoftDeleted('capture_records', [
@@ -325,7 +325,7 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}/media-manager");
+        $response->assertRedirect("/fish/{$fish->id}?tab=capture");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,

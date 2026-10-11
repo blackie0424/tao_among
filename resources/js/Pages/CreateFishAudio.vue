@@ -98,7 +98,7 @@ function isSafari() {
 }
 
 function goBack() {
-  window.history.length > 1 ? window.history.back() : router.visit('/fishs')
+  router.visit(`/fish/${props.fish.id}?tab=audio`)
 }
 
 function drawWave() {
@@ -281,7 +281,7 @@ async function handleNext() {
     markFishStale(fishId)
 
     // 上傳成功後導回特定魚類資訊頁
-    router.visit(`/fish/${fishId}`)
+    router.visit(`/fish/${fishId}?tab=audio`)
   } catch (e) {
     recordingError.value = e.message || '音訊上傳失敗'
   } finally {

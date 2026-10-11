@@ -20,7 +20,7 @@ const props = defineProps({
 const fishNameFormRef = ref(null)
 
 function goBack() {
-  window.history.length > 1 ? window.history.back() : router.visit('/fishs')
+  router.visit(`/fish/${props.fish.id}?tab=basic`)
 }
 
 // 整合送出到 FormActionBar 的 @submit 事件

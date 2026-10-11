@@ -98,7 +98,7 @@
           <Link
             v-for="fish in needPhoto"
             :key="fish.id"
-            :href="`/fish/${fish.id}/media-manager`"
+            :href="`/fish/${fish.id}?tab=capture`"
             class="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition"
           >
             <div class="w-10 h-10 bg-gray-100 rounded-lg shrink-0 flex items-center justify-center">

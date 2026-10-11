@@ -3,7 +3,7 @@
 
   <FishAppLayout
     :pageTitle="`新增${fish.name}的文獻知識`"
-    :mobileBackUrl="`/fish/${fish.id}/reference-knowledge`"
+    :mobileBackUrl="`/fish/${fish.id}?tab=reference`"
     mobileBackText="文獻知識"
   >
     <div class="mx-auto max-w-3xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -11,7 +11,7 @@
       <ReferenceKnowledgeForm
         :references="references"
         :tribes="tribes"
-        :cancel-url="`/fish/${fish.id}/reference-knowledge`"
+        :cancel-url="`/fish/${fish.id}?tab=reference`"
         submit-label="建立文獻知識"
         :processing="processing"
         @submit="onFormSubmit"

@@ -23,50 +23,26 @@ class TribalClassificationController extends Controller
     }
 
     /**
-     * Display a listing of tribal classifications for a specific fish (Inertia).
-     */
-    public function indexPage($fishId)
-    {
-        // 取得指定魚類資訊和部落分類
-        $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
-        
-        // 使用 Trait 處理圖片 URL
-        $fishWithImage = $this->assignFishImage($fish);
-        
-        // 定義部落和分類選項
-        $tribes = config('fish_options.tribes');
-        $foodCategories = config('fish_options.food_categories');
-        $processingMethods = config('fish_options.processing_methods');
-        
-        return Inertia::render('TribalClassifications', [
-            'fish' => $fishWithImage,
-            'tribes' => $tribes,
-            'foodCategories' => $foodCategories,
-            'processingMethods' => $processingMethods
-        ]);
-    }
-
-    /**
      * Show the form for creating/managing tribal classifications.
      */
     public function createPage($fishId)
     {
         $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
-        
+
         // 使用 Trait 處理圖片 URL
         $fishWithImage = $this->assignFishImage($fish);
-        
+
         // 定義部落和分類選項
         $tribes = config('fish_options.tribes');
         $foodCategories = config('fish_options.food_categories');
         $processingMethods = config('fish_options.processing_methods');
-        
+
         return Inertia::render('ManageTribalClassification', [
             'fish' => $fishWithImage,
             'tribes' => $tribes,
             'foodCategories' => $foodCategories,
             'processingMethods' => $processingMethods,
-            'classifications' => $fish->tribalClassifications
+            'classifications' => $fish->tribalClassifications,
         ]);
     }
 
@@ -76,10 +52,10 @@ class TribalClassificationController extends Controller
     public function storePage(Request $request, $fishId)
     {
         $fish = Fish::findOrFail($fishId);
-        
+
         $request->validate([
             'classifications' => 'required|array',
-            'classifications.*.tribe' => 'required|string|in:' . implode(',', config('fish_options.tribes')),
+            'classifications.*.tribe' => 'required|string|in:'.implode(',', config('fish_options.tribes')),
             'classifications.*.food_category' => 'nullable|string',
             'classifications.*.processing_method' => 'nullable|string',
             'classifications.*.notes' => 'nullable|string|max:65535',
@@ -115,7 +91,7 @@ class TribalClassificationController extends Controller
                     $existingClassification->update([
                         'food_category' => $foodCategory,
                         'processing_method' => $processingMethod,
-                        'notes' => $notes
+                        'notes' => $notes,
                     ]);
                 } elseif ($trashedClassification) {
                     // Restore and update
@@ -123,7 +99,7 @@ class TribalClassificationController extends Controller
                     $trashedClassification->update([
                         'food_category' => $foodCategory,
                         'processing_method' => $processingMethod,
-                        'notes' => $notes
+                        'notes' => $notes,
                     ]);
                 } else {
                     // Create new
@@ -132,43 +108,14 @@ class TribalClassificationController extends Controller
                         'tribe' => $tribe,
                         'food_category' => $foodCategory,
                         'processing_method' => $processingMethod,
-                        'notes' => $notes
+                        'notes' => $notes,
                     ]);
                 }
             }
         }
 
-        return redirect()->route('fish.knowledge-manager', ['id' => $fish->id])
+        return redirect("/fish/{$fishId}?tab=local")
             ->with('success', '地方知識已成功儲存/更新');
-    }
-
-    /**
-     * Show the form for editing a tribal classification.
-     */
-    public function editPage($fishId, $classificationId)
-    {
-        // 編輯頁面目前也是顯示整個矩陣，因為可以直接一次修改所有部落
-        $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
-        $classification = TribalClassification::where('fish_id', $fishId)
-            ->where('id', $classificationId)
-            ->firstOrFail(); // 若有需要可以拿來 hightlight，目前只要確保記錄存在
-        
-        // 使用 Trait 處理圖片 URL
-        $fishWithImage = $this->assignFishImage($fish);
-        
-        // 定義部落和分類選項
-        $tribes = config('fish_options.tribes');
-        $foodCategories = config('fish_options.food_categories');
-        $processingMethods = config('fish_options.processing_methods');
-        
-        return Inertia::render('EditTribalClassification', [
-            'fish' => $fishWithImage,
-            'classification' => $classification,
-            'tribes' => $tribes,
-            'foodCategories' => $foodCategories,
-            'processingMethods' => $processingMethods,
-            'classifications' => $fish->tribalClassifications
-        ]);
     }
 
     /**
@@ -188,11 +135,11 @@ class TribalClassificationController extends Controller
         $classification = TribalClassification::where('fish_id', $fishId)
             ->where('id', $classificationId)
             ->firstOrFail();
-        
+
         $tribeName = $classification->tribe;
         $classification->delete();
 
-        return redirect()->route('fish.knowledge-manager', ['id' => $fishId])
+        return redirect("/fish/{$fishId}?tab=local")
             ->with('success', "地方知識「{$tribeName}」已成功刪除");
     }
 
@@ -202,7 +149,7 @@ class TribalClassificationController extends Controller
     public function index($fishId): JsonResponse
     {
         $fish = Fish::findOrFail($fishId);
-        
+
         $tribeOrder = array_flip(config('fish_options.tribes'));
 
         $classifications = $fish->tribalClassifications()
@@ -216,8 +163,8 @@ class TribalClassificationController extends Controller
             'data' => $classifications,
             'fish' => [
                 'id' => $fish->id,
-                'name' => $fish->name
-            ]
+                'name' => $fish->name,
+            ],
         ]);
     }
 
@@ -234,29 +181,29 @@ class TribalClassificationController extends Controller
         $existingClassification = TribalClassification::where('fish_id', $fish->id)
             ->where('tribe', $validated['tribe'])
             ->first();
-            
+
         if ($existingClassification) {
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => [
-                    'tribe' => ['此魚類已有該部落的地方知識記錄，請直接編輯現有記錄或選擇其他部落。']
-                ]
+                    'tribe' => ['此魚類已有該部落的地方知識記錄，請直接編輯現有記錄或選擇其他部落。'],
+                ],
             ], 422);
         }
-        
+
         // 檢查是否有軟刪除的記錄，若有則恢復並更新
         $trashedClassification = TribalClassification::onlyTrashed()
             ->where('fish_id', $fish->id)
             ->where('tribe', $validated['tribe'])
             ->first();
-            
+
         if ($trashedClassification) {
             // 恢復軟刪除的記錄並更新資料
             $trashedClassification->restore();
             $trashedClassification->update([
                 'food_category' => $validated['food_category'] ?? '',
                 'processing_method' => $validated['processing_method'] ?? '',
-                'notes' => $validated['notes']
+                'notes' => $validated['notes'],
             ]);
             $classification = $trashedClassification->fresh();
         } else {
@@ -266,13 +213,13 @@ class TribalClassificationController extends Controller
                 'tribe' => $validated['tribe'],
                 'food_category' => $validated['food_category'] ?? '',
                 'processing_method' => $validated['processing_method'] ?? '',
-                'notes' => $validated['notes']
+                'notes' => $validated['notes'],
             ]);
         }
 
         return response()->json([
             'message' => 'Tribal classification created successfully',
-            'data' => $classification
+            'data' => $classification,
         ], 201);
     }
 
@@ -285,7 +232,7 @@ class TribalClassificationController extends Controller
 
         return response()->json([
             'message' => 'Tribal classification retrieved successfully',
-            'data' => $classification
+            'data' => $classification,
         ]);
     }
 
@@ -302,12 +249,12 @@ class TribalClassificationController extends Controller
             'tribe' => $validated['tribe'],
             'food_category' => $validated['food_category'] ?? '',
             'processing_method' => $validated['processing_method'] ?? '',
-            'notes' => $validated['notes']
+            'notes' => $validated['notes'],
         ]);
 
         return response()->json([
             'message' => 'Tribal classification updated successfully',
-            'data' => $classification->fresh()
+            'data' => $classification->fresh(),
         ]);
     }
 
@@ -320,7 +267,7 @@ class TribalClassificationController extends Controller
         $classification->delete();
 
         return response()->json([
-            'message' => 'Tribal classification deleted successfully'
+            'message' => 'Tribal classification deleted successfully',
         ]);
     }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import MediaManager from '@/Pages/Fish/MediaManager.vue'
+import CaptureRecords from '@/Pages/CaptureRecords.vue'
 
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
@@ -44,9 +44,9 @@ vi.mock('@/Components/UI/LazyImage.vue', () => ({
   },
 }))
 
-describe('MediaManager page', () => {
+describe('CaptureRecords page after management-page removal', () => {
   it('only shows the batch capture-record create action', () => {
-    const wrapper = mount(MediaManager, {
+    const wrapper = mount(CaptureRecords, {
       props: {
         fish: {
           id: 1,
@@ -63,7 +63,7 @@ describe('MediaManager page', () => {
       },
     })
 
-    expect(wrapper.find('a[href="/fish/1/capture-records/batch-create"]').exists()).toBe(true)
+    expect(wrapper.getComponent({ name: 'FabButton' }).props('to')).toBe('/fish/1/capture-records/batch-create')
     expect(wrapper.find('a[href="/fish/1/capture-records/create"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('批次新增')
   })

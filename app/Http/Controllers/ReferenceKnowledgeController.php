@@ -18,8 +18,7 @@ class ReferenceKnowledgeController extends BaseController
     public function __construct(
         protected FishService $fishService,
         protected ReferenceKnowledgeService $referenceKnowledgeService
-    ) {
-    }
+    ) {}
 
     public function index($fishId): Response|\Illuminate\Http\RedirectResponse
     {
@@ -82,7 +81,7 @@ class ReferenceKnowledgeController extends BaseController
                     $request->user()
                 );
 
-                return redirect("/fish/{$fishId}/reference-knowledge")
+                return redirect("/fish/{$fishId}?tab=reference")
                     ->with('success', '文獻知識已成功建立');
             }, 'reference knowledge creation');
         } catch (Exception $e) {
@@ -98,7 +97,7 @@ class ReferenceKnowledgeController extends BaseController
 
                 $this->referenceKnowledgeService->update($knowledge, $request->validated());
 
-                return redirect("/fish/{$fishId}/reference-knowledge")
+                return redirect("/fish/{$fishId}?tab=reference")
                     ->with('success', '文獻知識已成功更新');
             }, 'reference knowledge update');
         } catch (Exception $e) {

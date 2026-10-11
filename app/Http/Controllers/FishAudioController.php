@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use App\Services\FishService;
 use App\Traits\HasFishImageUrl;
-use Inertia\Inertia;
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class FishAudioController extends BaseController
 {
     use HasFishImageUrl;
 
     protected $fishService;
+
     protected $storageService;
 
     public function __construct(FishService $fishService, StorageServiceInterface $storageService)
@@ -46,16 +47,16 @@ class FishAudioController extends BaseController
         try {
             $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
             $fish->load('audios');
-            
+
             $fishWithUrls = $this->assignFishImage($fish);
 
             $this->logOperation('Audio list viewed', [
                 'fish_id' => $fishId,
-                'audios_count' => $fish->audios->count()
+                'audios_count' => $fish->audios->count(),
             ]);
 
             return Inertia::render('FishAudioList', [
-                'fish' => $fishWithUrls
+                'fish' => $fishWithUrls,
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入發音列表');
@@ -71,17 +72,17 @@ class FishAudioController extends BaseController
             $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
             $audio = $this->findRelatedResourceOrFail(FishAudio::class, [
                 'fish_id' => $fishId,
-                'id' => $audioId
+                'id' => $audioId,
             ], '發音資料');
 
             $this->logOperation('Audio edit form accessed', [
                 'fish_id' => $fishId,
-                'audio_id' => $audioId
+                'audio_id' => $audioId,
             ]);
 
             return Inertia::render('Fish/EditAudio', [
                 'fish' => $this->assignFishImage($fish),
-                'audio' => $audio
+                'audio' => $audio,
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入編輯頁面');
@@ -97,40 +98,40 @@ class FishAudioController extends BaseController
             return $this->executeWithTransaction(function () use ($request, $fishId, $audioId) {
                 // Verify fish exists
                 $this->findResourceOrFail(Fish::class, $fishId, '魚類');
-                
+
                 // Find the audio record
                 $audio = $this->findRelatedResourceOrFail(FishAudio::class, [
                     'fish_id' => $fishId,
-                    'id' => $audioId
+                    'id' => $audioId,
                 ], '發音資料');
 
                 // Validate request
                 $validated = $this->validateRequest($request, [
                     'name' => 'required|string|max:255',
-                    'audio_filename' => 'nullable|string|max:255'
+                    'audio_filename' => 'nullable|string|max:255',
                 ]);
 
                 $oldData = $audio->toArray();
                 $updateData = ['name' => $validated['name']];
 
                 // Handle audio file update if new file is provided
-                if (!empty($validated['audio_filename'])) {
+                if (! empty($validated['audio_filename'])) {
                     $oldAudioPath = $audio->locate;
                     $updateData['locate'] = $validated['audio_filename'];
-                    
+
                     // Clean up old audio file if it exists and is different from the new one
                     if ($oldAudioPath && $oldAudioPath !== $validated['audio_filename']) {
                         $this->executeFileOperation(function () use ($oldAudioPath) {
                             $audioFolder = $this->storageService->getAudioFolder();
-                            $result = $this->storageService->deleteWithValidation($audioFolder . '/' . $oldAudioPath);
-                            
-                            if (!$result['success']) {
+                            $result = $this->storageService->deleteWithValidation($audioFolder.'/'.$oldAudioPath);
+
+                            if (! $result['success']) {
                                 Log::warning('Failed to delete old audio file', [
                                     'file_path' => $oldAudioPath,
-                                    'error' => $result['error'] ?? 'Unknown error'
+                                    'error' => $result['error'] ?? 'Unknown error',
                                 ]);
                             }
-                            
+
                             return $result['success'];
                         }, 'delete old audio file', false);
                     }
@@ -142,10 +143,10 @@ class FishAudioController extends BaseController
                     'fish_id' => $fishId,
                     'audio_id' => $audioId,
                     'old_data' => $oldData,
-                    'new_data' => $audio->fresh()->toArray()
+                    'new_data' => $audio->fresh()->toArray(),
                 ]);
 
-                return redirect()->route('fish.media-manager', $fishId)
+                return redirect("/fish/{$fishId}?tab=audio")
                     ->with('success', '發音資料已成功更新');
             }, 'audio update');
         } catch (Exception $e) {
@@ -162,33 +163,33 @@ class FishAudioController extends BaseController
             return $this->executeWithTransaction(function () use ($fishId, $audioId) {
                 // Verify fish exists
                 $this->findResourceOrFail(Fish::class, $fishId, '魚類');
-                
+
                 // Find the audio record
                 $audio = $this->findRelatedResourceOrFail(FishAudio::class, [
                     'fish_id' => $fishId,
-                    'id' => $audioId
+                    'id' => $audioId,
                 ], '發音資料');
-                
+
                 // Store audio data before deletion
                 $audioData = $audio->toArray();
                 $audioFilePath = $audio->locate;
-                
+
                 // Perform soft delete on the database record
                 $audio->delete();
-                
+
                 // Clean up the audio file from storage (non-blocking)
                 if ($audioFilePath) {
                     $this->executeFileOperation(function () use ($audioFilePath) {
                         $audioFolder = $this->storageService->getAudioFolder();
-                        $result = $this->storageService->deleteWithValidation($audioFolder . '/' . $audioFilePath);
-                        
-                        if (!$result['success']) {
+                        $result = $this->storageService->deleteWithValidation($audioFolder.'/'.$audioFilePath);
+
+                        if (! $result['success']) {
                             Log::warning('Failed to delete audio file during record deletion', [
                                 'file_path' => $audioFilePath,
-                                'error' => $result['error'] ?? 'Unknown error'
+                                'error' => $result['error'] ?? 'Unknown error',
                             ]);
                         }
-                        
+
                         return $result['success'];
                     }, 'delete audio file', false);
                 }
@@ -197,10 +198,10 @@ class FishAudioController extends BaseController
                     'fish_id' => $fishId,
                     'audio_id' => $audioId,
                     'deleted_data' => $audioData,
-                    'file_path' => $audioFilePath
+                    'file_path' => $audioFilePath,
                 ]);
 
-                return redirect()->route('fish.media-manager', $fishId)
+                return redirect("/fish/{$fishId}/audio-list")
                     ->with('success', '發音資料已成功刪除');
             }, 'audio deletion');
         } catch (Exception $e) {
@@ -224,18 +225,18 @@ class FishAudioController extends BaseController
                 $fish->update([
                     'audio_filename' => $audio->name,
                 ]);
-                
+
                 // 使用 Trait 處理媒體 URL
                 $fish = $this->assignFishImage($fish);
 
                 $this->logOperation('Main audio filename updated', [
                     'fish_id' => $fishId,
                     'audio_id' => $audioId,
-                    'audio_name' => $audio->name
+                    'audio_name' => $audio->name,
                 ]);
 
                 // 重導回 MediaManager
-                return redirect()->route('fish.media-manager', $fishId)
+                return redirect("/fish/{$fishId}/audio-list")
                     ->with('success', '魚類發音更新成功');
             }, 'audio filename update');
         } catch (Exception $e) {

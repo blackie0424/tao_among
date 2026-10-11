@@ -2,21 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Http\Requests\FishNoteRequest;
 use App\Http\Requests\UpdateFishNoteRequest;
-use App\Models\FishNote;
 use App\Models\Fish;
-use Inertia\Inertia;
-use App\Contracts\StorageServiceInterface;
-use App\Services\FishService;
+use App\Models\FishNote;
 use App\Services\FishNoteService;
+use App\Services\FishService;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Inertia\Inertia;
 
 class FishNoteController extends BaseController
 {
     protected $fishService;
+
     protected FishNoteService $fishNoteService;
 
     public function __construct(FishService $fishService, FishNoteService $fishNoteService)
@@ -33,20 +32,20 @@ class FishNoteController extends BaseController
         try {
             $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
             $fish->load('notes');
-            
+
             $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
             $groupedNotes = $this->groupNotesByType($fish->notes);
             $stats = $this->getNoteTypeStats($fish->notes);
 
             $this->logOperation('Knowledge list viewed', [
                 'fish_id' => $fishId,
-                'notes_count' => $fish->notes->count()
+                'notes_count' => $fish->notes->count(),
             ]);
 
             return Inertia::render('FishKnowledgeList', [
                 'fish' => $fishWithImage,
                 'groupedNotes' => $groupedNotes,
-                'stats' => $stats
+                'stats' => $stats,
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入進階知識列表');
@@ -62,19 +61,19 @@ class FishNoteController extends BaseController
             $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
             $note = $this->findRelatedResourceOrFail(FishNote::class, [
                 'fish_id' => $fishId,
-                'id' => $noteId
+                'id' => $noteId,
             ], '進階知識');
 
             $this->logOperation('Knowledge edit form accessed', [
                 'fish_id' => $fishId,
-                'note_id' => $noteId
+                'note_id' => $noteId,
             ]);
 
             return Inertia::render('Fish/EditKnowledge', [
                 'fish' => $this->fishService->assignImageUrls([$fish])[0],
                 'note' => $note,
                 'noteTypes' => $this->getNoteTypes(),
-                'tribes' => $this->getTribes()
+                'tribes' => $this->getTribes(),
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入編輯頁面');
@@ -90,11 +89,11 @@ class FishNoteController extends BaseController
             return $this->executeWithTransaction(function () use ($request, $fishId, $noteId) {
                 // Verify fish exists
                 $this->findResourceOrFail(Fish::class, $fishId, '魚類');
-                
+
                 // Find and update the note
                 $note = $this->findRelatedResourceOrFail(FishNote::class, [
                     'fish_id' => $fishId,
-                    'id' => $noteId
+                    'id' => $noteId,
                 ], '進階知識');
 
                 $oldData = $note->toArray();
@@ -104,10 +103,10 @@ class FishNoteController extends BaseController
                     'fish_id' => $fishId,
                     'note_id' => $noteId,
                     'old_data' => $oldData,
-                    'new_data' => $note->fresh()->toArray()
+                    'new_data' => $note->fresh()->toArray(),
                 ]);
 
-                return redirect()->route('fish.knowledge-manager', $fishId)
+                return redirect("/fish/{$fishId}?tab=advanced")
                     ->with('success', '進階知識已成功更新');
             }, 'knowledge update');
         } catch (Exception $e) {
@@ -124,11 +123,11 @@ class FishNoteController extends BaseController
             return $this->executeWithTransaction(function () use ($fishId, $noteId) {
                 // Verify fish exists
                 $this->findResourceOrFail(Fish::class, $fishId, '魚類');
-                
+
                 // Find and delete the note
                 $note = $this->findRelatedResourceOrFail(FishNote::class, [
                     'fish_id' => $fishId,
-                    'id' => $noteId
+                    'id' => $noteId,
                 ], '進階知識');
 
                 $noteData = $note->toArray();
@@ -137,10 +136,10 @@ class FishNoteController extends BaseController
                 $this->logOperation('Knowledge deleted successfully', [
                     'fish_id' => $fishId,
                     'note_id' => $noteId,
-                    'deleted_data' => $noteData
+                    'deleted_data' => $noteData,
                 ]);
 
-                return redirect()->route('fish.knowledge-manager', $fishId)
+                return redirect("/fish/{$fishId}/knowledge-list")
                     ->with('success', '進階知識已成功刪除');
             }, 'knowledge deletion');
         } catch (Exception $e) {
@@ -161,7 +160,7 @@ class FishNoteController extends BaseController
             '烹飪方法' => 4,
             '文化意義' => 5,
             '其他' => 6,
-            '未分類' => 7
+            '未分類' => 7,
         ];
 
         // Group notes by type, handling null/empty types
@@ -174,7 +173,7 @@ class FishNoteController extends BaseController
             return [
                 'name' => $type,
                 'count' => $groupedNotes->count(),
-                'notes' => $groupedNotes->sortByDesc('created_at')->values()
+                'notes' => $groupedNotes->sortByDesc('created_at')->values(),
             ];
         })->sortBy(function ($group) use ($typeOrder) {
             // Sort by predefined order, unknown types go to the end
@@ -205,7 +204,7 @@ class FishNoteController extends BaseController
     {
         $stats = [
             'total' => $notes->count(),
-            'by_type' => []
+            'by_type' => [],
         ];
 
         $grouped = $notes->groupBy(function ($note) {
@@ -229,7 +228,7 @@ class FishNoteController extends BaseController
             $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
 
             $this->logOperation('Knowledge create form accessed', [
-                'fish_id' => $id
+                'fish_id' => $id,
             ]);
 
             return Inertia::render('CreateFishNote', [
@@ -241,7 +240,7 @@ class FishNoteController extends BaseController
                     'display_image_url' => $fishWithImage->display_image_url,
                 ],
                 'noteTypes' => $this->getNoteTypes(),
-                'tribes' => $this->getTribes()
+                'tribes' => $this->getTribes(),
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入新增頁面');
@@ -257,7 +256,7 @@ class FishNoteController extends BaseController
             return $this->executeWithTransaction(function () use ($request, $fishId) {
                 // Verify fish exists
                 $fish = $this->findResourceOrFail(Fish::class, $fishId, '魚類');
-                
+
                 // Create the note
                 $note = $this->fishNoteService->createForFish($fish, [
                     'note' => $request->note,
@@ -268,17 +267,16 @@ class FishNoteController extends BaseController
                 $this->logOperation('Knowledge created successfully', [
                     'fish_id' => $fishId,
                     'note_id' => $note->id,
-                    'note_data' => $note->toArray()
+                    'note_data' => $note->toArray(),
                 ]);
 
-                return redirect()->route('fish.knowledge-manager', $fishId)
+                return redirect("/fish/{$fishId}?tab=advanced")
                     ->with('success', '進階知識已成功新增');
             }, 'knowledge creation');
         } catch (Exception $e) {
             return $this->handleControllerError($e, '新增進階知識失敗');
         }
     }
-
 
     /**
      * Store a newly created resource in storage (API - Legacy).
@@ -288,21 +286,27 @@ class FishNoteController extends BaseController
      *     path="/prefix/api/fish/{id}/note",
      *     summary="新增魚類筆記 (API)",
      *     tags={"FishNote"},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"note", "locate"},
+     *
      *             @OA\Property(property="note", type="string"),
      *             @OA\Property(property="note_type", type="string"),
      *             @OA\Property(property="locate", type="string")
      *         )
      *     ),
+     *
      *     @OA\Response(response=201, description="建立成功")
      * )
      */
@@ -315,19 +319,20 @@ class FishNoteController extends BaseController
         return response()->json([
             'message' => 'Note added successfully',
             'data' => $fishNote,
-            'lastUpdateTime' => time()
+            'lastUpdateTime' => time(),
         ], 201);
     }
 
     private function findFishOrFail($id)
     {
         $fish = Fish::find($id);
-        if (!$fish) {
+        if (! $fish) {
             abort(response()->json([
                 'message' => 'fish not found',
                 'data' => null,
             ], 404));
         }
+
         return $fish;
     }
 
@@ -345,20 +350,26 @@ class FishNoteController extends BaseController
      *     path="/prefix/api/fish/note/{id}",
      *     summary="更新魚類筆記",
      *     tags={"FishNote"},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="note", type="string"),
      *             @OA\Property(property="note_type", type="string"),
      *             @OA\Property(property="locate", type="string")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="更新成功"),
      *     @OA\Response(response=404, description="找不到該筆記")
      * )
@@ -367,7 +378,7 @@ class FishNoteController extends BaseController
     {
         $fishNote = FishNote::where('fish_id', $fishId)->where('id', $noteId)->first();
 
-        if (!$fishNote) {
+        if (! $fishNote) {
             return response()->json([
                 'message' => 'fish note not found',
                 'data' => null,
@@ -381,26 +392,31 @@ class FishNoteController extends BaseController
             'data' => $fishNote,
         ]);
     }
-    
+
     /**
      * @OA\Delete(
      *     path="/prefix/api/fish/{id}/note/{note_id}",
      *     summary="刪除魚類筆記",
      *     tags={"FishNote"},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="魚類 ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="note_id",
      *         in="path",
      *         required=true,
      *         description="筆記 ID",
+     *
      *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Response(response=200, description="刪除成功"),
      *     @OA\Response(response=404, description="找不到該筆記")
      * )
@@ -409,7 +425,7 @@ class FishNoteController extends BaseController
     {
         $fishNote = FishNote::where('fish_id', $fishId)->where('id', $noteId)->first();
 
-        if (!$fishNote) {
+        if (! $fishNote) {
             return response()->json([
                 'message' => 'fish note not found',
                 'data' => null,

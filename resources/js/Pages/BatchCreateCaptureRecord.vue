@@ -32,6 +32,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { apiFetch } from '@/utils/apiFetch'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import BatchCaptureImageUploader from '@/Components/CaptureRecord/BatchCaptureImageUploader.vue'
@@ -64,14 +65,15 @@ const submitLabel = computed(() => step.value === 1 ? (isSubmitting.value ? '上
 const allDone = computed(() => submitResults.value.length > 0 && submitResults.value.every((result) => result.status === 'done'))
 
 function goBack() {
+  if (isSubmitting.value) return
   if (step.value > 1 && step.value < 3) { step.value--; return }
-  router.visit('/fish/' + props.fish.id + '/media-manager')
+  router.visit('/fish/' + props.fish.id + '?tab=capture')
 }
 
 async function handleSubmit() {
   if (step.value === 1) await doUpload()
   else if (step.value === 2) await doSubmitAll()
-  else if (allDone.value) router.visit('/fish/' + props.fish.id + '/media-manager')
+  else if (allDone.value) router.visit('/fish/' + props.fish.id + '?tab=capture')
 }
 
 async function doUpload() {
@@ -98,23 +100,30 @@ async function doSubmitAll() {
   submitResults.value = uploadedFilenames.value.map(() => ({ status: 'pending', error: null }))
   for (let i = 0; i < uploadedFilenames.value.length; i++) {
     try {
-      await new Promise((resolve, reject) => {
-        router.post('/fish/' + props.fish.id + '/capture-records', {
+      const response = await apiFetch('/fish/' + props.fish.id + '/capture-records', {
+        method: 'POST',
+        body: JSON.stringify({
           image_filename: uploadedFilenames.value[i],
           session_id: selection.value.session_id,
           legacy_combo: selection.value.legacy_combo,
           notes: notes.value,
-        }, {
-          onSuccess: resolve,
-          onError: (errors) => reject(new Error(Object.values(errors)[0] || '新增失敗')),
-          preserveState: true,
-        })
+        }),
       })
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        const firstError = Object.values(result.errors || {}).flat()[0]
+        throw new Error(firstError || result.message || '新增失敗')
+      }
       submitResults.value[i] = { status: 'done', error: null }
     } catch (error) {
       submitResults.value[i] = { status: 'error', error: error.message }
     }
   }
   isSubmitting.value = false
+  if (allDone.value) {
+    router.visit('/fish/' + props.fish.id + '?tab=capture', {
+      onSuccess: () => alert('捕獲紀錄新增成功'),
+    })
+  }
 }
 </script>

@@ -3,7 +3,7 @@
 
   <FishAppLayout
     :pageTitle="`${fish.name}的知識管理`"
-    :mobileBackUrl="`/fish/${fish.id}`"
+    :mobileBackUrl="`/fish/${fish.id}?tab=advanced`"
     mobileBackText="魚類資料"
   >
     <div class="container mx-auto p-4 relative">
@@ -120,7 +120,7 @@
           textClass="text-white"
           label="新增進階知識"
           icon="+"
-          :to="`/fish/${fish.id}/create`"
+          :to="`/fish/${fish.id}/knowledge/create`"
           position="right-bottom"
         />
       </div>

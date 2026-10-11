@@ -35,14 +35,14 @@ const props = defineProps({
 const formRef = ref(null)
 
 function goBack() {
-  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
+  router.visit(`/fish/${props.fish.id}?tab=advanced`)
 }
 
 function onFormSubmit(formData) {
   router.post(`/fish/${props.fish.id}/knowledge`, formData, {
     onSuccess: () => {
       formRef.value?.reset?.()
-      router.visit(`/fish/${props.fish.id}/knowledge-manager`)
+      router.visit(`/fish/${props.fish.id}?tab=advanced`)
     },
     onError: (e) => { formRef.value?.setErrors?.(e) },
   })

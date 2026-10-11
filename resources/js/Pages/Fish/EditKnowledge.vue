@@ -1,5 +1,6 @@
 <template>
   <div class="container mx-auto p-4 relative">
+    <Link :href="`/fish/${fish.id}?tab=advanced`" class="inline-block mb-4 text-blue-600 underline">取消</Link>
     <FishNoteForm
       :initialData="note"
       :noteTypes="noteTypes"
@@ -14,7 +15,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
 import FishNoteForm from '../../Components/FishNote/FishNoteForm.vue'
 
@@ -31,7 +32,7 @@ function onFormSubmit(formData) {
   router.post(`/fish/${props.fish.id}/knowledge/${props.note.id}`, formData, {
     onSuccess: () => {
       markFishStale(props.fish.id)
-      router.visit(`/fish/${props.fish.id}/knowledge-manager`)
+      router.visit(`/fish/${props.fish.id}?tab=advanced`)
     },
     onError: (e) => { formRef.value?.setErrors?.(e) },
   })

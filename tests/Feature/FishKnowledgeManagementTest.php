@@ -2,13 +2,13 @@
 
 use App\Models\Fish;
 use App\Models\FishNote;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 describe('Fish Knowledge Management', function () {
-    
+
     describe('Knowledge List Page', function () {
         it('can display knowledge list page for existing fish', function () {
             $user = User::factory()->create();
@@ -17,31 +17,30 @@ describe('Fish Knowledge Management', function () {
                 'fish_id' => $fish->id,
                 'note' => 'First knowledge',
                 'note_type' => '生態習性',
-                'locate' => 'Taiwan waters'
+                'locate' => 'Taiwan waters',
             ]);
             $note2 = FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'Second knowledge',
                 'note_type' => '食用方式',
-                'locate' => 'Eastern coast'
+                'locate' => 'Eastern coast',
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(
-                fn ($page) =>
-                $page->component('Fish/KnowledgeManager')
+                fn ($page) => $page->component('FishKnowledgeList')
                     ->has('fish')
                     ->where('fish.id', $fish->id)
                     ->where('fish.name', 'Test Fish')
-                    ->has('fishNotes')
+                    ->has('groupedNotes')
             );
         });
 
         it('redirects with error for non-existent fish', function () {
             $user = User::factory()->create();
-            $response = $this->actingAs($user)->get('/fish/999/knowledge-manager');
+            $response = $this->actingAs($user)->get('/fish/999/knowledge-list');
             $response->assertRedirect();
             $response->assertSessionHasErrors(['error']);
         });
@@ -49,36 +48,36 @@ describe('Fish Knowledge Management', function () {
         it('groups notes by type correctly', function () {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();
-            
+
             // Create notes with different types
             FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'Habitat info',
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
             FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'Food info',
-                'note_type' => '食用方式'
+                'note_type' => '食用方式',
             ]);
             FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'Another habitat info',
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $fishNotes = $page->toArray()['props']['fishNotes'];
-                
+                $fishNotes = collect($page->toArray()['props']['groupedNotes'])->pluck('notes', 'name')->all();
+
                 // Should have 2 groups
                 expect(count($fishNotes))->toBe(2);
                 expect(array_keys($fishNotes))->toBe(['生態習性', '食用方式']);
                 expect(count($fishNotes['生態習性']))->toBe(2);
                 expect(count($fishNotes['食用方式']))->toBe(1);
-                
+
                 return $page;
             });
         });
@@ -86,27 +85,27 @@ describe('Fish Knowledge Management', function () {
         it('handles notes without type correctly', function () {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();
-            
+
             // Create note with empty string instead of null to avoid database constraint
             $note = new FishNote([
                 'fish_id' => $fish->id,
                 'note' => 'General knowledge',
                 'note_type' => '',
-                'locate' => 'test location'
+                'locate' => 'test location',
             ]);
             $note->save();
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $fishNotes = $page->toArray()['props']['fishNotes'];
-                
+                $fishNotes = collect($page->toArray()['props']['groupedNotes'])->pluck('notes', 'name')->all();
+
                 // Should have 1 group for uncategorized notes
                 expect(count($fishNotes))->toBe(1);
                 expect(array_keys($fishNotes))->toBe(['未分類']);
                 expect(count($fishNotes['未分類']))->toBe(1);
-                
+
                 return $page;
             });
         });
@@ -120,15 +119,14 @@ describe('Fish Knowledge Management', function () {
                 'fish_id' => $fish->id,
                 'note' => 'Original knowledge',
                 'note_type' => '生態習性',
-                'locate' => 'Taiwan'
+                'locate' => 'Taiwan',
             ]);
 
             $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge/{$note->id}/edit");
 
             $response->assertStatus(200);
             $response->assertInertia(
-                fn ($page) =>
-                $page->component('Fish/EditKnowledge')
+                fn ($page) => $page->component('Fish/EditKnowledge')
                     ->has('fish')
                     ->has('note')
                     ->where('fish.id', $fish->id)
@@ -174,23 +172,23 @@ describe('Fish Knowledge Management', function () {
                 'fish_id' => $fish->id,
                 'note' => 'Original knowledge',
                 'note_type' => '生態習性',
-                'locate' => 'Original location'
+                'locate' => 'Original location',
             ]);
 
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'Updated knowledge',
                 'note_type' => '食用方式',
-                'locate' => 'Updated location'
+                'locate' => 'Updated location',
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
+            $response->assertRedirect("/fish/{$fish->id}?tab=advanced");
 
             $this->assertDatabaseHas('fish_notes', [
                 'id' => $note->id,
                 'fish_id' => $fish->id,
                 'note' => 'Updated knowledge',
                 'note_type' => '食用方式',
-                'locate' => 'Updated location'
+                'locate' => 'Updated location',
             ]);
         });
 
@@ -201,7 +199,7 @@ describe('Fish Knowledge Management', function () {
 
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => '', // Empty note should fail validation
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
 
             // The application returns JSON validation errors
@@ -216,21 +214,21 @@ describe('Fish Knowledge Management', function () {
                 'fish_id' => $fish->id,
                 'note' => 'Original knowledge',
                 'note_type' => '生態習性',
-                'locate' => 'Original location'
+                'locate' => 'Original location',
             ]);
 
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
-                'note' => 'Updated knowledge only'
+                'note' => 'Updated knowledge only',
                 // Not updating note_type or locate
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
+            $response->assertRedirect("/fish/{$fish->id}?tab=advanced");
 
             $this->assertDatabaseHas('fish_notes', [
                 'id' => $note->id,
                 'note' => 'Updated knowledge only',
                 'note_type' => '生態習性', // Should remain unchanged
-                'locate' => 'Original location' // Should remain unchanged
+                'locate' => 'Original location', // Should remain unchanged
             ]);
         });
 
@@ -240,7 +238,7 @@ describe('Fish Knowledge Management', function () {
 
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/999", [
                 'note' => 'Should not update',
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
 
             $response->assertRedirect();
@@ -255,7 +253,7 @@ describe('Fish Knowledge Management', function () {
 
             $response = $this->actingAs($user)->put("/fish/{$fish1->id}/knowledge/{$note->id}", [
                 'note' => 'Should not update',
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
 
             $response->assertRedirect();
@@ -269,16 +267,16 @@ describe('Fish Knowledge Management', function () {
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
-                'note' => 'To be deleted'
+                'note' => 'To be deleted',
             ]);
 
             $response = $this->actingAs($user)->delete("/fish/{$fish->id}/knowledge/{$note->id}");
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
+            $response->assertRedirect("/fish/{$fish->id}/knowledge-list");
 
             $this->assertSoftDeleted('fish_notes', [
                 'id' => $note->id,
-                'fish_id' => $fish->id
+                'fish_id' => $fish->id,
             ]);
         });
 
@@ -322,33 +320,33 @@ describe('Fish Knowledge Management', function () {
         it('sorts notes within categories by creation time', function () {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();
-            
+
             // Create notes with specific timestamps
             $oldNote = FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'Old habitat info',
                 'note_type' => '生態習性',
-                'created_at' => now()->subDays(2)
+                'created_at' => now()->subDays(2),
             ]);
-            
+
             $newNote = FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'New habitat info',
                 'note_type' => '生態習性',
-                'created_at' => now()->subDay()
+                'created_at' => now()->subDay(),
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) use ($oldNote, $newNote) {
-                $fishNotes = $page->toArray()['props']['fishNotes'];
-                
+                $fishNotes = collect($page->toArray()['props']['groupedNotes'])->pluck('notes', 'name')->all();
+
                 // Check the order (should be sorted by created_at DESC - newer first)
                 expect($fishNotes['生態習性'])->toHaveCount(2);
                 expect($fishNotes['生態習性'][0]['id'])->toBe($newNote->id);
                 expect($fishNotes['生態習性'][1]['id'])->toBe($oldNote->id);
-                
+
                 return $page;
             });
         });
@@ -356,31 +354,32 @@ describe('Fish Knowledge Management', function () {
         it('sorts categories alphabetically', function () {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();
-            
+
             FishNote::factory()->create([
                 'fish_id' => $fish->id,
-                'note_type' => '烹飪方法'
+                'note_type' => '烹飪方法',
             ]);
             FishNote::factory()->create([
                 'fish_id' => $fish->id,
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
             FishNote::factory()->create([
                 'fish_id' => $fish->id,
-                'note_type' => '營養價值'
+                'note_type' => '營養價值',
             ]);
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $fishNotes = $page->toArray()['props']['fishNotes'];
-                
+                $fishNotes = collect($page->toArray()['props']['groupedNotes'])->pluck('notes', 'name')->all();
+
                 // Extract category names from the grouped notes
                 $categoryNames = array_keys($fishNotes);
-                
+
                 // Should be sorted according to the predefined order in controller
                 expect($categoryNames)->toBe(['生態習性', '營養價值', '烹飪方法']);
+
                 return $page;
             });
         });
@@ -388,27 +387,27 @@ describe('Fish Knowledge Management', function () {
         it('handles mixed categorized and uncategorized notes', function () {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();
-            
+
             FishNote::factory()->create([
                 'fish_id' => $fish->id,
                 'note' => 'Categorized note',
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
             // Create note with empty string instead of null to avoid database constraint
             $note = new FishNote([
                 'fish_id' => $fish->id,
                 'note' => 'Uncategorized note',
                 'note_type' => '',
-                'locate' => 'test location'
+                'locate' => 'test location',
             ]);
             $note->save();
 
-            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+            $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
 
             $response->assertStatus(200);
             $response->assertInertia(function ($page) {
-                $fishNotes = $page->toArray()['props']['fishNotes'];
-                
+                $fishNotes = collect($page->toArray()['props']['groupedNotes'])->pluck('notes', 'name')->all();
+
                 // Should have 2 groups
                 expect(count($fishNotes))->toBe(2);
                 expect(array_keys($fishNotes))->toBe(['生態習性', '未分類']);
@@ -416,7 +415,7 @@ describe('Fish Knowledge Management', function () {
                 expect(count($fishNotes['未分類']))->toBe(1);
                 expect($fishNotes['生態習性'][0]['note'])->toBe('Categorized note');
                 expect($fishNotes['未分類'][0]['note'])->toBe('Uncategorized note');
-                
+
                 return $page;
             });
         });
@@ -431,7 +430,7 @@ describe('Fish Knowledge Management', function () {
             // Simulate database error by using invalid data type
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => str_repeat('a', 10000), // Assuming note field has length limit
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
 
             // Should handle the error gracefully (either validation error or success)
@@ -443,27 +442,27 @@ describe('Fish Knowledge Management', function () {
             $fish = Fish::factory()->create();
             $note = FishNote::factory()->create([
                 'fish_id' => $fish->id,
-                'note' => 'Original note'
+                'note' => 'Original note',
             ]);
 
             // First update
             $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'First update',
-                'note_type' => '生態習性'
+                'note_type' => '生態習性',
             ]);
 
             // Second update should work on the updated record
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/knowledge/{$note->id}", [
                 'note' => 'Second update',
-                'note_type' => '食用方式'
+                'note_type' => '食用方式',
             ]);
 
-            $response->assertRedirect("/fish/{$fish->id}/knowledge-manager");
+            $response->assertRedirect("/fish/{$fish->id}?tab=advanced");
 
             $this->assertDatabaseHas('fish_notes', [
                 'id' => $note->id,
                 'note' => 'Second update',
-                'note_type' => '食用方式'
+                'note_type' => '食用方式',
             ]);
         });
     });

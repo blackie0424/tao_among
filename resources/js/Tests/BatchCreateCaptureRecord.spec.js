@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import BatchCreateCaptureRecord from '@/Pages/BatchCreateCaptureRecord.vue'
 const { apiFetch } = vi.hoisted(() => ({ apiFetch: vi.fn() }))
@@ -18,8 +18,8 @@ vi.mock('@/Components/CaptureRecord/BatchCaptureImageUploader.vue', () => ({
 vi.mock('@/Components/Global/FormActionBar.vue', () => ({
   default: {
     name: 'FormActionBar',
-    props: ['showSubmit', 'submitNote', 'submitLabel'],
-    template: '<button v-if="showSubmit" data-testid="submit-btn" @click="submitNote">{{ submitLabel }}</button>',
+    props: ['showSubmit', 'submitNote', 'submitLabel', 'goBack'],
+    template: '<div><button data-testid="back" @click="goBack">返回</button><button v-if="showSubmit" data-testid="submit-btn" @click="submitNote">{{ submitLabel }}</button></div>',
   },
 }))
 
@@ -77,8 +77,9 @@ describe('BatchCreateCaptureRecord', () => {
 
   it('posts each image with the selected session and disables submit while pending', async () => {
     const { router } = await import('@inertiajs/vue3')
-    let firstOptions
-    router.post.mockImplementation((_url, _data, options) => { firstOptions = options })
+    let finishFirst
+    apiFetch.mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve }))
+      .mockResolvedValue({ ok: true, json: async () => ({ success: true }) })
 
     const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
     await advance(wrapper, ['one.jpg', 'two.jpg'])
@@ -87,15 +88,25 @@ describe('BatchCreateCaptureRecord', () => {
     await wrapper.find('[data-testid="submit-btn"]').trigger('click')
     await nextTick()
 
-    expect(router.post).toHaveBeenCalledWith('/fish/4/capture-records', {
+    expect(apiFetch).toHaveBeenCalledWith('/fish/4/capture-records', { method: 'POST', body: JSON.stringify({
       image_filename: 'one.jpg',
       session_id: 12,
       legacy_combo: null,
       notes: '',
-    }, expect.any(Object))
+    }) })
     expect(wrapper.find('[data-testid="submit-btn"]').exists()).toBe(false)
 
-    firstOptions.onSuccess()
+    expect(router.visit).not.toHaveBeenCalled()
+    finishFirst({ ok: true, json: async () => ({ success: true }) })
+    await flushPromises()
+    expect(wrapper.text()).toContain('照片 1 新增成功')
+    expect(wrapper.text()).toContain('照片 2 新增成功')
+    expect(wrapper.text()).toContain('全部 2 筆捕獲紀錄新增完成！')
+    expect(router.visit).toHaveBeenCalledWith('/fish/4?tab=capture', expect.any(Object))
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    router.visit.mock.calls[0][1].onSuccess()
+    expect(alert).toHaveBeenCalledWith('捕獲紀錄新增成功')
+    alert.mockRestore()
   })
 
   it('shows the create-session empty state and cannot submit', async () => {
@@ -126,4 +137,41 @@ it('keeps uploaded photos after inline session creation', async () => {
 
   expect(wrapper.text()).toContain('2 張照片')
   expect(wrapper.find('[data-testid="session-option"]').text()).toContain('新地點')
+})
+
+it('部分失敗留頁顯示逐筆結果，返回捕獲 tab', async () => {
+  vi.clearAllMocks()
+  const { router } = await import('@inertiajs/vue3')
+  apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+    .mockResolvedValueOnce({ ok: false, json: async () => ({ errors: { image_filename: ['照片失敗'] } }) })
+  const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
+  await advance(wrapper, ['one.jpg', 'two.jpg'])
+  await wrapper.get('[data-testid="session-option"]').trigger('click')
+  await wrapper.get('[data-testid="submit-btn"]').trigger('click')
+  await flushPromises()
+  expect(wrapper.text()).toContain('照片 1 新增成功')
+  expect(wrapper.text()).toContain('照片 2 失敗：照片失敗')
+  expect(wrapper.text()).not.toContain('全部 2 筆捕獲紀錄新增完成')
+  expect(router.visit).not.toHaveBeenCalled()
+  await wrapper.get('[data-testid="back"]').trigger('click')
+  expect(router.visit).toHaveBeenCalledWith('/fish/4?tab=capture')
+})
+
+it('第一步返回 tab，第二步返回照片步驟，送出期間不離頁', async () => {
+  vi.clearAllMocks()
+  const { router } = await import('@inertiajs/vue3')
+  const wrapper = mount(BatchCreateCaptureRecord, { props: defaultProps })
+  await wrapper.get('[data-testid="back"]').trigger('click')
+  expect(router.visit).toHaveBeenCalledWith('/fish/4?tab=capture')
+  router.visit.mockClear()
+  await advance(wrapper)
+  await wrapper.get('[data-testid="back"]').trigger('click')
+  expect(wrapper.text()).toContain('第一步：選擇照片')
+  expect(router.visit).not.toHaveBeenCalled()
+  await advance(wrapper)
+  apiFetch.mockImplementationOnce(() => new Promise(() => {}))
+  await wrapper.get('[data-testid="session-option"]').trigger('click')
+  await wrapper.get('[data-testid="submit-btn"]').trigger('click')
+  await wrapper.get('[data-testid="back"]').trigger('click')
+  expect(router.visit).not.toHaveBeenCalled()
 })

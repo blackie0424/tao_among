@@ -218,7 +218,7 @@ class FishController extends Controller
         Log::info('魚類名稱已更新: '.$fish->name);
 
         // 加入 redirect + flash message
-        return redirect("/fish/{$id}")
+        return redirect("/fish/{$id}?tab=basic")
             ->with('success', "魚類名稱已更新為「{$fish->name}」！");
     }
 
