@@ -49,3 +49,8 @@ it('工作區保留新增魚類入口', () => {
   const wrapper = mount(EditorHome, { props: baseProps })
   expect(wrapper.get('a[href="/fish/batch-create"]').text()).toBe('新增魚種')
 })
+
+it('待補照片連到捕獲紀錄 tab', () => {
+  const wrapper = mount(EditorHome, { props: { ...baseProps, needPhoto: [{ id: 4, name: '測試魚' }] } })
+  expect(wrapper.get('a[href="/fish/4?tab=capture"]').text()).toContain('測試魚')
+})

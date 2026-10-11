@@ -35,10 +35,13 @@
               v-if="isEditor"
               :items="[
                 { label: '編輯名稱', href: `/fish/${fish.id}/edit` },
-                { label: '管理照片', href: `/fish/${fish.id}/media-manager` },
               ]"
             />
             <FishGridLayout />
+            <div v-if="isEditor" aria-label="魚類刪除與合併" class="mt-6 flex gap-3 border-t border-red-200 pt-4">
+              <Link :href="`/fish/${fish.id}/merge`" class="rounded border border-red-600 px-4 py-2 text-red-700 hover:bg-red-50">合併魚類</Link>
+              <button @click="confirmDelete" class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700">刪除魚類</button>
+            </div>
           </section>
 
           <!-- 地方知識 -->
@@ -46,7 +49,7 @@
             <TabEditActions
               v-if="isEditor"
               :items="[
-                { label: '新增地方知識', href: `/fish/${fish.id}/tribal-classifications/create` },
+                { label: '編輯地方知識', href: `/fish/${fish.id}/tribal-classifications/create` },
               ]"
             />
             <TribalClassificationSummary
@@ -60,7 +63,7 @@
           <section v-show="activeTab === 'advanced'">
             <TabEditActions
               v-if="isEditor"
-              :items="[{ label: '管理進階知識', href: `/fish/${fish.id}/knowledge-manager` }]"
+              :items="[{ label: '管理進階知識', href: `/fish/${fish.id}/knowledge-list` }]"
             />
             <FishAdvancedKnowledgeSection
               :fishNotes="fishNotes"
@@ -130,7 +133,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Head, Link, usePage } from '@inertiajs/vue3'
+import { Head, Link, usePage, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
 import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
@@ -172,6 +175,12 @@ const visibleTabs = computed(() =>
 )
 
 const activeTab = ref('basic')
+
+function confirmDelete() {
+  if (confirm('確定要刪除這隻魚類資料嗎？此動作無法復原。')) {
+    router.delete(`/fish/${props.fish.id}`)
+  }
+}
 
 onMounted(() => {
   const param = new URLSearchParams(window.location.search).get('tab')

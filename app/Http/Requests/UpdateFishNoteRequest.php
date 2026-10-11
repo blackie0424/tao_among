@@ -1,8 +1,9 @@
 <?php
+
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class UpdateFishNoteRequest extends FormRequest
@@ -27,6 +28,10 @@ class UpdateFishNoteRequest extends FormRequest
 
     public function failedValidation(Validator $validator)
     {
+        if ($this->header('X-Inertia')) {
+            parent::failedValidation($validator);
+        }
+
         throw new HttpResponseException(
             response()->json([
                 'message' => '驗證失敗',

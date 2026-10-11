@@ -3,7 +3,7 @@
 
   <FishAppLayout
     :pageTitle="`${fish.name}的捕獲紀錄`"
-    :mobileBackUrl="`/fish/${fish.id}`"
+    :mobileBackUrl="`/fish/${fish.id}?tab=capture`"
     mobileBackText="魚類資料"
   >
     <div class="container mx-auto p-4 relative text-3xl">

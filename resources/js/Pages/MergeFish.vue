@@ -369,7 +369,7 @@ async function executeMerge() {
     markFishStale(props.fish.id)
 
     // 合併成功，跳轉回魚類詳細頁面
-    router.visit(`/fish/${props.fish.id}`, {
+    router.visit(`/fish/${props.fish.id}?tab=capture`, {
       onSuccess: () => {
         alert('合併成功！')
       },

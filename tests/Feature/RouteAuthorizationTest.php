@@ -5,12 +5,12 @@
  * 確保公開路由和需要登入的路由設定正確，避免修改時不小心改動
  */
 
-use App\Models\Fish;
-use App\Models\User;
-use App\Models\FishNote;
-use App\Models\FishAudio;
 use App\Models\CaptureRecord;
+use App\Models\Fish;
+use App\Models\FishAudio;
+use App\Models\FishNote;
 use App\Models\TribalClassification;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
@@ -21,7 +21,7 @@ uses(RefreshDatabase::class);
 // =====================================================
 
 describe('公開路由（不需登入）', function () {
-    
+
     it('首頁可公開存取', function () {
         $response = $this->get('/');
         $response->assertStatus(200);
@@ -55,7 +55,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
     // -------------------------------------------------
     // 魚類基本管理 - GET 請求
     // -------------------------------------------------
-    
+
     it('新增魚類頁面需要登入', function () {
         $response = $this->get('/fish/batch-create');
         $response->assertRedirect('/login');
@@ -113,15 +113,15 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
     // 聚合管理頁面
     // -------------------------------------------------
 
-    it('照片管理頁面需要登入', function () {
+    it('捕獲紀錄清單頁面需要登入', function () {
         $fish = Fish::factory()->create();
-        $response = $this->get("/fish/{$fish->id}/media-manager");
+        $response = $this->get("/fish/{$fish->id}/capture-records");
         $response->assertRedirect('/login');
     });
 
-    it('知識管理頁面需要登入', function () {
+    it('進階知識清單頁面需要登入', function () {
         $fish = Fish::factory()->create();
-        $response = $this->get("/fish/{$fish->id}/knowledge-manager");
+        $response = $this->get("/fish/{$fish->id}/knowledge-list");
         $response->assertRedirect('/login');
     });
 
@@ -157,7 +157,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $countBefore = CaptureRecord::count();
         $response = $this->post("/fish/{$fish->id}/capture-records", [
             'image' => 'test.jpg',
-            'location' => 'Test Location'
+            'location' => 'Test Location',
         ]);
         // 確認資料未被新增
         expect(CaptureRecord::count())->toBe($countBefore);
@@ -168,7 +168,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $record = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
         $originalLocation = $record->location;
         $response = $this->put("/fish/{$fish->id}/capture-records/{$record->id}", [
-            'location' => 'New Location'
+            'location' => 'New Location',
         ]);
         $record->refresh();
         expect($record->location)->toBe($originalLocation);
@@ -186,10 +186,10 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
     // 地方知識（部落分類）管理 - GET 請求
     // -------------------------------------------------
 
-    it('部落分類列表頁面需要登入', function () {
+    it('部落分類列表頁面已移除且不公開資料', function () {
         $fish = Fish::factory()->create();
         $response = $this->get("/fish/{$fish->id}/tribal-classifications");
-        $response->assertRedirect('/login');
+        $response->assertNotFound();
     });
 
     it('新增部落分類頁面需要登入', function () {
@@ -207,7 +207,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $countBefore = TribalClassification::count();
         $response = $this->post("/fish/{$fish->id}/tribal-classifications", [
             'tribe' => 'Test Tribe',
-            'food_category' => 'Test Category'
+            'food_category' => 'Test Category',
         ]);
         expect(TribalClassification::count())->toBe($countBefore);
     });
@@ -217,7 +217,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $classification = TribalClassification::factory()->create(['fish_id' => $fish->id]);
         $originalTribe = $classification->tribe;
         $response = $this->put("/fish/{$fish->id}/tribal-classifications/{$classification->id}", [
-            'tribe' => 'New Tribe'
+            'tribe' => 'New Tribe',
         ]);
         $classification->refresh();
         expect($classification->tribe)->toBe($originalTribe);
@@ -235,10 +235,10 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
     // 進階知識管理 - GET 請求
     // -------------------------------------------------
 
-    it('知識中心頁面需要登入', function () {
+    it('知識中心頁面已移除且不公開資料', function () {
         $fish = Fish::factory()->create();
         $response = $this->get("/fish/{$fish->id}/knowledge");
-        $response->assertRedirect('/login');
+        $response->assertNotFound();
     });
 
     it('新增知識頁面需要登入', function () {
@@ -269,7 +269,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $countBefore = FishNote::count();
         $response = $this->post("/fish/{$fish->id}/knowledge", [
             'note' => 'Test Note',
-            'type' => 'Test Type'
+            'type' => 'Test Type',
         ]);
         expect(FishNote::count())->toBe($countBefore);
     });
@@ -279,7 +279,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $note = FishNote::factory()->create(['fish_id' => $fish->id]);
         $originalNote = $note->note;
         $response = $this->put("/fish/{$fish->id}/knowledge/{$note->id}", [
-            'note' => 'New Note'
+            'note' => 'New Note',
         ]);
         $note->refresh();
         expect($note->note)->toBe($originalNote);
@@ -325,7 +325,7 @@ describe('需要登入的路由（未登入應導向登入頁面）', function (
         $audio = FishAudio::factory()->create(['fish_id' => $fish->id]);
         $originalFilename = $audio->filename;
         $response = $this->put("/fish/{$fish->id}/audio/{$audio->id}", [
-            'filename' => 'new_audio.mp3'
+            'filename' => 'new_audio.mp3',
         ]);
         $audio->refresh();
         expect($audio->filename)->toBe($originalFilename);
@@ -357,26 +357,26 @@ describe('登入後可存取管理路由', function () {
 
     it('登入後可存取新增魚類頁面', function () {
         $user = User::factory()->create();
-        
+
         $response = $this->actingAs($user)->get('/fish/batch-create');
         $response->assertStatus(200);
     });
 
-    it('登入後可存取照片管理頁面', function () {
+    it('登入後可存取捕獲紀錄清單頁面', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create();
         Http::fake(['*' => Http::response('', 404)]);
-        
-        $response = $this->actingAs($user)->get("/fish/{$fish->id}/media-manager");
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/capture-records");
         $response->assertStatus(200);
     });
 
-    it('登入後可存取知識管理頁面', function () {
+    it('登入後可存取進階知識清單頁面', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create();
         Http::fake(['*' => Http::response('', 404)]);
-        
-        $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-manager");
+
+        $response = $this->actingAs($user)->get("/fish/{$fish->id}/knowledge-list");
         $response->assertStatus(200);
     });
 });

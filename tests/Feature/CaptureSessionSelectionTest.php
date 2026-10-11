@@ -79,7 +79,7 @@ it('creates records from the latest session values and ignores client context fi
         'image_filename' => 'session.jpg',
         'session_id' => $session->id,
         'notes' => '固定備註',
-    ])->assertRedirect("/fish/{$fish->id}/media-manager");
+    ])->assertRedirect("/fish/{$fish->id}?tab=capture");
 
     $record = CaptureRecord::where('fish_id', $fish->id)->firstOrFail();
     expect($record->session_id)->toBe($session->id)

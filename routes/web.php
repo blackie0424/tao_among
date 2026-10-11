@@ -10,10 +10,8 @@ use App\Http\Controllers\CaptureSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FishAudioController;
 use App\Http\Controllers\FishController;
-use App\Http\Controllers\FishManagementController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishReportController;
-use App\Http\Controllers\KnowledgeHubController;
 use App\Http\Controllers\LineLoginController;
 use App\Http\Controllers\LineUserController;
 use App\Http\Controllers\PlaceController;
@@ -39,6 +37,10 @@ Route::get('/auth/line/callback', [LineLoginController::class, 'callback'])->nam
 Route::get('/auth/line/complete', [LineLoginController::class, 'complete'])->name('auth.line.complete');
 
 // 公開瀏覽頁面
+// 舊 GET 頁面已移除；同址 POST 仍保留，GET 明確回 404 而非 405。
+Route::get('/fish/{id}/tribal-classifications', fn () => abort(404));
+Route::get('/fish/{id}/knowledge', fn () => abort(404));
+
 Route::get('/', [FishController::class, 'index']);
 Route::middleware(['auth', 'browse'])->group(function () {
     Route::get('/fishs', [FishController::class, 'getFishs']);
@@ -56,8 +58,6 @@ Route::middleware(['auth', 'browse'])->group(function () {
     // 唯讀（viewer 可瀏覽）
     // -------------------------------------------------
     Route::get('/fish/{id}/capture-records', [CaptureRecordController::class, 'index'])->name('fish.capture-records');
-    Route::get('/fish/{id}/tribal-classifications', [TribalClassificationController::class, 'indexPage'])->name('fish.tribal-classifications');
-    Route::get('/fish/{id}/knowledge', [KnowledgeHubController::class, 'index']);
     Route::get('/fish/{id}/knowledge-list', [FishNoteController::class, 'knowledgeList'])->name('fish.knowledge-list');
 
     // -------------------------------------------------
@@ -85,10 +85,6 @@ Route::middleware(['auth', 'browse'])->group(function () {
         Route::delete('/fish/{id}', [FishController::class, 'destroy'])->name('fish.destroy');
         Route::get('/fish/{id}/merge', [FishController::class, 'showMergePage'])->name('fish.merge.page');
         Route::put('/fish/{id}/display-image', [FishController::class, 'updateDisplayImage'])->name('fish.display-image.update');
-
-        // 聚合管理頁面
-        Route::get('/fish/{id}/media-manager', [FishManagementController::class, 'mediaManager'])->name('fish.media-manager');
-        Route::get('/fish/{id}/knowledge-manager', [FishManagementController::class, 'knowledgeManager'])->name('fish.knowledge-manager');
 
         // 捕獲紀錄（寫入）
         Route::get('/fish/{id}/capture-records/create', [CaptureRecordController::class, 'create'])->name('fish.capture-records.create');

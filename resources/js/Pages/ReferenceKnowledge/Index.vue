@@ -3,7 +3,7 @@
 
   <FishAppLayout
     :pageTitle="`${fish.name}的文獻知識`"
-    :mobileBackUrl="`/fish/${fish.id}/knowledge-manager`"
+    :mobileBackUrl="`/fish/${fish.id}?tab=reference`"
     mobileBackText="知識管理"
   >
     <div class="mb-6 flex items-center justify-between gap-4">

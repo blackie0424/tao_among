@@ -30,6 +30,7 @@ vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
   Link: { template: '<a :href="href"><slot /></a>', props: ['href'] },
   usePage: () => mockUsePage(),
+  router: { delete: vi.fn() },
 }))
 
 // Mock Layout 元件，避免遞迴渲染
@@ -228,11 +229,10 @@ const expectedActions = [
     '基本',
     [
       ['編輯名稱', '/fish/1/edit'],
-      ['管理照片', '/fish/1/media-manager'],
     ],
   ],
-  ['local', '地方知識', [['新增地方知識', '/fish/1/tribal-classifications/create']]],
-  ['advanced', '進階知識', [['管理進階知識', '/fish/1/knowledge-manager']]],
+  ['local', '地方知識', [['編輯地方知識', '/fish/1/tribal-classifications/create']]],
+  ['advanced', '進階知識', [['管理進階知識', '/fish/1/knowledge-list']]],
   ['reference', '文獻知識', [['管理文獻知識', '/fish/1/reference-knowledge']]],
   [
     'capture',
@@ -330,4 +330,39 @@ describe('分頁入口權限與空狀態', () => {
     expect(wrapper.findAll('[data-testid="tab-edit-actions"]')).toHaveLength(6)
     expect(wrapper.find('aside').exists()).toBe(false)
   })
+})
+
+it('基本 tab 的合併與刪除使用警示色且與編輯名稱分組', async () => {
+  mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+  const wrapper = mountFish()
+  const basic = wrapper.get('[data-testid="basic-tab"]')
+  const danger = basic.get('[aria-label="魚類刪除與合併"]')
+  expect(danger.get('a[href="/fish/1/merge"]').text()).toBe('合併魚類')
+  expect(danger.get('a').classes()).toContain('text-red-700')
+  expect(danger.get('button').classes()).toContain('bg-red-600')
+  expect(basic.get('[data-testid="tab-edit-actions"]').text()).toBe('編輯名稱')
+  expect(basic.text()).not.toContain('管理照片')
+})
+
+it.each(['audio', 'advanced', 'reference'])('viewer 指定不可見 %s tab 時回基本 tab', async (tab) => {
+  window.history.replaceState({}, '', '/fish/1?tab=' + tab)
+  mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'viewer' } } } })
+  const wrapper = mountFish()
+  await nextTick()
+  expect(wrapper.get('[data-testid="basic-tab"]').isVisible()).toBe(true)
+  expect(wrapper.find('[aria-label="魚類刪除與合併"]').exists()).toBe(false)
+})
+it('刪魚確認保留不可復原文字，取消不送出、確認才送出', async () => {
+  const { router } = await import('@inertiajs/vue3')
+  router.delete.mockClear()
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+  mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+  const wrapper = mountFish()
+  const button = wrapper.get('[aria-label="魚類刪除與合併"] button')
+  await button.trigger('click')
+  expect(confirm).toHaveBeenCalledWith('確定要刪除這隻魚類資料嗎？此動作無法復原。')
+  expect(router.delete).not.toHaveBeenCalled()
+  await button.trigger('click')
+  expect(router.delete).toHaveBeenCalledWith('/fish/1')
+  confirm.mockRestore()
 })

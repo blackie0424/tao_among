@@ -3,7 +3,7 @@
 
   <FishAppLayout
     :pageTitle="`${fish.name}的發音列表`"
-    :mobileBackUrl="`/fish/${fish.id}`"
+    :mobileBackUrl="`/fish/${fish.id}?tab=audio`"
     mobileBackText="魚類資料"
   >
     <div class="container mx-auto p-4 relative">
@@ -84,7 +84,7 @@
           textClass="text-white"
           label="新增發音"
           icon="🎵"
-          :to="`/fish/${fish.id}/createAudio`"
+          :to="`/fish/${fish.id}/audio/create`"
           position="right-bottom"
         />
       </div>

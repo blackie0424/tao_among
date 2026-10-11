@@ -45,12 +45,12 @@ function onStatusChange(status) {
 }
 
 function goBack() {
-  router.visit(`/fish/${props.fish.id}/media-manager`)
+  router.visit(`/fish/${props.fish.id}?tab=capture`)
 }
 
 function onFormSubmit(formData) {
   router.post(`/fish/${props.fish.id}/capture-records/${props.record.id}`, formData, {
-    onSuccess: () => router.visit(`/fish/${props.fish.id}/media-manager`),
+    onSuccess: () => router.visit(`/fish/${props.fish.id}?tab=capture`),
     onError: (e) => { formRef.value?.setErrors?.(e) },
   })
 }

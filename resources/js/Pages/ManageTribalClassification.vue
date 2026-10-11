@@ -152,7 +152,7 @@ const form = reactive({
 const processing = ref(false)
 
 function goBack() {
-  router.visit(`/fish/${props.fish.id}/knowledge-manager`)
+  router.visit(`/fish/${props.fish.id}?tab=local`)
 }
 
 function submitForm() {

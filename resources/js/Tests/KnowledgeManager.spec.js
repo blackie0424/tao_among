@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import KnowledgeManager from '@/Pages/Fish/KnowledgeManager.vue'
+import Fish from '@/Pages/Fish.vue'
 
 const mockUsePage = vi.fn(() => ({ props: { auth: { user: { id: 1, role: 'editor' } } } }))
 
@@ -33,7 +33,7 @@ vi.mock('@/Components/UI/LazyImage.vue', () => ({
 }))
 
 const mountPage = (propsData = {}) =>
-  mount(KnowledgeManager, {
+  mount(Fish, {
     props: {
       fish: { id: 1, name: '飛魚', image_url: 'https://example.com/fish.jpg' },
       tribalClassifications: [],
@@ -44,7 +44,7 @@ const mountPage = (propsData = {}) =>
     },
   })
 
-describe('KnowledgeManager 文獻知識區塊', () => {
+describe('魚頁承接文獻知識入口', () => {
   it('顯示文獻知識標題', () => {
     mockUsePage.mockReturnValue({ props: { auth: { user: { id: 1, role: 'editor' } } } })
     const wrapper = mountPage()
@@ -64,3 +64,5 @@ describe('KnowledgeManager 文獻知識區塊', () => {
     expect(wrapper.text()).not.toContain('文獻知識')
   })
 })
+
+vi.mock('@/Components/UI/Volume.vue', () => ({ default: { template: '<div />' } }))

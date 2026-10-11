@@ -76,7 +76,7 @@ it('admin can create reference knowledge for a fish', function () {
         'tribe' => 'iraraley',
     ]);
 
-    $response->assertRedirect("/fish/{$fish->id}/reference-knowledge");
+    $response->assertRedirect("/fish/{$fish->id}?tab=reference");
 
     $this->assertDatabaseHas('reference_knowledge', [
         'fish_id' => $fish->id,
@@ -108,7 +108,7 @@ it('editor can update reference knowledge', function () {
         'tribe' => null,
     ]);
 
-    $response->assertRedirect("/fish/{$fish->id}/reference-knowledge");
+    $response->assertRedirect("/fish/{$fish->id}?tab=reference");
 
     $this->assertDatabaseHas('reference_knowledge', [
         'id' => $knowledge->id,
