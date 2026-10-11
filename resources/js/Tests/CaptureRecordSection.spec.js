@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import CaptureRecordDisplayCard from '@/Components/CaptureRecord/CaptureRecordDisplayCard.vue'
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 
 vi.mock('@/Components/CaptureRecord/CaptureRecordDisplayCard.vue', () => ({
   default: {
     template: '<div data-testid="capture-record-display-card" />',
-    props: ['record', 'index', 'fishName'],
+    props: ['record', 'index', 'fishName', 'fishId', 'canEdit'],
   },
 }))
 
@@ -78,4 +79,13 @@ describe('卡片渲染', () => {
     const wrapper = mountSection({ user: { id: 1 }, captureRecords: [] })
     expect(wrapper.findAll('[data-testid="capture-record-display-card"]').length).toBe(0)
   })
+})
+
+it('把魚 id 與編輯權限傳給每張卡片', async () => {
+  const wrapper = mountSection({ captureRecords: makeRecords(2), fishId: 42, canEdit: true })
+  for (const card of wrapper.findAllComponents(CaptureRecordDisplayCard))
+    expect(card.props()).toMatchObject({ fishId: 42, canEdit: true })
+  await wrapper.setProps({ canEdit: false })
+  for (const card of wrapper.findAllComponents(CaptureRecordDisplayCard))
+    expect(card.props('canEdit')).toBe(false)
 })

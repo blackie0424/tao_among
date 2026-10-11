@@ -7,9 +7,8 @@
     mobileBackText="魚類列表"
     :stickyMobile="false"
     :showMobileTitle="false"
-    :showEditMenu="false"
   >
-    <!-- 桌面雙欄：主內容 + 編輯列 -->
+    <!-- 魚頁內容 -->
     <div class="flex gap-6 items-start">
       <!-- 主內容 -->
       <div class="flex-1 min-w-0">
@@ -32,11 +31,24 @@
         <div class="mt-4">
           <!-- 基本 -->
           <section v-show="activeTab === 'basic'" data-testid="basic-tab">
+            <TabEditActions
+              v-if="isEditor"
+              :items="[
+                { label: '編輯名稱', href: `/fish/${fish.id}/edit` },
+                { label: '管理照片', href: `/fish/${fish.id}/media-manager` },
+              ]"
+            />
             <FishGridLayout />
           </section>
 
           <!-- 地方知識 -->
           <section v-show="activeTab === 'local'" data-testid="local-tab">
+            <TabEditActions
+              v-if="isEditor"
+              :items="[
+                { label: '新增地方知識', href: `/fish/${fish.id}/tribal-classifications/create` },
+              ]"
+            />
             <TribalClassificationSummary
               :classifications="tribalClassifications"
               :tribes="tribes"
@@ -46,6 +58,10 @@
 
           <!-- 進階知識 -->
           <section v-show="activeTab === 'advanced'">
+            <TabEditActions
+              v-if="isEditor"
+              :items="[{ label: '管理進階知識', href: `/fish/${fish.id}/knowledge-manager` }]"
+            />
             <FishAdvancedKnowledgeSection
               :fishNotes="fishNotes"
               :isEditor="isEditor"
@@ -55,6 +71,10 @@
 
           <!-- 文獻知識（editor/admin 限定） -->
           <section v-show="activeTab === 'reference'">
+            <TabEditActions
+              v-if="isEditor"
+              :items="[{ label: '管理文獻知識', href: `/fish/${fish.id}/reference-knowledge` }]"
+            />
             <ReferenceKnowledgeSection
               :referenceKnowledge="referenceKnowledge"
               :isEditor="isEditor"
@@ -64,8 +84,17 @@
 
           <!-- 捕獲 -->
           <section v-show="activeTab === 'capture'">
+            <TabEditActions
+              v-if="isEditor"
+              :items="[
+                { label: '新增捕獲紀錄', href: `/fish/${fish.id}/capture-records/batch-create` },
+                { label: '管理捕獲紀錄', href: `/fish/${fish.id}/capture-records` },
+              ]"
+            />
             <CaptureRecordSection
               :captureRecords="captureRecords"
+              :fishId="fish.id"
+              :canEdit="isEditor"
               :fishName="fish.name"
               :user="user"
             />
@@ -73,6 +102,10 @@
 
           <!-- 發音 -->
           <section v-if="hasAudioAccess" v-show="activeTab === 'audio'">
+            <TabEditActions
+              v-if="isEditor"
+              :items="[{ label: '新增發音', href: `/fish/${fish.id}/audio/create` }]"
+            />
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
               <h2 class="text-elder-name font-bold text-elder-text">發音</h2>
               <div v-if="fish.audio_url" class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
@@ -91,14 +124,8 @@
           </section>
         </div>
       </div>
-
-      <!-- 桌面編輯列 -->
-      <FishEditBar :fishId="fish.id" :canEdit="isEditor" variant="desktop" />
     </div>
   </FishAppLayout>
-
-  <!-- 行動編輯列 -->
-  <FishEditBar :fishId="fish.id" :canEdit="isEditor" variant="mobile" />
 </template>
 
 <script setup>
@@ -110,7 +137,7 @@ import TribalClassificationSummary from '@/Components/TribalClassification/Triba
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue'
 import ReferenceKnowledgeSection from '@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue'
-import FishEditBar from '@/Components/Global/FishEditBar.vue'
+import TabEditActions from '@/Components/Global/TabEditActions.vue'
 import Volume from '@/Components/UI/Volume.vue'
 import { canAccessAudio } from '@/constants/roles'
 

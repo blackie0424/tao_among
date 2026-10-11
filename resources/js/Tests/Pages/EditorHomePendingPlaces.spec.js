@@ -7,7 +7,12 @@ vi.mock('@inertiajs/vue3', () => ({
   Link: { template: '<a :href="href"><slot /></a>', props: ['href'] },
   router: { get: vi.fn() },
 }))
-vi.mock('@/Layouts/FishAppLayout.vue', () => ({ default: { template: '<main><slot /></main>', props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showHeader'] } }))
+vi.mock('@/Layouts/FishAppLayout.vue', () => ({
+  default: {
+    template: '<main><slot /></main>',
+    props: ['pageTitle', 'mobileBackUrl', 'mobileBackText', 'showHeader'],
+  },
+}))
 
 const baseProps = { needAudio: [], needPhoto: [], recentEdits: [], limit: 20 }
 
@@ -20,11 +25,27 @@ describe('EditorHome pending places', () => {
   })
 
   it('links each pending session to its editor', () => {
-    const wrapper = mount(EditorHome, { props: { ...baseProps, pendingPlaces: [
-      { id: 12, capture_date: '2026-10-07', tribe: 'ivalino', capture_method: '釣魚', location_hint: '舊文字' },
-    ] } })
+    const wrapper = mount(EditorHome, {
+      props: {
+        ...baseProps,
+        pendingPlaces: [
+          {
+            id: 12,
+            capture_date: '2026-10-07',
+            tribe: 'ivalino',
+            capture_method: '釣魚',
+            location_hint: '舊文字',
+          },
+        ],
+      },
+    })
     const section = wrapper.get('[data-testid="pending-places"]')
     expect(section.text()).toContain('待補地點 （1 筆）')
     expect(section.get('a').attributes('href')).toBe('/capture-sessions/12/edit')
   })
+})
+
+it('工作區保留新增魚類入口', () => {
+  const wrapper = mount(EditorHome, { props: baseProps })
+  expect(wrapper.get('a[href="/fish/batch-create"]').text()).toBe('新增魚種')
 })

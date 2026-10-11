@@ -1,11 +1,5 @@
 <template>
-  <div
-    class="min-h-screen bg-gray-50 relative"
-    :class="[
-      showHeader ? 'pt-4' : 'pt-0',
-      canEdit && fishId ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6' : 'pb-6',
-    ]"
-  >
+  <div class="min-h-screen bg-gray-50 relative pb-6" :class="showHeader ? 'pt-4' : 'pt-0'">
     <!-- 頂部導覽列 -->
     <AppNavBar
       v-if="showHeader"
@@ -34,31 +28,16 @@
     </main>
 
     <AppFooter />
-
-    <!-- 桌面版懸浮管理選單（僅 editor/admin 顯示，且頁面未自帶 FishEditBar） -->
-    <AdminFloatingMenu v-if="showEditMenu && canEdit && fishId" :fishId="fishId" />
-
-    <!-- 手機版底部管理選單（僅 editor/admin 顯示，且頁面未自帶 FishEditBar） -->
-    <BottomNavBar v-if="showEditMenu && canEdit && fishId" :fishId="fishId" />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { usePage } from '@inertiajs/vue3'
-import BottomNavBar from '@/Components/Global/BottomNavBar.vue'
 import FlashMessage from '@/Components/Global/FlashMessage.vue'
 import AppFooter from '@/Components/Global/AppFooter.vue'
-import AdminFloatingMenu from '@/Components/Global/AdminFloatingMenu.vue'
 import AppNavBar from '@/Components/Global/AppNavBar.vue'
 
-const page = usePage()
-const fish = computed(() => page.props.fish)
-const user = computed(() => page.props.auth?.user)
-const canEdit = computed(() => ['editor', 'admin'].includes(user.value?.role))
-
 // Props 定義
-const props = defineProps({
+defineProps({
   pageTitle: {
     type: String,
     default: '基本資料',
@@ -89,10 +68,6 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  showEditMenu: {
-    type: Boolean,
-    default: true,
-  },
   stickyMobile: {
     type: Boolean,
     default: true,
@@ -102,7 +77,4 @@ const props = defineProps({
     default: true,
   },
 })
-
-// 計算 fishId，優先使用 fish 物件
-const fishId = computed(() => fish.value?.id)
 </script>
