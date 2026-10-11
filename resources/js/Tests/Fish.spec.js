@@ -267,8 +267,13 @@ describe.each(['editor', 'admin'])('%s 分頁編輯入口', (role) => {
         .findAll('section')
         .find((s) => s.isVisible() && s.find('[data-testid="tab-edit-actions"]').exists())
       expect(section).toBeTruthy()
-      expect(section.element.firstElementChild.dataset.testid).toBe('tab-edit-actions')
-      expect(readActions(section)).toEqual(expected)
+      const actionContainer = _key === 'basic'
+        ? section.get('[data-testid="basic-management-actions"]')
+        : section
+      expect(section.element.firstElementChild.dataset.testid).toBe(
+        _key === 'basic' ? 'basic-management-actions' : 'tab-edit-actions'
+      )
+      expect(readActions(actionContainer)).toEqual(expected)
       if (_key === 'audio')
         expect(section.get('a[href="/fish/1/audio-list"]').text()).toBe('管理所有發音')
       if (_key === 'capture')
@@ -332,15 +337,20 @@ describe('分頁入口權限與空狀態', () => {
   })
 })
 
-it('基本 tab 的合併與刪除使用警示色且與編輯名稱分組', async () => {
+it('基本 tab 頂部將合併與刪除排在編輯名稱後方並保留間隔', async () => {
   mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
   const wrapper = mountFish()
   const basic = wrapper.get('[data-testid="basic-tab"]')
-  const danger = basic.get('[aria-label="魚類刪除與合併"]')
+  const actions = basic.get('[data-testid="basic-management-actions"]')
+  const danger = actions.get('[aria-label="魚類刪除與合併"]')
   expect(danger.get('a[href="/fish/1/merge"]').text()).toBe('合併魚類')
   expect(danger.get('a').classes()).toContain('text-red-700')
   expect(danger.get('button').classes()).toContain('bg-red-600')
-  expect(basic.get('[data-testid="tab-edit-actions"]').text()).toBe('編輯名稱')
+  expect(actions.get('[data-testid="tab-edit-actions"]').text()).toBe('編輯名稱')
+  expect(actions.element.firstElementChild.dataset.testid).toBe('tab-edit-actions')
+  expect(actions.element.children[1].getAttribute('aria-label')).toBe('魚類刪除與合併')
+  expect(basic.element.children[0].dataset.testid).toBe('basic-management-actions')
+  expect(actions.classes()).toContain('gap-6')
   expect(basic.text()).not.toContain('管理照片')
 })
 

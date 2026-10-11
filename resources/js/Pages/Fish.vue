@@ -31,17 +31,22 @@
         <div class="mt-4">
           <!-- 基本 -->
           <section v-show="activeTab === 'basic'" data-testid="basic-tab">
-            <TabEditActions
+            <div
               v-if="isEditor"
-              :items="[
-                { label: '編輯名稱', href: `/fish/${fish.id}/edit` },
-              ]"
-            />
-            <FishGridLayout />
-            <div v-if="isEditor" aria-label="魚類刪除與合併" class="mt-6 flex gap-3 border-t border-red-200 pt-4">
-              <Link :href="`/fish/${fish.id}/merge`" class="rounded border border-red-600 px-4 py-2 text-red-700 hover:bg-red-50">合併魚類</Link>
-              <button @click="confirmDelete" class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700">刪除魚類</button>
+              data-testid="basic-management-actions"
+              class="flex flex-wrap items-start gap-6 mb-4"
+            >
+              <TabEditActions
+                :items="[
+                  { label: '編輯名稱', href: `/fish/${fish.id}/edit` },
+                ]"
+              />
+              <div aria-label="魚類刪除與合併" class="flex flex-wrap gap-3">
+                <Link :href="`/fish/${fish.id}/merge`" class="rounded border border-red-600 px-4 py-2 text-red-700 hover:bg-red-50">合併魚類</Link>
+                <button @click="confirmDelete" class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700">刪除魚類</button>
+              </div>
             </div>
+            <FishGridLayout />
           </section>
 
           <!-- 地方知識 -->
