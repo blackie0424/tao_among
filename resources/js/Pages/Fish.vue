@@ -18,7 +18,7 @@
             <button
               v-for="tab in visibleTabs"
               :key="tab.key"
-              class="tab-btn shrink-0"
+              class="tab-btn shrink-0 text-elder-body min-h-touch-secondary"
               :class="{ 'tab-btn--active': activeTab === tab.key }"
               @click="switchTab(tab.key)"
             >
@@ -120,7 +120,7 @@
                 <Volume :audioUrl="fish.audio_url" />
                 <span class="text-elder-body text-gray-700">目前發音檔</span>
               </div>
-              <p v-else class="text-elder-body text-gray-400">尚無發音資料</p>
+              <p v-else class="text-elder-body text-elder-subtext">尚無發音資料</p>
               <Link
                 v-if="isEditor"
                 :href="`/fish/${fish.id}/audio-list`"
@@ -206,7 +206,6 @@ function switchTab(key) {
 .tab-btn {
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  font-size: 1rem; /* elder-body */
   font-weight: 500;
   color: #3f454c;
   background: transparent;
@@ -216,7 +215,6 @@ function switchTab(key) {
     background-color 0.15s,
     color 0.15s;
   white-space: nowrap;
-  min-height: 2.5rem;
 }
 .tab-btn:hover {
   background-color: #e5e7eb;
