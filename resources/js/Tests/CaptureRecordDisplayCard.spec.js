@@ -44,6 +44,22 @@ describe('序號顯示', () => {
   })
 })
 
+describe('欄位圖示', () => {
+  it('五個欄位都以對讀屏隱藏的線條圖示顯示', () => {
+    const wrapper = mountCard({ record: makeRecord({ session_notes: '這次出海備註' }) })
+
+    const icons = wrapper.findAll('svg[aria-hidden="true"]')
+    expect(icons).toHaveLength(5)
+    expect(icons.every((icon) => icon.attributes('fill') === 'none')).toBe(true)
+    expect(wrapper.text()).not.toMatch(/[📅📍🎣📝🗒️]/u)
+    expect(wrapper.text()).toContain('捕獲時間：2024/03/05')
+    expect(wrapper.text()).toContain('捕獲地點：')
+    expect(wrapper.text()).toContain('捕獲方式：魚槍')
+    expect(wrapper.text()).toContain('捕獲說明')
+    expect(wrapper.text()).toContain('情境備註')
+  })
+})
+
 // ──────────────────────────────────────────────
 // 交替色系
 // ──────────────────────────────────────────────

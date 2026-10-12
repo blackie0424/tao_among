@@ -30,13 +30,8 @@
             {{ title }}
           </div>
           <!-- 音檔播放按鈕靠右 (選擇性) -->
-          <div
-            v-if="audioUrl"
-            class="ml-2 flex-shrink-0 flex flex-col items-center gap-0.5"
-            @click.stop.prevent
-          >
+          <div v-if="audioUrl" class="ml-2 flex-shrink-0" @click.stop.prevent>
             <Volume :audioUrl="audioUrl" :large="true" />
-            <span class="text-[11px] text-gray-500 leading-none">聽發音</span>
           </div>
         </div>
       </div>
