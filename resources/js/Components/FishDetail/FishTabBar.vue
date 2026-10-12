@@ -6,10 +6,12 @@
     <button
       v-for="(tab, index) in tabs"
       :key="tab.key"
-      class="w-full min-w-0 rounded-lg bg-gray-100 px-2 py-2 text-elder-body font-medium text-elder-subtext min-h-touch-secondary break-words transition-colors hover:bg-gray-200 hover:text-elder-text md:w-auto md:shrink-0 md:whitespace-nowrap"
+      class="w-full min-w-0 rounded-lg px-2 py-2 text-elder-body font-medium min-h-touch-secondary break-words transition-colors hover:bg-gray-200 hover:text-elder-text md:w-auto md:shrink-0 md:whitespace-nowrap"
       :class="[
         mobileGridClass(index),
-        activeTab === tab.key ? 'bg-blue-100 text-blue-700 font-semibold' : '',
+        activeTab === tab.key
+          ? 'bg-blue-100 text-blue-700 font-semibold'
+          : 'bg-gray-100 text-elder-subtext',
       ]"
       @click="$emit('select', tab.key)"
     >
