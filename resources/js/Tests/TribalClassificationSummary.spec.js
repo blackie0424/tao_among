@@ -85,4 +85,54 @@ describe('TribalClassificationSummary', () => {
     expect(wrapper.get('p').classes()).toContain('text-elder-aux')
     expect(wrapper.get('p').classes()).toContain('md:text-base')
   })
+
+  it('手機卡片逐欄呈現空值色彩、字級與長字串，桌機維持三欄表格', () => {
+    const wrapper = mountSummary({
+      tribes: ['無紀錄', 'null 欄位', '空字串', '有值'],
+      classifications: [
+        {
+          tribe: 'null 欄位',
+          food_category: null,
+          processing_method: '沒有空白的超長處理方式文字',
+        },
+        {
+          tribe: '空字串',
+          food_category: '沒有空白的超長飲食分類文字',
+          processing_method: '',
+        },
+        {
+          tribe: '有值',
+          food_category: '生食',
+          processing_method: '曬乾',
+        },
+      ],
+    })
+
+    const cards = wrapper.findAll('[data-testid="tribal-classification-card"]')
+    expect(cards).toHaveLength(4)
+    expect(cards.map((card) => card.find('span').text())).toEqual(['無紀錄', 'null 欄位', '空字串', '有值'])
+    expect(cards.every((card) => card.find('span').classes().includes('text-elder-aux'))).toBe(true)
+    expect(cards.every((card) => card.findAll('dt').every((label) => label.classes().includes('text-elder-aux')))).toBe(true)
+    expect(cards.map((card) => card.findAll('dd').map((value) => value.text()))).toEqual([
+      ['尚未紀錄', '尚未紀錄'],
+      ['尚未紀錄', '沒有空白的超長處理方式文字'],
+      ['沒有空白的超長飲食分類文字', '尚未紀錄'],
+      ['生食', '曬乾'],
+    ])
+    const values = cards.flatMap((card) => card.findAll('dd'))
+    expect(values.every((value) => value.classes().includes('text-base'))).toBe(true)
+    expect(values.filter((value) => value.text() === '尚未紀錄').every((value) => value.classes().includes('text-elder-subtext'))).toBe(true)
+    expect(values.filter((value) => value.text() !== '尚未紀錄').every((value) => value.classes().includes('text-gray-900'))).toBe(true)
+    expect(cards.every((card) => card.classes().includes('break-words'))).toBe(true)
+    expect(wrapper.get('table').classes()).toContain('hidden')
+    expect(wrapper.get('table').classes()).toContain('md:table')
+  })
+
+  it('田調紀錄的無空白長字串會在卡片內斷行', () => {
+    const wrapper = mountSummary({
+      classifications: [{ tribe: '朗島', notes: '沒有空白的超長田調紀錄文字' }],
+    })
+
+    expect(wrapper.get('p').classes()).toContain('break-words')
+  })
 })

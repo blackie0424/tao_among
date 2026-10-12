@@ -14,17 +14,7 @@
       <div class="flex-1 min-w-0">
         <!-- 分區 Tab 導覽 -->
         <div class="sticky top-0 lg:top-20 z-20 bg-gray-50 -mx-4 px-4 pb-2">
-          <div class="flex overflow-x-auto gap-1 no-scrollbar">
-            <button
-              v-for="tab in visibleTabs"
-              :key="tab.key"
-              class="tab-btn shrink-0 text-elder-body min-h-touch-secondary"
-              :class="{ 'tab-btn--active': activeTab === tab.key }"
-              @click="switchTab(tab.key)"
-            >
-              {{ tab.label }}
-            </button>
-          </div>
+          <FishTabBar :tabs="visibleTabs" :activeTab="activeTab" @select="switchTab" />
         </div>
 
         <!-- Tab 內容 -->
@@ -141,6 +131,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Head, Link, usePage, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import FishGridLayout from '@/Layouts/FishGridLayout.vue'
+import FishTabBar from '@/Components/FishDetail/FishTabBar.vue'
 import TribalClassificationSummary from '@/Components/TribalClassification/TribalClassificationSummary.vue'
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue'
@@ -201,35 +192,3 @@ function switchTab(key) {
   window.history.replaceState({}, '', url.toString())
 }
 </script>
-
-<style scoped>
-.tab-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  color: #3f454c;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-  white-space: nowrap;
-}
-.tab-btn:hover {
-  background-color: #e5e7eb;
-  color: #16181d;
-}
-.tab-btn--active {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-  font-weight: 600;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>
