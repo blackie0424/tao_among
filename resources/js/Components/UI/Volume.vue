@@ -2,10 +2,12 @@
   <span
     :class="[
       'inline-flex items-center justify-center rounded-full ml-2',
+      large
+        ? 'min-w-touch-primary min-h-touch-primary'
+        : 'min-w-touch-secondary min-h-touch-secondary',
       shouldEnableAnimations ? 'transition-colors duration-200' : '',
       optimizedButtonClasses,
     ]"
-    :style="large ? 'width: 3.5rem; height: 3.5rem' : 'width: 2.2rem; height: 2.2rem'"
     @click="handleClick"
     :disabled="isPlaying"
     :title="buttonTitle"

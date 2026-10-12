@@ -189,6 +189,31 @@ describe('詳細頁導覽行為', () => {
     expect(tabBar.classes()).toContain('top-0')
     expect(tabBar.classes()).toContain('lg:top-20')
   })
+
+  it('分頁按鈕使用長者內文字級與次要觸控高度', () => {
+    const wrapper = mountFish()
+    const tabs = wrapper.findAll('button').filter((button) => ['基本', '地方知識', '捕獲紀錄'].includes(button.text()))
+    expect(tabs).not.toHaveLength(0)
+    expect(tabs.every((tab) => tab.classes().includes('text-elder-body'))).toBe(true)
+    expect(tabs.every((tab) => tab.classes().includes('min-h-touch-secondary'))).toBe(true)
+  })
+
+  it.each([null, ''])('沒有發音網址時以輔助文字色顯示尚無發音資料：%j', (audioUrl) => {
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+    const wrapper = mountFish({ fish: makeFish({ audio_url: audioUrl }) })
+    const audioTab = wrapper.findAll('button').find((button) => button.text() === '發音')
+    return audioTab.trigger('click').then(() => {
+      expect(wrapper.get('p').text()).toBe('尚無發音資料')
+      expect(wrapper.get('p').classes()).toContain('text-elder-subtext')
+    })
+  })
+
+  it('有發音網址時不顯示尚無發音資料', async () => {
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+    const wrapper = mountFish({ fish: makeFish({ audio_url: '/audio.mp3' }) })
+    await wrapper.findAll('button').find((button) => button.text() === '發音').trigger('click')
+    expect(wrapper.text()).not.toContain('尚無發音資料')
+  })
 })
 
 // ──────────────────────────────────────────────

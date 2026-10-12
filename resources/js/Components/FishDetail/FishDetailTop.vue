@@ -19,7 +19,7 @@
          
          <!-- 魚名 + 發音（綁在一起，優先佔據空間） -->
          <div class="flex items-center gap-3 flex-grow">
-           <h1 class="text-2xl font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
+           <h1 class="text-elder-title font-bold text-gray-900 tracking-tight">{{ fish.name }}</h1>
            
            <!-- Audio Player -->
            <div v-if="hasAudioAccess && fish.audio_url" class="flex-shrink-0">

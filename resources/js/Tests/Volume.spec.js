@@ -102,6 +102,17 @@ describe('Volume Component', () => {
       expect(button.classes()).toContain('transition-colors')
       expect(button.classes()).toContain('duration-200')
     })
+
+    it('一般尺寸使用長者次要觸控規格，large 尺寸維持主要觸控規格', async () => {
+      const button = wrapper.find('span[role="button"]')
+      expect(button.classes()).toContain('min-w-touch-secondary')
+      expect(button.classes()).toContain('min-h-touch-secondary')
+
+      const largeWrapper = mount(Volume, { props: { ...defaultProps, large: true } })
+      expect(largeWrapper.find('span[role="button"]').classes()).toContain('min-w-touch-primary')
+      expect(largeWrapper.find('span[role="button"]').classes()).toContain('min-h-touch-primary')
+      largeWrapper.unmount()
+    })
   })
 
   describe('點擊事件處理', () => {

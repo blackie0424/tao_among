@@ -13,22 +13,22 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">部落</th>
-              <th class="px-3 py-2 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">飲食分類</th>
-              <th class="px-3 py-2 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">處理方式</th>
+              <th class="px-3 py-2 text-left text-elder-aux font-bold text-gray-700 uppercase tracking-wider">部落</th>
+              <th class="px-3 py-2 text-left text-elder-aux font-bold text-gray-700 uppercase tracking-wider">飲食分類</th>
+              <th class="px-3 py-2 text-left text-elder-aux font-bold text-gray-700 uppercase tracking-wider">處理方式</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-100">
             <tr v-for="item in mappedClassifications" :key="item.tribe">
               <td class="px-3 py-2 align-top">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-elder-aux font-medium bg-blue-100 text-blue-800">
                   {{ item.tribe }}
                 </span>
               </td>
-              <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.hasData ? 'text-gray-900' : 'text-gray-400'">
+              <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.food_category ? 'text-gray-900' : 'text-elder-subtext'">
                 {{ item.food_category || '尚未紀錄' }}
               </td>
-              <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.hasData ? 'text-gray-900' : 'text-gray-400'">
+              <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.processing_method ? 'text-gray-900' : 'text-elder-subtext'">
                 {{ item.processing_method || '尚未紀錄' }}
               </td>
             </tr>
@@ -48,11 +48,11 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="(item, index) in validClassifications" :key="index" class="bg-gray-50 rounded-lg p-4 border border-gray-200 h-full flex flex-col">
            <div class="flex items-center mb-2 shrink-0">
-             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-elder-aux font-medium bg-blue-100 text-blue-800">
                 {{ item.tribe }}
              </span>
            </div>
-           <p class="text-gray-800 text-sm md:text-base whitespace-pre-line leading-relaxed flex-grow">
+           <p class="text-gray-800 text-elder-aux md:text-base whitespace-pre-line leading-relaxed flex-grow">
               {{ item.notes }}
            </p>
         </div>
@@ -88,7 +88,6 @@ const mappedClassifications = computed(() => {
   if (!props.tribes || props.tribes.length === 0) {
     return props.classifications.map(c => ({
       ...c,
-      hasData: true
     }))
   }
 
@@ -99,7 +98,6 @@ const mappedClassifications = computed(() => {
       tribe: tribe,
       food_category: existing?.food_category || null,
       processing_method: existing?.processing_method || null,
-      hasData: !!existing
     }
   })
 })
