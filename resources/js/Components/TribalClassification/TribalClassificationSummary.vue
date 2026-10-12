@@ -25,10 +25,10 @@
                   {{ item.tribe }}
                 </span>
               </td>
-              <td class="px-3 py-2 align-top text-elder-aux" :class="item.food_category ? 'text-gray-900' : 'text-elder-subtext'">
+              <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.food_category ? 'text-gray-900' : 'text-elder-subtext'">
                 {{ item.food_category || '尚未紀錄' }}
               </td>
-              <td class="px-3 py-2 align-top text-elder-aux" :class="item.processing_method ? 'text-gray-900' : 'text-elder-subtext'">
+              <td class="px-3 py-2 align-top text-base md:text-lg" :class="item.processing_method ? 'text-gray-900' : 'text-elder-subtext'">
                 {{ item.processing_method || '尚未紀錄' }}
               </td>
             </tr>
@@ -52,7 +52,7 @@
                 {{ item.tribe }}
              </span>
            </div>
-           <p class="text-gray-800 text-elder-aux whitespace-pre-line leading-relaxed flex-grow">
+           <p class="text-gray-800 text-elder-aux md:text-base whitespace-pre-line leading-relaxed flex-grow">
               {{ item.notes }}
            </p>
         </div>

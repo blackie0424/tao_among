@@ -35,11 +35,18 @@ describe('TribalClassificationSummary', () => {
   it('表頭、部落標籤、分類值與田調紀錄都至少使用 15px 字級', () => {
     const wrapper = mountSummary({
       classifications: [{ tribe: '朗島', food_category: '生食', processing_method: '曬乾', notes: '田調內容' }],
-      tribes: ['朗島'],
+      tribes: ['朗島', '無紀錄'],
     })
     expect(wrapper.findAll('th').every((cell) => cell.classes().includes('text-elder-aux'))).toBe(true)
     expect(wrapper.findAll('.bg-blue-100').every((tag) => tag.classes().includes('text-elder-aux'))).toBe(true)
-    expect(wrapper.get('tbody td:nth-child(2)').classes()).toContain('text-elder-aux')
+    const valueCells = wrapper.findAll('tbody td:nth-child(2), tbody td:nth-child(3)')
+    expect(valueCells).toHaveLength(4)
+    for (const cell of valueCells) {
+      expect(cell.classes()).toContain('text-base')
+      expect(cell.classes()).toContain('md:text-lg')
+      expect(cell.classes()).not.toContain('text-elder-aux')
+    }
     expect(wrapper.get('p').classes()).toContain('text-elder-aux')
+    expect(wrapper.get('p').classes()).toContain('md:text-base')
   })
 })
