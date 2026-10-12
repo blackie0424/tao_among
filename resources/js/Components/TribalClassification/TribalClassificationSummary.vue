@@ -9,8 +9,35 @@
       </div>
 
       <!-- 比較檢視（統一顯示所有部落，無資料則顯示未紀錄） -->
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+      <div class="space-y-3 md:hidden">
+        <article
+          v-for="item in mappedClassifications"
+          :key="item.tribe"
+          data-testid="tribal-classification-card"
+          class="break-words rounded-lg border border-gray-200 bg-gray-50 p-4"
+        >
+          <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-elder-aux font-medium text-blue-800">
+            {{ item.tribe }}
+          </span>
+          <dl class="mt-3 space-y-3">
+            <div>
+              <dt class="text-elder-aux font-bold text-gray-700">飲食分類</dt>
+              <dd class="mt-1 text-base" :class="item.food_category ? 'text-gray-900' : 'text-elder-subtext'">
+                {{ item.food_category || '尚未紀錄' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-elder-aux font-bold text-gray-700">處理方式</dt>
+              <dd class="mt-1 text-base" :class="item.processing_method ? 'text-gray-900' : 'text-elder-subtext'">
+                {{ item.processing_method || '尚未紀錄' }}
+              </dd>
+            </div>
+          </dl>
+        </article>
+      </div>
+
+      <div class="hidden overflow-x-auto md:block">
+        <table class="hidden min-w-full divide-y divide-gray-200 md:table">
           <thead>
             <tr>
               <th class="px-3 py-2 text-left text-elder-aux font-bold text-gray-700 uppercase tracking-wider">部落</th>
@@ -65,7 +92,7 @@
               {{ item.tribe }}
             </span>
           </div>
-          <p class="text-gray-800 text-elder-aux md:text-base whitespace-pre-line leading-relaxed flex-grow">
+          <p class="text-gray-800 text-elder-aux md:text-base whitespace-pre-line break-words leading-relaxed flex-grow">
             {{ item.notes }}
           </p>
         </div>
