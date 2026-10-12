@@ -6,13 +6,36 @@ vi.mock('@inertiajs/vue3', () => ({
   Link: { props: ['href'], template: '<a :href="href"><slot /></a>' },
 }))
 vi.mock('@/Components/UI/LazyImage.vue', () => ({
-  default: { props: ['src', 'alt'], template: '<img data-testid="item-image" :src="src" :alt="alt" />' },
+  default: {
+    props: ['src', 'alt'],
+    template: '<img data-testid="item-image" :src="src" :alt="alt" />',
+  },
 }))
-vi.mock('@/Components/UI/Volume.vue', () => ({ default: { template: '<button />' } }))
+vi.mock('@/Components/UI/Volume.vue', () => ({
+  default: { template: '<span role="button" aria-label="播放發音" />' },
+}))
 
 describe('ItemCard optional image', () => {
+  it('有發音時只顯示具讀屏名稱的發音按鈕', () => {
+    const wrapper = mount(ItemCard, {
+      props: { href: '/item/1', title: '飛魚', audioUrl: '/audio/flying-fish.mp3' },
+    })
+
+    expect(wrapper.get('[role="button"]').attributes('aria-label')).toBe('播放發音')
+    expect(wrapper.text()).not.toContain('聽發音')
+  })
+
+  it.each([null, '', undefined])('沒有發音時不顯示發音按鈕：%s', (audioUrl) => {
+    const props = { href: '/item/1', title: '飛魚' }
+    if (audioUrl !== undefined) props.audioUrl = audioUrl
+
+    expect(mount(ItemCard, { props }).find('[role="button"]').exists()).toBe(false)
+  })
+
   it('有圖時渲染圖片與標題', () => {
-    const wrapper = mount(ItemCard, { props: { href: '/item/1', imageUrl: '/image.jpg', title: '飛魚' } })
+    const wrapper = mount(ItemCard, {
+      props: { href: '/item/1', imageUrl: '/image.jpg', title: '飛魚' },
+    })
 
     expect(wrapper.get('[data-testid="item-image"]').attributes('src')).toBe('/image.jpg')
     expect(wrapper.get('[data-testid="item-image-wrapper"]').classes()).toContain('h-[170px]')

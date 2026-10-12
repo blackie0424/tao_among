@@ -41,20 +41,33 @@
     <div v-if="validClassifications.length > 0" class="rounded-xl bg-white shadow-sm border border-gray-200 p-4">
       <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
         <h3 class="text-xl font-bold flex items-center gap-2 text-gray-900">
-          <span>🏝️</span> 地方知識田調紀錄
+          <svg
+            class="w-5 h-5 shrink-0 stroke-current"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-13.5v4.5l3 1.5"
+            />
+          </svg>
+          地方知識田調紀錄
         </h3>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="(item, index) in validClassifications" :key="index" class="bg-gray-50 rounded-lg p-4 border border-gray-200 h-full flex flex-col">
-           <div class="flex items-center mb-2 shrink-0">
-             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-elder-aux font-medium bg-blue-100 text-blue-800">
-                {{ item.tribe }}
-             </span>
-           </div>
-           <p class="text-gray-800 text-elder-aux md:text-base whitespace-pre-line leading-relaxed flex-grow">
-              {{ item.notes }}
-           </p>
+          <div class="flex items-center mb-2 shrink-0">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-elder-aux font-medium bg-blue-100 text-blue-800">
+              {{ item.tribe }}
+            </span>
+          </div>
+          <p class="text-gray-800 text-elder-aux md:text-base whitespace-pre-line leading-relaxed flex-grow">
+            {{ item.notes }}
+          </p>
         </div>
       </div>
     </div>
@@ -77,7 +90,7 @@ const props = defineProps({
   tribes: {
     type: Array,
     default: () => [],
-  }
+  },
 })
 
 const page = usePage()
@@ -104,7 +117,7 @@ const mappedClassifications = computed(() => {
 
 const validClassifications = computed(() => {
    if (!props.classifications) return [];
-   // 僅列出有部落屬性且有寫註記的資料
+  // 僅列出有部落屬性且有寫註記的資料
    return props.classifications.filter(c => c.tribe && c.notes && c.notes.trim() !== '');
 })
 </script>
