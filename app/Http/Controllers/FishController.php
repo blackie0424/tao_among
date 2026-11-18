@@ -84,6 +84,9 @@ class FishController extends Controller
     {
         // Trace: FR-001 多條件後端搜尋, FR-003 比對規則, FR-007 perPage 正規化, FR-005 游標分頁, FR-002 精簡欄位
         // Trace: SC-004 首屏 payload 降幅（僅回傳白名單欄位給前端無限滾動）, SC-006 游標契約一致性（last_id 明碼, nextCursor 派生）
+        // 清單內容依身分而異：歷史紀錄加密，登入或登出時換金鑰，返回上一頁就不會還原舊身分的清單
+        Inertia::encryptHistory();
+
         if ($request->isPublicView()) {
             return $this->renderPublicFishs($request);
         }

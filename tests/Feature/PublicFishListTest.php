@@ -200,3 +200,25 @@ it('GET /fishs 導向 / 並保留查詢字串', function () {
 
     $this->get('/fishs')->assertStatus(301)->assertRedirect('/');
 });
+
+// ── AC 8：返回歷史頁不還原舊身分的清單 ──────────────────────
+
+function inertiaGet(string $uri)
+{
+    config(['app.asset_url' => 'https://assets.test']);
+    $version = app(HandleInertiaRequests::class)->version(request());
+
+    return test()->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])->get($uri);
+}
+
+it('清單頁的歷史紀錄加密（身分切換後舊紀錄解不開）', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
+
+    expect(inertiaGet('/')->assertOk()->json('encryptHistory'))->toBeTrue();
+})->with('public viewers');
+
+it('已開通的登入者的清單頁歷史紀錄也加密', function () {
+    $this->actingAs(User::factory()->lineEditor()->create());
+
+    expect(inertiaGet('/')->assertOk()->json('encryptHistory'))->toBeTrue();
+});

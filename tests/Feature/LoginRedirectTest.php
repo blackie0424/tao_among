@@ -123,3 +123,37 @@ it('已開通的使用者登入後不會看到等待開通', function () {
     completeLineLogin(User::factory()->lineViewer()->create(), ['url.intended' => '/fish/5'])
         ->assertSessionMissing('info');
 });
+
+// ── AC 8：登入與登出後清掉瀏覽器歷史紀錄 ─────────────────────
+
+function nextInertiaPageClearsHistory(): bool
+{
+    config(['app.asset_url' => 'https://assets.test']);
+    $version = app(App\Http\Middleware\HandleInertiaRequests::class)->version(request());
+
+    return test()->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
+        ->get('/')
+        ->json('clearHistory') === true;
+}
+
+it('表單登入後，下一個 Inertia 頁面要求清掉歷史紀錄', function () {
+    $this->post('/login', adminCredentials());
+
+    expect(nextInertiaPageClearsHistory())->toBeTrue();
+});
+
+it('LINE 登入完成後，下一個 Inertia 頁面要求清掉歷史紀錄', function () {
+    completeLineLogin(User::factory()->lineViewer()->create());
+
+    expect(nextInertiaPageClearsHistory())->toBeTrue();
+});
+
+it('登出後，下一個 Inertia 頁面要求清掉歷史紀錄', function () {
+    $this->actingAs(User::factory()->lineEditor()->create())->post('/logout');
+
+    expect(nextInertiaPageClearsHistory())->toBeTrue();
+});
+
+it('沒有登入或登出時，不要求清掉歷史紀錄', function () {
+    expect(nextInertiaPageClearsHistory())->toBeFalse();
+});

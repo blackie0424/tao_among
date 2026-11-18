@@ -58,6 +58,9 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // 身分換了，舊身分的歷史頁面（加密過的）不再能還原
+        Inertia::clearHistory();
+
         return redirect('/');
     }
 }

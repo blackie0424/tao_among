@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 /**
  * 登入後的去處：只接受站內路徑，並處理尚未開通（guest）的帳號。
@@ -49,6 +50,9 @@ class LoginRedirect
     public static function after(Request $request, User $user): RedirectResponse
     {
         $intended = $request->session()->pull(self::INTENDED_KEY);
+
+        // 身分換了，舊身分的歷史頁面（加密過的）不再能還原
+        Inertia::clearHistory();
 
         if (! $user->canBrowse()) {
             return redirect(self::HOME)->with('info', self::PENDING_APPROVAL_MESSAGE);
