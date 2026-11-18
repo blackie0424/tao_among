@@ -139,11 +139,17 @@ describe("登入頁", () => {
 
   describe("管理員登入失敗", () => {
     it("進頁面時就有錯誤：選中管理員分頁並顯示後端原文", () => {
-      const wrapper = mountLogin({ email: '這組帳號密碼無法登入。' })
+      const wrapper = mountLogin({ email: ['這組帳號密碼無法登入。'] })
 
       expect(adminTab(wrapper).attributes('aria-selected')).toBe('true')
       expect(wrapper.get('input[name="email"]').isVisible()).toBe(true)
       expect(wrapper.text()).toContain('這組帳號密碼無法登入。')
+    })
+
+    it("後端實際回的訊息陣列只顯示第一則原文，不出現方括號與引號", () => {
+      const wrapper = mountLogin({ email: ['這組帳號密碼無法登入。', '另一則'] })
+
+      expect(wrapper.get('[data-testid="login-error"]').text()).toBe('這組帳號密碼無法登入。')
     })
 
     it("沒有錯誤時不顯示錯誤區塊", () => {
@@ -160,7 +166,7 @@ describe("登入頁", () => {
       await lineTab(wrapper).trigger('click')
       expect(lineTab(wrapper).attributes('aria-selected')).toBe('true')
 
-      formHolder.current.errors = { email: '這組帳號密碼無法登入。' }
+      formHolder.current.errors = { email: ['這組帳號密碼無法登入。'] }
       await nextTick()
 
       expect(adminTab(wrapper).attributes('aria-selected')).toBe('true')

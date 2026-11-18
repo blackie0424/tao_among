@@ -65,8 +65,8 @@
         class="mt-6"
       >
         <form class="space-y-3" @submit.prevent="submit">
-          <p v-if="form.errors.email" data-testid="login-error" role="alert" class="text-elder-body text-red-700">
-            {{ form.errors.email }}
+          <p v-if="emailError" data-testid="login-error" role="alert" class="text-elder-body text-red-700">
+            {{ emailError }}
           </p>
           <div>
             <label for="email" class="sr-only">Email</label>
@@ -77,7 +77,7 @@
               type="text"
               autocomplete="email"
               required
-              :class="[INPUT_CLASS, form.errors.email ? 'border-red-700' : 'border-rule-strong']"
+              :class="[INPUT_CLASS, emailError ? 'border-red-700' : 'border-rule-strong']"
               placeholder="管理員 Email"
             />
           </div>
@@ -140,10 +140,16 @@ const form = useForm({
   password: '',
 })
 
+// 後端共用的 errors 每個欄位是訊息陣列（HandleInertiaRequests::share），這裡取第一則顯示
+const emailError = computed(() => {
+  const message = form.errors.email
+  return Array.isArray(message) ? message[0] : message
+})
+
 // 有登入錯誤（進頁面時就有，或送出後才收到）就停在管理員分頁，錯誤才看得到
-const activeTab = ref(form.errors.email ? 'admin' : 'line')
+const activeTab = ref(emailError.value ? 'admin' : 'line')
 watch(
-  () => form.errors.email,
+  emailError,
   (message) => {
     if (message) activeTab.value = 'admin'
   },
