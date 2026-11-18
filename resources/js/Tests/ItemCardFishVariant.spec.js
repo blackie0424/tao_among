@@ -53,6 +53,15 @@ describe('ItemCard fish 版', () => {
     expect(wrapper.get('a').attributes('href')).toBe('/fish/1')
   })
 
+  it('有發音時，發音鈕包在 fish-volume 內，播放狀態改用博物誌配色（不用預設藍）', () => {
+    const wrapper = mountFish({ imageUrl: '/a.jpg', audioUrl: '/a.mp3' })
+    expect(wrapper.find('.fish-volume').exists()).toBe(true)
+  })
+
+  it('沒有發音時沒有 fish-volume', () => {
+    expect(mountFish({ imageUrl: '/a.jpg' }).find('.fish-volume').exists()).toBe(false)
+  })
+
   it('圖片網址換掉後重新顯示圖片', async () => {
     const wrapper = mountFish({ imageUrl: '/storage/images/a.jpg' })
     await failImageUntilPlaceholder(wrapper)
@@ -72,6 +81,13 @@ describe('ItemCard 預設版（主題頁等）維持原樣式', () => {
 
     expect(wrapper.get('[data-testid="item-image-wrapper"]').classes()).toContain('h-[170px]')
     expect(wrapper.html()).toContain('shadow-md')
+  })
+
+  it('預設版的發音鈕不加 fish-volume，Volume 原樣式不變', () => {
+    const wrapper = mount(ItemCard, {
+      props: { href: '/item/1', title: '主題', audioUrl: '/a.mp3' },
+    })
+    expect(wrapper.find('.fish-volume').exists()).toBe(false)
   })
 })
 

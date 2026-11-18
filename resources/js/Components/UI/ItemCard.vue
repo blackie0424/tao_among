@@ -50,7 +50,12 @@
             {{ title }}
           </div>
           <!-- 音檔播放按鈕靠右 (選擇性) -->
-          <div v-if="audioUrl" class="ml-2 flex-shrink-0" @click.stop.prevent>
+          <div
+            v-if="audioUrl"
+            class="ml-2 flex-shrink-0"
+            :class="{ 'fish-volume': isFish }"
+            @click.stop.prevent
+          >
             <Volume :audioUrl="audioUrl" :large="true" />
           </div>
         </div>
@@ -119,3 +124,43 @@ watch(
   }
 )
 </script>
+
+<style scoped>
+/* 魚清單的發音鈕：播放中與焦點改用主色（#2f5d62，見 design-spec.md），不用 Volume 預設的 Tailwind 藍。
+   錯誤（紅）與重試（黃）是狀態色，維持原樣。 */
+.fish-volume :deep(.volume-button--playing),
+.fish-volume :deep(.volume-button--playing:hover) {
+  background-color: #2f5d62;
+  box-shadow:
+    0 0 0 2px rgba(47, 93, 98, 0.3),
+    0 4px 12px rgba(47, 93, 98, 0.2);
+}
+
+.fish-volume :deep(.volume-button--playing) {
+  animation-name: fish-volume-pulse;
+}
+
+@keyframes fish-volume-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(47, 93, 98, 0.3),
+      0 4px 12px rgba(47, 93, 98, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(47, 93, 98, 0.2),
+      0 6px 16px rgba(47, 93, 98, 0.15);
+  }
+}
+
+.fish-volume :deep(.volume-button:focus) {
+  box-shadow: 0 0 0 2px rgba(47, 93, 98, 0.5);
+}
+
+@media (prefers-contrast: high) {
+  .fish-volume :deep(.volume-button--playing) {
+    border-color: #244a4e;
+  }
+}
+</style>
