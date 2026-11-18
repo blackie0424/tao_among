@@ -146,14 +146,12 @@ const emailError = computed(() => {
   return Array.isArray(message) ? message[0] : message
 })
 
-// 有登入錯誤（進頁面時就有，或送出後才收到）就停在管理員分頁，錯誤才看得到
+// 有登入錯誤（進頁面時就有，或送出後才收到）就停在管理員分頁，錯誤才看得到。
+// 連續收到相同錯誤時 emailError 不變，所以送出結束（processing 變回 false）時也要檢查
 const activeTab = ref(emailError.value ? 'admin' : 'line')
-watch(
-  emailError,
-  (message) => {
-    if (message) activeTab.value = 'admin'
-  },
-)
+watch([emailError, () => form.processing], () => {
+  if (emailError.value && !form.processing) activeTab.value = 'admin'
+})
 
 const selectTab = (key) => {
   activeTab.value = key

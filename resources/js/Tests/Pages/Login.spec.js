@@ -152,6 +152,24 @@ describe("登入頁", () => {
       expect(wrapper.get('[data-testid="login-error"]').text()).toBe('這組帳號密碼無法登入。')
     })
 
+    it("已有相同錯誤，再送出後切到族人分頁，又收到同樣的錯誤：切回管理員分頁", async () => {
+      const wrapper = mountLogin({ email: ['這組帳號密碼無法登入。'] })
+
+      formHolder.current.processing = true
+      await wrapper.get('form').trigger('submit.prevent')
+      await lineTab(wrapper).trigger('click')
+      expect(lineTab(wrapper).attributes('aria-selected')).toBe('true')
+
+      // Inertia 在同一個同步回呼內清掉再設回同樣的錯誤，之後送出結束
+      formHolder.current.errors = {}
+      formHolder.current.errors = { email: ['這組帳號密碼無法登入。'] }
+      formHolder.current.processing = false
+      await nextTick()
+
+      expect(adminTab(wrapper).attributes('aria-selected')).toBe('true')
+      expect(wrapper.get('[data-testid="login-error"]').isVisible()).toBe(true)
+    })
+
     it("沒有錯誤時不顯示錯誤區塊", () => {
       const wrapper = mountLogin()
 
