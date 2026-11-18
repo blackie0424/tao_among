@@ -41,9 +41,12 @@ Route::get('/auth/line/complete', [LineLoginController::class, 'complete'])->nam
 Route::get('/fish/{id}/tribal-classifications', fn () => abort(404));
 Route::get('/fish/{id}/knowledge', fn () => abort(404));
 
-Route::get('/', [FishController::class, 'index']);
+Route::get('/', [FishController::class, 'getFishs']);
+Route::get('/fishs', fn (\Illuminate\Http\Request $request) => redirect()->to(
+    '/'.($request->getQueryString() ? '?'.$request->getQueryString() : ''),
+    301
+));
 Route::middleware(['auth', 'browse'])->group(function () {
-    Route::get('/fishs', [FishController::class, 'getFishs']);
     Route::get('/search', [FishController::class, 'search'])->name('fish.search');
     Route::get('/topics/{slug}', [TopicController::class, 'index'])->name('topics.index');
     Route::get('/topics/{slug}/{itemId}', [TopicController::class, 'show'])->name('topics.show');
