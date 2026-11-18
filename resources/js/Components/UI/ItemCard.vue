@@ -1,31 +1,37 @@
 <template>
-  <div class="bg-white rounded-xl shadow-md overflow-hidden">
+  <div class="overflow-hidden">
     <Link
       :href="href"
-      class="block h-full group focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="block h-full group focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
     >
-      <!-- 圖片區域 - 完整貼合上半部 -->
-      <div v-if="imageUrl" data-testid="item-image-wrapper" class="relative h-[170px]">
+      <!-- 圖片區域：無圖或載入失敗都顯示佔位區塊 -->
+      <div
+        v-if="imageUrl && !imageFailed"
+        data-testid="item-image-wrapper"
+        class="relative h-[190px] border border-rule-strong"
+      >
         <LazyImage
           :src="imageUrl"
           :alt="title"
           :imgIndex="index"
-          wrapperClass="w-full h-[170px] flex items-center justify-center bg-gray-100"
+          wrapperClass="w-full h-[190px] flex items-center justify-center"
           imgClass="w-full h-full object-cover"
           :imgStyle="imageStyle"
+          @failed="imageFailed = true"
         />
       </div>
       <div
         v-else
         data-testid="item-image-placeholder"
-        class="h-[170px] bg-gray-100"
+        class="h-[190px] border border-rule-strong bg-rule"
         aria-hidden="true"
       ></div>
-      <!-- 文字資訊區域 - 白色背景帶 padding -->
-      <div class="p-4 bg-white">
+      <!-- 文字資訊區域：魚名下方一條細線 -->
+      <div class="mt-2 border-b border-rule pb-1.5">
         <div class="flex items-center justify-between min-h-touch-primary">
           <div
-            class="text-elder-name font-semibold truncate tracking-wide group-hover:text-blue-600 flex-1 min-w-0"
+            data-testid="item-title"
+            class="text-elder-name font-serif truncate tracking-wide group-hover:text-brand flex-1 min-w-0"
           >
             {{ title }}
           </div>
@@ -40,11 +46,12 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import Volume from '@/Components/UI/Volume.vue'
 
-defineProps({
+const props = defineProps({
   href: {
     type: String,
     required: true,
@@ -70,4 +77,12 @@ defineProps({
     default: 0,
   },
 })
+
+const imageFailed = ref(false)
+watch(
+  () => props.imageUrl,
+  () => {
+    imageFailed.value = false
+  }
+)
 </script>

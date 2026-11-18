@@ -1,17 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import Fishs from '@/Pages/Fishs.vue'
 
-const { clearAllFiltersMock, handleSearchToggleMock } = vi.hoisted(() => ({
+const { clearAllFiltersMock, handleSearchToggleMock, authState } = vi.hoisted(() => ({
   clearAllFiltersMock: vi.fn(),
   handleSearchToggleMock: vi.fn(),
+  authState: { user: null },
 }))
 
 // ── Inertia mock ──────────────────────────────────────────────
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
   Link: { template: '<a><slot /></a>', props: ['href'] },
-  usePage: () => ({ props: { auth: { user: null } } }),
+  usePage: () => ({ props: { auth: { user: authState.user } } }),
 }))
 
 // ── Layout mock ───────────────────────────────────────────────
@@ -24,18 +25,17 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
 }))
 
 // ── 子元件 mock（只驗證頁面層邏輯）──────────────────────────
-vi.mock('@/Components/FishList/FishListNavActions.vue', () => ({
+vi.mock('@/Components/UI/SearchToggleButton.vue', () => ({
   default: {
-    template:
-      '<button :data-variant="variant" data-testid="fish-list-nav-actions" @click="$emit(\'toggle\')">搜尋</button>',
-    props: ['variant'],
+    template: '<button data-testid="search-toggle" @click="$emit(\'toggle\')">{{ label }}</button>',
+    props: ['label'],
     emits: ['toggle'],
   },
 }))
 vi.mock('@/Components/FishList/FishSearchModal.vue', () => ({
   default: {
     template: '<div data-testid="fish-search-modal" />',
-    props: ['show', 'filters', 'nameQuery', 'searchOptions'],
+    props: ['show', 'filters', 'nameQuery', 'searchOptions', 'showAdvanced'],
   },
 }))
 vi.mock('@/Components/FishList/FishSearchStatsBar.vue', () => ({
@@ -102,6 +102,7 @@ vi.mock('@/composables/useFishSearch', async () => {
 
 // ── IntersectionObserver stub ────────────────────────────────
 beforeEach(() => {
+  authState.user = null
   global.IntersectionObserver = class {
     observe() {}
     disconnect() {}
@@ -141,20 +142,50 @@ describe('搜尋列位置與事件', () => {
   })
 })
 
-describe('搜尋入口', () => {
-  it('不提供重複桌機標題，桌機搜尋入口位於內容區', () => {
+describe('搜尋入口（AC 4）', () => {
+  it('搜尋欄常駐在清單上方，且只有一個入口', () => {
     const wrapper = mountFishs()
-    expect(wrapper.find('[data-testid="desktop-page-title"]').exists()).toBe(false)
-    const entry = wrapper.get('[data-testid="desktop-search-entry"]')
-    expect(entry.element.closest('main')).not.toBeNull()
-    expect(entry.find('[data-variant="desktop"]').exists()).toBe(true)
+    const bar = wrapper.get('[data-testid="search-toggle"]')
+
+    expect(wrapper.findAll('[data-testid="search-toggle"]')).toHaveLength(1)
+    expect(bar.element.closest('main')).not.toBeNull()
+    expect(wrapper.html().indexOf('search-toggle')).toBeLessThan(
+      wrapper.html().indexOf('grid grid-cols-1')
+    )
   })
 
-  it.each(['desktop', 'mobile'])('%s 搜尋入口仍開啟相同 modal', async (variant) => {
+  it('點搜尋欄開啟相同的搜尋對話框', async () => {
     handleSearchToggleMock.mockClear()
     const wrapper = mountFishs()
-    await wrapper.get(`[data-variant="${variant}"]`).trigger('click')
+    await wrapper.get('[data-testid="search-toggle"]').trigger('click')
     expect(handleSearchToggleMock).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    ['未登入', null, false],
+    ['guest', { role: 'guest' }, false],
+    ['viewer', { role: 'viewer' }, true],
+    ['editor', { role: 'editor' }, true],
+    ['admin', { role: 'admin' }, true],
+  ])('%s 對話框的進階篩選：%s', (_label, user, expected) => {
+    authState.user = user
+    const wrapper = mountFishs()
+    const modal = wrapper.findComponent('[data-testid="fish-search-modal"]')
+    expect(modal.props('showAdvanced')).toBe(expected)
+  })
+})
+
+describe('搜尋沒有結果（AC 5）', () => {
+  it('清單為空且載入完成時顯示「找不到符合的魚」', async () => {
+    const wrapper = mountFishs({ items: [] })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="fish-list-empty"]').text()).toBe('找不到符合的魚')
+  })
+
+  it('有魚時不顯示空清單文字', async () => {
+    const wrapper = mountFishs({ items: [{ id: 1, name: 'A' }] })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="fish-list-empty"]').exists()).toBe(false)
   })
 })
 

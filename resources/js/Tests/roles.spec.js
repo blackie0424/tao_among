@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROLE_LABELS, canAccessAudio, canAccessLocation } from '@/constants/roles'
+import { ROLE_LABELS, canAccessAudio, canAccessLocation, isActivated } from '@/constants/roles'
 
 describe('角色中文名稱', () => {
   it('定義四種角色的統一名稱', () => {
@@ -35,5 +35,18 @@ describe('canAccessLocation', () => {
     [null, false],
   ])('returns location access for %s', (role, expected) => {
     expect(canAccessLocation(role)).toBe(expected)
+  })
+})
+describe('帳號是否已開通', () => {
+  it.each([
+    ['guest', false],
+    ['viewer', true],
+    ['editor', true],
+    ['admin', true],
+    [undefined, false],
+    [null, false],
+    ['', false],
+  ])('%s → %s', (role, expected) => {
+    expect(isActivated(role)).toBe(expected)
   })
 })

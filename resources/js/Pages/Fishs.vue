@@ -7,16 +7,11 @@
     mobileBackText="首頁"
     :showBottomNav="false"
   >
-    <!-- Mobile Actions Slot: 搜尋按鈕 -->
-    <template #mobile-actions>
-      <FishListNavActions variant="mobile" @toggle="handleSearchToggle" />
-    </template>
-
     <div class="container mx-auto px-4 pb-20 relative pt-6">
       <!-- 內容區 -->
       <main ref="scrollHost">
-        <div data-testid="desktop-search-entry" class="mb-4 hidden justify-end lg:flex">
-          <FishListNavActions variant="desktop" @toggle="handleSearchToggle" />
+        <div class="mb-4">
+          <SearchToggleButton label="搜尋魚類" @toggle="handleSearchToggle" />
         </div>
 
         <!-- 統一搜尋對話框元件 -->
@@ -26,6 +21,7 @@
           v-model:nameQuery="nameQuery"
           :searchOptions="searchOptions"
           :canAccessLocation="hasLocationAccess"
+          :showAdvanced="hasAdvancedSearch"
           @submit="submitUnifiedSearch"
           @reset="resetUnifiedSearch"
         />
@@ -39,11 +35,19 @@
           @clear-all="clearAllFilters"
         />
 
-        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
           <li v-for="(item, index) in items" :key="item.id">
             <FishCard :fish="item" :index="index" />
           </li>
         </ul>
+
+        <p
+          v-if="showEmptyState"
+          data-testid="fish-list-empty"
+          class="py-12 text-center text-elder-body text-elder-subtext"
+        >
+          找不到符合的魚
+        </p>
 
         <FishSearchLoading :show="isLoading" />
         <div ref="sentinel" class="h-8"></div>
@@ -56,10 +60,10 @@
 <script setup>
 import { Head, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import { canAccessLocation } from '@/constants/roles'
+import { canAccessLocation, isActivated } from '@/constants/roles'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
-import FishListNavActions from '@/Components/FishList/FishListNavActions.vue'
+import SearchToggleButton from '@/Components/UI/SearchToggleButton.vue'
 import FishSearchModal from '@/Components/FishList/FishSearchModal.vue'
 import FishSearchStatsBar from '@/Components/FishList/FishSearchStatsBar.vue'
 import FishSearchLoading from '@/Components/FishList/FishSearchLoading.vue'
@@ -71,7 +75,9 @@ import { useFishListCache } from '@/composables/useFishListCache'
 import { useFishSearch } from '@/composables/useFishSearch'
 
 const PAGE_TITLE = 'among no tao'
-const hasLocationAccess = computed(() => canAccessLocation(usePage().props.auth?.user?.role))
+const userRole = computed(() => usePage().props.auth?.user?.role)
+const hasLocationAccess = computed(() => canAccessLocation(userRole.value))
+const hasAdvancedSearch = computed(() => isActivated(userRole.value))
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -159,8 +165,14 @@ watch(
   { immediate: true }
 )
 
+// ── 搜尋沒有結果：初始載入流程跑完、沒在載入、也不是游標失效時才算「沒有結果」──
+const initialized = ref(false)
+const showEmptyState = computed(
+  () => initialized.value && !isLoading.value && !showCursorError.value && items.value.length === 0
+)
+
 // ── 初始化 ─────────────────────────────────────────────────────
-onMounted(async () => {
+const initList = async () => {
   const restored = await restoreStateFromStorage()
   if (restored && items.value.length) {
     initObserver()
@@ -185,6 +197,14 @@ onMounted(async () => {
     if (!items.value.length) fetchPage({})
   }
   initObserver()
+}
+
+onMounted(async () => {
+  try {
+    await initList()
+  } finally {
+    initialized.value = true
+  }
 })
 
 onBeforeUnmount(() => {

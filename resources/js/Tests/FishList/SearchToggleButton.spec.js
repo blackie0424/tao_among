@@ -24,4 +24,10 @@ describe('SearchToggleButton', () => {
     )
     expect(wrapper.get('svg').attributes('aria-hidden')).toBe('true')
   })
+
+  it('是常駐的圓角搜尋欄：滿版、52px 高、細框', () => {
+    expect(mount(SearchToggleButton).get('button').classes()).toEqual(
+      expect.arrayContaining(['w-full', 'h-[52px]', 'rounded-full', 'border', 'border-rule-strong'])
+    )
+  })
 })

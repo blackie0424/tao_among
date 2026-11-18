@@ -2,7 +2,7 @@
   <ItemCard
     :href="`/fish/${fish.id}`"
     :imageUrl="fish.display_image_url || fish.image_url"
-    :title="fish.name"
+    :title="displayName"
     :imageStyle="displayImgStyle"
     :audioUrl="hasAudioAccess ? fish.audio_url : null"
     :index="index"
@@ -30,6 +30,9 @@ const props = defineProps({
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(props.fish.display_image_position, props.fish.display_image_scale)
 )
+
+const UNNAMED_FISH = '未命名'
+const displayName = computed(() => props.fish.name?.trim() || UNNAMED_FISH)
 
 const hasAudioAccess = computed(() => canAccessAudio(usePage().props.auth?.user?.role))
 </script>
