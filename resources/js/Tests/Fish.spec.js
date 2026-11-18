@@ -434,3 +434,42 @@ it('刪魚確認保留不可復原文字，取消不送出、確認才送出', a
   expect(router.delete).toHaveBeenCalledWith('/fish/1')
   confirm.mockRestore()
 })
+
+describe('分頁選中標示與內容一致（#132 AC 1）', () => {
+  const selectedLabels = (wrapper) =>
+    wrapper
+      .get('[data-testid="fish-tab-bar"]')
+      .findAll('button')
+      .filter((b) => b.classes().includes('border-brand'))
+      .map((b) => b.text())
+
+  it.each(['audio', 'advanced', 'reference', 'nonexistent'])(
+    'viewer 指定不可見或無效分頁 %s：只有「基本」被選中且基本內容可見',
+    async (tab) => {
+      window.history.replaceState({}, '', '/fish/1?tab=' + tab)
+      mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'viewer' } } } })
+      const wrapper = mountFish()
+      await nextTick()
+
+      expect(selectedLabels(wrapper)).toEqual(['基本'])
+      expect(wrapper.get('[data-testid="basic-tab"]').isVisible()).toBe(true)
+      expect(wrapper.get('[data-testid="local-tab"]').isVisible()).toBe(false)
+    }
+  )
+
+  it('點擊分頁後，選中標示與可見內容一起切換', async () => {
+    window.history.replaceState({}, '', '/fish/1')
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'viewer' } } } })
+    const wrapper = mountFish()
+    const local = wrapper
+      .get('[data-testid="fish-tab-bar"]')
+      .findAll('button')
+      .find((b) => b.text() === '地方知識')
+
+    await local.trigger('click')
+
+    expect(selectedLabels(wrapper)).toEqual(['地方知識'])
+    expect(wrapper.get('[data-testid="local-tab"]').isVisible()).toBe(true)
+    expect(wrapper.get('[data-testid="basic-tab"]').isVisible()).toBe(false)
+  })
+})
