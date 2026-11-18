@@ -13,7 +13,7 @@
       <!-- 主內容 -->
       <div class="flex-1 min-w-0">
         <!-- 分區 Tab 導覽 -->
-        <div class="sticky top-0 lg:top-20 z-20 bg-gray-50 -mx-4 px-4 pb-2">
+        <div class="sticky top-0 lg:top-20 z-20 bg-paper -mx-4 px-4 pb-2">
           <FishTabBar :tabs="visibleTabs" :activeTab="activeTab" @select="switchTab" />
         </div>
 
@@ -32,8 +32,8 @@
                 ]"
               />
               <div aria-label="魚類刪除與合併" class="flex flex-wrap gap-3">
-                <Link :href="`/fish/${fish.id}/merge`" class="rounded border border-red-600 px-4 py-2 text-red-700 hover:bg-red-50">合併魚類</Link>
-                <button @click="confirmDelete" class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700">刪除魚類</button>
+                <Link :href="`/fish/${fish.id}/merge`" class="inline-flex items-center rounded-lg border border-red-600 px-4 min-h-touch-secondary text-elder-body text-red-700 hover:bg-red-50">合併魚類</Link>
+                <button @click="confirmDelete" class="inline-flex items-center rounded-lg bg-red-600 px-4 min-h-touch-secondary text-elder-body text-white hover:bg-red-700">刪除魚類</button>
               </div>
             </div>
             <FishGridLayout />
@@ -104,17 +104,17 @@
               v-if="isEditor"
               :items="[{ label: '新增發音', href: `/fish/${fish.id}/audio/create` }]"
             />
-            <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div class="bg-paper-raised border border-rule-strong p-6 space-y-4">
               <h2 class="text-elder-name font-bold text-elder-text">發音</h2>
-              <div v-if="fish.audio_url" class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+              <div v-if="fish.audio_url" class="flex items-center gap-4 p-4 border border-rule">
                 <Volume :audioUrl="fish.audio_url" />
-                <span class="text-elder-body text-gray-700">目前發音檔</span>
+                <span class="text-elder-body text-elder-text">目前發音檔</span>
               </div>
               <p v-else class="text-elder-body text-elder-subtext">尚無發音資料</p>
               <Link
                 v-if="isEditor"
                 :href="`/fish/${fish.id}/audio-list`"
-                class="inline-flex items-center gap-2 text-elder-body text-blue-600 hover:text-blue-700 underline"
+                class="inline-flex items-center gap-2 min-h-touch-secondary text-elder-body text-brand hover:text-brand-dark underline underline-offset-4"
               >
                 管理所有發音
               </Link>

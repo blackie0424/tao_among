@@ -48,21 +48,33 @@ describe('FishTabBar', () => {
     expect(buttons.slice(3).every((button) => button.classes().includes('col-span-3'))).toBe(true)
   })
 
-  it('以淺灰圓角格顯示分頁，並標示目前選中項目', async () => {
+  it('選中格為主色 2px 框加粗體，未選中格為淡棕 1px 框加次要字色', async () => {
     const wrapper = mountTabBar({ activeTab: 'local' })
     const [basic, local] = wrapper.findAll('button')
 
-    expect(basic.classes()).toContain('bg-gray-100')
-    expect(basic.classes()).toContain('text-elder-subtext')
-    expect(basic.classes()).not.toContain('bg-blue-100')
-    expect(basic.classes()).not.toContain('text-blue-700')
-    expect(basic.classes()).toContain('rounded-lg')
-    expect(local.classes()).toContain('bg-blue-100')
-    expect(local.classes()).toContain('text-blue-700')
-    expect(local.classes()).not.toContain('bg-gray-100')
+    expect(local.classes()).toEqual(
+      expect.arrayContaining(['border-2', 'border-brand', 'text-brand', 'font-bold'])
+    )
+    expect(local.classes()).not.toContain('border-rule-strong')
     expect(local.classes()).not.toContain('text-elder-subtext')
+
+    expect(basic.classes()).toEqual(
+      expect.arrayContaining(['border', 'border-rule-strong', 'text-elder-subtext'])
+    )
+    expect(basic.classes()).not.toContain('border-2')
+    expect(basic.classes()).not.toContain('border-brand')
+    expect(basic.classes()).not.toContain('font-bold')
+
     await basic.trigger('click')
     expect(wrapper.emitted('select')).toEqual([['basic']])
+  })
+
+  it('每格 18px 字、至少 48px 高，四字標籤不換行', () => {
+    const buttons = mountTabBar().findAll('button')
+
+    expect(buttons.every((b) => b.classes().includes('text-elder-body'))).toBe(true)
+    expect(buttons.every((b) => b.classes().includes('min-h-touch-secondary'))).toBe(true)
+    expect(buttons.every((b) => b.classes().includes('whitespace-nowrap'))).toBe(true)
   })
 
   it('桌機改為單列且依文字寬度排列', () => {
