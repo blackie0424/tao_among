@@ -47,6 +47,14 @@ import { useAudioPlayback, PlaybackState } from '../composables/useAudioPlayback
 import audioPlayerService from '../services/AudioPlayerService.js'
 import audioNetworkService from '../services/AudioNetworkService.js'
 
+// #132 AC 6：各狀態的按鈕 class（固定預期值）。待播放與播放中用主色；錯誤紅、重試黃維持狀態色。
+const IDLE_CLASSES =
+  'bg-paper-raised border border-brand hover:bg-paper hover:border-brand-dark focus-visible:ring-2 focus-visible:ring-brand cursor-pointer'
+const PLAYING_CLASSES = 'bg-brand border border-brand ring-2 ring-brand/30 cursor-not-allowed'
+const ERROR_CLASSES =
+  'bg-red-500 hover:bg-red-600 focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer'
+const RETRYING_CLASSES = 'bg-yellow-500 cursor-not-allowed animate-pulse'
+
 // Mock Audio constructor with more comprehensive functionality
 const createMockAudio = () => ({
   src: '',
@@ -103,7 +111,7 @@ describe('useAudioPlayback', () => {
       expect(composable.isPlaying.value).toBe(false)
       expect(composable.hasError.value).toBe(false)
       expect(composable.isClickable.value).toBe(true)
-      expect(composable.buttonClasses.value).toBe('bg-gray-200 hover:bg-gray-300 cursor-pointer')
+      expect(composable.buttonClasses.value).toBe(IDLE_CLASSES)
       expect(composable.buttonTitle.value).toBe('點擊播放音頻')
     })
   })
@@ -129,7 +137,7 @@ describe('useAudioPlayback', () => {
 
       expect(composable.isPlaying.value).toBe(true)
       expect(composable.isClickable.value).toBe(false)
-      expect(composable.buttonClasses.value).toBe('bg-blue-500 cursor-not-allowed')
+      expect(composable.buttonClasses.value).toBe(PLAYING_CLASSES)
       expect(composable.buttonTitle.value).toBe('正在播放...')
     })
 
@@ -182,6 +190,7 @@ describe('useAudioPlayback', () => {
       expect(composable.hasError.value).toBe(true)
       expect(composable.error.value).toBe('播放失敗')
       expect(composable.retryCount.value).toBe(1)
+      expect(composable.buttonClasses.value).toBe(ERROR_CLASSES)
     })
 
     it('錯誤狀態應該正確更新視覺樣式', async () => {
@@ -190,7 +199,7 @@ describe('useAudioPlayback', () => {
 
       await composable.playAudio()
 
-      expect(composable.buttonClasses.value).toBe('bg-red-500 hover:bg-red-600 cursor-pointer')
+      expect(composable.buttonClasses.value).toBe(ERROR_CLASSES)
       expect(composable.buttonTitle.value).toBe('播放失敗，點擊重試 (1/3)')
       expect(composable.isClickable.value).toBe(true)
     })
@@ -301,7 +310,7 @@ describe('useAudioPlayback', () => {
 
       // 檢查重試狀態
       expect(composable.playbackState.value).toBe(PlaybackState.RETRYING)
-      expect(composable.buttonClasses.value).toBe('bg-yellow-500 cursor-not-allowed animate-pulse')
+      expect(composable.buttonClasses.value).toBe(RETRYING_CLASSES)
       expect(composable.buttonTitle.value).toContain('正在重試...')
       expect(composable.isClickable.value).toBe(false)
 
@@ -531,5 +540,16 @@ describe('useAudioPlayback', () => {
       expect(compatibility.isSupported).toBe(false)
       expect(compatibility.recommendation).toContain('建議使用')
     })
+  })
+})
+
+describe('useAudioPlayback 各狀態顏色不含 Tailwind 藍或灰（#132 AC 6）', () => {
+  it.each([
+    ['idle', IDLE_CLASSES],
+    ['playing', PLAYING_CLASSES],
+    ['error', ERROR_CLASSES],
+    ['retrying', RETRYING_CLASSES],
+  ])('%s', (_state, classes) => {
+    expect(classes).not.toMatch(/(?:bg|text|border|ring)-(?:blue|gray)-\d/)
   })
 })
