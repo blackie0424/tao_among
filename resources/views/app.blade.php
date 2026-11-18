@@ -7,13 +7,13 @@
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1976d2">
+    <meta name="theme-color" content="#2f5d62">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="達悟魚類圖鑑">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="達悟魚類圖鑑">
-    <meta name="msapplication-TileColor" content="#1976d2">
+    <meta name="msapplication-TileColor" content="#2f5d62">
     <meta name="msapplication-tap-highlight" content="no">
     
     <!-- Icons -->
@@ -25,6 +25,11 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
     
+    <!-- 魚名與品牌名用思源宋體，載入前先用系統宋體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+
     @vite(['resources/css/app.css', 'resources/css/fish.css', 'resources/js/app.js'])
     @inertiaHead
     

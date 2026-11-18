@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="inline-flex min-h-touch-secondary items-center gap-2 rounded-xl bg-blue-700 px-4 text-elder-body font-bold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+    class="inline-flex h-[52px] min-h-touch-secondary w-full items-center gap-3 rounded-full border border-rule-strong bg-paper-raised px-5 text-elder-body text-elder-subtext hover:border-brand focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
     aria-label="展開搜尋篩選"
     @click="$emit('toggle', $event)"
   >

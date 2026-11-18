@@ -63,6 +63,8 @@ import { usePage } from '@inertiajs/vue3'
 import LoadingBar from '@/Components/UI/LoadingBar.vue'
 import { getResponsiveImageUrls, isResponsiveWebp } from '@/composables/useResponsiveImage.js'
 
+const emit = defineEmits(['failed'])
+
 const props = defineProps({
   src: String,
   alt: String,
@@ -243,6 +245,7 @@ function onError() {
   // 若原始格式也失敗，則顯示預設圖片
   loading.value = false
   error.value = true
+  emit('failed')
 }
 
 // 當 src 改變時重設狀態（但檢查是否已快取）

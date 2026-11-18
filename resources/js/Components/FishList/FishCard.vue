@@ -2,10 +2,13 @@
   <ItemCard
     :href="`/fish/${fish.id}`"
     :imageUrl="fish.display_image_url || fish.image_url"
-    :title="fish.name"
+    :title="displayName"
     :imageStyle="displayImgStyle"
     :audioUrl="hasAudioAccess ? fish.audio_url : null"
     :index="index"
+    variant="fish"
+    :gated="gated"
+    @blocked="$emit('blocked', $event)"
   />
 </template>
 
@@ -25,11 +28,20 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  gated: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+defineEmits(['blocked'])
 
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(props.fish.display_image_position, props.fish.display_image_scale)
 )
+
+const UNNAMED_FISH = '未命名'
+const displayName = computed(() => props.fish.name?.trim() || UNNAMED_FISH)
 
 const hasAudioAccess = computed(() => canAccessAudio(usePage().props.auth?.user?.role))
 </script>

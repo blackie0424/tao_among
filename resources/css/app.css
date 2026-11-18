@@ -125,17 +125,17 @@ footer {
 
 /* CSS Variables */
 :root {
-  --bg-primary: #f3f4f6;
-  /* bg-gray-100 */
+  --bg-primary: #f4efe6;
+  /* 紙色 */
   --bg-card: #ffffff;
   /* Card white background */
   --bg-info: #eff6ff;
   /* bg-blue-50 */
   --bg-buttons: #e5e7eb;
   /* bg-gray-200 */
-  --text-primary: #1f2937;
-  /* text-gray-800 */
-  --text-secondary: #4b5563;
+  --text-primary: #2a2622;
+  /* 墨黑 */
+  --text-secondary: #6b6358;
   /* text-gray-600 */
   --border-card: #beb4fa;
   /* Card border */
@@ -172,6 +172,7 @@ footer {
 /* Apply variables */
 body {
   background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Theme toggle button */

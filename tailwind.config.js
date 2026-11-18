@@ -13,6 +13,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+        serif: ['"Noto Serif TC"', '"Source Han Serif TC"', '"Songti TC"', 'serif'],
       },
       spacing: {
         128: '32rem', // 512px
@@ -29,9 +30,13 @@ export default {
       // 長者可用性顏色規格 (C3)
       colors: {
         elder: {
-          text:    '#16181d',
-          subtext: '#3f454c',
+          text:    '#2a2622',
+          subtext: '#6b6358',
         },
+        // 博物誌配色（見 design-spec.md）
+        paper: { DEFAULT: '#f4efe6', raised: '#faf7f0' },
+        rule:  { DEFAULT: '#d9d0c0', strong: '#cfc5b3' },
+        brand: { DEFAULT: '#2f5d62', dark: '#244a4e' },
       },
       // 長者可用性觸控目標 (C2)
       minHeight: {

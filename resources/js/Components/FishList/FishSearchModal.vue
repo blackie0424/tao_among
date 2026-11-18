@@ -6,7 +6,7 @@
       @click.self="handleClose"
     >
       <div
-        class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-lg p-6 relative text-xl"
+        class="bg-paper dark:bg-gray-800 w-full max-w-md rounded-xl border border-rule-strong p-6 relative text-xl"
       >
         <button
           class="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
@@ -17,53 +17,55 @@
         </button>
         <h2 class="font-semibold mb-4 text-gray-800 dark:text-gray-100">條件搜尋</h2>
         <form @submit.prevent="handleSubmit" class="space-y-5">
-          <!-- 下拉：族群 -->
-          <div>
-            <label class="block mb-1 text-gray-600 dark:text-gray-300">部落</label>
-            <select
-              v-model="localFilters.tribe"
-              class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
-            >
-              <option value="">請選擇部落</option>
-              <option v-for="t in searchOptions.tribes" :key="t" :value="t">{{ t }}</option>
-            </select>
-          </div>
-          <!-- 下拉：食物分類 -->
-          <div>
-            <label class="block mb-1 text-gray-600 dark:text-gray-300">分類</label>
-            <select
-              v-model="localFilters.food_category"
-              class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
-            >
-              <option value="">請選擇分類</option>
-              <option v-for="fc in searchOptions.dietaryClassifications" :key="fc" :value="fc">
-                {{ optionLabel(fc) }}
-              </option>
-            </select>
-          </div>
-          <!-- 下拉：魚鱗的處理方式 -->
-          <div>
-            <label class="block mb-1 text-gray-600 dark:text-gray-300">魚鱗的處理</label>
-            <select
-              v-model="localFilters.processing_method"
-              class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
-            >
-              <option value="">請選擇魚鱗的處理方式</option>
-              <option v-for="pm in searchOptions.processingMethods" :key="pm" :value="pm">
-                {{ optionLabel(pm) }}
-              </option>
-            </select>
-          </div>
-          <!-- 文字：捕獲地點 -->
-          <div v-if="canAccessLocation">
-            <label class="block mb-1 text-gray-600 dark:text-gray-300">捕獲地點</label>
-            <input
-              v-model="localFilters.capture_location"
-              type="text"
-              placeholder="可留空"
-              class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-            />
-          </div>
+          <template v-if="showAdvanced">
+            <!-- 下拉：族群 -->
+            <div>
+              <label class="block mb-1 text-gray-600 dark:text-gray-300">部落</label>
+              <select
+                v-model="localFilters.tribe"
+                class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">請選擇部落</option>
+                <option v-for="t in searchOptions.tribes" :key="t" :value="t">{{ t }}</option>
+              </select>
+            </div>
+            <!-- 下拉：食物分類 -->
+            <div>
+              <label class="block mb-1 text-gray-600 dark:text-gray-300">分類</label>
+              <select
+                v-model="localFilters.food_category"
+                class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">請選擇分類</option>
+                <option v-for="fc in searchOptions.dietaryClassifications" :key="fc" :value="fc">
+                  {{ optionLabel(fc) }}
+                </option>
+              </select>
+            </div>
+            <!-- 下拉：魚鱗的處理方式 -->
+            <div>
+              <label class="block mb-1 text-gray-600 dark:text-gray-300">魚鱗的處理</label>
+              <select
+                v-model="localFilters.processing_method"
+                class="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">請選擇魚鱗的處理方式</option>
+                <option v-for="pm in searchOptions.processingMethods" :key="pm" :value="pm">
+                  {{ optionLabel(pm) }}
+                </option>
+              </select>
+            </div>
+            <!-- 文字：捕獲地點 -->
+            <div v-if="canAccessLocation">
+              <label class="block mb-1 text-gray-600 dark:text-gray-300">捕獲地點</label>
+              <input
+                v-model="localFilters.capture_location"
+                type="text"
+                placeholder="可留空"
+                class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+          </template>
           <!-- 文字：名稱關鍵字 -->
           <div>
             <label class="block mb-1 text-gray-600 dark:text-gray-300">名稱</label>
@@ -71,7 +73,7 @@
               v-model="localNameQuery"
               type="text"
               placeholder="可留空"
-              class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div class="flex justify-between items-center pt-2">
@@ -84,7 +86,7 @@
             </button>
             <button
               type="submit"
-              class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              class="px-4 py-2 rounded bg-brand text-white hover:bg-brand-dark"
             >
               搜尋
             </button>
@@ -109,6 +111,11 @@ const props = defineProps({
     default: false,
   },
   canAccessLocation: {
+    type: Boolean,
+    default: true,
+  },
+  // 進階篩選（部落、分類、魚鱗處理、地點）只給已開通帳號；其餘只有魚名欄位
+  showAdvanced: {
     type: Boolean,
     default: true,
   },

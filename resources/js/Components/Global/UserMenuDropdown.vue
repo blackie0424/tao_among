@@ -2,7 +2,7 @@
   <div>
     <!-- Dropdown Panel -->
     <div
-      class="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in-down"
+      class="absolute right-0 top-full mt-2 w-64 bg-paper rounded-xl border border-rule-strong py-1 z-50 animate-fade-in-down"
     >
       <!-- User Info Header (optional) -->
       <div
@@ -14,7 +14,7 @@
         <div
           v-if="roleLabel"
           data-testid="user-role-label"
-          class="text-elder-aux text-blue-700 font-medium mt-0.5"
+          class="text-elder-aux text-brand font-medium mt-0.5"
         >
           {{ roleLabel }}
         </div>
@@ -25,7 +25,7 @@
         <Link
           href="/workspace"
           data-testid="link-workspace"
-          class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-gray-50 hover:text-blue-700 transition"
+          class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-paper-raised hover:text-brand transition"
           @click="$emit('close')"
         >
           田調工作區
@@ -37,7 +37,7 @@
         v-if="user?.role === 'admin'"
         href="/admin"
         data-testid="link-admin-hub"
-        class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-gray-50 hover:text-blue-700 transition"
+        class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-elder-text hover:bg-paper-raised hover:text-brand transition"
         @click="$emit('close')"
       >
         系統管理後台
@@ -48,7 +48,7 @@
         href="/logout"
         method="post"
         as="button"
-        class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-red-700 hover:bg-gray-50 transition"
+        class="flex min-h-touch-primary w-full items-center px-4 text-elder-body text-red-700 hover:bg-paper-raised transition"
       >
         登出
       </Link>
