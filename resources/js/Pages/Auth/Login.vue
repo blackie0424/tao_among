@@ -15,7 +15,7 @@
           <p class="text-elder-body font-medium text-gray-700">請使用 LINE 登入</p>
         </div>
         <a
-          href="/auth/line"
+          :href="lineLoginUrl"
           class="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-lg text-white font-medium text-elder-body min-h-touch-primary transition hover:opacity-90 active:scale-95"
           style="background-color: #06c755"
         >
@@ -94,11 +94,16 @@
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed } from 'vue'
 
-const redirectUrl = computed(() => {
-  if (typeof window === 'undefined') return '/fishs'
-  const urlParams = new URLSearchParams(window.location.search)
-  return urlParams.get('redirect') || '/fishs'
+// 登入後要回去的站內路徑；沒有就不帶，由後端決定（intended 或首頁）
+const redirectParam = computed(() => {
+  if (typeof window === 'undefined') return null
+  return new URLSearchParams(window.location.search).get('redirect')
 })
+
+const withRedirect = (base) =>
+  redirectParam.value ? `${base}?redirect=${encodeURIComponent(redirectParam.value)}` : base
+
+const lineLoginUrl = computed(() => withRedirect('/auth/line'))
 
 const form = useForm({
   email: '',
@@ -106,6 +111,6 @@ const form = useForm({
 })
 
 const submit = () => {
-  form.post(`/login?redirect=${encodeURIComponent(redirectUrl.value)}`)
+  form.post(withRedirect('/login'))
 }
 </script>

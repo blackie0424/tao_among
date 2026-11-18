@@ -17,7 +17,7 @@ it('admin_帳號可以正常登入', function () {
         'password' => 'secret',
     ]);
 
-    $response->assertRedirect('/fishs');
+    $response->assertRedirect('/');
     $this->assertAuthenticatedAs($admin);
 });
 
