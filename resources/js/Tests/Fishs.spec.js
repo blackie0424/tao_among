@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import Fishs from '@/Pages/Fishs.vue'
 
-const { clearAllFiltersMock, handleSearchToggleMock, authState } = vi.hoisted(() => ({
+const { clearAllFiltersMock, handleSearchToggleMock, authState, listState } = vi.hoisted(() => ({
   clearAllFiltersMock: vi.fn(),
   handleSearchToggleMock: vi.fn(),
   authState: { user: null },
+  listState: { showCursorError: false },
 }))
 
 // ── Inertia mock ──────────────────────────────────────────────
@@ -50,7 +51,7 @@ vi.mock('@/Components/FishList/FishSearchLoading.vue', () => ({
   default: { template: '<div />', props: ['show'] },
 }))
 vi.mock('@/Components/FishList/FishSearchCursorErrorBanner.vue', () => ({
-  default: { template: '<div />', props: ['show'] },
+  default: { template: '<div v-if="show" data-testid="cursor-error" />', props: ['show'] },
 }))
 vi.mock('@/Components/FishList/FishCard.vue', () => ({
   default: { template: '<li data-testid="fish-card" />', props: ['fish', 'index'] },
@@ -64,7 +65,7 @@ vi.mock('@/composables/useFishList', async () => {
       items: ref([]),
       pageInfo: ref({ hasMore: false, nextCursor: null }),
       isLoading: ref(false),
-      showCursorError: ref(false),
+      showCursorError: ref(listState.showCursorError),
       sentinel: ref(null),
       fetchPage: vi.fn(),
       performSearch: vi.fn(),
@@ -103,6 +104,7 @@ vi.mock('@/composables/useFishSearch', async () => {
 // ── IntersectionObserver stub ────────────────────────────────
 beforeEach(() => {
   authState.user = null
+  listState.showCursorError = false
   global.IntersectionObserver = class {
     observe() {}
     disconnect() {}
@@ -180,6 +182,15 @@ describe('搜尋沒有結果（AC 5）', () => {
     const wrapper = mountFishs({ items: [] })
     await flushPromises()
     expect(wrapper.get('[data-testid="fish-list-empty"]').text()).toBe('找不到符合的魚')
+  })
+
+  it('游標失效時顯示錯誤提示，不顯示「找不到符合的魚」', async () => {
+    listState.showCursorError = true
+    const wrapper = mountFishs({ items: [] })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="cursor-error"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="fish-list-empty"]').exists()).toBe(false)
   })
 
   it('有魚時不顯示空清單文字', async () => {

@@ -6,6 +6,7 @@
     :imageStyle="displayImgStyle"
     :audioUrl="hasAudioAccess ? fish.audio_url : null"
     :index="index"
+    variant="fish"
   />
 </template>
 

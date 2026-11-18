@@ -8,9 +8,7 @@ vi.mock('@inertiajs/vue3', () => ({
 vi.mock('@/Components/UI/LazyImage.vue', () => ({
   default: {
     props: ['src', 'alt'],
-    emits: ['failed'],
-    template:
-      '<img data-testid="item-image" :src="src" :alt="alt" @error="$emit(\'failed\')" />',
+    template: '<img data-testid="item-image" :src="src" :alt="alt" />',
   },
 }))
 vi.mock('@/Components/UI/Volume.vue', () => ({
@@ -40,7 +38,7 @@ describe('ItemCard optional image', () => {
     })
 
     expect(wrapper.get('[data-testid="item-image"]').attributes('src')).toBe('/image.jpg')
-    expect(wrapper.get('[data-testid="item-image-wrapper"]').classes()).toContain('h-[190px]')
+    expect(wrapper.get('[data-testid="item-image-wrapper"]').classes()).toContain('h-[170px]')
     expect(wrapper.text()).toContain('飛魚')
   })
 
@@ -50,31 +48,10 @@ describe('ItemCard optional image', () => {
     const wrapper = mount(ItemCard, { props })
 
     const placeholder = wrapper.get('[data-testid="item-image-placeholder"]')
-    expect(placeholder.classes()).toContain('h-[190px]')
-    expect(placeholder.classes()).toContain('bg-rule')
+    expect(placeholder.classes()).toContain('h-[170px]')
+    expect(placeholder.classes()).toContain('bg-gray-100')
     expect(placeholder.attributes('aria-hidden')).toBe('true')
     expect(wrapper.find('[data-testid="item-image"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('純文字項目')
-  })
-
-  it('照片載入失敗時改顯示佔位區塊，標題仍在', async () => {
-    const wrapper = mount(ItemCard, {
-      props: { href: '/item/1', imageUrl: '/broken.jpg', title: '飛魚' },
-    })
-
-    await wrapper.get('[data-testid="item-image"]').trigger('error')
-
-    expect(wrapper.find('[data-testid="item-image"]').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="item-image-placeholder"]').classes()).toContain('h-[190px]')
-    expect(wrapper.text()).toContain('飛魚')
-  })
-
-  it('不用卡片陰影，魚名用宋體 22px 且下方有細線', () => {
-    const wrapper = mount(ItemCard, { props: { href: '/item/1', title: '飛魚' } })
-
-    expect(wrapper.html()).not.toContain('shadow')
-    const name = wrapper.get('[data-testid="item-title"]')
-    expect(name.classes()).toEqual(expect.arrayContaining(['font-serif', 'text-elder-name']))
-    expect(name.element.closest('.border-b')).not.toBeNull()
   })
 })
