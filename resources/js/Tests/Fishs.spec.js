@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import Fishs from '@/Pages/Fishs.vue'
 
@@ -141,7 +141,9 @@ beforeEach(() => {
     observe(el) {
       this.targets.push(el)
     }
-    disconnect() {}
+    disconnect() {
+      this.disconnected = true
+    }
     unobserve() {}
   }
 })
@@ -160,8 +162,15 @@ const defaultProps = {
   searchStats: {},
 }
 
-const mountFishs = (propsData = {}, options = {}) =>
-  mount(Fishs, { props: { ...defaultProps, ...propsData }, ...options })
+// 每個測試結束都卸載，避免殘留的 resize 監聽干擾下一個測試
+const mounted = []
+afterEach(() => mounted.splice(0).forEach((w) => w.unmount()))
+
+const mountFishs = (propsData = {}, options = {}) => {
+  const wrapper = mount(Fishs, { props: { ...defaultProps, ...propsData }, ...options })
+  mounted.push(wrapper)
+  return wrapper
+}
 
 describe('搜尋列位置與事件', () => {
   it('篩選列位於搜尋對話框後、魚類格線前', () => {
@@ -433,6 +442,41 @@ describe('浮動搜尋鈕（#139）', () => {
       document.body.appendChild(header)
       mountFishs()
       expect(observers.find((o) => o.targets.length).options.rootMargin).toBe('-80px 0px 0px 0px')
+    })
+
+    it('視窗尺寸改變使導覽列底緣變成 88px：換成新的觀察範圍，舊的停止', () => {
+      const header = document.createElement('header')
+      let bottom = 80
+      header.getBoundingClientRect = () => ({ bottom })
+      document.body.appendChild(header)
+      const wrapper = mountFishs()
+      const first = observers.find((o) => o.targets.length)
+
+      bottom = 88
+      window.dispatchEvent(new Event('resize'))
+
+      const latest = observers.filter((o) => o.targets.length).at(-1)
+      expect(latest).not.toBe(first)
+      expect(latest.options.rootMargin).toBe('-88px 0px 0px 0px')
+      expect(first.disconnected).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('導覽列底緣沒變時，視窗尺寸改變不重建觀察', () => {
+      const wrapper = mountFishs()
+      const count = observers.length
+      window.dispatchEvent(new Event('resize'))
+      expect(observers).toHaveLength(count)
+      wrapper.unmount()
+    })
+
+    it('卸載後不再回應視窗尺寸改變', () => {
+      const wrapper = mountFishs()
+      wrapper.unmount()
+      mounted.length = 0
+      const count = observers.length
+      window.dispatchEvent(new Event('resize'))
+      expect(observers).toHaveLength(count)
     })
 
     it('沒有導覽列時不扣除', () => {

@@ -201,21 +201,28 @@ const searchBar = ref(null)
 const isSearchBarVisible = ref(true)
 const showFloatingSearch = computed(() => !isSearchBarVisible.value)
 let searchBarObserver = null
+let observedNavBottom = null
 
+const measureNavBottom = () =>
+  Math.max(0, Math.round(document.querySelector('header')?.getBoundingClientRect().bottom ?? 0))
+
+// 觀察範圍的上緣扣掉導覽列底緣，橫條被導覽列蓋住時也算看不到
 const observeSearchBar = () => {
   if (!searchBar.value) return
-  // 觀察範圍的上緣扣掉導覽列底緣，橫條被導覽列蓋住時也算看不到
-  const navBottom = Math.max(
-    0,
-    Math.round(document.querySelector('header')?.getBoundingClientRect().bottom ?? 0)
-  )
+  searchBarObserver?.disconnect()
+  observedNavBottom = measureNavBottom()
   searchBarObserver = new IntersectionObserver(
     ([entry]) => {
       isSearchBarVisible.value = entry.isIntersecting
     },
-    { rootMargin: `${-navBottom}px 0px 0px 0px` }
+    { rootMargin: `${-observedNavBottom}px 0px 0px 0px` }
   )
   searchBarObserver.observe(searchBar.value)
+}
+
+// 視窗大小改變（例如跨手機／桌機斷點）導覽列高度會變，底緣有變才重建觀察
+const refreshSearchBarObserver = () => {
+  if (measureNavBottom() !== observedNavBottom) observeSearchBar()
 }
 
 // ── 統計數字（仍依賴 props，保留在頁面層）──────────────────────
@@ -277,6 +284,7 @@ const initList = async () => {
 
 onMounted(async () => {
   observeSearchBar()
+  window.addEventListener('resize', refreshSearchBarObserver)
   try {
     await initList()
   } finally {
@@ -288,5 +296,6 @@ onBeforeUnmount(() => {
   if (items.value.length) saveStateToStorage()
   disconnectObserver()
   searchBarObserver?.disconnect()
+  window.removeEventListener('resize', refreshSearchBarObserver)
 })
 </script>
