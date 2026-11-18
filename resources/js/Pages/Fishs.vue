@@ -7,10 +7,10 @@
     mobileBackText="首頁"
     :showBottomNav="false"
   >
-    <div class="container mx-auto px-4 pb-20 relative pt-6">
+    <div class="container mx-auto px-4 pb-40 relative pt-6">
       <!-- 內容區 -->
       <main ref="scrollHost">
-        <div class="mb-4">
+        <div ref="searchBar" class="mb-4">
           <SearchToggleButton label="搜尋魚類" @toggle="handleSearchToggle" />
         </div>
 
@@ -22,8 +22,8 @@
           :searchOptions="searchOptions"
           :canAccessLocation="hasLocationAccess"
           :showAdvanced="hasAdvancedSearch"
-          @submit="submitUnifiedSearch"
-          @reset="resetUnifiedSearch"
+          @submit="submitAndScrollTop"
+          @reset="resetAndScrollTop"
         />
 
         <FishSearchStatsBar
@@ -67,7 +67,15 @@
       :pendingActivation="isPendingActivation"
       @close="closeLoginSheet"
     />
-    <BackToTopButton />
+    <!-- 右下角：回到頂端在上、搜尋在下（搜尋最常用，拇指最好按） -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+      <BackToTopButton />
+      <FloatingSearchButton
+        v-if="showFloatingSearch"
+        :filtered="appliedFilters.length > 0"
+        @click="openSearch"
+      />
+    </div>
   </FishAppLayout>
 </template>
 
@@ -85,6 +93,7 @@ import FishSearchCursorErrorBanner from '@/Components/FishList/FishSearchCursorE
 import FishCard from '@/Components/FishList/FishCard.vue'
 import GuestLoginSheet from '@/Components/FishList/GuestLoginSheet.vue'
 import BackToTopButton from '@/Components/UI/BackToTopButton.vue'
+import FloatingSearchButton from '@/Components/UI/FloatingSearchButton.vue'
 
 import { useFishList } from '@/composables/useFishList'
 import { useFishListCache } from '@/composables/useFishListCache'
@@ -173,6 +182,42 @@ const {
   removeFilter,
 } = useFishSearch(currentFilters, nameQuery, doSearch)
 
+// 浮動搜尋鈕不傳點擊事件：避免 Shift+點擊清空表單，圓點才會一直對應實際列表條件
+const openSearch = () => handleSearchToggle()
+
+// 送出／清除後回到最上方，讓使用者看到新結果與已套用的篩選標籤
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'instant' })
+const submitAndScrollTop = () => {
+  submitUnifiedSearch()
+  scrollToTop()
+}
+const resetAndScrollTop = () => {
+  resetUnifiedSearch()
+  scrollToTop()
+}
+
+// ── 上方搜尋橫條看不到（離開畫面或被黏住的導覽列蓋住）才顯示浮動搜尋鈕 ──
+const searchBar = ref(null)
+const isSearchBarVisible = ref(true)
+const showFloatingSearch = computed(() => !isSearchBarVisible.value)
+let searchBarObserver = null
+
+const observeSearchBar = () => {
+  if (!searchBar.value) return
+  // 觀察範圍的上緣扣掉導覽列底緣，橫條被導覽列蓋住時也算看不到
+  const navBottom = Math.max(
+    0,
+    Math.round(document.querySelector('header')?.getBoundingClientRect().bottom ?? 0)
+  )
+  searchBarObserver = new IntersectionObserver(
+    ([entry]) => {
+      isSearchBarVisible.value = entry.isIntersecting
+    },
+    { rootMargin: `${-navBottom}px 0px 0px 0px` }
+  )
+  searchBarObserver.observe(searchBar.value)
+}
+
 // ── 統計數字（仍依賴 props，保留在頁面層）──────────────────────
 const totalCount = computed(() => {
   const stat = props.searchStats && props.searchStats.total_results
@@ -231,6 +276,7 @@ const initList = async () => {
 }
 
 onMounted(async () => {
+  observeSearchBar()
   try {
     await initList()
   } finally {
@@ -241,5 +287,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (items.value.length) saveStateToStorage()
   disconnectObserver()
+  searchBarObserver?.disconnect()
 })
 </script>

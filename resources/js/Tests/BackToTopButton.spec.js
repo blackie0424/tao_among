@@ -49,14 +49,23 @@ describe('BackToTopButton（AC 10）', () => {
     expect(button(w).exists()).toBe(true)
   })
 
-  it('右下角 56px 圓鈕，點擊平滑捲回頂端', async () => {
+  it('56px 空心品牌色外框圓鈕（定位交給外層容器），點擊平滑捲回頂端', async () => {
     const w = mountButton()
     setScroll(2000)
     await w.vm.$nextTick()
     const btn = button(w)
     expect(btn.classes()).toEqual(
-      expect.arrayContaining(['fixed', 'bottom-6', 'right-6', 'h-14', 'w-14', 'rounded-full'])
+      expect.arrayContaining([
+        'h-14',
+        'w-14',
+        'rounded-full',
+        'border-2',
+        'border-brand',
+        'bg-paper-raised',
+        'text-brand',
+      ])
     )
+    expect(btn.classes()).not.toContain('fixed')
     await btn.trigger('click')
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' })
   })

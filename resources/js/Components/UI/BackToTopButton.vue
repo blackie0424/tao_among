@@ -3,7 +3,7 @@
     v-if="visible"
     type="button"
     aria-label="回到頂端"
-    class="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-brand bg-brand text-white hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
+    class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-brand bg-paper-raised text-brand hover:bg-rule focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
     @click="scrollToTop"
   >
     <svg

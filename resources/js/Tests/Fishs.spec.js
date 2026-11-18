@@ -2,9 +2,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import Fishs from '@/Pages/Fishs.vue'
 
-const { clearAllFiltersMock, handleSearchToggleMock, authState, listState } = vi.hoisted(() => ({
+const {
+  clearAllFiltersMock,
+  handleSearchToggleMock,
+  submitUnifiedSearchMock,
+  resetUnifiedSearchMock,
+  removeFilterMock,
+  authState,
+  listState,
+  searchState,
+  observers,
+} = vi.hoisted(() => ({
   clearAllFiltersMock: vi.fn(),
   handleSearchToggleMock: vi.fn(),
+  submitUnifiedSearchMock: vi.fn(),
+  resetUnifiedSearchMock: vi.fn(),
+  removeFilterMock: vi.fn(),
+  searchState: { applied: [] },
+  observers: [],
   authState: { user: null },
   listState: { showCursorError: false },
 }))
@@ -40,6 +55,7 @@ vi.mock('@/Components/FishList/FishSearchModal.vue', () => ({
   default: {
     template: '<div data-testid="fish-search-modal" />',
     props: ['show', 'filters', 'nameQuery', 'searchOptions', 'showAdvanced'],
+    emits: ['update:show', 'update:filters', 'update:nameQuery', 'submit', 'reset'],
   },
 }))
 vi.mock('@/Components/FishList/FishSearchStatsBar.vue', () => ({
@@ -99,12 +115,12 @@ vi.mock('@/composables/useFishSearch', async () => {
   return {
     useFishSearch: () => ({
       showSearchDialog: ref(false),
-      appliedFilters: ref([]),
+      appliedFilters: ref(searchState.applied),
       handleSearchToggle: handleSearchToggleMock,
-      submitUnifiedSearch: vi.fn(),
-      resetUnifiedSearch: vi.fn(),
+      submitUnifiedSearch: submitUnifiedSearchMock,
+      resetUnifiedSearch: resetUnifiedSearchMock,
       clearAllFilters: clearAllFiltersMock,
-      removeFilter: vi.fn(),
+      removeFilter: removeFilterMock,
     }),
   }
 })
@@ -113,8 +129,18 @@ vi.mock('@/composables/useFishSearch', async () => {
 beforeEach(() => {
   authState.user = null
   listState.showCursorError = false
+  searchState.applied = []
+  observers.length = 0
   global.IntersectionObserver = class {
-    observe() {}
+    constructor(callback, options) {
+      this.callback = callback
+      this.options = options
+      this.targets = []
+      observers.push(this)
+    }
+    observe(el) {
+      this.targets.push(el)
+    }
     disconnect() {}
     unobserve() {}
   }
@@ -134,7 +160,8 @@ const defaultProps = {
   searchStats: {},
 }
 
-const mountFishs = (propsData = {}) => mount(Fishs, { props: { ...defaultProps, ...propsData } })
+const mountFishs = (propsData = {}, options = {}) =>
+  mount(Fishs, { props: { ...defaultProps, ...propsData }, ...options })
 
 describe('搜尋列位置與事件', () => {
   it('篩選列位於搜尋對話框後、魚類格線前', () => {
@@ -354,5 +381,151 @@ describe('點魚卡的身分分流', () => {
 
   it('清單頁有回到頂端鈕', () => {
     expect(mountFishs().find('[data-testid="back-to-top"]').exists()).toBe(true)
+  })
+})
+
+// ──────────────────────────────────────────────
+// 浮動搜尋鈕（#139）
+// ──────────────────────────────────────────────
+describe('浮動搜尋鈕（#139）', () => {
+  const floating = (w) => w.find('button[aria-label^="搜尋魚類"][data-testid="floating-search"]')
+  // 回報上方搜尋橫條是否看得到（模擬 IntersectionObserver 的回呼）
+  const reportBarVisible = async (visible) => {
+    const barObserver = observers.find((o) => o.targets.length)
+    barObserver.callback([{ isIntersecting: visible }])
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    window.scrollTo = vi.fn()
+    handleSearchToggleMock.mockClear()
+    submitUnifiedSearchMock.mockClear()
+    resetUnifiedSearchMock.mockClear()
+    removeFilterMock.mockClear()
+    document.querySelectorAll('header').forEach((h) => h.remove())
+  })
+
+  describe('出現時機（AC 1）', () => {
+    it('剛載入、橫條看得到時不顯示', async () => {
+      const wrapper = mountFishs()
+      await flushPromises()
+      expect(floating(wrapper).exists()).toBe(false)
+    })
+
+    it('觀察的是含「搜尋魚類」按鈕的上方橫條', () => {
+      const wrapper = mountFishs({}, { attachTo: document.body })
+      const target = observers.find((o) => o.targets.length).targets[0]
+      expect(target.contains(wrapper.get('[data-testid="search-toggle"]').element)).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('橫條離開畫面（或整條被導覽列蓋住）後顯示；露出一部分又消失', async () => {
+      const wrapper = mountFishs()
+      await reportBarVisible(false)
+      expect(floating(wrapper).exists()).toBe(true)
+      await reportBarVisible(true)
+      expect(floating(wrapper).exists()).toBe(false)
+    })
+
+    it('觀察範圍的上緣扣掉黏在上方的導覽列底緣（量測值 80px）', () => {
+      const header = document.createElement('header')
+      header.getBoundingClientRect = () => ({ bottom: 80 })
+      document.body.appendChild(header)
+      mountFishs()
+      expect(observers.find((o) => o.targets.length).options.rootMargin).toBe('-80px 0px 0px 0px')
+    })
+
+    it('沒有導覽列時不扣除', () => {
+      mountFishs()
+      expect(observers.find((o) => o.targets.length).options.rootMargin).toBe('0px 0px 0px 0px')
+    })
+  })
+
+  describe('點擊（AC 2）', () => {
+    it('點浮動鈕開搜尋視窗，不捲動頁面', async () => {
+      const wrapper = mountFishs()
+      await reportBarVisible(false)
+      await floating(wrapper).trigger('click')
+      expect(handleSearchToggleMock).toHaveBeenCalledOnce()
+      expect(window.scrollTo).not.toHaveBeenCalled()
+    })
+
+    it('Shift+點擊不會清空篩選：不把點擊事件交給 handleSearchToggle，篩選條件不變', async () => {
+      const wrapper = mountFishs({ filters: { tribe: '紅頭' } })
+      await reportBarVisible(false)
+      await floating(wrapper).trigger('click', { shiftKey: true })
+      expect(handleSearchToggleMock).toHaveBeenCalledWith()
+      expect(wrapper.vm.currentFilters.tribe).toBe('紅頭')
+    })
+  })
+
+  describe('篩選小圓點（AC 3）', () => {
+    it('沒有套用篩選：無圓點，無障礙名稱為「搜尋魚類」', async () => {
+      const wrapper = mountFishs()
+      await reportBarVisible(false)
+      expect(wrapper.find('[data-testid="floating-search-dot"]').exists()).toBe(false)
+      expect(floating(wrapper).attributes('aria-label')).toBe('搜尋魚類')
+    })
+
+    it('有套用篩選：有圓點，無障礙名稱帶出「已套用篩選」，圓點本身不朗讀', async () => {
+      searchState.applied = [{ key: 'tribe', label: '部落', value: '紅頭' }]
+      const wrapper = mountFishs()
+      await reportBarVisible(false)
+      expect(floating(wrapper).attributes('aria-label')).toBe('搜尋魚類，已套用篩選')
+      expect(wrapper.get('[data-testid="floating-search-dot"]').attributes('aria-hidden')).toBe('true')
+    })
+  })
+
+  describe('送出後回到最上方（AC 4）', () => {
+    it('視窗按「搜尋」：執行搜尋並回到最上方（不用動畫）', () => {
+      const wrapper = mountFishs()
+      wrapper.getComponent('[data-testid="fish-search-modal"]').vm.$emit('submit')
+      expect(submitUnifiedSearchMock).toHaveBeenCalledOnce()
+      expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    })
+
+    it('視窗按「清除」：執行重置並回到最上方', () => {
+      const wrapper = mountFishs()
+      wrapper.getComponent('[data-testid="fish-search-modal"]').vm.$emit('reset')
+      expect(resetUnifiedSearchMock).toHaveBeenCalledOnce()
+      expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    })
+
+    it('移除上方篩選標籤：不捲動', () => {
+      const wrapper = mountFishs()
+      wrapper.getComponent({ name: 'FishSearchStatsBar' }).vm.$emit('remove-filter', 'tribe')
+      expect(removeFilterMock).toHaveBeenCalledWith('tribe')
+      expect(window.scrollTo).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('右下角兩顆按鈕與留白（AC 5）', () => {
+    it('搜尋鈕在「回到頂端」下方，同在固定於右下角的直向容器內', async () => {
+      const wrapper = mountFishs()
+      await reportBarVisible(false)
+      const back = wrapper.get('[data-testid="back-to-top"]').element
+      const search = floating(wrapper).element
+      const stack = search.parentElement
+      expect(stack.contains(back)).toBe(true)
+      expect(stack.className).toMatch(/\bfixed\b/)
+      expect(stack.className).toMatch(/\bbottom-6\b/)
+      expect(stack.className).toMatch(/\bright-6\b/)
+      expect(stack.className).toMatch(/\bflex-col\b/)
+      expect(stack.className).toMatch(/\bgap-3\b/)
+      expect(back.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('搜尋鈕是 56px 實心品牌色圓鈕', async () => {
+      const wrapper = mountFishs()
+      await reportBarVisible(false)
+      expect(floating(wrapper).classes()).toEqual(
+        expect.arrayContaining(['h-14', 'w-14', 'rounded-full', 'bg-brand', 'text-white'])
+      )
+    })
+
+    it('列表底部留白 160px（pb-40），容得下兩顆按鈕與間距', () => {
+      const wrapper = mountFishs()
+      expect(wrapper.get('main').element.parentElement.classList.contains('pb-40')).toBe(true)
+    })
   })
 })
