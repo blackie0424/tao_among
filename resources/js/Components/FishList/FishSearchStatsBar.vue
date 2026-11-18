@@ -11,7 +11,7 @@
         :key="`${filter.key}:${filter.value}`"
         type="button"
         :aria-label="`移除條件 ${filter.label}：${filter.value}`"
-        class="inline-flex min-h-touch-secondary items-center gap-2 rounded-xl border-2 border-blue-700 bg-white px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+        class="inline-flex min-h-touch-secondary items-center gap-2 rounded-xl border-2 border-brand bg-paper px-4 text-elder-body font-bold text-brand hover:bg-paper-raised focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
         @click="$emit('remove-filter', filter.key)"
       >
         <span class="max-w-[16rem] truncate">{{ filter.label }}：{{ filter.value }}</span>
@@ -21,7 +21,7 @@
       <button
         v-if="appliedFilters.length >= 2"
         type="button"
-        class="min-h-touch-secondary px-3 text-elder-body text-elder-subtext underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+        class="min-h-touch-secondary px-3 text-elder-body text-elder-subtext underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
         @click="$emit('clear-all')"
       >
         清除全部

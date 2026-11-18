@@ -6,7 +6,7 @@
       @click.self="handleClose"
     >
       <div
-        class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-lg p-6 relative text-xl"
+        class="bg-paper dark:bg-gray-800 w-full max-w-md rounded-xl border border-rule-strong p-6 relative text-xl"
       >
         <button
           class="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
