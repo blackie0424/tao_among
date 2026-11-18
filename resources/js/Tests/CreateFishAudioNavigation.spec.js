@@ -45,3 +45,12 @@ it('新增發音上傳失敗留頁顯示錯誤', async () => {
   expect(wrapper.text()).toContain('音訊上傳失敗')
   expect(router.visit).not.toHaveBeenCalled()
 })
+it('取得上傳網址的請求帶 CSRF token 與 JSON 標頭', async () => {
+  document.cookie = 'XSRF-TOKEN=' + encodeURIComponent('token-abc=') + '; path=/'
+  fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ url: 'https://example.test/upload' }) }).mockResolvedValueOnce({ ok: true })
+  await recordAndSubmit()
+  const [url, options] = fetch.mock.calls[0]
+  expect(url).toBe('/prefix/api/fish/4/storage/signed-upload-audio-url')
+  expect(options.headers['X-XSRF-TOKEN']).toBe('token-abc=')
+  expect(options.headers['Accept']).toBe('application/json')
+})
