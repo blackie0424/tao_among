@@ -1,6 +1,6 @@
 <template>
   <header class="z-30" :class="stickyMobile ? 'sticky top-4' : 'relative lg:sticky lg:top-4'">
-    <div class="container mx-auto max-w-7xl rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="container mx-auto max-w-7xl border-b border-rule bg-paper">
       <!-- Mobile navigation -->
       <div class="flex h-16 w-full items-center gap-2 px-3 lg:hidden">
         <div class="flex min-w-0 flex-1 items-center gap-2">
@@ -8,7 +8,7 @@
             v-if="mobileBackUrl === '/'"
             href="/"
             data-testid="nav-brand"
-            class="shrink-0 text-elder-name font-bold text-elder-text"
+            class="shrink-0 font-serif text-elder-name tracking-wider text-elder-text"
           >
             among no tao
           </Link>
@@ -17,7 +17,7 @@
               :href="mobileBackUrl"
               :aria-label="`返回${mobileBackText}`"
               data-testid="nav-back-button"
-              class="inline-flex min-h-touch-secondary shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border-2 border-blue-700 bg-white px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+              class="inline-flex min-h-touch-secondary shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border border-brand bg-paper px-4 text-elder-body font-bold text-brand hover:bg-paper-raised focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
             >
               ← {{ mobileBackText }}
             </Link>
@@ -39,7 +39,7 @@
               type="button"
               aria-label="我的帳號"
               data-testid="nav-user-button-mobile"
-              class="flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+              class="flex h-12 w-12 items-center justify-center rounded-full border border-brand bg-paper-raised text-brand hover:bg-rule focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
               @click="showMobileUserMenu = !showMobileUserMenu"
             >
               <svg
@@ -61,7 +61,7 @@
               v-else
               :href="loginUrl"
               data-testid="nav-login-mobile"
-              class="inline-flex min-h-touch-secondary items-center rounded-xl px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+              class="inline-flex min-h-touch-secondary items-center px-4 text-elder-body font-bold text-brand underline decoration-2 underline-offset-8 hover:text-brand-dark focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
             >
               登入
             </Link>
@@ -77,24 +77,13 @@
 
       <!-- Desktop navigation -->
       <div class="hidden h-[72px] w-full items-center gap-4 px-5 lg:flex">
-        <nav aria-label="主要導覽" class="flex shrink-0 gap-1">
-          <Link
-            href="/"
-            data-testid="desktop-nav-home"
-            :aria-current="isHomePage ? 'page' : undefined"
-            :class="desktopNavClass(isHomePage)"
-          >
-            首頁
-          </Link>
-          <Link
-            href="/fishs"
-            data-testid="desktop-nav-fishs"
-            :aria-current="isFishPage ? 'page' : undefined"
-            :class="desktopNavClass(isFishPage)"
-          >
-            among no tao
-          </Link>
-        </nav>
+        <Link
+          href="/"
+          data-testid="nav-brand-desktop"
+          class="shrink-0 font-serif text-elder-title tracking-wider text-elder-text"
+        >
+          among no tao
+        </Link>
 
         <div class="flex min-w-0 flex-1 items-center">
           <slot name="desktop-nav">
@@ -103,7 +92,7 @@
               :href="mobileBackUrl"
               :aria-label="`返回${mobileBackText}`"
               data-testid="nav-back-button-desktop"
-              class="inline-flex min-h-touch-secondary items-center gap-1 whitespace-nowrap rounded-xl border-2 border-blue-700 bg-white px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+              class="inline-flex min-h-touch-secondary items-center gap-1 whitespace-nowrap rounded-xl border border-brand bg-paper px-4 text-elder-body font-bold text-brand hover:bg-paper-raised focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
             >
               ← {{ mobileBackText }}
             </Link>
@@ -116,7 +105,7 @@
               type="button"
               aria-label="我的帳號"
               data-testid="nav-user-button-desktop"
-              class="flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+              class="flex h-12 w-12 items-center justify-center rounded-full border border-brand bg-paper-raised text-brand hover:bg-rule focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
               @click="showDesktopUserMenu = !showDesktopUserMenu"
             >
               <svg
@@ -145,7 +134,7 @@
             v-else
             :href="loginUrl"
             data-testid="nav-login-desktop"
-            class="inline-flex min-h-touch-secondary items-center rounded-xl px-4 text-elder-body font-bold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+            class="inline-flex min-h-touch-secondary items-center px-4 text-elder-body font-bold text-brand underline decoration-2 underline-offset-8 hover:text-brand-dark focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
           >
             登入
           </Link>
@@ -173,22 +162,6 @@ const props = defineProps({
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
-const currentUrl = computed(() => page.url || '')
-const isHomePage = computed(() => currentUrl.value === '/')
-const isFishPage = computed(
-  () =>
-    currentUrl.value.startsWith('/fishs') ||
-    currentUrl.value.startsWith('/fish/') ||
-    currentUrl.value.startsWith('/search')
-)
-
-const desktopNavClass = (active) => [
-  'inline-flex min-h-touch-secondary items-center rounded-xl px-4 text-elder-body font-bold',
-  active
-    ? 'bg-blue-50 text-blue-700 shadow-[inset_0_-3px_0_#1d4ed8]'
-    : 'text-elder-subtext hover:bg-gray-100',
-]
-
 const loginUrl = computed(() => {
   if (typeof window === 'undefined') return '/login'
   const url = window.location.pathname + window.location.search

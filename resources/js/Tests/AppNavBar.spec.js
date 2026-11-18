@@ -104,35 +104,20 @@ describe('AppNavBar', () => {
   })
 
   describe('桌機主導覽', () => {
-    it('只有首頁與 among no tao 兩個主要連結，且文字不截斷', () => {
+    it('桌機左側只有品牌名，沒有「首頁」「among no tao」兩顆導覽鈕', () => {
       const wrapper = mountNavBar()
-      const nav = wrapper.get('nav[aria-label="主要導覽"]')
-      const links = nav.findAll('a')
-
-      expect(links.map((link) => [link.text(), link.attributes('href')])).toEqual([
-        ['首頁', '/'],
-        ['among no tao', '/fishs'],
-      ])
-      expect(links.every((link) => !link.classes().includes('truncate'))).toBe(true)
+      expect(wrapper.find('nav[aria-label="主要導覽"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="desktop-nav-home"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="desktop-nav-fishs"]').exists()).toBe(false)
+      const brand = wrapper.get('[data-testid="nav-brand-desktop"]')
+      expect(brand.text()).toBe('among no tao')
+      expect(brand.attributes('href')).toBe('/')
     })
 
-    it.each([
-      ['/', 'desktop-nav-home'],
-      ['/fishs', 'desktop-nav-fishs'],
-      ['/fish/1', 'desktop-nav-fishs'],
-      ['/search', 'desktop-nav-fishs'],
-      ['/workspace', null],
-    ])('%s 的高亮符合所屬導覽', (url, activeTestId) => {
-      const wrapper = mountNavBar({}, makeAdminUser(), url)
-      const home = wrapper.get('[data-testid="desktop-nav-home"]')
-      const fishs = wrapper.get('[data-testid="desktop-nav-fishs"]')
-
-      expect(home.attributes('aria-current')).toBe(
-        activeTestId === 'desktop-nav-home' ? 'page' : undefined
-      )
-      expect(fishs.attributes('aria-current')).toBe(
-        activeTestId === 'desktop-nav-fishs' ? 'page' : undefined
-      )
+    it('清單頁手機與桌機都沒有返回鈕', () => {
+      const wrapper = mountNavBar({ mobileBackUrl: '/' })
+      expect(wrapper.find('[data-testid="nav-back-button"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="nav-back-button-desktop"]').exists()).toBe(false)
     })
 
     it.each(['/', '/fishs'])('返回目標為 %s 時不顯示桌機返回按鈕', (mobileBackUrl) => {

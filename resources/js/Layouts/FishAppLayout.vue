@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 relative pb-6" :class="showHeader ? 'pt-4' : 'pt-0'">
+  <div class="min-h-screen bg-paper text-elder-text relative pb-6" :class="showHeader ? 'pt-4' : 'pt-0'">
     <!-- 頂部導覽列 -->
     <AppNavBar
       v-if="showHeader"
