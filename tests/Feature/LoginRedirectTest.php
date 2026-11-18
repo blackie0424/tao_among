@@ -40,6 +40,24 @@ it('表單登入的 redirect 不是站內路徑時回 /', function (string $bad)
         ->assertRedirect('/');
 })->with(['//evil.com', 'https://evil.com', '/\\evil.com', 'fish/1']);
 
+it('表單登入帶不合法 redirect 時，即使 session 有舊 intended 也回 /', function (string $bad) {
+    $this->withSession(['url.intended' => '/fish/5'])
+        ->post('/login?redirect='.urlencode($bad), adminCredentials())
+        ->assertRedirect('/');
+})->with(['//evil.com', 'https://evil.com', '/\\evil.com']);
+
+it('表單登入的合法 redirect 優先於 session 的 intended', function () {
+    $this->withSession(['url.intended' => '/fish/5'])
+        ->post('/login?redirect='.urlencode('/fish/9'), adminCredentials())
+        ->assertRedirect('/fish/9');
+});
+
+it('表單登入沒有 redirect 時採用 session 的 intended', function () {
+    $this->withSession(['url.intended' => '/fish/5'])
+        ->post('/login', adminCredentials())
+        ->assertRedirect('/fish/5');
+});
+
 // ── AC 10：直接輸入魚頁網址登入後回到魚頁 ─────────────────────
 
 it('未登入者直接輸入魚頁網址，登入後回到該魚頁', function () {
@@ -63,6 +81,20 @@ it('LINE 登入入口不接受站外 redirect', function (string $bad) {
 
     expect(session('url.intended'))->toBeNull();
 })->with(['//evil.com', 'https://evil.com', '/\\evil.com']);
+
+it('LINE 登入入口收到不合法 redirect 時，清掉舊的 intended', function (string $bad) {
+    $this->withSession(['url.intended' => '/fish/5'])
+        ->get('/auth/line?redirect='.urlencode($bad))
+        ->assertStatus(302);
+
+    expect(session('url.intended'))->toBeNull();
+})->with(['//evil.com', 'https://evil.com', '/\\evil.com']);
+
+it('LINE 登入入口沒有 redirect 時保留舊的 intended', function () {
+    $this->withSession(['url.intended' => '/fish/5'])->get('/auth/line')->assertStatus(302);
+
+    expect(session('url.intended'))->toBe('/fish/5');
+});
 
 // ── AC 10：LINE 登入完成後回到魚頁 ───────────────────────────
 

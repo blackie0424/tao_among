@@ -83,12 +83,14 @@ it('清單資料只有白名單欄位與固定鍵', function (bool $isGuestRole)
     }
 })->with('public viewers');
 
-it('有 name 時 filters 只含 name', function (bool $isGuestRole) {
+it('name 搜尋有效：只回符合的魚，filters 只含 name', function (bool $isGuestRole) {
     actAsPublicViewer($isGuestRole);
     Fish::factory()->create(['name' => 'Alpha']);
+    Fish::factory()->create(['name' => 'Beta']);
 
     $props = pageProps($this->get('/?name=Alpha')->assertOk());
 
+    expect(array_column($props['items'], 'name'))->toBe(['Alpha']);
     expect($props['filters'])->toBe(['name' => 'Alpha']);
 })->with('public viewers');
 
