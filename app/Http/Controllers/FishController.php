@@ -29,16 +29,6 @@ class FishController extends Controller
         'display_image_scale',
     ];
 
-    /** 公開清單不接受的篩選參數 */
-    private const PUBLIC_BLOCKED_FILTERS = [
-        'tribe',
-        'capture_location',
-        'capture_method',
-        'processing_method',
-        'food_category',
-        'without_audio',
-    ];
-
     /** 前端 `searchOptions` 的固定鍵（公開清單全部回空陣列） */
     private const SEARCH_OPTION_KEYS = [
         'tribes',
@@ -94,7 +84,7 @@ class FishController extends Controller
     {
         // Trace: FR-001 多條件後端搜尋, FR-003 比對規則, FR-007 perPage 正規化, FR-005 游標分頁, FR-002 精簡欄位
         // Trace: SC-004 首屏 payload 降幅（僅回傳白名單欄位給前端無限滾動）, SC-006 游標契約一致性（last_id 明碼, nextCursor 派生）
-        if ($this->isPublicView($request)) {
+        if ($request->isPublicView()) {
             return $this->renderPublicFishs($request);
         }
 
@@ -128,29 +118,19 @@ class FishController extends Controller
     }
 
     /**
-     * 訪客（未登入）與 guest 角色（已登入但未開通）只看公開清單。
-     */
-    private function isPublicView(Request $request): bool
-    {
-        return ! $request->user()?->canBrowse();
-    }
-
-    /**
      * 公開清單：只留白名單欄位（魚名與照片）與白名單參數（name、last_id、perPage）。
      */
     private function renderPublicFishs(FishSearchRequest $request)
     {
-        $filters = array_merge(
-            $request->cleaned(),
-            array_fill_keys(self::PUBLIC_BLOCKED_FILTERS, null)
-        );
+        // 禁用的篩選參數已在 FishSearchRequest 驗證前排除
+        $filters = $request->cleaned();
 
         $paginated = $this->fishSearchService->paginate($filters);
 
         return Inertia::render('Fishs', [
             'filters' => array_filter(['name' => $filters['name']], fn ($value) => $value !== null && $value !== ''),
             'searchOptions' => array_fill_keys(self::SEARCH_OPTION_KEYS, []),
-            'searchStats' => [],
+            'searchStats' => new \stdClass,
             'items' => array_map(
                 fn (array $item) => array_intersect_key($item, array_flip(self::PUBLIC_ITEM_FIELDS)),
                 $paginated['items']

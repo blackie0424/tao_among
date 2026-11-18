@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Fish;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,9 +45,31 @@ it('未登入者 GET / 看到魚類清單', function () {
     expect(pageProps($response)['items'][0]['name'])->toBe('測試魚甲');
 });
 
-// ── AC 2：訪客資料白名單（完全比對）─────────────────────────
+// ── AC 2、3：訪客與 guest 資料白名單（完全比對）────────────────
 
-it('未登入者的清單資料只有白名單欄位', function () {
+const PUBLIC_SEARCH_OPTION_KEYS = [
+    'captureLocations',
+    'captureMethods',
+    'dietaryClassifications',
+    'processingMethods',
+    'tribes',
+];
+
+/** 兩種公開身分：未登入、role 為 guest 的登入者 */
+dataset('public viewers', [
+    '未登入' => [false],
+    'role 為 guest' => [true],
+]);
+
+function actAsPublicViewer(bool $isGuestRole): void
+{
+    if ($isGuestRole) {
+        test()->actingAs(User::factory()->lineGuest()->create());
+    }
+}
+
+it('清單資料只有白名單欄位與固定鍵', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
     Fish::factory()->create(['audio_filename' => 'voice.mp3']);
 
     $props = pageProps($this->get('/')->assertOk());
@@ -54,41 +77,64 @@ it('未登入者的清單資料只有白名單欄位', function () {
     expect(sortedKeys($props['items'][0]))->toBe(PUBLIC_ITEM_KEYS);
     expect(sortedKeys($props['pageInfo']))->toBe(['hasMore', 'nextCursor']);
     expect($props['filters'])->toBe([]);
-    expect($props['searchStats'])->toBe([]);
+    expect(sortedKeys($props['searchOptions']))->toBe(PUBLIC_SEARCH_OPTION_KEYS);
     foreach ($props['searchOptions'] as $list) {
         expect($list)->toBe([]);
     }
-});
+})->with('public viewers');
 
-it('role 為 guest 的登入者拿到與訪客相同的白名單資料', function () {
-    $this->actingAs(User::factory()->lineGuest()->create());
-    Fish::factory()->create(['audio_filename' => 'voice.mp3']);
+it('有 name 時 filters 只含 name', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
+    Fish::factory()->create(['name' => 'Alpha']);
 
-    $props = pageProps($this->get('/')->assertOk());
+    $props = pageProps($this->get('/?name=Alpha')->assertOk());
 
-    expect(sortedKeys($props['items'][0]))->toBe(PUBLIC_ITEM_KEYS);
-    expect($props['filters'])->toBe([]);
-    expect($props['searchStats'])->toBe([]);
-});
+    expect($props['filters'])->toBe(['name' => 'Alpha']);
+})->with('public viewers');
 
-// ── AC 3：訪客只接受 name / last_id / perPage ───────────────
+it('searchStats 在 Inertia JSON 裡是空物件而不是空陣列', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
+    $version = app(HandleInertiaRequests::class)->version(request());
 
-it('訪客搜尋 name 有效，其他篩選參數被忽略', function () {
+    $response = $this->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
+        ->get('/')
+        ->assertOk();
+
+    $stats = json_decode($response->getContent())->props->searchStats;
+    expect($stats)->toBeObject()->and((array) $stats)->toBe([]);
+})->with('public viewers');
+
+it('只接受 name 與游標參數，其他篩選參數被忽略', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
     Fish::factory()->create(['name' => 'Alpha']);
     Fish::factory()->create(['name' => 'Beta']);
-
-    $byName = pageProps($this->get('/?name=Alpha')->assertOk());
-    expect(array_column($byName['items'], 'name'))->toBe(['Alpha']);
-    expect($byName['filters'])->toBe(['name' => 'Alpha']);
 
     $withForbidden = pageProps($this->get('/?tribe=ivalino&food_category=x&processing_method=y&capture_method=z&without_audio=1&capture_location=somewhere')->assertOk());
     $plain = pageProps($this->get('/')->assertOk());
 
     expect(array_column($withForbidden['items'], 'id'))->toBe(array_column($plain['items'], 'id'));
     expect($withForbidden['filters'])->toBe([]);
-});
+})->with('public viewers');
 
-it('訪客可用游標分頁：第二頁不重複、最後一頁 hasMore 為 false', function () {
+it('禁用參數即使是非字串（陣列）也只被忽略，不報錯', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
+    Fish::factory()->count(2)->create();
+
+    $plain = pageProps($this->get('/')->assertOk());
+    $probed = pageProps($this->get('/?without_audio[]=1&tribe[]=a&capture_location[]=b&capture_method[]=c&processing_method[]=d&food_category[]=e')->assertOk());
+
+    expect(array_column($probed['items'], 'id'))->toBe(array_column($plain['items'], 'id'));
+    expect($probed['filters'])->toBe([]);
+})->with('public viewers');
+
+it('合法游標驗證不受影響：last_id=0 仍回 422', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
+
+    $this->getJson('/?last_id=0')->assertStatus(422)->assertJson(['error' => 'INVALID_CURSOR']);
+})->with('public viewers');
+
+it('可用游標分頁：第二頁不重複、最後一頁 hasMore 為 false', function (bool $isGuestRole) {
+    actAsPublicViewer($isGuestRole);
     Fish::factory()->count(25)->create();
 
     $first = pageProps($this->get('/?perPage=10')->assertOk());
@@ -102,7 +148,7 @@ it('訪客可用游標分頁：第二頁不重複、最後一頁 hasMore 為 fal
     $third = pageProps($this->get('/?perPage=10&last_id='.$second['pageInfo']['nextCursor'])->assertOk());
     expect($third['items'])->toHaveCount(5);
     expect($third['pageInfo']['hasMore'])->toBeFalse();
-});
+})->with('public viewers');
 
 // ── AC 4：詳細頁仍要登入 ────────────────────────────────────
 
