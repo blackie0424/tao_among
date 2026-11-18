@@ -98,3 +98,44 @@ describe('ReferenceKnowledgeSection', () => {
     expect(wrapper.text()).toContain('目前沒有文獻知識的紀錄')
   })
 })
+
+describe('ReferenceKnowledgeSection 博物誌樣式（#132 AC 8）', () => {
+  const sample = {
+    id: 1,
+    pages: '20',
+    content: '乙書第一段',
+    note: '備註內容',
+    tribe: '朗島',
+    reference: { id: 2, name: '乙書', image_url: null },
+  }
+  const mountEditor = (referenceKnowledge) =>
+    mountSection({ isEditor: true, user: { id: 1, role: 'editor' }, referenceKnowledge })
+
+  it('沒有 Tailwind 預設色與卡片陰影，文獻名為宋體', () => {
+    const wrapper = mountEditor([sample])
+
+    expect(wrapper.html()).not.toMatch(
+      /(?:bg|text|border)-(?:blue|gray|green|teal|slate|emerald)-\d|shadow|bg-white/
+    )
+    expect(wrapper.get('h3').classes()).toContain('font-serif')
+  })
+
+  it('部落標籤為細框膠囊；頁碼、備註、封面佔位字都是 18px', () => {
+    const wrapper = mountEditor([sample])
+
+    expect(wrapper.get('[data-testid="reference-tribe-tag"]').classes()).toEqual(
+      expect.arrayContaining(['border', 'border-rule-strong', 'text-elder-body'])
+    )
+    expect(wrapper.get('[data-testid="reference-pages"]').classes()).toContain('text-elder-body')
+    expect(wrapper.get('[data-testid="reference-note"]').classes()).toContain('text-elder-body')
+    expect(wrapper.get('[data-testid="reference-group-cover"]').text()).toBe('暫無封面')
+    expect(wrapper.get('[data-testid="reference-group-cover"] div').classes()).toContain('text-elder-body')
+  })
+
+  it('空狀態文字 18px 次要字色', () => {
+    const empty = mountEditor([]).get('[data-testid="reference-empty"]')
+
+    expect(empty.text()).toBe('目前沒有文獻知識的紀錄')
+    expect(empty.classes()).toEqual(expect.arrayContaining(['text-elder-body', 'text-elder-subtext']))
+  })
+})

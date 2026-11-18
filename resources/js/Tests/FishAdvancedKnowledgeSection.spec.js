@@ -112,3 +112,25 @@ describe('筆記內容', () => {
     expect(wrapper.text()).toContain('孕婦不可食')
   })
 })
+
+describe('博物誌樣式（#132 AC 8）', () => {
+  it('沒有 Tailwind 預設色與卡片陰影，標題為宋體，標籤為細框膠囊', () => {
+    const wrapper = mountSection({ fishNotes: fishNotesWithData, isEditor: true, user: { id: 1 } })
+    const html = wrapper.html()
+
+    expect(html).not.toMatch(/(?:bg|text|border)-(?:blue|gray|green|teal|slate|emerald)-\d|shadow|bg-white/)
+    expect(wrapper.get('h2').classes()).toContain('font-serif')
+    expect(wrapper.findAll('[data-testid="locate-tag"]').length).toBeGreaterThan(0)
+    expect(wrapper.get('[data-testid="locate-tag"]').classes()).toEqual(
+      expect.arrayContaining(['border', 'border-rule-strong', 'text-elder-body'])
+    )
+  })
+
+  it('空狀態文字 18px 次要字色', () => {
+    const wrapper = mountSection({ fishNotes: {}, isEditor: true, user: { id: 1 } })
+    const empty = wrapper.get('[data-testid="advanced-empty"]')
+
+    expect(empty.text()).toBe('目前沒有進階地方知識的紀錄')
+    expect(empty.classes()).toEqual(expect.arrayContaining(['text-elder-body', 'text-elder-subtext']))
+  })
+})
