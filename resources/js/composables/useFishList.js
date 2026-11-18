@@ -61,7 +61,7 @@ export function useFishList(currentFilters, nameQuery) {
     isLoading.value = true
     const params = buildQueryParams(opts)
     const isPagination = Boolean(params.last_id)
-    router.get('/fishs', params, {
+    router.get('/', params, {
       preserveState: true,
       preserveScroll: true,
       replace: isPagination, // 分頁請求不堆疊歷史紀錄，避免返回鍵陷阱

@@ -12,11 +12,11 @@ beforeEach(function () {
     $this->actingAs(User::factory()->lineViewer()->create());
 });
 
-it('renders homepage with Index component', function () {
+it('renders homepage with Fishs component', function () {
     $response = $this->get('/');
 
     $response->assertStatus(200)
-        ->assertInertia(fn (Assert $page) => $page->component('Index'));
+        ->assertInertia(fn (Assert $page) => $page->component('Fishs'));
 });
 
 it('renders fish list with expected props', function () {
@@ -27,7 +27,7 @@ it('renders fish list with expected props', function () {
     // 偽造外部 HEAD 請求，避免實際網路 I/O
     Http::fake(['*' => Http::response('', 404)]);
 
-    $response = $this->get('/fishs');
+    $response = $this->get('/');
 
     $response->assertStatus(200)
         ->assertInertia(

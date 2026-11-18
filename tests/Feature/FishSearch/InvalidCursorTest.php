@@ -23,7 +23,7 @@ class InvalidCursorTest extends TestCase
     public function test_invalid_cursor_returns_422_json(): void
     {
         Fish::factory()->count(3)->create();
-        $response = $this->getJson('/fishs?last_id=0');
+        $response = $this->getJson('/?last_id=0');
         $response->assertStatus(422)
             ->assertJson(['error' => 'INVALID_CURSOR']);
     }

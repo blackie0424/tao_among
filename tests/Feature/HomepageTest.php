@@ -10,7 +10,7 @@ it('首頁不再傳遞投影片資料', function () {
     $this->get('/')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Index')
+            ->component('Fishs')
             ->missing('slides')
         );
 });

@@ -82,7 +82,7 @@ describe('Fishs filters wiring', () => {
 
     expect(router.get).toHaveBeenCalled()
     const call = (router.get as any).mock.calls[0]
-    expect(call[0]).toBe('/fishs')
+    expect(call[0]).toBe('/')
     expect(call[1]).toEqual(
       expect.objectContaining({
         name: 'tuna',
@@ -124,7 +124,7 @@ describe('Fishs filters wiring', () => {
 
     expect(router.get).toHaveBeenCalled()
     const call = (router.get as any).mock.calls[(router.get as any).mock.calls.length - 1]
-    expect(call[0]).toBe('/fishs')
+    expect(call[0]).toBe('/')
     expect(call[1]).toEqual(
       expect.objectContaining({
         last_id: 42,

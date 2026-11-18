@@ -119,6 +119,6 @@ describe('GET /workspace', function () {
         $this->actingAs($editor, 'sanctum')
             ->get('/')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Index'));
+            ->assertInertia(fn (Assert $page) => $page->component('Fishs'));
     });
 });

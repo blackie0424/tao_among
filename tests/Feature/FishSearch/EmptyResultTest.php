@@ -18,7 +18,7 @@ it('loads initial items correctly and sets hasMore to false when count equals pe
     Fish::factory()->count(5)->create();
 
     // Act: 初次載入 perPage=5
-    $response = $this->get('/fishs?perPage=5');
+    $response = $this->get('/?perPage=5');
 
     // Assert: 驗證狀態碼、筆數和游標資訊
     $response->assertStatus(200)
@@ -34,7 +34,7 @@ it('loads initial items correctly and sets hasMore to false when count equals pe
 
 it('當last id被設為0，應該要收到422，表示資料錯誤', function () {
     $minId = 0;
-    $response = $this->get('/fishs?last_id=' . $minId);
+    $response = $this->get('/?last_id=' . $minId);
     $response->assertStatus(422);
     $response->assertJson([
         'error' => 'INVALID_CURSOR',

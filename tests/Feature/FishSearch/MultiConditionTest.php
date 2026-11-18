@@ -49,7 +49,7 @@ it('should return only the target fish when all conditions are matched', functio
 
     // 發送多條件搜尋 (URL 參數必須與數據庫中的中文值匹配)
     // 注意：URL 查詢參數中的中文會被框架自動編碼和解碼
-    $response = $this->get('/fishs?name=gold&tribe=ivalino&food_category=oyod&capture_location=beach');
+    $response = $this->get('/?name=gold&tribe=ivalino&food_category=oyod&capture_location=beach');
     $response->assertStatus(200)
         ->assertInertia(function ($page) use ($targetFish) {
             $items = $page->toArray()['props']['items'] ?? [];
@@ -79,7 +79,7 @@ it('should filter out fish when the tribe condition does not match', function ()
 
     // 發送搜尋：搜尋 name='gold' 和 tribe='ivalino'
     // 預期：只能找到 $targetFish (Golden Snapper)
-    $response = $this->get('/fishs?name=gold&tribe=ivalino');
+    $response = $this->get('/?name=gold&tribe=ivalino');
 
     $response->assertStatus(200)
         ->assertInertia(function ($page) use ($targetFish) {
@@ -108,7 +108,7 @@ it('should filter out fish when the food_category condition does not match', fun
     ]);
 
     // 發送搜尋：搜尋 'ivalino' 和 'oyod'
-    $response = $this->get('/fishs?name=gold&tribe=ivalino&food_category=oyod');
+    $response = $this->get('/?name=gold&tribe=ivalino&food_category=oyod');
 
     $response->assertStatus(200)
         ->assertInertia(function ($page) use ($targetFish) {
