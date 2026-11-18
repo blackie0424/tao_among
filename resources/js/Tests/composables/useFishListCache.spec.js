@@ -424,6 +424,15 @@ describe('useFishListCache', () => {
       expect(JSON.parse(storage[STORAGE_KEY]).identity).toBe('7:editor')
     })
 
+    it('記的是清單建立時的身分：離開頁面時 page 已換成新身分，也不會把舊清單標成新身分', () => {
+      const guestList = mount() // 以訪客身分建立（清單內容是訪客的）
+      loginAs(EDITOR) // 返回時 Inertia 先換了 page props，舊頁面才卸載、儲存
+
+      guestList.saveStateToStorage()
+
+      expect(JSON.parse(storage[STORAGE_KEY]).identity).toBe('guest')
+    })
+
     it('同一個身分可還原', async () => {
       loginAs(EDITOR)
       mount().saveStateToStorage()

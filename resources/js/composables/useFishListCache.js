@@ -38,16 +38,17 @@ const CACHE_FILTER_KEYS = [
   'without_audio',
 ]
 
+/** 身分標記：未登入為 guest，登入者為「使用者 id:角色」 */
+const identityOf = (user) => (user ? `${user.id}:${user.role}` : GUEST_IDENTITY)
+
 export function useFishListCache(items, pageInfo, currentFilters, nameQuery, getPropsFilters) {
   const page = usePage()
 
-  // --- 私有方法 ---
+  // 記下「這份清單建立時」的身分：返回上一頁時 Inertia 會先換成新頁面的 props，舊頁面才卸載並儲存，
+  // 若儲存時才讀目前身分，會把舊身分的清單標成新身分
+  const identity = identityOf(page.props.auth?.user)
 
-  /** 目前身分標記：未登入為 guest，登入者為「使用者 id:角色」 */
-  const currentIdentity = () => {
-    const user = page.props.auth?.user
-    return user ? `${user.id}:${user.role}` : GUEST_IDENTITY
-  }
+  // --- 私有方法 ---
 
   const refreshStaleItems = async (staleIds) => {
     const freshDataList = await Promise.all(
@@ -95,7 +96,7 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
         scrollY: window.scrollY,
         filters: currentFilters.value,
         nameQuery: nameQuery.value,
-        identity: currentIdentity(),
+        identity,
         timestamp: Date.now(),
       }
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
@@ -133,7 +134,7 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
     if (!raw) return null
 
     const state = JSON.parse(raw)
-    const usable = state.identity === currentIdentity() && Date.now() - state.timestamp <= CACHE_TTL
+    const usable = state.identity === identity && Date.now() - state.timestamp <= CACHE_TTL
     if (usable) return state
 
     clearStateStorage()
