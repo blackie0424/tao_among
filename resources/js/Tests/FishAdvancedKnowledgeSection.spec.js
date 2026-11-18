@@ -126,6 +126,19 @@ describe('博物誌樣式（#132 AC 8）', () => {
     )
   })
 
+  it('類型標籤為細框膠囊、宋體 18px，不再是帶底線的標題', () => {
+    const wrapper = mountSection({ fishNotes: fishNotesWithData, isEditor: true, user: { id: 1 } })
+    const tags = wrapper.findAll('[data-testid="type-tag"]')
+
+    expect(tags.map((t) => t.text())).toEqual(['食用方式', '禁忌'])
+    for (const tag of tags) {
+      expect(tag.classes()).toEqual(
+        expect.arrayContaining(['rounded-full', 'border', 'border-rule-strong', 'font-serif', 'text-elder-body'])
+      )
+      expect(tag.classes()).not.toContain('border-b')
+    }
+  })
+
   it('空狀態文字 18px 次要字色', () => {
     const wrapper = mountSection({ fishNotes: {}, isEditor: true, user: { id: 1 } })
     const empty = wrapper.get('[data-testid="advanced-empty"]')

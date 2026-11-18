@@ -12,9 +12,9 @@
     <div v-if="hasNotes" class="space-y-8">
       <div v-for="(locates, type) in groupedNotesByTypeAndLocate" :key="type">
         <h4
-          class="font-serif text-elder-body font-bold text-elder-text mb-4 px-1 flex items-center border-b border-rule pb-2"
+          data-testid="type-tag"
+          class="mb-4 inline-flex items-center rounded-full border border-rule-strong px-4 py-1 font-serif text-elder-body font-bold text-elder-text"
         >
-          <span class="w-1.5 h-5 bg-brand mr-2"></span>
           {{ type }}
         </h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
