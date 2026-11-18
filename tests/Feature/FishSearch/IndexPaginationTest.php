@@ -20,7 +20,7 @@ it('一開始載入網頁時，可以取得預設數量資料', function () {
     // 建立資料：比預設每頁數量多，確保 hasMore = true
     Fish::factory()->count($perPage + 30)->create();
     // 初次載入
-    $resp1 = $this->get('/fishs');
+    $resp1 = $this->get('/');
     $resp1->assertStatus(200)
         ->assertInertia(fn ($page) => $page->where('items', fn ($items) => count($items) === $perPage)
             ->where('pageInfo.hasMore', true));
@@ -34,7 +34,7 @@ it('魚類名稱只有部分相同時，也可以搜尋出來', function () {
     Fish::factory()->count(30)->create();
 
     // 名稱模糊搜尋（大小寫不敏感）
-    $resp = $this->get('/fishs?name=mar');
+    $resp = $this->get('/?name=mar');
     $resp->assertStatus(200)
         ->assertInertia(function ($page) {
             $items = $page->toArray()['props']['items'] ?? [];

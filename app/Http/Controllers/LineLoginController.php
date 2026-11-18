@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\LoginRedirect;
 use App\Services\LineLoginService;
 use App\Services\LineUserService;
 use Illuminate\Http\RedirectResponse;
@@ -25,6 +26,8 @@ class LineLoginController extends Controller
      */
     public function redirect(Request $request): RedirectResponse
     {
+        LoginRedirect::remember($request);
+
         $state = Str::random(40);
         Cache::put('line_state:' . $state, true, now()->addMinutes(15));
 
@@ -74,6 +77,6 @@ class LineLoginController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        return redirect()->intended('/');
+        return LoginRedirect::after($request, $user);
     }
 }

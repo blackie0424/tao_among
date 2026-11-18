@@ -108,8 +108,8 @@ it('hides location search options and ignores location probes for viewers', func
     CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
     $viewer = User::factory()->lineViewer()->create();
 
-    $plain = $this->actingAs($viewer)->get('/fishs')->assertOk();
-    $probed = $this->get('/fishs?capture_location=ZZLOCATIONMARK')->assertOk();
+    $plain = $this->actingAs($viewer)->get('/')->assertOk();
+    $probed = $this->get('/?capture_location=ZZLOCATIONMARK')->assertOk();
 
     $plainProps = $plain->viewData('page')['props'];
     $probedProps = $probed->viewData('page')['props'];
@@ -127,7 +127,7 @@ it('preserves location search options and filtering for editors and admins', fun
     CaptureRecord::factory()->create(['fish_id' => $otherFish->id, 'location' => '其他地點']);
 
     $response = $this->actingAs(User::factory()->create(['role' => $role]))
-        ->get('/fishs?capture_location=ZZLOCATIONMARK')
+        ->get('/?capture_location=ZZLOCATIONMARK')
         ->assertOk();
     $props = $response->viewData('page')['props'];
 

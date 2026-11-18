@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Login from '@/Pages/Auth/Login.vue'
+
+const postSpy = vi.hoisted(() => vi.fn())
 
 vi.mock("@inertiajs/vue3", () => ({
   Head: { template: "<div />" },
@@ -10,11 +12,16 @@ vi.mock("@inertiajs/vue3", () => ({
     password: "",
     errors: {},
     processing: false,
-    post: vi.fn(),
+    post: postSpy,
   }),
 }))
 
 describe("登入頁", () => {
+  beforeEach(() => {
+    postSpy.mockClear()
+    window.history.replaceState(null, "", "/login")
+  })
+
   it("說明首次 LINE 登入會建立 guest 權限帳號", () => {
     const wrapper = mount(Login)
 
@@ -47,5 +54,24 @@ describe("登入頁", () => {
     expect(wrapper.get('a[href="/auth/line"]').classes()).toContain('min-h-touch-primary')
     expect(wrapper.get('button[type="submit"]').classes()).toContain('min-h-touch-primary')
     expect(wrapper.get('a[href="/"]').classes()).toContain('min-h-touch-secondary')
+  })
+
+  it('網址帶 redirect 時，LINE 登入連結與表單都帶著它', async () => {
+    window.history.replaceState(null, "", "/login?redirect=%2Ffish%2F5")
+    const wrapper = mount(Login)
+
+    expect(wrapper.get('a[href^="/auth/line"]').attributes('href')).toBe('/auth/line?redirect=%2Ffish%2F5')
+
+    await wrapper.get('form').trigger('submit.prevent')
+    expect(postSpy).toHaveBeenCalledWith('/login?redirect=%2Ffish%2F5')
+  })
+
+  it('網址沒有 redirect 時，LINE 登入連結與表單都不帶 redirect', async () => {
+    const wrapper = mount(Login)
+
+    expect(wrapper.get('a[href^="/auth/line"]').attributes('href')).toBe('/auth/line')
+
+    await wrapper.get('form').trigger('submit.prevent')
+    expect(postSpy).toHaveBeenCalledWith('/login')
   })
 })

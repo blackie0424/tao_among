@@ -24,7 +24,7 @@ it('per page out of range falls back to default', function () {
     Fish::factory()->count($defaultPerPage + 10)->create();
 
     // perPage=999 應回退至 $defaultPerPage
-    $this->get('/fishs?perPage=999')
+    $this->get('/?perPage=999')
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page->where('items', fn ($items) => count($items) === $defaultPerPage)
             ->where('pageInfo.hasMore', true));
@@ -48,7 +48,7 @@ it('test per page invalid string falls back to default', function () {
     // 建立 defaultPerPage+10 筆資料，表示現有資料量大於查詢筆數
     Fish::factory()->count($defaultPerPage + 10)->create();
 
-    $this->get('/fishs?perPage=abc')
+    $this->get('/?perPage=abc')
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page->where('items', fn ($items) => count($items) === $defaultPerPage)
             ->where('pageInfo.hasMore', true));

@@ -19,6 +19,25 @@ use Inertia\Inertia;
 
 class FishController extends Controller
 {
+    /** 公開清單每筆魚只開放的欄位 */
+    private const PUBLIC_ITEM_FIELDS = [
+        'id',
+        'name',
+        'image_url',
+        'display_image_url',
+        'display_image_position',
+        'display_image_scale',
+    ];
+
+    /** 前端 `searchOptions` 的固定鍵（公開清單全部回空陣列） */
+    private const SEARCH_OPTION_KEYS = [
+        'tribes',
+        'dietaryClassifications',
+        'processingMethods',
+        'captureMethods',
+        'captureLocations',
+    ];
+
     protected $fishService;
 
     protected $storageService;
@@ -51,11 +70,6 @@ class FishController extends Controller
         $this->captureRecordBatchService = $captureRecordBatchService ?? app(CaptureRecordBatchService::class);
     }
 
-    public function index()
-    {
-        return Inertia::render('Index');
-    }
-
     public function getFish($id, Request $request)
     {
         $details = $this->fishService->getFishDetails((int) $id, includeSessionNotes: true);
@@ -70,6 +84,13 @@ class FishController extends Controller
     {
         // Trace: FR-001 多條件後端搜尋, FR-003 比對規則, FR-007 perPage 正規化, FR-005 游標分頁, FR-002 精簡欄位
         // Trace: SC-004 首屏 payload 降幅（僅回傳白名單欄位給前端無限滾動）, SC-006 游標契約一致性（last_id 明碼, nextCursor 派生）
+        // 清單內容依身分而異：歷史紀錄加密，登入或登出時換金鑰，返回上一頁就不會還原舊身分的清單
+        Inertia::encryptHistory();
+
+        if ($request->isPublicView()) {
+            return $this->renderPublicFishs($request);
+        }
+
         // 使用 Request 清洗參數（忽略空白、perPage 正規化、游標驗證）
         $filters = $this->locationSafeFilters($request->cleaned(), $request);
 
@@ -94,6 +115,28 @@ class FishController extends Controller
             'items' => $this->locationVisibilityService->filter(
                 $this->audioVisibilityService->filter($paginated['items'], $request->user()),
                 $request->user()
+            ),
+            'pageInfo' => $paginated['pageInfo'],
+        ]);
+    }
+
+    /**
+     * 公開清單：只留白名單欄位（魚名與照片）與白名單參數（name、last_id、perPage）。
+     */
+    private function renderPublicFishs(FishSearchRequest $request)
+    {
+        // 禁用的篩選參數已在 FishSearchRequest 驗證前排除
+        $filters = $request->cleaned();
+
+        $paginated = $this->fishSearchService->paginate($filters);
+
+        return Inertia::render('Fishs', [
+            'filters' => array_filter(['name' => $filters['name']], fn ($value) => $value !== null && $value !== ''),
+            'searchOptions' => array_fill_keys(self::SEARCH_OPTION_KEYS, []),
+            'searchStats' => new \stdClass,
+            'items' => array_map(
+                fn (array $item) => array_intersect_key($item, array_flip(self::PUBLIC_ITEM_FIELDS)),
+                $paginated['items']
             ),
             'pageInfo' => $paginated['pageInfo'],
         ]);

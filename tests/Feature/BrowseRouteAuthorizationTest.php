@@ -27,13 +27,13 @@ it('keeps the intended web and API endpoints public', function () {
 it('enforces browse access on a top-level web browsing route', function () {
     Http::fake(['*' => Http::response('', 404)]);
 
-    $this->get('/fishs')->assertRedirect('/login');
-    $this->actingAs(User::factory()->lineGuest()->create())->get('/fishs')->assertForbidden();
-    $this->actingAs(User::factory()->lineViewer()->create())->get('/fishs')->assertOk();
+    $this->get('/search')->assertRedirect('/login');
+    $this->actingAs(User::factory()->lineGuest()->create())->get('/search')->assertForbidden();
+    $this->actingAs(User::factory()->lineViewer()->create())->get('/search')->assertOk();
 });
 
 it('renders the custom forbidden page with a route back to the homepage', function () {
-    $response = $this->actingAs(User::factory()->lineGuest()->create())->get('/fishs');
+    $response = $this->actingAs(User::factory()->lineGuest()->create())->get('/search');
 
     $response
         ->assertForbidden()
@@ -54,7 +54,7 @@ it('renders forbidden responses as an Inertia error page for Inertia requests', 
             'X-Inertia' => 'true',
             'X-Inertia-Version' => $version,
         ])
-        ->get('/fishs');
+        ->get('/search');
 
     $response
         ->assertForbidden()
@@ -108,7 +108,6 @@ it('enforces browse access on API read routes', function () {
 
 it('attaches browse middleware to every protected web route', function () {
     $protectedUris = [
-        'fishs',
         'search',
         'topics/{slug}',
         'topics/{slug}/{itemId}',

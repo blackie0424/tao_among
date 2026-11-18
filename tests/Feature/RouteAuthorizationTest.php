@@ -27,8 +27,8 @@ describe('公開路由（不需登入）', function () {
         $response->assertStatus(200);
     });
 
-    it('魚類列表未登入會導向登入頁', function () {
-        $this->get('/fishs')->assertRedirect('/login');
+    it('魚類列表未登入也能看（公開清單）', function () {
+        $this->get('/')->assertOk();
     });
 
     it('搜尋頁面未登入會導向登入頁', function () {

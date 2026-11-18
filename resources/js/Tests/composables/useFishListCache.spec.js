@@ -7,6 +7,10 @@ vi.mock('@/api/fishApi', () => ({
   getFishLatestAt: vi.fn(),
 }))
 
+// 目前登入身分：測試中可改 pageMock.props.auth.user
+const pageMock = vi.hoisted(() => ({ props: { auth: { user: null } } }))
+vi.mock('@inertiajs/vue3', () => ({ usePage: () => pageMock }))
+
 vi.mock('@/utils/fishListCache', () => ({
   getStaleIds: vi.fn(() => []),
   clearStaleIds: vi.fn(),
@@ -48,6 +52,12 @@ Object.defineProperty(window, 'scrollY', { value: 0, writable: true })
 const STORAGE_KEY = 'fishs_list_state'
 const CACHE_TTL = 30 * 60 * 1000
 
+const loginAs = (user) => {
+  pageMock.props.auth = { user }
+}
+const EDITOR = { id: 7, role: 'editor' }
+const OTHER_EDITOR = { id: 8, role: 'editor' }
+
 const makeRefs = () => ({
   items: ref([{ id: 1, name: '飛魚' }]),
   pageInfo: ref({ hasMore: true, nextCursor: 1 }),
@@ -76,6 +86,7 @@ const setCachedState = (overrides = {}) => {
       without_audio: '',
     },
     nameQuery: '',
+    identity: 'guest',
     timestamp: Date.now(),
     ...overrides,
   }
@@ -96,6 +107,7 @@ beforeEach(() => {
   getDeletedIds.mockReturnValue([])
   getCreatedIds.mockReturnValue([])
   getFishLatestAt.mockResolvedValue(null)
+  loginAs(null)
 })
 
 afterEach(() => {
@@ -385,6 +397,99 @@ describe('useFishListCache', () => {
       await restoreStateFromStorage()
 
       expect(items.value.filter((i) => i.id === 1)).toHaveLength(1)
+    })
+  })
+
+  // ─── 身分標記：不同身分不互相還原 ─────────────────────────────────────────
+
+  describe('身分標記', () => {
+    const mount = (items = ref([{ id: 1, name: '飛魚' }])) => {
+      const refs = { ...makeRefs(), items }
+      const api = useFishListCache(
+        refs.items,
+        refs.pageInfo,
+        refs.currentFilters,
+        refs.nameQuery,
+        () => ({})
+      )
+      return { ...api, items: refs.items }
+    }
+
+    it('儲存時記下身分：未登入為 guest、登入者為 id 加角色', () => {
+      mount().saveStateToStorage()
+      expect(JSON.parse(storage[STORAGE_KEY]).identity).toBe('guest')
+
+      loginAs(EDITOR)
+      mount().saveStateToStorage()
+      expect(JSON.parse(storage[STORAGE_KEY]).identity).toBe('7:editor')
+    })
+
+    it('記的是清單建立時的身分：離開頁面時 page 已換成新身分，也不會把舊清單標成新身分', () => {
+      const guestList = mount() // 以訪客身分建立（清單內容是訪客的）
+      loginAs(EDITOR) // 返回時 Inertia 先換了 page props，舊頁面才卸載、儲存
+
+      guestList.saveStateToStorage()
+
+      expect(JSON.parse(storage[STORAGE_KEY]).identity).toBe('guest')
+    })
+
+    it('同一個身分可還原', async () => {
+      loginAs(EDITOR)
+      mount().saveStateToStorage()
+
+      const { restoreStateFromStorage, items } = mount(ref([]))
+      expect(await restoreStateFromStorage()).toBe(true)
+      expect(items.value).toHaveLength(1)
+    })
+
+    it('訪客存的暫存，editor 不還原且清掉（畫面清單不被覆寫）', async () => {
+      mount().saveStateToStorage() // guest
+
+      loginAs(EDITOR)
+      const { restoreStateFromStorage, items } = mount(ref([{ id: 99, name: '伺服器給的魚' }]))
+
+      expect(await restoreStateFromStorage()).toBe(false)
+      expect(items.value).toEqual([{ id: 99, name: '伺服器給的魚' }])
+      expect(storage[STORAGE_KEY]).toBeUndefined()
+    })
+
+    it('訪客→editor→訪客→同一個 editor：每次換身分都不還原別人的暫存', async () => {
+      mount().saveStateToStorage() // 訪客存
+
+      loginAs(EDITOR)
+      expect(await mount().restoreStateFromStorage()).toBe(false) // editor 取不到訪客的
+      mount().saveStateToStorage() // editor 存
+
+      loginAs(null)
+      expect(await mount().restoreStateFromStorage()).toBe(false) // 訪客取不到 editor 的
+      mount().saveStateToStorage() // 訪客存
+
+      loginAs(EDITOR)
+      expect(await mount().restoreStateFromStorage()).toBe(false) // 同一個 editor 也取不到訪客的
+    })
+
+    it('同帳號角色改變時不還原', async () => {
+      loginAs({ id: 7, role: 'viewer' })
+      mount().saveStateToStorage()
+
+      loginAs({ id: 7, role: 'editor' })
+      expect(await mount().restoreStateFromStorage()).toBe(false)
+      expect(storage[STORAGE_KEY]).toBeUndefined()
+    })
+
+    it('不同帳號同角色時不還原', async () => {
+      loginAs(EDITOR)
+      mount().saveStateToStorage()
+
+      loginAs(OTHER_EDITOR)
+      expect(await mount().restoreStateFromStorage()).toBe(false)
+    })
+
+    it('舊版沒有身分標記的暫存一律丟棄', async () => {
+      setCachedState({ identity: undefined })
+
+      expect(await mount().restoreStateFromStorage()).toBe(false)
+      expect(storage[STORAGE_KEY]).toBeUndefined()
     })
   })
 })

@@ -12,10 +12,26 @@ use Illuminate\Http\Exceptions\HttpResponseException;
  */
 class FishSearchRequest extends FormRequest
 {
+    /** 公開清單（訪客與 guest）不接受的篩選參數，驗證前就排除 */
+    private const PUBLIC_BLOCKED_FILTERS = [
+        'tribe',
+        'capture_location',
+        'capture_method',
+        'processing_method',
+        'food_category',
+        'without_audio',
+    ];
+
     public function authorize(): bool
     {
         // 公開端點（FR-015）
         return true;
+    }
+
+    /** 訪客（未登入）與 guest 角色（已登入但未開通）只看公開清單 */
+    public function isPublicView(): bool
+    {
+        return ! $this->user()?->canBrowse();
     }
 
     public function rules(): array
@@ -46,9 +62,12 @@ class FishSearchRequest extends FormRequest
         // Trim 文字參數，空字串視為 null（FR-004）
         $textFields = ['name','tribe','capture_location','capture_method','processing_method','food_category'];
         $data = $this->all();
+        if ($this->isPublicView()) {
+            $data = array_diff_key($data, array_flip(self::PUBLIC_BLOCKED_FILTERS));
+        }
         foreach ($textFields as $f) {
-            if ($this->has($f)) {
-                $v = trim((string)$this->input($f));
+            if (array_key_exists($f, $data)) {
+                $v = trim((string)$data[$f]);
                 // 尚未紀錄 是特殊篩選值，保留不轉 null；空字串轉 null
                 $data[$f] = ($v === '') ? null : $v;
             }
