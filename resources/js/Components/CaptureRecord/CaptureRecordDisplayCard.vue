@@ -1,58 +1,20 @@
 <template>
-  <div
-    class="rounded-xl border-2 overflow-hidden"
-    :class="index % 2 === 0 ? 'bg-white border-teal-200' : 'bg-slate-50 border-slate-200'"
-  >
-    <!-- 卡片標題區：編號 -->
+  <div class="border border-rule-strong bg-paper">
+    <!-- 卡片標題：捕獲日期 -->
     <div
-      class="px-4 py-3 flex items-center justify-between"
-      :class="
-        index % 2 === 0
-          ? 'bg-teal-50 border-b border-teal-100'
-          : 'bg-slate-100 border-b border-slate-200'
-      "
+      v-if="record.capture_date"
+      data-testid="capture-card-title"
+      class="px-4 pt-4 font-serif text-elder-body font-bold text-elder-text"
     >
-      <div class="flex items-center gap-3">
-        <span
-          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-white font-bold text-lg"
-          :class="index % 2 === 0 ? 'bg-teal-500' : 'bg-slate-500'"
-        >
-          {{ index + 1 }}
-        </span>
-        <span class="text-lg font-semibold text-gray-800">第 {{ index + 1 }} 筆紀錄</span>
-      </div>
-      <Link
-        v-if="canEdit"
-        :href="`/fish/${fishId}/capture-records/${record.id}/edit`"
-        class="inline-flex items-center min-h-touch-primary px-3 text-elder-body text-blue-700 underline"
-        >編輯</Link
-      >
+      {{ formatDate(record.capture_date) }}
     </div>
 
     <!-- 卡片內容區 -->
     <div class="p-4 flex flex-col gap-4">
-      <!-- 捕獲時間 -->
-      <div v-if="record.capture_date" class="flex items-center text-base text-gray-900 font-medium">
-        <svg
-          class="w-5 h-5 mr-2 shrink-0 stroke-current"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 5.25h15A.75.75 0 0 1 20.25 6v13.5a.75.75 0 0 1-.75.75h-15a.75.75 0 0 1-.75-.75V6a.75.75 0 0 1 .75-.75Z"
-          />
-        </svg>
-        捕獲時間：{{ formatDate(record.capture_date) }}
-      </div>
-
       <!-- 捕獲地點 -->
       <div
         v-if="record.location"
-        class="flex flex-wrap items-center text-base text-gray-900 font-medium gap-1"
+        class="flex flex-wrap items-center text-elder-body text-elder-text font-medium gap-1"
       >
         <svg
           class="w-5 h-5 mr-1 shrink-0 stroke-current"
@@ -68,16 +30,18 @@
           />
         </svg>
         捕獲地點：
-        <span v-if="record.tribe" class="bg-gray-200 text-sm px-2 py-0.5 rounded">{{
-          record.tribe
-        }}</span>
+        <span
+          v-if="record.tribe"
+          class="rounded-full border border-rule-strong px-2 py-0.5 text-elder-body"
+          >{{ record.tribe }}</span
+        >
         <span class="break-all">{{ record.location }}</span>
       </div>
 
       <!-- 捕獲方式 -->
       <div
         v-if="record.capture_method"
-        class="flex items-center text-base text-gray-900 font-medium"
+        class="flex items-center text-elder-body text-elder-text font-medium"
       >
         <svg
           class="w-5 h-5 mr-2 shrink-0 stroke-current"
@@ -99,14 +63,14 @@
       <LazyImage
         :src="record.image_url"
         :alt="`${fishName} 捕獲紀錄 ${index + 1}`"
-        class="w-full h-auto object-cover rounded-lg shadow-sm border border-gray-200"
+        class="w-full h-auto object-cover border border-rule-strong"
       />
 
       <!-- 捕獲說明 -->
-      <div v-if="record.notes" class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+      <div v-if="record.notes" class="border border-rule p-4">
         <div class="flex items-start gap-2">
           <svg
-            class="w-5 h-5 mt-0.5 shrink-0 stroke-current text-amber-800"
+            class="w-5 h-5 mt-0.5 shrink-0 stroke-current text-elder-subtext"
             fill="none"
             viewBox="0 0 24 24"
             stroke-width="1.5"
@@ -119,20 +83,19 @@
             />
           </svg>
           <div>
-            <span class="text-base font-medium text-amber-800 block mb-1">捕獲說明</span>
-            <p class="text-base text-gray-800 leading-relaxed whitespace-pre-line break-words">
+            <span class="text-elder-body font-bold text-elder-text block mb-1">捕獲說明</span>
+            <p
+              class="text-elder-body text-elder-text leading-relaxed whitespace-pre-line break-words"
+            >
               {{ record.notes }}
             </p>
           </div>
         </div>
       </div>
-      <div
-        v-if="record.session_notes"
-        class="mt-3 bg-teal-50 rounded-lg p-4 border border-teal-200"
-      >
+      <div v-if="record.session_notes" class="mt-3 border border-rule p-4">
         <div class="flex items-start gap-2">
           <svg
-            class="w-5 h-5 mt-0.5 shrink-0 stroke-current text-teal-800"
+            class="w-5 h-5 mt-0.5 shrink-0 stroke-current text-elder-subtext"
             fill="none"
             viewBox="0 0 24 24"
             stroke-width="1.5"
@@ -145,13 +108,28 @@
             />
           </svg>
           <div>
-            <span class="text-base font-medium text-teal-800 block mb-1">情境備註</span>
-            <p class="text-base text-gray-800 leading-relaxed whitespace-pre-line break-words">
+            <span class="text-elder-body font-bold text-elder-text block mb-1">情境備註</span>
+            <p
+              class="text-elder-body text-elder-text leading-relaxed whitespace-pre-line break-words"
+            >
               {{ record.session_notes }}
             </p>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 編輯（僅編輯者）-->
+    <div
+      v-if="canEdit"
+      data-testid="capture-card-footer"
+      class="flex justify-end border-t border-rule px-4"
+    >
+      <Link
+        :href="`/fish/${fishId}/capture-records/${record.id}/edit`"
+        class="inline-flex items-center min-h-touch-secondary text-elder-body text-brand underline underline-offset-4 hover:text-brand-dark"
+        >編輯</Link
+      >
     </div>
   </div>
 </template>

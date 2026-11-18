@@ -8,10 +8,18 @@ const DETAIL_PAGE_FILES = [
   'resources/js/Pages/Fish.vue',
   'resources/js/Components/FishDetail/FishTabBar.vue',
   'resources/js/Components/Global/TabEditActions.vue',
+  'resources/js/Components/FishDetail/FishDetailTop.vue',
+  'resources/js/Components/UI/Volume.vue',
+  'resources/js/composables/useAudioPlayback.js',
+  'resources/js/Components/TribalClassification/TribalClassificationSummary.vue',
+  'resources/js/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue',
+  'resources/js/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue',
+  'resources/js/Components/CaptureRecord/CaptureRecordSection.vue',
+  'resources/js/Components/CaptureRecord/CaptureRecordDisplayCard.vue',
 ]
 
 const DEFAULT_PALETTE =
-  /\b[a-z:-]*(?:bg|text|border|ring|outline|from|to|via|divide|fill|stroke)-(?:blue|teal|slate|emerald|green|gray)-\d{2,3}\b/g
+  /\b[a-z:-]*(?:bg|text|border|ring|outline|from|to|via|divide|fill|stroke)-(?:blue|teal|slate|emerald|green|gray|amber)-\d{2,3}\b/g
 const SHADOW = /\bshadow(?:-[a-z0-9]+)?\b/g
 const BLUE_RGBA = /rgba?\(\s*59\s*,\s*130\s*,\s*246/g
 
