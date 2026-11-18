@@ -3,7 +3,7 @@
  *
  * 職責（SRP）：
  *   - 將列表狀態（items / pageInfo / filters / nameQuery / scrollY）序列化至 sessionStorage
- *   - 還原時驗證 TTL 過期與篩選條件一致性
+ *   - 還原時驗證 TTL 過期、篩選條件一致性與身分一致（不還原別人或舊身分的清單）
  *   - 處理快取失效（stale update、deleted、created）
  *
  * @param {import('vue').Ref} items          魚類清單 ref（來自 useFishList）
@@ -14,6 +14,7 @@
  */
 
 import { nextTick } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import { getFishCompact, getFishLatestAt } from '@/api/fishApi'
 import {
   getStaleIds,
@@ -26,9 +27,18 @@ import {
 
 const STORAGE_KEY = 'fishs_list_state'
 const CACHE_TTL = 30 * 60 * 1000 // 30 分鐘
+const GUEST_IDENTITY = 'guest'
 
 export function useFishListCache(items, pageInfo, currentFilters, nameQuery, getPropsFilters) {
+  const page = usePage()
+
   // --- 私有方法 ---
+
+  /** 目前身分標記：未登入為 guest，登入者為「使用者 id:角色」 */
+  const currentIdentity = () => {
+    const user = page.props.auth?.user
+    return user ? `${user.id}:${user.role}` : GUEST_IDENTITY
+  }
 
   const refreshStaleItems = async (staleIds) => {
     const freshDataList = await Promise.all(
@@ -76,6 +86,7 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
         scrollY: window.scrollY,
         filters: currentFilters.value,
         nameQuery: nameQuery.value,
+        identity: currentIdentity(),
         timestamp: Date.now(),
       }
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
@@ -103,6 +114,12 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
       if (!raw) return false
 
       const state = JSON.parse(raw)
+      // 身分不同、或舊版沒有身分標記：丟棄，避免看到別的身分（例如訪客）的資料
+      if (state.identity !== currentIdentity()) {
+        sessionStorage.removeItem(STORAGE_KEY)
+        return false
+      }
+
       if (Date.now() - state.timestamp > CACHE_TTL) {
         sessionStorage.removeItem(STORAGE_KEY)
         return false
