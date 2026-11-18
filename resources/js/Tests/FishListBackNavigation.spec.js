@@ -25,16 +25,15 @@ const CACHE_KEY = 'fishs_list_state'
 const PAGE_INFO = { hasMore: false, nextCursor: null }
 const VERSION = 'test-version'
 
-const ITEMS = {
-  guest: [{ id: 1, name: '訪客看到的魚', image_url: 'a' }],
-  admin: [{ id: 2, name: '管理員看到的魚', image_url: 'b' }],
-}
+const LABELS = { guest: '訪客看到的魚', admin: '管理員看到的魚' }
 const USERS = { guest: null, admin: { id: 1, role: 'admin' } }
 
 // ── 假伺服器 ────────────────────────────────────────────────
-const server = { identity: 'guest', clearNext: false, encrypt: true }
+// loads：清單頁被伺服器產生了幾次；每次產生的魚名都帶流水號，才分得出「舊頁面」與「重新取得的頁面」
+const server = { identity: 'guest', clearNext: false, encrypt: true, loads: 0 }
 
 const listPage = () => {
+  server.loads += 1
   const page = {
     component: 'Fishs',
     url: '/',
@@ -42,7 +41,9 @@ const listPage = () => {
     encryptHistory: server.encrypt,
     clearHistory: server.clearNext,
     props: {
-      items: ITEMS[server.identity],
+      items: [
+        { id: 1, name: `${LABELS[server.identity]}（載入 ${server.loads}）`, image_url: 'a' },
+      ],
       pageInfo: PAGE_INFO,
       filters: {},
       searchOptions: {},
@@ -123,17 +124,17 @@ describe('身分切換後按上一頁（真的 Inertia 歷史紀錄）', () => {
     sessionStorage.clear()
     window.history.replaceState(null, '', '/')
     document.body.innerHTML = '<div id="app"></div>'
-    Object.assign(server, { identity: 'guest', clearNext: false, encrypt: true })
+    Object.assign(server, { identity: 'guest', clearNext: false, encrypt: true, loads: 0 })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
   })
 
-  // 歷史：[0] / 訪客 → [1] /other → （登入）→ [2] / 管理員，然後連按兩次上一頁回到 [0]
-  const loginThenGoBackToFirstEntry = async () => {
+  // 歷史：[0] / 訪客 → [1] /other → （登入）→ [2] / 管理員
+  const buildHistoryAfterLogin = async () => {
     await startApp()
-    expect(bodyText()).toContain('訪客看到的魚')
+    expect(bodyText()).toContain('訪客看到的魚（載入 1）')
 
     await visit('/other')
     await vi.waitFor(() => expect(bodyText()).toContain('其他頁面'))
@@ -141,26 +142,30 @@ describe('身分切換後按上一頁（真的 Inertia 歷史紀錄）', () => {
     server.identity = 'admin'
     server.clearNext = true // 登入完成後的第一個 Inertia 回應帶 clearHistory
     await visit('/')
-    await vi.waitFor(() => expect(bodyText()).toContain('管理員看到的魚'))
-
-    window.history.go(-2)
+    await vi.waitFor(() => expect(bodyText()).toContain('管理員看到的魚（載入 2）'))
   }
 
-  it('訪客→登入→返回：畫面是管理員的資料，不是訪客的舊頁面', async () => {
-    await loginThenGoBackToFirstEntry()
+  // 連按兩次上一頁回到 [0]（popstate 由 jsdom 非同步送出，由各測試等待可觀察的結果）
+  const goBackToFirstEntry = () => window.history.go(-2)
 
-    await vi.waitFor(() => expect(window.location.pathname).toBe('/'))
-    await vi.waitFor(() => expect(bodyText()).toContain('管理員看到的魚'), { timeout: 3000 })
+  it('訪客→登入→返回：重新向伺服器取得，畫面是管理員的資料，不是訪客的舊頁面', async () => {
+    await buildHistoryAfterLogin()
+    const loadsBeforeBack = server.loads
+
+    goBackToFirstEntry()
+
+    // 舊頁面解不開，必須重新取得：伺服器多產生一次清單，畫面是那一次的內容
+    await vi.waitFor(() => expect(server.loads).toBeGreaterThan(loadsBeforeBack), { timeout: 3000 })
+    await vi.waitFor(() => expect(bodyText()).toContain(`管理員看到的魚（載入 ${server.loads}）`))
     expect(bodyText()).not.toContain('訪客看到的魚')
-    expect(['admin'].includes(cachedIdentity()?.split(':')[1]) || cachedIdentity() === null).toBe(
-      true
-    )
+    const identity = cachedIdentity()
+    expect(identity === null || identity === '1:admin').toBe(true)
   })
 
-  it('管理員→登出→返回：畫面是訪客的資料，不是管理員的舊頁面', async () => {
+  it('管理員→登出→返回：重新向伺服器取得，畫面是訪客的資料，不是管理員的舊頁面', async () => {
     server.identity = 'admin'
     await startApp()
-    expect(bodyText()).toContain('管理員看到的魚')
+    expect(bodyText()).toContain('管理員看到的魚（載入 1）')
 
     await visit('/other')
     await vi.waitFor(() => expect(bodyText()).toContain('其他頁面'))
@@ -168,21 +173,29 @@ describe('身分切換後按上一頁（真的 Inertia 歷史紀錄）', () => {
     server.identity = 'guest'
     server.clearNext = true // 登出後的第一個 Inertia 回應帶 clearHistory
     await visit('/')
-    await vi.waitFor(() => expect(bodyText()).toContain('訪客看到的魚'))
+    await vi.waitFor(() => expect(bodyText()).toContain('訪客看到的魚（載入 2）'))
+    const loadsBeforeBack = server.loads
 
-    window.history.go(-2)
+    goBackToFirstEntry()
 
-    await vi.waitFor(() => expect(window.location.pathname).toBe('/'))
-    await vi.waitFor(() => expect(bodyText()).toContain('訪客看到的魚'), { timeout: 3000 })
+    await vi.waitFor(() => expect(server.loads).toBeGreaterThan(loadsBeforeBack), { timeout: 3000 })
+    await vi.waitFor(() => expect(bodyText()).toContain(`訪客看到的魚（載入 ${server.loads}）`))
     expect(bodyText()).not.toContain('管理員看到的魚')
     expect(cachedIdentity() === null || cachedIdentity() === 'guest').toBe(true)
   })
 
-  it('對照組：歷史紀錄沒加密、也沒清除時，返回會還原舊身分的頁面（證明這個測試抓得到問題）', async () => {
+  it('對照組：歷史紀錄沒加密時，返回不會重新取得，直接還原舊身分的頁面', async () => {
     server.encrypt = false
-    await loginThenGoBackToFirstEntry()
+    await buildHistoryAfterLogin()
+    const loadsBeforeBack = server.loads
 
-    await vi.waitFor(() => expect(bodyText()).toContain('訪客看到的魚'), { timeout: 3000 })
+    goBackToFirstEntry()
+
+    // 畫面換成舊的訪客頁面，代表上一頁已處理完；伺服器沒被再問，因為舊頁面直接還原
+    await vi.waitFor(() => expect(bodyText()).toContain('訪客看到的魚（載入 1）'), {
+      timeout: 3000,
+    })
+    expect(server.loads).toBe(loadsBeforeBack)
     expect(bodyText()).not.toContain('管理員看到的魚')
   })
 })
