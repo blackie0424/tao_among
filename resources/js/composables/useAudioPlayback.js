@@ -51,13 +51,13 @@ export function useAudioPlayback(audioUrl, audioId = null) {
   const buttonClasses = computed(() => {
     switch (playbackState.value) {
       case PlaybackState.PLAYING:
-        return 'bg-blue-500 cursor-not-allowed'
+        return 'bg-brand border border-brand ring-2 ring-brand/30 cursor-not-allowed'
       case PlaybackState.ERROR:
-        return 'bg-red-500 hover:bg-red-600 cursor-pointer'
+        return 'bg-red-500 hover:bg-red-600 focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer'
       case PlaybackState.RETRYING:
         return 'bg-yellow-500 cursor-not-allowed animate-pulse'
       default:
-        return 'bg-gray-200 hover:bg-gray-300 cursor-pointer'
+        return 'bg-paper-raised border border-brand hover:bg-paper hover:border-brand-dark focus-visible:ring-2 focus-visible:ring-brand cursor-pointer'
     }
   })
 

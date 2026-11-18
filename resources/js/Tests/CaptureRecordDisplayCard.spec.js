@@ -37,22 +37,29 @@ const mountCard = (propsData = {}) =>
 // ──────────────────────────────────────────────
 // 序號顯示
 // ──────────────────────────────────────────────
-describe('序號顯示', () => {
-  it('應顯示「第 X 筆紀錄」', () => {
+describe('卡片標題為捕獲日期（#132 AC 9）', () => {
+  it('標題顯示格式化的捕獲日期，不再顯示「第 N 筆紀錄」編號', () => {
     const wrapper = mountCard({ index: 2 })
-    expect(wrapper.text()).toContain('第 3 筆紀錄')
+    expect(wrapper.get('[data-testid="capture-card-title"]').text()).toBe('2024/03/05')
+    expect(wrapper.text()).not.toMatch(/第\s*\d+\s*筆紀錄/)
+  })
+
+  it('不同序號的卡片標題只跟自己的日期有關', () => {
+    const a = mountCard({ index: 0, record: makeRecord({ capture_date: '2024-03-05T00:00:00.000Z' }) })
+    const b = mountCard({ index: 5, record: makeRecord({ capture_date: '2023-12-31T12:00:00.000Z' }) })
+    expect(a.get('[data-testid="capture-card-title"]').text()).toBe('2024/03/05')
+    expect(b.get('[data-testid="capture-card-title"]').text()).toBe('2023/12/31')
   })
 })
 
 describe('欄位圖示', () => {
-  it('五個欄位都以對讀屏隱藏的線條圖示顯示', () => {
+  it('四個欄位都以對讀屏隱藏的線條圖示顯示', () => {
     const wrapper = mountCard({ record: makeRecord({ session_notes: '這次出海備註' }) })
 
     const icons = wrapper.findAll('svg[aria-hidden="true"]')
-    expect(icons).toHaveLength(5)
+    expect(icons).toHaveLength(4)
     expect(icons.every((icon) => icon.attributes('fill') === 'none')).toBe(true)
     expect(wrapper.text()).not.toMatch(/[📅📍🎣📝🗒️]/u)
-    expect(wrapper.text()).toContain('捕獲時間：2024/03/05')
     expect(wrapper.text()).toContain('捕獲地點：')
     expect(wrapper.text()).toContain('捕獲方式：魚槍')
     expect(wrapper.text()).toContain('捕獲說明')
@@ -63,15 +70,21 @@ describe('欄位圖示', () => {
 // ──────────────────────────────────────────────
 // 交替色系
 // ──────────────────────────────────────────────
-describe('交替色系', () => {
-  it('偶數 index 時，卡片應含 border-teal-200 class', () => {
-    const wrapper = mountCard({ index: 0 })
-    expect(wrapper.html()).toContain('border-teal-200')
+describe('單一樣式、無交替色（#132 AC 9）', () => {
+  it('第 1、2 筆卡片的樣式 class 相同，沒有舊的 teal、slate 與編號圓點', () => {
+    const first = mountCard({ index: 0 })
+    const second = mountCard({ index: 1 })
+
+    expect(first.classes()).toEqual(second.classes())
+    expect(first.classes()).toEqual(expect.arrayContaining(['border', 'border-rule-strong']))
+    expect(first.html()).not.toMatch(/teal|slate|rounded-full bg-/)
   })
 
-  it('奇數 index 時，卡片應含 border-slate-200 class', () => {
-    const wrapper = mountCard({ index: 1 })
-    expect(wrapper.html()).toContain('border-slate-200')
+  it('沒有 Tailwind 預設色與陰影，欄位字級 18px', () => {
+    const wrapper = mountCard({ record: makeRecord({ session_notes: '情境' }), canEdit: true, fishId: 1 })
+
+    expect(wrapper.html()).not.toMatch(/(?:bg|text|border)-(?:blue|gray|green|teal|slate|emerald|amber)-\d|shadow|bg-white/)
+    expect(wrapper.html()).not.toMatch(/text-(?:xs|sm|base)\b/)
   })
 })
 
@@ -81,13 +94,12 @@ describe('交替色系', () => {
 describe('捕獲時間', () => {
   it('有 capture_date 時應顯示格式化日期', () => {
     const wrapper = mountCard({ record: makeRecord({ capture_date: '2024-03-05T00:00:00.000Z' }) })
-    expect(wrapper.text()).toContain('捕獲時間')
     expect(wrapper.text()).toContain('2024/03/05')
   })
 
-  it('capture_date 為 null 時不應顯示捕獲時間區塊', () => {
+  it('capture_date 為 null（資料表必填，防呆）時不顯示標題', () => {
     const wrapper = mountCard({ record: makeRecord({ capture_date: null }) })
-    expect(wrapper.text()).not.toContain('捕獲時間')
+    expect(wrapper.find('[data-testid="capture-card-title"]').exists()).toBe(false)
   })
 })
 
@@ -186,6 +198,14 @@ describe('紀錄編輯連結', () => {
     })
     expect(wrapper.get('a').text()).toBe('編輯')
     expect(wrapper.get('a').attributes('href')).toBe('/fish/42/capture-records/23/edit')
+  })
+  it('編輯連結在卡片底部右側，主色底線，至少 48px 高', () => {
+    const link = mountCard({ fishId: 42, canEdit: true }).get('[data-testid="capture-card-footer"] a')
+
+    expect(link.text()).toBe('編輯')
+    expect(link.classes()).toEqual(
+      expect.arrayContaining(['text-brand', 'underline', 'min-h-touch-secondary', 'text-elder-body'])
+    )
   })
   it('canEdit 為假時不渲染編輯', () => {
     expect(mountCard({ fishId: 42, canEdit: false }).find('a').exists()).toBe(false)

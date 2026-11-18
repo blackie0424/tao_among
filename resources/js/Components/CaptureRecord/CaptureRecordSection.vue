@@ -1,12 +1,15 @@
 <template>
   <section
     v-if="captureRecords.length || user"
-    class="rounded-xl bg-white shadow-sm border border-gray-200 p-4"
+    class="border border-rule-strong bg-paper-raised p-4"
   >
-    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-rule">
       <div class="flex items-center gap-3">
-        <h3 class="text-2xl font-bold text-gray-900">捕獲紀錄</h3>
-        <span class="text-sm font-bold bg-gray-100 text-gray-800 px-3 py-1 rounded-full">
+        <h3 class="font-serif text-elder-name font-bold text-elder-text">捕獲紀錄</h3>
+        <span
+          data-testid="capture-count"
+          class="rounded-full border border-rule-strong px-3 py-1 text-elder-body font-bold text-elder-text"
+        >
           {{ captureRecords.length }}
         </span>
       </div>

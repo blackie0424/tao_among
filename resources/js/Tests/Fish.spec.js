@@ -190,6 +190,12 @@ describe('詳細頁導覽行為', () => {
     expect(tabBar.classes()).toContain('lg:top-20')
   })
 
+  it('分頁列固定時底色為紙色，不是灰色', () => {
+    const tabBar = mountFish().find('.sticky')
+    expect(tabBar.classes()).toContain('bg-paper')
+    expect(tabBar.classes()).not.toContain('bg-gray-50')
+  })
+
   it('分頁按鈕使用長者內文字級與次要觸控高度', () => {
     const wrapper = mountFish()
     const tabs = wrapper.findAll('button').filter((button) => ['基本', '地方知識', '捕獲紀錄'].includes(button.text()))
@@ -362,6 +368,33 @@ describe('分頁入口權限與空狀態', () => {
   })
 })
 
+it('編輯入口為主色底線連結，高度至少 56px', () => {
+  mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+  const wrapper = mountFish()
+  const links = wrapper.findAll('[data-testid="tab-edit-actions"] a')
+  expect(links.length).toBeGreaterThan(0)
+  for (const link of links) {
+    expect(link.classes()).toEqual(
+      expect.arrayContaining(['text-brand', 'underline', 'min-h-touch-primary', 'text-elder-body'])
+    )
+    expect(link.classes().join(' ')).not.toMatch(/blue|bg-white|border-/)
+  }
+})
+
+it('合併與刪除維持紅色，字級 18px、至少 48px 高、圓角與其他按鈕一致', () => {
+  mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+  const danger = mountFish().get('[aria-label="魚類刪除與合併"]')
+  const merge = danger.get('a')
+  const del = danger.get('button')
+  expect(merge.classes()).toContain('text-red-700')
+  expect(del.classes()).toContain('bg-red-600')
+  for (const el of [merge, del]) {
+    expect(el.classes()).toEqual(
+      expect.arrayContaining(['text-elder-body', 'min-h-touch-secondary', 'rounded-lg'])
+    )
+  }
+})
+
 it('基本 tab 頂部將合併與刪除排在編輯名稱後方並保留間隔', async () => {
   mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
   const wrapper = mountFish()
@@ -400,4 +433,43 @@ it('刪魚確認保留不可復原文字，取消不送出、確認才送出', a
   await button.trigger('click')
   expect(router.delete).toHaveBeenCalledWith('/fish/1')
   confirm.mockRestore()
+})
+
+describe('分頁選中標示與內容一致（#132 AC 1）', () => {
+  const selectedLabels = (wrapper) =>
+    wrapper
+      .get('[data-testid="fish-tab-bar"]')
+      .findAll('button')
+      .filter((b) => b.classes().includes('border-brand'))
+      .map((b) => b.text())
+
+  it.each(['audio', 'advanced', 'reference', 'nonexistent'])(
+    'viewer 指定不可見或無效分頁 %s：只有「基本」被選中且基本內容可見',
+    async (tab) => {
+      window.history.replaceState({}, '', '/fish/1?tab=' + tab)
+      mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'viewer' } } } })
+      const wrapper = mountFish()
+      await nextTick()
+
+      expect(selectedLabels(wrapper)).toEqual(['基本'])
+      expect(wrapper.get('[data-testid="basic-tab"]').isVisible()).toBe(true)
+      expect(wrapper.get('[data-testid="local-tab"]').isVisible()).toBe(false)
+    }
+  )
+
+  it('點擊分頁後，選中標示與可見內容一起切換', async () => {
+    window.history.replaceState({}, '', '/fish/1')
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'viewer' } } } })
+    const wrapper = mountFish()
+    const local = wrapper
+      .get('[data-testid="fish-tab-bar"]')
+      .findAll('button')
+      .find((b) => b.text() === '地方知識')
+
+    await local.trigger('click')
+
+    expect(selectedLabels(wrapper)).toEqual(['地方知識'])
+    expect(wrapper.get('[data-testid="local-tab"]').isVisible()).toBe(true)
+    expect(wrapper.get('[data-testid="basic-tab"]').isVisible()).toBe(false)
+  })
 })

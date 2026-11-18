@@ -1,17 +1,17 @@
 <template>
   <div
     data-testid="fish-tab-bar"
-    class="grid grid-cols-6 gap-1 md:flex md:flex-nowrap"
+    class="grid grid-cols-6 gap-2 md:flex md:flex-nowrap"
   >
     <button
       v-for="(tab, index) in tabs"
       :key="tab.key"
-      class="w-full min-w-0 rounded-lg px-2 py-2 text-elder-body font-medium min-h-touch-secondary break-words transition-colors hover:bg-gray-200 hover:text-elder-text md:w-auto md:shrink-0 md:whitespace-nowrap"
+      class="w-full min-w-0 whitespace-nowrap rounded-lg bg-paper-raised px-1 py-2 text-elder-body min-h-touch-secondary transition-colors hover:border-brand hover:text-elder-text md:w-auto md:shrink-0 md:px-4"
       :class="[
         mobileGridClass(index),
         activeTab === tab.key
-          ? 'bg-blue-100 text-blue-700 font-semibold'
-          : 'bg-gray-100 text-elder-subtext',
+          ? 'border-2 border-brand text-brand font-bold'
+          : 'border border-rule-strong text-elder-subtext',
       ]"
       @click="$emit('select', tab.key)"
     >

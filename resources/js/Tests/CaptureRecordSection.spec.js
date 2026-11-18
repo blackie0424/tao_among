@@ -89,3 +89,18 @@ it('把魚 id 與編輯權限傳給每張卡片', async () => {
   for (const card of wrapper.findAllComponents(CaptureRecordDisplayCard))
     expect(card.props('canEdit')).toBe(false)
 })
+
+describe('博物誌樣式（#132 AC 9）', () => {
+  it('區塊為米白底細框，無陰影與預設色，標題宋體、計數為細框膠囊', () => {
+    const wrapper = mountSection({ captureRecords: makeRecords(2) })
+
+    expect(wrapper.html()).not.toMatch(
+      /(?:bg|text|border)-(?:blue|gray|green|teal|slate|emerald)-\d|shadow|bg-white/
+    )
+    expect(wrapper.get('h3').classes()).toContain('font-serif')
+    expect(wrapper.get('[data-testid="capture-count"]').text()).toBe('2')
+    expect(wrapper.get('[data-testid="capture-count"]').classes()).toEqual(
+      expect.arrayContaining(['border', 'border-rule-strong', 'text-elder-body'])
+    )
+  })
+})

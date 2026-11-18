@@ -1,10 +1,10 @@
 <template>
   <section
     v-if="isEditor && (hasKnowledge || user)"
-    class="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+    class="border border-rule-strong bg-paper-raised p-4"
   >
-    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-      <h2 class="text-xl font-bold flex items-center gap-2 text-gray-900">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-rule">
+      <h2 class="font-serif text-elder-name font-bold flex items-center gap-2 text-elder-text">
         <span>📚</span> 文獻知識
       </h2>
     </div>
@@ -14,12 +14,12 @@
         v-for="group in groupedReferenceKnowledge"
         :key="group.key"
         data-testid="reference-group"
-        class="overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+        class="overflow-hidden border border-rule-strong"
       >
-        <div class="flex items-start gap-4 border-b border-gray-200 bg-white p-4">
+        <div class="flex items-start gap-4 border-b border-rule p-4">
           <div
             data-testid="reference-group-cover"
-            class="aspect-[3/4] w-32 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:w-40"
+            class="aspect-[3/4] w-32 flex-shrink-0 overflow-hidden border border-rule-strong bg-paper sm:w-40"
           >
             <LazyImage
               v-if="group.reference.image_url"
@@ -30,14 +30,14 @@
             />
             <div
               v-else
-              class="flex h-full items-center justify-center px-2 text-center text-xs font-medium text-gray-400"
+              class="flex h-full items-center justify-center px-2 text-center text-elder-body font-medium text-elder-subtext"
             >
               暫無封面
             </div>
           </div>
           <div class="min-w-0 space-y-1">
-            <h3 class="text-lg font-bold text-gray-900">{{ group.reference.name }}</h3>
-            <p class="text-sm text-gray-500">共 {{ group.items.length }} 筆文獻知識</p>
+            <h3 class="font-serif text-elder-body font-bold text-elder-text">{{ group.reference.name }}</h3>
+            <p class="text-elder-body text-elder-subtext">共 {{ group.items.length }} 筆文獻知識</p>
           </div>
         </div>
 
@@ -45,21 +45,22 @@
           <div
             v-for="item in group.items"
             :key="item.id"
-            class="rounded-lg border border-gray-200 bg-white p-4"
+            class="border border-rule p-4"
           >
             <div class="mb-3 flex flex-wrap items-center gap-2">
-              <span class="text-sm font-medium text-gray-500">頁碼：{{ item.pages }}</span>
+              <span data-testid="reference-pages" class="text-elder-body font-medium text-elder-subtext">頁碼：{{ item.pages }}</span>
               <span
                 v-if="item.tribe"
-                class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700"
+                data-testid="reference-tribe-tag"
+                class="inline-flex items-center rounded-full border border-rule-strong px-2.5 py-1 text-elder-body font-medium text-elder-text"
               >
                 部落：{{ item.tribe }}
               </span>
             </div>
-            <div class="whitespace-pre-line leading-relaxed text-gray-800">
+            <div class="whitespace-pre-line leading-relaxed text-elder-body text-elder-text">
               {{ item.content }}
             </div>
-            <div v-if="item.note" class="mt-3 text-sm text-gray-500">
+            <div v-if="item.note" data-testid="reference-note" class="mt-3 text-elder-body text-elder-subtext">
               備註：{{ item.note }}
             </div>
           </div>
@@ -68,7 +69,8 @@
     </div>
     <div
       v-else
-      class="text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg"
+      data-testid="reference-empty"
+      class="text-elder-body text-elder-subtext text-center py-8 border border-dashed border-rule-strong"
     >
       目前沒有文獻知識的紀錄
     </div>

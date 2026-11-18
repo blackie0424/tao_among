@@ -58,32 +58,34 @@ describe('TribalClassificationSummary', () => {
     expect(
       cells
         .filter((cell) => ['曬乾', '生食', '煮湯'].includes(cell.text()))
-        .every((cell) => cell.classes().includes('text-gray-900'))
+        .every((cell) => cell.classes().includes('text-elder-text'))
     ).toBe(true)
   })
 
-  it('表頭、部落標籤、分類值與田調紀錄都至少使用 15px 字級', () => {
+  it('表頭、部落標籤、分類值與田調紀錄一律 18px 字級', () => {
     const wrapper = mountSummary({
       classifications: [
         { tribe: '朗島', food_category: '生食', processing_method: '曬乾', notes: '田調內容' },
       ],
       tribes: ['朗島', '無紀錄'],
     })
-    expect(wrapper.findAll('th').every((cell) => cell.classes().includes('text-elder-aux'))).toBe(
+    expect(wrapper.findAll('th').every((cell) => cell.classes().includes('text-elder-body'))).toBe(
       true
     )
     expect(
-      wrapper.findAll('.bg-blue-100').every((tag) => tag.classes().includes('text-elder-aux'))
+      wrapper.findAll('[data-testid="tribe-name"]').every((tag) => tag.classes().includes('text-elder-body'))
     ).toBe(true)
     const valueCells = wrapper.findAll('tbody td:nth-child(2), tbody td:nth-child(3)')
     expect(valueCells).toHaveLength(4)
     for (const cell of valueCells) {
-      expect(cell.classes()).toContain('text-base')
-      expect(cell.classes()).toContain('md:text-lg')
+      expect(cell.classes()).toContain('text-elder-body')
+      expect(cell.classes()).not.toEqual(expect.arrayContaining(['text-base']))
+      expect(cell.classes()).not.toContain('md:text-lg')
       expect(cell.classes()).not.toContain('text-elder-aux')
     }
-    expect(wrapper.get('p').classes()).toContain('text-elder-aux')
-    expect(wrapper.get('p').classes()).toContain('md:text-base')
+    expect(wrapper.get('p').classes()).toContain('text-elder-body')
+    expect(wrapper.get('p').classes()).not.toContain('text-elder-aux')
+    expect(wrapper.get('p').classes()).not.toContain('md:text-base')
   })
 
   it('手機卡片逐欄呈現空值色彩、字級與長字串，桌機維持三欄表格', () => {
@@ -111,8 +113,8 @@ describe('TribalClassificationSummary', () => {
     const cards = wrapper.findAll('[data-testid="tribal-classification-card"]')
     expect(cards).toHaveLength(4)
     expect(cards.map((card) => card.find('span').text())).toEqual(['無紀錄', 'null 欄位', '空字串', '有值'])
-    expect(cards.every((card) => card.find('span').classes().includes('text-elder-aux'))).toBe(true)
-    expect(cards.every((card) => card.findAll('dt').every((label) => label.classes().includes('text-elder-aux')))).toBe(true)
+    expect(cards.every((card) => card.find('span').classes().includes('text-elder-body'))).toBe(true)
+    expect(cards.every((card) => card.findAll('dt').every((label) => label.classes().includes('text-elder-body')))).toBe(true)
     expect(cards.map((card) => card.findAll('dd').map((value) => value.text()))).toEqual([
       ['尚未紀錄', '尚未紀錄'],
       ['尚未紀錄', '沒有空白的超長處理方式文字'],
@@ -120,9 +122,9 @@ describe('TribalClassificationSummary', () => {
       ['生食', '曬乾'],
     ])
     const values = cards.flatMap((card) => card.findAll('dd'))
-    expect(values.every((value) => value.classes().includes('text-base'))).toBe(true)
+    expect(values.every((value) => value.classes().includes('text-elder-body'))).toBe(true)
     expect(values.filter((value) => value.text() === '尚未紀錄').every((value) => value.classes().includes('text-elder-subtext'))).toBe(true)
-    expect(values.filter((value) => value.text() !== '尚未紀錄').every((value) => value.classes().includes('text-gray-900'))).toBe(true)
+    expect(values.filter((value) => value.text() !== '尚未紀錄').every((value) => value.classes().includes('text-elder-text'))).toBe(true)
     expect(cards.every((card) => card.classes().includes('break-words'))).toBe(true)
     expect(wrapper.get('table').classes()).toContain('hidden')
     expect(wrapper.get('table').classes()).toContain('md:table')
@@ -134,5 +136,39 @@ describe('TribalClassificationSummary', () => {
     })
 
     expect(wrapper.get('p').classes()).toContain('break-words')
+  })
+})
+
+describe('TribalClassificationSummary 博物誌樣式（#132 AC 7）', () => {
+  const html = () =>
+    mountSummary({
+      classifications: [{ tribe: '朗島', food_category: '生食', processing_method: '曬乾', notes: '田調內容' }],
+      tribes: ['朗島', '無紀錄'],
+    }).html()
+
+  it('沒有 Tailwind 預設色與卡片陰影', () => {
+    expect(html()).not.toMatch(/(?:bg|text|border|divide)-(?:blue|gray|green|teal|slate|emerald)-\d|shadow|bg-white/)
+  })
+
+  it('部落名為宋體，列與列之間用細線分隔', () => {
+    const wrapper = mountSummary({
+      classifications: [{ tribe: '朗島', food_category: '生食', processing_method: '曬乾' }],
+      tribes: ['朗島'],
+    })
+    const tribe = wrapper.get('[data-testid="tribe-name"]')
+
+    expect(tribe.classes()).toEqual(expect.arrayContaining(['font-serif', 'text-elder-body']))
+    expect(wrapper.get('[data-testid="tribal-classification-card"]').classes()).toContain('border-rule')
+    expect(wrapper.get('tbody').classes()).toContain('divide-rule')
+  })
+
+  it('部落清單為空時，沿用回退：只列出已有的分類紀錄', () => {
+    const wrapper = mountSummary({
+      classifications: [{ tribe: '朗島', food_category: '生食', processing_method: null }],
+      tribes: [],
+    })
+
+    expect(wrapper.findAll('[data-testid="tribal-classification-card"]')).toHaveLength(1)
+    expect(wrapper.get('[data-testid="tribal-classification-card"]').text()).toContain('尚未紀錄')
   })
 })

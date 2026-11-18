@@ -11,9 +11,17 @@ import { ref } from 'vue'
 import Volume from '../Components/UI/Volume.vue'
 
 // Mock useAudioPlayback composable
+// #132：各狀態的按鈕 class（與 useAudioPlayback.spec.js 對照的固定預期值）
+const IDLE_CLASSES =
+  'bg-paper-raised border border-brand hover:bg-paper hover:border-brand-dark focus-visible:ring-2 focus-visible:ring-brand cursor-pointer'
+const PLAYING_CLASSES = 'bg-brand border border-brand ring-2 ring-brand/30 cursor-not-allowed'
+const ERROR_CLASSES =
+  'bg-red-500 hover:bg-red-600 focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer'
+const RETRYING_CLASSES = 'bg-yellow-500 cursor-not-allowed animate-pulse'
+
 const mockHandleClick = vi.fn()
 const mockPlaybackState = ref('idle')
-const mockButtonClasses = ref('bg-gray-200 hover:bg-gray-300 cursor-pointer')
+const mockButtonClasses = ref(IDLE_CLASSES)
 const mockButtonTitle = ref('點擊播放音頻')
 const mockIsPlaying = ref(false)
 
@@ -47,6 +55,7 @@ vi.mock('../composables/useAudioPlayback.js', () => ({
 }))
 
 import { useAudioPlayback } from '../composables/useAudioPlayback.js'
+import animationOptimizer from '../utils/AnimationOptimizer.js'
 
 describe('Volume Component', () => {
   let wrapper
@@ -60,7 +69,7 @@ describe('Volume Component', () => {
 
     // Reset mock values to default state
     mockPlaybackState.value = 'idle'
-    mockButtonClasses.value = 'bg-gray-200 hover:bg-gray-300 cursor-pointer'
+    mockButtonClasses.value = IDLE_CLASSES
     mockButtonTitle.value = '點擊播放音頻'
     mockIsPlaying.value = false
 
@@ -166,7 +175,7 @@ describe('Volume Component', () => {
     it('應該在 playing 狀態顯示正確的圖示', async () => {
       mockPlaybackState.value = 'playing'
       mockIsPlaying.value = true
-      mockButtonClasses.value = 'bg-blue-500 cursor-not-allowed'
+      mockButtonClasses.value = PLAYING_CLASSES
       mockButtonTitle.value = '正在播放...'
 
       await wrapper.vm.$nextTick()
@@ -178,7 +187,7 @@ describe('Volume Component', () => {
 
     it('應該在 error 狀態顯示正確的圖示', async () => {
       mockPlaybackState.value = 'error'
-      mockButtonClasses.value = 'bg-red-500 hover:bg-red-600 cursor-pointer'
+      mockButtonClasses.value = ERROR_CLASSES
       mockButtonTitle.value = '播放失敗，點擊重試 (1/3)'
 
       await wrapper.vm.$nextTick()
@@ -190,7 +199,7 @@ describe('Volume Component', () => {
 
     it('應該在 retrying 狀態顯示正確的圖示', async () => {
       mockPlaybackState.value = 'retrying'
-      mockButtonClasses.value = 'bg-yellow-500 cursor-not-allowed animate-pulse'
+      mockButtonClasses.value = RETRYING_CLASSES
       mockButtonTitle.value = '正在重試... (1/3)'
 
       await wrapper.vm.$nextTick()
@@ -285,5 +294,93 @@ describe('Volume Component', () => {
         wrapper.unmount()
       }).not.toThrow()
     })
+  })
+})
+
+describe('Volume 各狀態實際輸出的顏色（#132 AC 6）', () => {
+  const BLUE_OR_GRAY = /(?:bg|text|border|ring)-(?:blue|gray)-\d/
+
+  const cases = [
+    {
+      state: 'idle',
+      classes: IDLE_CLASSES,
+      expectButton: ['bg-paper-raised', 'border-brand', 'focus-visible:ring-brand'],
+      expectIcon: 'text-brand',
+    },
+    {
+      state: 'playing',
+      classes: PLAYING_CLASSES,
+      expectButton: ['bg-brand', 'ring-brand/30'],
+      expectIcon: 'text-white',
+    },
+    {
+      state: 'error',
+      classes: ERROR_CLASSES,
+      expectButton: ['bg-red-500', 'hover:bg-red-600', 'focus-visible:ring-red-500'],
+      expectIcon: 'text-white',
+    },
+    {
+      state: 'retrying',
+      classes: RETRYING_CLASSES,
+      expectButton: ['bg-yellow-500', 'animate-pulse'],
+      expectIcon: 'text-white',
+    },
+  ]
+
+  const mountWithState = async ({ state, classes }) => {
+    mockPlaybackState.value = state
+    mockButtonClasses.value = classes
+    const wrapper = mount(Volume, { props: { audioUrl: 'a.mp3' } })
+    await wrapper.vm.$nextTick()
+    return wrapper
+  }
+
+  it.each(cases)('$state：按鈕與圖示用該狀態的顏色，沒有 Tailwind 藍或灰', async (testCase) => {
+    const wrapper = await mountWithState(testCase)
+    const button = wrapper.get('[role="button"]')
+    const icon = wrapper.get('svg')
+
+    expect(button.classes()).toEqual(expect.arrayContaining(testCase.expectButton))
+    expect(icon.classes()).toContain(testCase.expectIcon)
+    expect(button.attributes('class')).not.toMatch(BLUE_OR_GRAY)
+    expect(icon.attributes('class')).not.toMatch(BLUE_OR_GRAY)
+  })
+
+  const buttonClassesOf = async (testCase) => {
+    const wrapper = await mountWithState(testCase)
+    const classes = wrapper.get('[role="button"]').classes()
+    wrapper.unmount()
+    return classes
+  }
+
+  it('錯誤與重試不使用主色，待播放與播放中的主色不被狀態色取代', async () => {
+    expect(await buttonClassesOf(cases[2])).not.toContain('bg-brand')
+    expect(await buttonClassesOf(cases[3])).not.toContain('bg-brand')
+    expect(await buttonClassesOf(cases[0])).not.toContain('bg-red-500')
+    expect(await buttonClassesOf(cases[1])).not.toContain('bg-yellow-500')
+  })
+
+  it('優化模式 aggressive 會移除 transition 與 animate，但顏色 class 保留', async () => {
+    animationOptimizer.optimizationLevel = 'aggressive'
+    try {
+      const retrying = await buttonClassesOf(cases[3])
+      const playing = await buttonClassesOf(cases[1])
+
+      expect(retrying).toContain('bg-yellow-500')
+      expect(retrying).not.toContain('animate-pulse')
+      expect(playing).toEqual(expect.arrayContaining(['bg-brand', 'ring-brand/30']))
+    } finally {
+      animationOptimizer.optimizationLevel = 'none'
+    }
+  })
+
+  it('一般尺寸 48px、large 56px 的觸控規格不變', () => {
+    mockPlaybackState.value = 'idle'
+    mockButtonClasses.value = IDLE_CLASSES
+    const normal = mount(Volume, { props: { audioUrl: 'a.mp3' } })
+    const large = mount(Volume, { props: { audioUrl: 'a.mp3', large: true } })
+
+    expect(normal.get('[role="button"]').classes()).toContain('min-h-touch-secondary')
+    expect(large.get('[role="button"]').classes()).toContain('min-h-touch-primary')
   })
 })

@@ -7,7 +7,9 @@ vi.mock('@inertiajs/vue3', () => ({
   Link: { props: ['href'], template: '<a :href="href"><slot /></a>' },
   usePage: () => ({ props: {} }),
 }))
-vi.mock('@/Components/UI/Volume.vue', () => ({ default: { template: '<span />' } }))
+vi.mock('@/Components/UI/Volume.vue', () => ({
+  default: { template: '<span data-testid="volume" />' },
+}))
 
 const mountFish = (props) =>
   mount(ItemCard, { props: { href: '/fish/1', title: '飛魚', variant: 'fish', ...props } })
@@ -53,13 +55,14 @@ describe('ItemCard fish 版', () => {
     expect(wrapper.get('a').attributes('href')).toBe('/fish/1')
   })
 
-  it('有發音時，發音鈕包在 fish-volume 內，播放狀態改用博物誌配色（不用預設藍）', () => {
+  it('有發音時渲染發音鈕，顏色由 Volume 統一提供，不再另加魚清單專用的包裹', () => {
     const wrapper = mountFish({ imageUrl: '/a.jpg', audioUrl: '/a.mp3' })
-    expect(wrapper.find('.fish-volume').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="volume"]').exists()).toBe(true)
+    expect(wrapper.find('.fish-volume').exists()).toBe(false)
   })
 
-  it('沒有發音時沒有 fish-volume', () => {
-    expect(mountFish({ imageUrl: '/a.jpg' }).find('.fish-volume').exists()).toBe(false)
+  it('沒有發音時不渲染發音鈕', () => {
+    expect(mountFish({ imageUrl: '/a.jpg' }).find('[data-testid="volume"]').exists()).toBe(false)
   })
 
   it('圖片網址換掉後重新顯示圖片', async () => {
@@ -83,7 +86,7 @@ describe('ItemCard 預設版（主題頁等）維持原樣式', () => {
     expect(wrapper.html()).toContain('shadow-md')
   })
 
-  it('預設版的發音鈕不加 fish-volume，Volume 原樣式不變', () => {
+  it('預設版的發音鈕同樣沒有專用包裹', () => {
     const wrapper = mount(ItemCard, {
       props: { href: '/item/1', title: '主題', audioUrl: '/a.mp3' },
     })
