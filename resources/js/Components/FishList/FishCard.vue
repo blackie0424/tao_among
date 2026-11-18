@@ -7,6 +7,8 @@
     :audioUrl="hasAudioAccess ? fish.audio_url : null"
     :index="index"
     variant="fish"
+    :gated="gated"
+    @blocked="$emit('blocked', $event)"
   />
 </template>
 
@@ -26,7 +28,13 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  gated: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+defineEmits(['blocked'])
 
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(props.fish.display_image_position, props.fish.display_image_scale)

@@ -1,5 +1,8 @@
 <template>
-  <div :class="isFish ? 'overflow-hidden' : 'bg-white rounded-xl shadow-md overflow-hidden'">
+  <div
+    :class="isFish ? 'overflow-hidden' : 'bg-white rounded-xl shadow-md overflow-hidden'"
+    @click.capture="interceptIfGated"
+  >
     <Link
       :href="href"
       class="block h-full group focus:outline-none"
@@ -87,6 +90,8 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  // 需要登入或開通才能看詳細頁：點擊不導頁，改 emit blocked 由頁面處理
+  gated: { type: Boolean, default: false },
   // 'default'：原樣式（主題頁等）；'fish'：魚清單的博物誌樣式
   variant: {
     type: String,
@@ -94,6 +99,15 @@ const props = defineProps({
     validator: (value) => ['default', 'fish'].includes(value),
   },
 })
+
+const emit = defineEmits(['blocked'])
+
+const interceptIfGated = (event) => {
+  if (!props.gated) return
+  event.preventDefault()
+  event.stopPropagation()
+  emit('blocked', event.target.closest('a') ?? event.currentTarget)
+}
 
 const isFish = computed(() => props.variant === 'fish')
 

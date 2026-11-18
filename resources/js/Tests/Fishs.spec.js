@@ -12,7 +12,7 @@ const { clearAllFiltersMock, handleSearchToggleMock, authState, listState } = vi
 // ── Inertia mock ──────────────────────────────────────────────
 vi.mock('@inertiajs/vue3', () => ({
   Head: { template: '<div />' },
-  Link: { template: '<a><slot /></a>', props: ['href'] },
+  Link: { template: '<a :href="href"><slot /></a>', props: ['href'] },
   usePage: () => ({ props: { auth: { user: authState.user } } }),
 }))
 
@@ -26,6 +26,9 @@ vi.mock('@/Layouts/FishAppLayout.vue', () => ({
 }))
 
 // ── 子元件 mock（只驗證頁面層邏輯）──────────────────────────
+vi.mock('@/Components/UI/BackToTopButton.vue', () => ({
+  default: { template: '<button data-testid="back-to-top" />' },
+}))
 vi.mock('@/Components/UI/SearchToggleButton.vue', () => ({
   default: {
     template: '<button data-testid="search-toggle" @click="$emit(\'toggle\')">{{ label }}</button>',
@@ -54,7 +57,12 @@ vi.mock('@/Components/FishList/FishSearchCursorErrorBanner.vue', () => ({
   default: { template: '<div v-if="show" data-testid="cursor-error" />', props: ['show'] },
 }))
 vi.mock('@/Components/FishList/FishCard.vue', () => ({
-  default: { template: '<li data-testid="fish-card" />', props: ['fish', 'index'] },
+  default: {
+    template:
+      '<li data-testid="fish-card" :data-gated="String(gated)"><a href="#" data-testid="fish-card-link" @click.prevent="gated && $emit(\'blocked\', $event.currentTarget)">{{ fish.name }}</a></li>',
+    props: ['fish', 'index', 'gated'],
+    emits: ['blocked'],
+  },
 }))
 
 // ── composable mock（隔離頁面層邏輯，使用 Vue ref 確保響應式正確）─
@@ -265,5 +273,86 @@ describe('FishCard 渲染', () => {
     })
     await wrapper.vm.$nextTick()
     expect(wrapper.findAll('[data-testid="fish-card"]').length).toBe(2)
+  })
+})
+
+// ──────────────────────────────────────────────
+// 訪客面板（AC 7–9）
+// ──────────────────────────────────────────────
+describe('點魚卡的身分分流', () => {
+  const fishItems = [
+    { id: 5, name: '飛魚' },
+    { id: 6, name: '' },
+  ]
+  const mountWithAttach = async (user) => {
+    authState.user = user
+    const wrapper = mount(Fishs, { props: { ...defaultProps, items: fishItems }, attachTo: document.body })
+    await flushPromises()
+    return wrapper
+  }
+
+  it.each([
+    ['未登入', null, true],
+    ['guest', { role: 'guest' }, true],
+    ['viewer', { role: 'viewer' }, false],
+    ['editor', { role: 'editor' }, false],
+    ['admin', { role: 'admin' }, false],
+  ])('%s：魚卡 gated = %s', async (_label, user, gated) => {
+    const wrapper = await mountWithAttach(user)
+    const cards = wrapper.findAll('[data-testid="fish-card"]')
+    expect(cards.every((c) => c.attributes('data-gated') === String(gated))).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('訪客點魚卡：滑出登入面板，標題帶魚名、登入鈕帶回該魚', async () => {
+    const wrapper = await mountWithAttach(null)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await wrapper.findAll('[data-testid="fish-card-link"]')[0].trigger('click')
+
+    expect(wrapper.get('[data-testid="sheet-title"]').text()).toBe('想認識「飛魚」？')
+    expect(wrapper.get('[data-testid="sheet-login"]').attributes('href')).toBe('/login?redirect=/fish/5')
+    wrapper.unmount()
+  })
+
+  it('魚名為空時面板標題用「這條魚」', async () => {
+    const wrapper = await mountWithAttach(null)
+    await wrapper.findAll('[data-testid="fish-card-link"]')[1].trigger('click')
+    expect(wrapper.get('[data-testid="sheet-title"]').text()).toBe('想認識「這條魚」？')
+    wrapper.unmount()
+  })
+
+  it('guest 點魚卡：顯示等待開通、沒有登入鈕', async () => {
+    const wrapper = await mountWithAttach({ role: 'guest' })
+    await wrapper.findAll('[data-testid="fish-card-link"]')[0].trigger('click')
+    expect(wrapper.get('[data-testid="sheet-body"]').text()).toBe('你的帳號還在等待開通')
+    expect(wrapper.find('[data-testid="sheet-login"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('已開通者的魚卡不 gated，不會出現面板', async () => {
+    const wrapper = await mountWithAttach({ role: 'viewer' })
+    await wrapper.findAll('[data-testid="fish-card-link"]')[0].trigger('click')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('Esc 關閉面板後，焦點回到被點的魚卡', async () => {
+    const wrapper = await mountWithAttach(null)
+    const link = wrapper.findAll('[data-testid="fish-card-link"]')[0]
+    link.element.focus()
+    await link.trigger('click')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(link.element)
+    wrapper.unmount()
+  })
+
+  it('清單頁有回到頂端鈕', () => {
+    expect(mountFishs().find('[data-testid="back-to-top"]').exists()).toBe(true)
   })
 })

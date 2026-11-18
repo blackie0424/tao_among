@@ -74,3 +74,26 @@ describe('ItemCard 預設版（主題頁等）維持原樣式', () => {
     expect(wrapper.html()).toContain('shadow-md')
   })
 })
+
+describe('ItemCard 需登入時攔截點擊（AC 7–9）', () => {
+  const click = (wrapper) => {
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+    wrapper.get('a').element.dispatchEvent(event)
+    return event
+  }
+
+  it('gated 時點擊被攔下（不導向詳細頁）並 emit blocked，帶出被點的連結', () => {
+    const wrapper = mountFish({ imageUrl: '/a.jpg', gated: true })
+    const event = click(wrapper)
+    expect(event.defaultPrevented).toBe(true)
+    expect(wrapper.emitted('blocked')).toHaveLength(1)
+    expect(wrapper.emitted('blocked')[0][0]).toBe(wrapper.get('a').element)
+  })
+
+  it('不 gated（已開通）時不攔截、不 emit', () => {
+    const wrapper = mountFish({ imageUrl: '/a.jpg' })
+    const event = click(wrapper)
+    expect(event.defaultPrevented).toBe(false)
+    expect(wrapper.emitted('blocked')).toBeUndefined()
+  })
+})

@@ -38,4 +38,14 @@ describe('FishCard 顯示值', () => {
     expect(wrapper.find('[data-testid="item-image-placeholder"]').exists()).toBe(true)
     expect(wrapper.get('a').attributes('href')).toBe('/fish/7')
   })
+
+  it('gated 時點擊 emit blocked，不 gated 時不會', () => {
+    const gated = mount(FishCard, { props: { fish: { id: 7, name: '飛魚' }, gated: true } })
+    gated.get('a').element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(gated.emitted('blocked')).toHaveLength(1)
+
+    const open = mountCard({ name: '飛魚' })
+    open.get('a').element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(open.emitted('blocked')).toBeUndefined()
+  })
 })

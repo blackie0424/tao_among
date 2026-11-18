@@ -37,7 +37,12 @@
 
         <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
           <li v-for="(item, index) in items" :key="item.id">
-            <FishCard :fish="item" :index="index" />
+            <FishCard
+              :fish="item"
+              :index="index"
+              :gated="!hasActivatedAccount"
+              @blocked="openLoginSheet(item, $event)"
+            />
           </li>
         </ul>
 
@@ -54,12 +59,21 @@
         <FishSearchCursorErrorBanner :show="showCursorError" @retry="retryFromStart" />
       </main>
     </div>
+
+    <GuestLoginSheet
+      :show="Boolean(sheetFish)"
+      :fishId="sheetFish?.id"
+      :fishName="sheetFish?.name"
+      :pendingActivation="isPendingActivation"
+      @close="closeLoginSheet"
+    />
+    <BackToTopButton />
   </FishAppLayout>
 </template>
 
 <script setup>
 import { Head, usePage } from '@inertiajs/vue3'
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import { canAccessLocation, isActivated } from '@/constants/roles'
 
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
@@ -69,6 +83,8 @@ import FishSearchStatsBar from '@/Components/FishList/FishSearchStatsBar.vue'
 import FishSearchLoading from '@/Components/FishList/FishSearchLoading.vue'
 import FishSearchCursorErrorBanner from '@/Components/FishList/FishSearchCursorErrorBanner.vue'
 import FishCard from '@/Components/FishList/FishCard.vue'
+import GuestLoginSheet from '@/Components/FishList/GuestLoginSheet.vue'
+import BackToTopButton from '@/Components/UI/BackToTopButton.vue'
 
 import { useFishList } from '@/composables/useFishList'
 import { useFishListCache } from '@/composables/useFishListCache'
@@ -77,7 +93,22 @@ import { useFishSearch } from '@/composables/useFishSearch'
 const PAGE_TITLE = 'among no tao'
 const userRole = computed(() => usePage().props.auth?.user?.role)
 const hasLocationAccess = computed(() => canAccessLocation(userRole.value))
-const hasAdvancedSearch = computed(() => isActivated(userRole.value))
+const hasActivatedAccount = computed(() => isActivated(userRole.value))
+const hasAdvancedSearch = hasActivatedAccount
+// 已登入但還沒開通（guest）：面板改說等待開通
+const isPendingActivation = computed(() => userRole.value === 'guest')
+
+// ── 訪客面板：點魚卡時顯示，關閉後焦點回到被點的魚卡 ──
+const sheetFish = ref(null)
+let sheetTrigger = null
+const openLoginSheet = (fish, trigger) => {
+  sheetFish.value = fish
+  sheetTrigger = trigger
+}
+const closeLoginSheet = () => {
+  sheetFish.value = null
+  nextTick(() => sheetTrigger?.focus())
+}
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
