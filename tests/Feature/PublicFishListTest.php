@@ -94,6 +94,7 @@ it('有 name 時 filters 只含 name', function (bool $isGuestRole) {
 
 it('searchStats 在 Inertia JSON 裡是空物件而不是空陣列', function (bool $isGuestRole) {
     actAsPublicViewer($isGuestRole);
+    config(['app.asset_url' => 'https://assets.test']);
     $version = app(HandleInertiaRequests::class)->version(request());
 
     $response = $this->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
