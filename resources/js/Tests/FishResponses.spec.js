@@ -224,6 +224,34 @@ describe('FishResponses 答完直接看結果，自己的選擇特別標出', ()
   })
 })
 
+describe('FishResponses 自己的叫法標記與後端分組一致', () => {
+  const summaryWith = (names) => [
+    { tribe: 'yayo', has_responses: true, names: names.map((name) => ({ name, count: 1 })), has_variants: names.length > 1, categories: [] },
+  ]
+  const marked = (wrapper) => wrapper.findAll('[data-testid="tribe-names"] [data-mine]').map((el) => el.element.textContent.replace(/ ✔$/, ''))
+  const mineNamed = (name) => [{ tribe: 'yayo', name, food_category: 'oyod' }]
+
+  it('ASCII 大小寫與前後空白視為同組：標出自己的叫法', () => {
+    const wrapper = mountFlow({ summary: summaryWith(['dalakan', 'B']), mine: mineNamed(' DALAKAN\t') })
+    expect(marked(wrapper)).toEqual(['dalakan'])
+  })
+
+  it('後端分成不同組的叫法（開頭多一個 U+FEFF）不會同時標成自己的', () => {
+    const wrapper = mountFlow({ summary: summaryWith(['\uFEFFDalakan', 'Dalakan']), mine: mineNamed('Dalakan') })
+    expect(marked(wrapper)).toEqual(['Dalakan'])
+  })
+
+  it('不換行空格 U+00A0 後端不去掉，所以和一般寫法是不同組，不會誤標', () => {
+    const wrapper = mountFlow({ summary: summaryWith(['\u00A0Dalakan', 'Dalakan']), mine: mineNamed('\u00A0Dalakan') })
+    expect(marked(wrapper)).toEqual(['\u00A0Dalakan'])
+  })
+
+  it('非英文字母不折大小寫：希臘文 Α 與 α 是不同組', () => {
+    const wrapper = mountFlow({ summary: summaryWith(['\u0391', '\u03B1']), mine: mineNamed('\u03B1') })
+    expect(marked(wrapper)).toEqual(['\u03B1'])
+  })
+})
+
 describe('FishResponses 只填一項與修改', () => {
   const previous = [{ tribe: 'yayo', name: 'dalakan', food_category: 'rahet' }]
 

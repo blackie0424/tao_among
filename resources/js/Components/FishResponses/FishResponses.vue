@@ -135,8 +135,11 @@ const firstQuestion = () => (fishName.value ? 'confirm' : 'name')
 const homeStep = () => (incomplete.value ? 'resume' : props.mine.length ? 'others' : firstQuestion())
 const step = ref(homeStep())
 
-// 自己的選擇（用來在結果中特別標出）；寫法比對與後端一致：去前後空白、只有英文字母不分大小寫
-const asciiLower = (text) => text.trim().replace(/[A-Z]/g, (c) => c.toLowerCase())
+// 自己的選擇（用來在結果中特別標出）。寫法比對要和後端分組規則（PHP 的 trim() 加 strtolower()）一致：
+// 只去掉 PHP trim 預設的空白（空格、換行、Tab、垂直 Tab、NUL），不用 JS 的 trim()（它還會去掉 U+FEFF、不換行空格等）；
+// 只有英文字母 A–Z 不分大小寫，其他文字不折。
+const PHP_TRIM_CHARS = /^[ \n\r\t\x0B\x00]+|[ \n\r\t\x0B\x00]+$/g
+const asciiLower = (text) => text.replace(PHP_TRIM_CHARS, '').replace(/[A-Z]/g, (c) => c.toLowerCase())
 const mineOf = (item) => props.mine.find((r) => r.tribe === item.tribe)
 const isMyName = (item, name) => {
   const mineName = mineOf(item)?.name
