@@ -379,7 +379,13 @@ describe('清單頁看法：小視窗、橫條、右下角鈕', () => {
       expect(find('view-bar').textContent).toContain('晚上釣魚會遇到的魚')
       expect(find('view-bar').textContent).not.toContain('（12）')
       expect(find('floating-view')).toBeNull()
+      expect(find('view-bar-change')).toBeNull()
       expect(document.body.textContent).toContain('mamacik-fish')
+
+      // 沒有小視窗可用時，仍能用「看全部」回去
+      find('view-bar-all').click()
+      await flushPromises()
+      expect(routerGet.mock.calls[1][1].view).toBeUndefined()
     })
 
     it('往下載入的回應沒有選項欄位：保留原本的選項，不當作失敗', async () => {

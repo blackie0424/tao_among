@@ -42,6 +42,7 @@
           :hint="activeViewHint"
           :empty="showViewEmpty"
           :failed="showViewFailed"
+          :can-change="viewEnabled"
           @change="openViewPicker"
           @all="chooseView(ALL_VIEW)"
           @retry="retryFromStart"
@@ -175,6 +176,8 @@ const props = defineProps({
   view: { type: String, default: 'all' },
   // 沒有這個欄位＝往下載入的回應；null＝第一頁選項計算失敗；陣列＝這次回應的選項
   viewOptions: { type: Array, default: undefined },
+  // 目前看法的名稱：每次回應都帶（含往下載入），不依賴選項
+  viewMeta: { type: Object, default: null },
 })
 
 // ── 共享狀態（傳入各 composable）──────────────────────────────
@@ -259,6 +262,13 @@ watch(
     options.forEach(({ key, label, hint }) => {
       viewLabels.value[key] = { label, hint }
     })
+  },
+  { immediate: true }
+)
+watch(
+  () => props.viewMeta,
+  (meta) => {
+    if (meta) viewLabels.value[meta.key] = { label: meta.label, hint: meta.hint }
   },
   { immediate: true }
 )

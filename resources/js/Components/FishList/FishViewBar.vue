@@ -35,7 +35,7 @@
         重試
       </button>
       <button
-        v-if="!empty && !failed"
+        v-if="canChange && !empty && !failed"
         type="button"
         data-testid="view-bar-change"
         :class="buttonClass"
@@ -61,6 +61,8 @@ const props = defineProps({
   empty: { type: Boolean, default: false },
   // 選了看法後載入失敗
   failed: { type: Boolean, default: false },
+  // 小視窗可用（選項計算失敗時沒有小視窗，不顯示「換一個」）
+  canChange: { type: Boolean, default: true },
 })
 
 defineEmits(['change', 'all', 'retry'])

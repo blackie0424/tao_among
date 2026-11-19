@@ -172,6 +172,9 @@ it('依編號新到舊分頁，所有頁合計等於選項數字', function (str
     expect(viewNames($page1))->toBe(["$view-5", "$view-4"]);
     expect(viewNames($page2))->toBe(["$view-3", "$view-2"]);
     expect(viewNames($page3))->toBe(["$view-1"]);
+    // 往下載入的回應也帶目前看法的名稱
+    expect($page2['viewMeta']['key'])->toBe($view);
+    expect($page2['viewMeta']['label'])->toBe(config("fish_options.list_views.$view.label"));
     expect($page3['pageInfo']['hasMore'])->toBeFalse();
     expect(count($page1['items']) + count($page2['items']) + count($page3['items']))
         ->toBe(viewOptionCounts(viewProps($this->get('/')))[$view]);
@@ -333,6 +336,13 @@ it('view 帶陣列或其他型別也視為全部，不報錯', function (string 
     expect(viewProps($response)['view'])->toBe('all');
     expect(count(viewProps($response)['items']))->toBe(2);
 })->with(['view[]=night', 'view[a]=night', 'view=']);
+
+it('不分類時沒有看法名稱', function () {
+    $this->actingAs(User::factory()->lineViewer()->create());
+    viewFish('a');
+
+    expect(viewProps($this->get('/'))['viewMeta'])->toBeNull();
+});
 
 it('無效的 view 值視為全部', function () {
     $this->actingAs(User::factory()->lineViewer()->create());
