@@ -9,6 +9,7 @@ use App\Contracts\StorageServiceInterface;
 use App\Http\Requests\BatchCreateFishRequest;
 use App\Http\Requests\FishSearchRequest;
 use App\Models\Fish;
+use App\Models\FishTribeResponse;
 use App\Services\AudioVisibilityService;
 use App\Services\CaptureRecordBatchService;
 use App\Services\LocationVisibilityService;
@@ -76,6 +77,12 @@ class FishController extends Controller
         $details['tribes'] = config('fish_options.tribes');
         $details = $this->audioVisibilityService->filter($details, $request->user());
         $details = $this->locationVisibilityService->filter($details, $request->user());
+        $details['responses'] = [
+            'form' => FishTribeResponse::formOptions($details['fish']['name']),
+            'summary' => FishTribeResponse::summaryForFish((int) $id),
+            'mine' => FishTribeResponse::answersOf($request->user()->id, (int) $id),
+            'responders' => FishTribeResponse::responderCount((int) $id),
+        ];
 
         return Inertia::render('Fish', $details);
     }

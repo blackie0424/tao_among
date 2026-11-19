@@ -36,7 +36,18 @@
                 <button @click="confirmDelete" class="inline-flex items-center rounded-lg bg-red-600 px-4 min-h-touch-secondary text-elder-body text-white hover:bg-red-700">刪除魚類</button>
               </div>
             </div>
-            <FishGridLayout />
+            <FishGridLayout>
+              <!-- 大家怎麼說（已開通的使用者；後端未提供資料時不顯示） -->
+              <template v-if="responses" #bottom>
+                <FishResponses
+                  :fishId="fish.id"
+                  :options="responses.form"
+                  :summary="responses.summary"
+                  :mine="responses.mine"
+                  :responders="responses.responders"
+                />
+              </template>
+            </FishGridLayout>
           </section>
 
           <!-- 地方知識 -->
@@ -136,6 +147,7 @@ import TribalClassificationSummary from '@/Components/TribalClassification/Triba
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue'
 import ReferenceKnowledgeSection from '@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue'
+import FishResponses from '@/Components/FishResponses/FishResponses.vue'
 import TabEditActions from '@/Components/Global/TabEditActions.vue'
 import Volume from '@/Components/UI/Volume.vue'
 import { canAccessAudio } from '@/constants/roles'
@@ -147,6 +159,7 @@ const props = defineProps({
   fishNotes: { type: Object, default: () => ({}) },
   referenceKnowledge: { type: Array, default: () => [] },
   tribes: { type: Array, default: () => [] },
+  responses: { type: Object, default: null },
 })
 
 const page = usePage()
