@@ -205,29 +205,29 @@ describe('FishResponses 答完直接看結果，自己的選擇特別標出', ()
     expect(categories.text()).toContain('rahet 1 人')
   })
 
-  it('下方有「再說一個部落」，沒有先出現謝謝畫面再多按一次', async () => {
+  it('下方有「繼續提供說法」，沒有先出現謝謝畫面再多按一次', async () => {
     const wrapper = mountFlow({ summary: responded, mine })
-    await click(wrapper, '再說一個部落')
+    await click(wrapper, '繼續提供說法')
     expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(true)
   })
 
-  it('完成最後一步後直接顯示結果，說明句與剛填完、之後再進來時一樣，再說一個部落的按鈕在下方', async () => {
+  it('完成最後一步後直接顯示結果，說明句與剛填完、之後再進來時一樣，繼續提供說法的按鈕在下方', async () => {
     const wrapper = mountFlow({ summary: responded, mine })
-    await click(wrapper, '再說一個部落')
+    await click(wrapper, '繼續提供說法')
     await yes(wrapper)
     await click(wrapper, 'ivalino')
     await click(wrapper, 'oyod')
     expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="intro"]').text()).toBe('以下是不同部落的說法，提供參考。')
     expect(wrapper.text()).not.toContain('謝謝')
-    expect(wrapper.findAll('button').some((b) => b.text().includes('再說一個部落'))).toBe(true)
+    expect(wrapper.findAll('button').some((b) => b.text().includes('繼續提供說法'))).toBe(true)
   })
 
-  it('還沒答過、從問題畫面點進來看的人有返回，沒有「再說一個部落」', async () => {
+  it('還沒答過、從問題畫面點進來看的人有返回，沒有「繼續提供說法」', async () => {
     const wrapper = mountFlow({ summary: responded })
     await click(wrapper, '看大家怎麼說')
     expect(wrapper.find('button[aria-label="返回"]').exists()).toBe(true)
-    expect(wrapper.findAll('button').some((b) => b.text().includes('再說一個部落'))).toBe(false)
+    expect(wrapper.findAll('button').some((b) => b.text().includes('繼續提供說法'))).toBe(false)
     await wrapper.find('button[aria-label="返回"]').trigger('click')
     expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(true)
   })
@@ -318,7 +318,7 @@ describe('FishResponses 只填一項與修改', () => {
 
   it('修改已有分類的回答時，送出叫法先沿用原本的分類，中途離開不會遺失', async () => {
     const wrapper = mountFlow({ mine: previous })
-    await click(wrapper, '再說一個部落')
+    await click(wrapper, '繼續提供說法')
     await yes(wrapper)
     await click(wrapper, 'yayo')
     expect(post).toHaveBeenCalledTimes(1)
@@ -328,7 +328,7 @@ describe('FishResponses 只填一項與修改', () => {
 
   it('修改已有分類的回答時，按略過分類才會清掉分類', async () => {
     const wrapper = mountFlow({ mine: previous })
-    await click(wrapper, '再說一個部落')
+    await click(wrapper, '繼續提供說法')
     await yes(wrapper)
     await click(wrapper, 'yayo')
     await click(wrapper, '略過')
@@ -339,7 +339,7 @@ describe('FishResponses 只填一項與修改', () => {
 
   it('修改時可以清空叫法、保留分類：略過叫法再重選原本的分類', async () => {
     const wrapper = mountFlow({ mine: previous })
-    await click(wrapper, '再說一個部落')
+    await click(wrapper, '繼續提供說法')
     await no(wrapper)
     await click(wrapper, '略過')
     await click(wrapper, 'yayo')

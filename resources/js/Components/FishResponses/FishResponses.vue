@@ -6,7 +6,7 @@
     <div v-if="step === 'resume'" data-testid="step-resume">
       <p class="mb-3 font-serif text-elder-name font-bold text-elder-text">{{ incomplete.tribe }}</p>
       <button type="button" class="w-full min-h-touch-secondary bg-brand text-elder-body font-bold text-white" @click="continueIncomplete">繼續 ›</button>
-      <button type="button" :class="[bigButton, 'mt-3']" @click="startOver">再說一個部落</button>
+      <button type="button" :class="[bigButton, 'mt-3']" @click="startOver">繼續提供說法</button>
     </div>
 
     <!-- 1 你們也叫它 X 嗎？ -->
@@ -50,7 +50,7 @@
       <button type="button" :class="linkButton" @click="skipCategory">略過 ›</button>
     </div>
 
-    <!-- 5 大家怎麼說：答完直接看，自己的選擇特別標出；下方可再說一個部落 -->
+    <!-- 5 大家怎麼說：答完直接看，自己的選擇特別標出；下方可繼續提供說法 -->
     <div v-else data-testid="step-others">
       <p class="mb-2 text-elder-body text-elder-text" data-testid="intro">以下是不同部落的說法，提供參考。</p>
       <button v-if="backStep" type="button" aria-label="返回" :class="backButton" @click="step = backStep"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
@@ -87,7 +87,7 @@
           </p>
         </li>
       </ul>
-      <button v-if="mine.length" type="button" :class="[bigButton, 'mt-4']" @click="startOver">再說一個部落</button>
+      <button v-if="mine.length" type="button" :class="[bigButton, 'mt-4']" @click="startOver">繼續提供說法</button>
     </div>
 
     <button v-if="respondedTribes.length && ['resume', 'confirm', 'name', 'tribe'].includes(step)" type="button" :class="linkButton" @click="openOthers">看大家怎麼說</button>
