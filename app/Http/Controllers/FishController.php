@@ -124,7 +124,33 @@ class FishController extends Controller
                 $request->user()
             ),
             'pageInfo' => $paginated['pageInfo'],
+            'view' => $filters['view'],
+            'viewGroupCounts' => $paginated['groupCounts'] ?? null,
+            // 目前看法的名稱：不依賴選項計算，往下載入的回應也帶，歷史返回時橫條仍有名稱
+            'viewMeta' => $this->viewMeta($filters['view']),
+            // 選項只在第一頁計算：往下載入（帶游標）不帶這個欄位；第一頁計算失敗則為 null
+            ...(isset($filters['last_id']) ? [] : ['viewOptions' => $this->viewOptionsOrNull()]),
         ]);
+    }
+
+    /** 目前看法的鍵、標題與說明；不分類時沒有 */
+    private function viewMeta(string $view): ?array
+    {
+        $config = $view === 'all' ? null : config("fish_options.list_views.$view");
+
+        return $config === null ? null : ['key' => $view, 'label' => $config['label'], 'hint' => $config['hint']];
+    }
+
+    /** 選項計算失敗時記錄錯誤並降級（回 null，前端不顯示小視窗），不影響清單本身 */
+    private function viewOptionsOrNull(): ?array
+    {
+        try {
+            return $this->fishSearchService->getViewOptions();
+        } catch (\Throwable $e) {
+            Log::error('魚類清單看法選項計算失敗', ['exception' => $e]);
+
+            return null;
+        }
     }
 
     /**
