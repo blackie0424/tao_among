@@ -1,5 +1,7 @@
 <template>
   <section class="border border-rule-strong bg-paper-raised p-4" data-testid="fish-responses">
+    <h3 class="mb-3 pb-2 border-b border-rule font-serif text-elder-name font-bold text-elder-text">大家怎麼說</h3>
+
     <!-- 繼續上次做到一半的回答 -->
     <div v-if="step === 'resume'" data-testid="step-resume">
       <p class="mb-3 font-serif text-elder-name font-bold text-elder-text">{{ incomplete.tribe }}</p>
@@ -55,15 +57,22 @@
       <button type="button" class="mt-3 w-full min-h-touch-secondary bg-brand text-elder-body font-bold text-white" @click="step = 'others'">看大家怎麼說</button>
     </div>
 
-    <!-- 6 大家怎麼說（只列有回答的部落） -->
+    <!-- 6 大家怎麼說（一個部落一張卡，只列有回答的部落；叫法只列名稱，分類用長條圖） -->
     <div v-else data-testid="step-others">
-      <button type="button" aria-label="返回" :class="linkButton" @click="step = homeStep()">‹ 大家怎麼說</button>
-      <ul class="mt-2 divide-y divide-rule">
-        <li v-for="item in respondedTribes" :key="item.tribe" class="py-2" data-testid="response-tribe">
+      <button type="button" aria-label="返回" :class="linkButton" @click="step = homeStep()">‹</button>
+      <ul class="mt-2 space-y-3">
+        <li v-for="item in respondedTribes" :key="item.tribe" class="border border-rule bg-white p-3" data-testid="response-tribe">
           <span class="font-serif text-elder-body font-bold text-elder-text">{{ item.tribe }}</span>
           <span v-if="item.has_variants" class="ml-2 text-elder-aux text-elder-subtext" aria-label="有不同說法">≠</span>
-          <p class="text-elder-body text-elder-text">{{ nameText(item) }}</p>
-          <p v-if="categoryText(item)" class="text-elder-aux text-elder-subtext">{{ categoryText(item) }}</p>
+          <p class="mt-1 text-elder-body text-elder-text" data-testid="tribe-names">{{ nameText(item) }}</p>
+          <ul v-if="categoryBars(item).length" class="mt-2 space-y-1" data-testid="tribe-categories">
+            <li v-for="bar in categoryBars(item)" :key="bar.value" class="grid grid-cols-[4.5rem_1fr_1.5rem] items-center gap-2 text-elder-aux text-elder-text">
+              <span>{{ bar.value }}</span>
+              <span class="block h-3 rounded-sm bg-rule" aria-hidden="true"><span class="block h-3 rounded-sm bg-brand" :style="{ width: bar.width }"></span></span>
+              <span class="text-right">{{ bar.count }}</span>
+            </li>
+          </ul>
+          <p v-else class="mt-2 text-elder-aux text-elder-subtext">還沒有人選分類</p>
         </li>
       </ul>
     </div>
@@ -197,11 +206,13 @@ function submit(name, foodCategory, onSuccess) {
     .post(`/fish/${props.fishId}/responses`, { preserveScroll: true, onSuccess })
 }
 
-const nameText = (item) => (item.names.length ? item.names.map((n) => `${n.name} ${n.count}`).join('、') : '—')
+// 叫法只列名稱，不顯示人數
+const nameText = (item) => (item.names.length ? item.names.map((n) => n.name).join('、') : '—')
 
-const categoryText = (item) =>
-  item.categories
-    .filter((c) => c.count > 0)
-    .map((c) => `${c.value} ${c.count}`)
-    .join('、')
+// 分類長條圖：同一個部落內比較，最多人的選項填滿，其餘依比例；沒人選的選項不畫
+const categoryBars = (item) => {
+  const picked = item.categories.filter((c) => c.count > 0)
+  const max = Math.max(...picked.map((c) => c.count))
+  return picked.map((c) => ({ ...c, width: `${Math.round((c.count / max) * 100)}%` }))
+}
 </script>

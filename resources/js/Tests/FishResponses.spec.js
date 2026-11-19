@@ -35,7 +35,8 @@ const none = [
 ]
 const responded = [
   none[0],
-  { tribe: 'yayo', has_responses: true, names: [{ name: 'dalakan', count: 2 }, { name: 'B', count: 1 }], has_variants: true, categories: [{ value: 'oyod', count: 2 }] },
+  { tribe: 'yayo', has_responses: true, names: [{ name: 'dalakan', count: 2 }, { name: 'B', count: 1 }], has_variants: true, categories: [{ value: 'oyod', count: 4 }, { value: 'rahet', count: 1 }, { value: '不分類', count: 0 }] },
+  { tribe: 'iratay', has_responses: true, names: [{ name: 'mamalan', count: 1 }], has_variants: false, categories: [{ value: 'oyod', count: 0 }] },
 ]
 
 const mountFlow = (props = {}) => mount(FishResponses, { props: { fishId: 5, options, summary: none, responders: 0, ...props } })
@@ -132,13 +133,42 @@ describe('FishResponses 回應人數與直接查看', () => {
   it('別人已經有回答時，沒回答過的人在第一個畫面就有入口，可以直接看', async () => {
     const wrapper = mountFlow({ summary: responded, responders: 3 })
     await click(wrapper, '看大家怎麼說')
-    const rows = wrapper.findAll('[data-testid="response-tribe"]')
-    expect(rows).toHaveLength(1)
-    expect(rows[0].text()).toContain('dalakan 2、B 1')
-    expect(rows[0].text()).toContain('oyod 2')
+    expect(wrapper.findAll('[data-testid="response-tribe"]')).toHaveLength(2)
     expect(wrapper.text()).not.toContain('ivalino')
     expect(wrapper.find('[data-testid="responders"]').text()).toBe('3 人回應')
     expect(post).not.toHaveBeenCalled()
+  })
+
+  it('每個部落一張卡：叫法只列名稱（不含人數）', async () => {
+    const wrapper = mountFlow({ summary: responded })
+    await click(wrapper, '看大家怎麼說')
+    const [yayo, iratay] = wrapper.findAll('[data-testid="response-tribe"]')
+    expect(yayo.find('[data-testid="tribe-names"]').text()).toBe('dalakan、B')
+    expect(iratay.find('[data-testid="tribe-names"]').text()).toBe('mamalan')
+  })
+
+  it('分類用長條圖：最多人的填滿、其餘依比例、沒人選的不畫，並標出人數', async () => {
+    const wrapper = mountFlow({ summary: responded })
+    await click(wrapper, '看大家怎麼說')
+    const bars = wrapper.findAll('[data-testid="response-tribe"]')[0].findAll('[data-testid="tribe-categories"] li')
+    expect(bars.map((b) => b.text())).toEqual(['oyod4', 'rahet1'])
+    expect(bars[0].find('.bg-brand').attributes('style')).toContain('width: 100%')
+    expect(bars[1].find('.bg-brand').attributes('style')).toContain('width: 25%')
+  })
+
+  it('沒有人選分類的部落不畫長條，顯示「還沒有人選分類」', async () => {
+    const wrapper = mountFlow({ summary: responded })
+    await click(wrapper, '看大家怎麼說')
+    const iratay = wrapper.findAll('[data-testid="response-tribe"]')[1]
+    expect(iratay.find('[data-testid="tribe-categories"]').exists()).toBe(false)
+    expect(iratay.text()).toContain('還沒有人選分類')
+  })
+
+  it('每一步最上方都有標題「大家怎麼說」', async () => {
+    const wrapper = mountFlow({ summary: responded })
+    expect(wrapper.find('h3').text()).toBe('大家怎麼說')
+    await click(wrapper, '看大家怎麼說')
+    expect(wrapper.find('h3').text()).toBe('大家怎麼說')
   })
 
   it('還沒有人回答時沒有看大家怎麼說的入口', () => {
