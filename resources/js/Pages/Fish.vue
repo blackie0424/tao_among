@@ -54,6 +54,17 @@
             />
           </section>
 
+          <!-- 大家怎麼說（已開通的使用者；後端未提供資料時不顯示） -->
+          <section v-if="responses" v-show="activeTab === 'responses'" data-testid="responses-tab">
+            <FishResponses
+              :fishId="fish.id"
+              :options="responses.form"
+              :summary="responses.summary"
+              :mine="responses.mine"
+              :progress="responses.progress"
+            />
+          </section>
+
           <!-- 進階知識 -->
           <section v-show="activeTab === 'advanced'">
             <TabEditActions
@@ -136,6 +147,7 @@ import TribalClassificationSummary from '@/Components/TribalClassification/Triba
 import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSection.vue'
 import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvancedKnowledgeSection.vue'
 import ReferenceKnowledgeSection from '@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue'
+import FishResponses from '@/Components/FishResponses/FishResponses.vue'
 import TabEditActions from '@/Components/Global/TabEditActions.vue'
 import Volume from '@/Components/UI/Volume.vue'
 import { canAccessAudio } from '@/constants/roles'
@@ -147,6 +159,7 @@ const props = defineProps({
   fishNotes: { type: Object, default: () => ({}) },
   referenceKnowledge: { type: Array, default: () => [] },
   tribes: { type: Array, default: () => [] },
+  responses: { type: Object, default: null },
 })
 
 const page = usePage()
@@ -158,6 +171,7 @@ const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
 const ALL_TABS = [
   { key: 'basic', label: '基本' },
   { key: 'local', label: '地方知識' },
+  { key: 'responses', label: '大家怎麼說', responsesOnly: true },
   { key: 'advanced', label: '進階知識', editorOnly: true },
   { key: 'reference', label: '文獻知識', editorOnly: true },
   { key: 'capture', label: '捕獲紀錄' },
@@ -166,7 +180,7 @@ const ALL_TABS = [
 
 const visibleTabs = computed(() =>
   ALL_TABS.filter(
-    (t) => (!t.editorOnly || isEditor.value) && (!t.audioOnly || hasAudioAccess.value)
+    (t) => (!t.editorOnly || isEditor.value) && (!t.audioOnly || hasAudioAccess.value) && (!t.responsesOnly || props.responses)
   )
 )
 
