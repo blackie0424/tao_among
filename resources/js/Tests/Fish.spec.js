@@ -85,6 +85,14 @@ vi.mock('@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue', () => (
   },
 }))
 
+vi.mock('@/Components/FishResponses/FishResponses.vue', () => ({
+  default: {
+    name: 'FishResponses',
+    template: '<div data-testid="fish-responses" />',
+    props: ['fishId', 'options', 'summary', 'mine', 'responders'],
+  },
+}))
+
 const makeFish = (overrides = {}) => ({
   id: 1,
   name: '鯛魚',
@@ -471,5 +479,37 @@ describe('分頁選中標示與內容一致（#132 AC 1）', () => {
     expect(selectedLabels(wrapper)).toEqual(['地方知識'])
     expect(wrapper.get('[data-testid="local-tab"]').isVisible()).toBe(true)
     expect(wrapper.get('[data-testid="basic-tab"]').isVisible()).toBe(false)
+  })
+})
+
+describe('大家怎麼說卡片放在基本頁（#146）', () => {
+  const responses = {
+    form: { tribes: ['yayo'], food_categories: ['oyod'], name_options: ['鯛魚'], name_max_length: 60 },
+    summary: [{ tribe: 'yayo', has_responses: true, names: [], has_variants: false, categories: [] }],
+    mine: [{ tribe: 'yayo', name: '鯛魚', food_category: null }],
+    responders: 2,
+  }
+
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/fish/1')
+    mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'viewer' } } } })
+  })
+
+  it('後端有提供資料時，卡片在基本頁的 bottom 區塊，並傳入魚與回答資料', () => {
+    const wrapper = mountFish({ responses })
+    const card = wrapper.get('[data-testid="basic-tab"]').findComponent({ name: 'FishResponses' })
+    expect(card.exists()).toBe(true)
+    expect(card.props()).toMatchObject({ fishId: 1, options: responses.form, summary: responses.summary, mine: responses.mine, responders: 2 })
+    expect(wrapper.findAllComponents({ name: 'FishResponses' })).toHaveLength(1)
+  })
+
+  it('不另外新增分頁按鈕', () => {
+    const wrapper = mountFish({ responses })
+    expect(wrapper.findAll('button').map((b) => b.text())).not.toContain('大家怎麼說')
+  })
+
+  it('後端沒有提供資料（訪客）時不出現卡片', () => {
+    const wrapper = mountFish()
+    expect(wrapper.findComponent({ name: 'FishResponses' }).exists()).toBe(false)
   })
 })

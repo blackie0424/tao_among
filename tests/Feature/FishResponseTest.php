@@ -567,6 +567,31 @@ it('removes a user\'s answers, and the count, when the user is deleted', functio
         ->and(responsesProps($keeper, $fish)['responders'])->toBe(1);
 });
 
+it('stops counting answers of a soft-deleted fish and counts them again after restore', function () {
+    $fish = Fish::factory()->create();
+    $user = User::factory()->create(['role' => 'viewer']);
+    addResponse($user, $fish, 'yayo', 'x', 'oyod');
+
+    $fish->delete();
+    test()->actingAs($user)->get("/fish/{$fish->id}")->assertNotFound();
+    postResponse($user, $fish, ['tribe' => 'iratay', 'name' => 'y'])->assertNotFound();
+
+    $fish->restore();
+    $responses = responsesProps($user, $fish);
+    expect($responses['responders'])->toBe(1)
+        ->and(summaryFor($responses, 'yayo')['names'])->toBe([['name' => 'x', 'count' => 1]]);
+});
+
+it('keeps a name containing HTML exactly as typed (it is shown as plain text by the page)', function () {
+    $viewer = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+
+    postResponse($viewer, $fish, ['tribe' => 'yayo', 'name' => '<script>alert(1)</script>'])->assertSessionHasNoErrors();
+
+    expect(FishTribeResponse::sole()->name)->toBe('<script>alert(1)</script>')
+        ->and(summaryFor(responsesProps($viewer, $fish), 'yayo')['names'][0]['name'])->toBe('<script>alert(1)</script>');
+});
+
 // ─── AC6 表單選項 ────────────────────────────────────────
 
 it('builds form options from config and the fish\'s current name', function () {

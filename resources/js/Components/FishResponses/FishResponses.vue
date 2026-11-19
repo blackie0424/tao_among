@@ -58,7 +58,7 @@
         <li
           v-for="item in respondedTribes"
           :key="item.tribe"
-          :class="['min-w-0 border-b border-rule py-3', mineOf(item) && 'text-amber-700']"
+          class="min-w-0 border-b border-rule py-3"
           :data-mine="mineOf(item) ? 'true' : undefined"
           data-testid="response-tribe"
         >
@@ -245,5 +245,4 @@ function submit(name, foodCategory, onSuccess) {
 
 // 分類與叫法分開顯示，避免暗示兩者一一對應。
 const selectedCategories = (item) => item.categories.filter((category) => category.count > 0)
-
 </script>

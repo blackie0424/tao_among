@@ -280,6 +280,42 @@ describe('FishResponses 分類選項', () => {
   })
 })
 
+describe('FishResponses 顯示細節', () => {
+  const summaryWith = (names) => [
+    { tribe: 'yayo', has_responses: true, names: names.map((name) => ({ name, count: 1 })), has_variants: names.length > 1, categories: [] },
+  ]
+
+  it('叫法含 HTML 或特殊字元時當純文字顯示，不會被執行', async () => {
+    const wrapper = mountFlow({ summary: summaryWith(['<img src=x onerror=alert(1)>', '<b>粗體</b>']) })
+    await click(wrapper, '看大家怎麼說')
+    const names = wrapper.find('[data-testid="tribe-names"]')
+    expect(names.text()).toContain('<img src=x onerror=alert(1)>')
+    expect(names.text()).toContain('<b>粗體</b>')
+    expect(names.find('img').exists()).toBe(false)
+    expect(names.find('b').exists()).toBe(false)
+  })
+
+  it('同一部落有兩種以上叫法時標「≠」（有不同說法），只有一種時不標', async () => {
+    const many = mountFlow({ summary: summaryWith(['a', 'b']) })
+    await click(many, '看大家怎麼說')
+    expect(many.find('[aria-label="有不同說法"]').text()).toBe('≠')
+    const one = mountFlow({ summary: summaryWith(['a']) })
+    await click(one, '看大家怎麼說')
+    expect(one.find('[aria-label="有不同說法"]').exists()).toBe(false)
+  })
+
+  it('自己回答過的部落有 ✔ 標記，別的部落沒有', () => {
+    const summary = [
+      { tribe: 'ivalino', has_responses: true, names: [{ name: 'a', count: 1 }], has_variants: false, categories: [] },
+      { tribe: 'yayo', has_responses: true, names: [{ name: 'b', count: 1 }], has_variants: false, categories: [] },
+    ]
+    const wrapper = mountFlow({ summary, mine: [{ tribe: 'yayo', name: 'b', food_category: 'oyod' }] })
+    const [ivalino, yayo] = wrapper.findAll('[data-testid="response-tribe"]')
+    expect(yayo.find('[aria-label="我選的"]').exists()).toBe(true)
+    expect(ivalino.find('[aria-label="我選的"]').exists()).toBe(false)
+  })
+})
+
 describe('FishResponses 返回鍵', () => {
   it('返回鍵是圖示按鈕（svg），不是文字符號 ‹', async () => {
     const wrapper = mountFlow()
