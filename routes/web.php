@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FishAudioController;
 use App\Http\Controllers\FishController;
 use App\Http\Controllers\FishNoteController;
+use App\Http\Controllers\FishResponseController;
 use App\Http\Controllers\FishReportController;
 use App\Http\Controllers\LineLoginController;
 use App\Http\Controllers\LineUserController;
@@ -171,3 +172,4 @@ Route::middleware(['auth', 'browse'])->group(function () {
 
 // 魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突
 Route::get('/fish/{id}', [FishController::class, 'getFish'])->middleware(['auth', 'browse']);
+Route::post('/fish/{id}/responses', [FishResponseController::class, 'store'])->middleware(['auth', 'browse'])->name('fish.responses.store');
