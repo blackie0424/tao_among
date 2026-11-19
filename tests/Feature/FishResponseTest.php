@@ -7,8 +7,11 @@ use App\Models\TribalClassification;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
+
+afterEach(fn () => Carbon::setTestNow());
 
 function postResponse(User $user, Fish $fish, array $data)
 {
@@ -107,6 +110,20 @@ it('accepts a 60-character name and rejects 61 characters', function () {
     postResponse($viewer, $fish, ['tribe' => 'iratay', 'name' => str_repeat('魚', 61)])
         ->assertSessionHasErrors(['name' => '叫法最多 60 字']);
     expect(FishTribeResponse::count())->toBe(1);
+});
+
+it('counts Unicode characters after trimming, including characters outside the BMP', function () {
+    $viewer = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    $astral = "\u{20BB7}"; // 𠮷，一個 Unicode 字元，UTF-16 要 2 個單位
+
+    postResponse($viewer, $fish, ['tribe' => 'yayo', 'name' => str_repeat($astral, 60)])->assertSessionHasNoErrors();
+    postResponse($viewer, $fish, ['tribe' => 'iratay', 'name' => '  '.str_repeat('魚', 60)."\u{3000} "])->assertSessionHasNoErrors();
+    postResponse($viewer, $fish, ['tribe' => 'iranmeilek', 'name' => str_repeat($astral, 61)])
+        ->assertSessionHasErrors(['name' => '叫法最多 60 字']);
+
+    expect(FishTribeResponse::count())->toBe(2)
+        ->and(FishTribeResponse::where('tribe', 'iratay')->value('name'))->toBe(str_repeat('魚', 60));
 });
 
 it('rejects an unknown tribe and an unsupported food category', function (array $data, string $field) {
@@ -216,17 +233,64 @@ it('lets activated roles read the summary without answering first', function (st
         ->and(summaryFor($responses, 'imowrod')['names'][0]['name'])->toBe('甲說法');
 })->with(['viewer', 'editor', 'admin']);
 
-it('exposes no response data to guests or anonymous visitors', function () {
+it('gives unauthorised callers no response data and writes nothing, on every request type', function (string $who) {
     $fish = Fish::factory()->create();
-    addResponse(User::factory()->create(['role' => 'viewer']), $fish, 'imowrod', '甲說法', 'oyod');
+    $answerer = User::factory()->create(['role' => 'viewer', 'email' => 'answerer-secret@example.test']);
+    addResponse($answerer, $fish, 'imowrod', 'ZZ甲說法', 'oyod');
+    $caller = $who === 'guest' ? User::factory()->create(['role' => 'guest']) : null;
+    $caller ? test()->actingAs($caller) : auth()->logout();
 
-    $guest = User::factory()->create(['role' => 'guest']);
-    test()->actingAs($guest)->get("/fish/{$fish->id}")
-        ->assertForbidden()
-        ->assertDontSee('甲說法');
+    $requests = [
+        'GET page' => fn () => test()->get("/fish/{$fish->id}"),
+        'GET page as Inertia' => fn () => test()->get("/fish/{$fish->id}", ['X-Inertia' => 'true', 'X-Inertia-Version' => app(\App\Http\Middleware\HandleInertiaRequests::class)->version(request()), 'X-Requested-With' => 'XMLHttpRequest']),
+        'POST valid' => fn () => test()->post("/fish/{$fish->id}/responses", ['tribe' => 'yayo', 'name' => 'ZZ寫入嘗試']),
+        'POST invalid' => fn () => test()->post("/fish/{$fish->id}/responses", ['tribe' => 'nope']),
+        'GET again (reload)' => fn () => test()->get("/fish/{$fish->id}"),
+    ];
 
-    auth()->logout();
-    test()->get("/fish/{$fish->id}")->assertRedirect()->assertDontSee('甲說法');
+    foreach ($requests as $label => $send) {
+        $response = $send();
+        expect($response->status())->toBeIn([302, 403], $label);
+        $body = $response->getContent();
+        foreach (['ZZ甲說法', 'oyod', 'answerer-secret', 'summary', 'progress', 'has_variants', 'categories'] as $leak) {
+            expect($body)->not->toContain($leak, "{$label} leaked {$leak}");
+        }
+    }
+
+    expect(FishTribeResponse::count())->toBe(1);
+})->with(['guest', 'anonymous']);
+
+it('exposes exactly the whitelisted response fields to an activated caller and no one else\'s identity', function () {
+    $fish = Fish::factory()->create();
+    $me = User::factory()->create(['role' => 'viewer']);
+    $other = User::factory()->create(['role' => 'viewer', 'email' => 'other-person@example.test', 'name' => 'OtherPersonName']);
+    addResponse($other, $fish, 'yayo', '別人的說法', 'rahet');
+
+    $responses = responsesProps($me, $fish);
+
+    expect(array_keys($responses))->toBe(['form', 'summary', 'mine', 'progress'])
+        ->and(array_keys($responses['summary'][0]))->toBe(['tribe', 'has_responses', 'names', 'has_variants', 'categories'])
+        ->and(array_keys(summaryFor($responses, 'yayo')['names'][0]))->toBe(['name', 'count'])
+        ->and(array_keys($responses['progress']))->toBe(['answered', 'total']);
+
+    $json = json_encode($responses, JSON_UNESCAPED_UNICODE);
+    expect($json)->not->toContain('other-person@example.test')
+        ->and($json)->not->toContain('OtherPersonName')
+        ->and($json)->not->toContain('"user_id"');
+});
+
+it('keeps the whitelist after a rejected submission and after a reload', function () {
+    $fish = Fish::factory()->create();
+    $me = User::factory()->create(['role' => 'viewer']);
+    addResponse(User::factory()->create(['role' => 'viewer']), $fish, 'yayo', '別人的說法', 'rahet');
+
+    postResponse($me, $fish, ['tribe' => 'yayo'])->assertSessionHasErrors('name');
+    $afterError = responsesProps($me, $fish);
+    $reloaded = responsesProps($me, $fish);
+
+    expect(array_keys($afterError))->toBe(['form', 'summary', 'mine', 'progress'])
+        ->and($afterError['mine'])->toBe([])
+        ->and($reloaded)->toBe($afterError);
 });
 
 it('returns only the caller\'s own answers in mine', function () {
@@ -311,6 +375,66 @@ it('lists tribes in the configured order', function () {
     $tribes = array_column(responsesProps($user, $fish)['summary'], 'tribe');
 
     expect($tribes)->toBe(config('fish_options.tribes'));
+});
+
+it('folds only English letters, not other scripts', function () {
+    $fish = Fish::factory()->create();
+    [$u1, $u2, $u3, $u4] = User::factory()->count(4)->create(['role' => 'viewer']);
+    addResponse($u1, $fish, 'yayo', 'Abc');
+    addResponse($u2, $fish, 'yayo', 'aBC');
+    addResponse($u3, $fish, 'yayo', "\u{0391}\u{03B1}"); // 希臘文 Αα
+    addResponse($u4, $fish, 'yayo', "\u{03B1}\u{03B1}"); // 希臘文 αα
+
+    $yayo = summaryFor(responsesProps($u1, $fish), 'yayo');
+
+    expect($yayo['names'])->toBe([
+        ['name' => 'Abc', 'count' => 2],
+        ['name' => "\u{0391}\u{03B1}", 'count' => 1],
+        ['name' => "\u{03B1}\u{03B1}", 'count' => 1],
+    ])->and($yayo['has_variants'])->toBeTrue();
+});
+
+it('orders by when the current name was submitted, so changing a name moves it to the back', function () {
+    $fish = Fish::factory()->create();
+    [$u1, $u2] = User::factory()->count(2)->create(['role' => 'viewer']);
+
+    Carbon::setTestNow('2026-11-19 10:00:00');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'B']);
+    Carbon::setTestNow('2026-11-19 10:01:00');
+    postResponse($u2, $fish, ['tribe' => 'yayo', 'name' => 'C']);
+    Carbon::setTestNow('2026-11-19 10:02:00');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'D']);
+
+    expect(array_column(summaryFor(responsesProps($u1, $fish), 'yayo')['names'], 'name'))->toBe(['C', 'D']);
+});
+
+it('shows the earliest current spelling of a group after someone changes their name into it', function () {
+    $fish = Fish::factory()->create();
+    [$u1, $u2] = User::factory()->count(2)->create(['role' => 'viewer']);
+
+    Carbon::setTestNow('2026-11-19 10:00:00');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'X']);
+    Carbon::setTestNow('2026-11-19 10:01:00');
+    postResponse($u2, $fish, ['tribe' => 'yayo', 'name' => 'Dalakan']);
+    Carbon::setTestNow('2026-11-19 10:02:00');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'DALAKAN']);
+
+    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2]]);
+});
+
+it('keeps the order when the same spelling is submitted again with other changes', function () {
+    $fish = Fish::factory()->create();
+    [$u1, $u2] = User::factory()->count(2)->create(['role' => 'viewer']);
+
+    Carbon::setTestNow('2026-11-19 10:00:00');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'B']);
+    Carbon::setTestNow('2026-11-19 10:01:00');
+    postResponse($u2, $fish, ['tribe' => 'yayo', 'name' => 'C']);
+    Carbon::setTestNow('2026-11-19 10:05:00');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'b', 'food_category' => 'oyod']);
+
+    // 同一種寫法重送不重排；顯示的是目前存的拼法 b
+    expect(array_column(summaryFor(responsesProps($u1, $fish), 'yayo')['names'], 'name'))->toBe(['b', 'C']);
 });
 
 // ─── AC5 全站進度 ────────────────────────────────────────

@@ -19,7 +19,18 @@ class FishTribeResponse extends Model
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     private const UNNAMED_FISH_NAME = '我不知道';
 
-    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category'];
+    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at'];
+
+    protected $casts = ['name_submitted_at' => 'datetime'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $response) {
+            if ($response->name !== null && $response->name_submitted_at === null) {
+                $response->name_submitted_at = now();
+            }
+        });
+    }
 
     public function user(): BelongsTo
     {
@@ -65,7 +76,7 @@ class FishTribeResponse extends Model
      */
     public static function summaryForFish(int $fishId): array
     {
-        $byTribe = self::where('fish_id', $fishId)->orderBy('id')->get()->groupBy('tribe');
+        $byTribe = self::where('fish_id', $fishId)->orderBy('name_submitted_at')->orderBy('id')->get()->groupBy('tribe');
         $categories = self::selectableFoodCategories();
 
         return array_map(function (string $tribe) use ($byTribe, $categories) {
@@ -98,7 +109,21 @@ class FishTribeResponse extends Model
         ];
     }
 
-    /** @return list<array{name: string, count: int}> 人數多者在前，同數依最早送出 */
+    /**
+     * 兩個叫法是否算同一種寫法：去前後空白，且只有英文字母（ASCII）不分大小寫。
+     * strtolower 只處理 ASCII，不會把希臘文、帶音標字母等折成同一個。
+     */
+    public static function sameSpelling(string $a, string $b): bool
+    {
+        return self::spellingKey($a) === self::spellingKey($b);
+    }
+
+    private static function spellingKey(string $name): string
+    {
+        return strtolower(trim($name));
+    }
+
+    /** @return list<array{name: string, count: int}> 人數多者在前，同數依該寫法最早被送出的時間 */
     private static function groupNames($rows): array
     {
         $groups = [];
@@ -107,7 +132,7 @@ class FishTribeResponse extends Model
             if ($name === '') {
                 continue;
             }
-            $key = mb_strtolower($name);
+            $key = self::spellingKey($name);
             $groups[$key] ??= ['name' => $name, 'count' => 0];
             $groups[$key]['count']++;
         }

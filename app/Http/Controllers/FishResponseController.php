@@ -30,22 +30,36 @@ class FishResponseController extends Controller
         });
         $data = $validator->validate();
 
+        $keys = ['user_id' => $request->user()->id, 'fish_id' => $fish->id, 'tribe' => $data['tribe']];
+
         // 單一語句的「有則更新、無則新增」：同一人同魚同部落只會有一筆，後到者的值生效
         FishTribeResponse::upsert(
             [[
-                'user_id' => $request->user()->id,
-                'fish_id' => $fish->id,
-                'tribe' => $data['tribe'],
+                ...$keys,
                 'name' => $data['name'],
                 'food_category' => $data['food_category'],
+                'name_submitted_at' => $this->nameSubmittedAt($keys, $data['name']),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]],
             ['user_id', 'fish_id', 'tribe'],
-            ['name', 'food_category', 'updated_at'],
+            ['name', 'food_category', 'name_submitted_at', 'updated_at'],
         );
 
         return back();
+    }
+
+    /** 叫法沒變（同一種寫法）就沿用原本的送出時間，換成不同叫法才算重新送出。 */
+    private function nameSubmittedAt(array $keys, ?string $name)
+    {
+        if ($name === null) {
+            return null;
+        }
+
+        $existing = FishTribeResponse::where($keys)->first();
+        $unchanged = $existing?->name !== null && FishTribeResponse::sameSpelling($existing->name, $name);
+
+        return $unchanged ? $existing->name_submitted_at : now();
     }
 
     /** 叫法去前後空白（含全形空白），空字串視為未填；飲食分類空字串視為未填。 */

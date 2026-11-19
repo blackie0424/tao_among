@@ -48,7 +48,7 @@
           @click="selectTribe(tribe)"
         >{{ tribe }}</button>
       </div>
-      <p v-if="form.errors.tribe" class="text-elder-body text-red-700">{{ form.errors.tribe }}</p>
+      <p v-if="form.errors.tribe" role="alert" class="text-elder-body text-red-700">{{ form.errors.tribe }}</p>
 
       <fieldset class="space-y-3">
         <legend class="text-elder-body font-bold text-elder-text">叫這條魚</legend>
@@ -65,11 +65,10 @@
           v-if="nameChoice === CUSTOM"
           v-model="customName"
           type="text"
-          :maxlength="options.name_max_length"
           class="w-full min-h-touch-secondary border border-rule-strong bg-white px-3 text-elder-body"
           aria-label="叫法"
         />
-        <p v-if="form.errors.name" class="text-elder-body text-red-700">{{ form.errors.name }}</p>
+        <p v-if="form.errors.name" role="alert" class="text-elder-body text-red-700">{{ form.errors.name }}</p>
       </fieldset>
 
       <fieldset class="space-y-3">
@@ -84,7 +83,7 @@
             @click="form.food_category = form.food_category === category ? '' : category"
           >{{ category }}</button>
         </div>
-        <p v-if="form.errors.food_category" class="text-elder-body text-red-700">{{ form.errors.food_category }}</p>
+        <p v-if="form.errors.food_category" role="alert" class="text-elder-body text-red-700">{{ form.errors.food_category }}</p>
       </fieldset>
 
       <button type="submit" :disabled="form.processing" class="w-full min-h-touch-secondary bg-brand text-white text-elder-body font-bold disabled:opacity-60">送出</button>
@@ -135,12 +134,17 @@ function selectTribe(tribe) {
   }
 }
 
+// 字數以 Unicode 字元計（去前後空白後），與後端一致；不用 maxlength（它算 UTF-16 單位、且在去空白前就限制）
+const codePointLength = (text) => Array.from(text).length
+
 function submit() {
+  const name = (nameChoice.value === CUSTOM ? customName.value : nameChoice.value).trim()
+  if (codePointLength(name) > props.options.name_max_length) {
+    form.setError('name', `叫法最多 ${props.options.name_max_length} 字`)
+    return
+  }
   form
-    .transform((data) => ({
-      ...data,
-      name: nameChoice.value === CUSTOM ? customName.value : nameChoice.value,
-    }))
+    .transform((data) => ({ ...data, name }))
     .post(`/fish/${props.fishId}/responses`, { preserveScroll: true })
 }
 </script>
