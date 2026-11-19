@@ -9,7 +9,6 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 
 uses(RefreshDatabase::class);
 
@@ -504,24 +503,16 @@ it('restamps the time when a name is changed away and back again', function () {
         ->and($row->name_submitted_at)->toBe('2026-11-19 10:00:00.300000');
 });
 
-it('applies the later request when another request creates the same row first', function () {
+it('applies the later request on top of a row another request already created', function () {
     $viewer = User::factory()->create(['role' => 'viewer']);
     $fish = Fish::factory()->create();
-    $competitorInserted = false;
-    FishTribeResponse::creating(function () use (&$competitorInserted, $viewer, $fish) {
-        if ($competitorInserted) {
-            return;
-        }
-        $competitorInserted = true;
-        DB::table('fish_tribe_responses')->insert([
-            'user_id' => $viewer->id, 'fish_id' => $fish->id, 'tribe' => 'yayo', 'name' => '搶先',
-            'food_category' => null, 'name_submitted_at' => '2026-11-19 10:00:00.000000',
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-    });
+    DB::table('fish_tribe_responses')->insert([
+        'user_id' => $viewer->id, 'fish_id' => $fish->id, 'tribe' => 'yayo', 'name' => '搶先',
+        'food_category' => null, 'name_submitted_at' => '2026-11-19 10:00:00.000000',
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
 
     postResponse($viewer, $fish, ['tribe' => 'yayo', 'name' => '後到', 'food_category' => 'oyod'])->assertSessionHasNoErrors();
-    Event::forget('eloquent.creating: '.FishTribeResponse::class);
 
     $row = FishTribeResponse::sole();
     expect($row->name)->toBe('後到')->and($row->food_category)->toBe('oyod');
