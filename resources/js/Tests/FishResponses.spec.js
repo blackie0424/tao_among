@@ -64,13 +64,14 @@ describe('FishResponses 問答順序', () => {
     expect(wrapper.find('[data-testid="step-category"]').exists()).toBe(true)
   })
 
-  it('選了分類會連同叫法一起再送出，然後顯示謝謝', async () => {
+  it('選了分類會連同叫法一起再送出，然後直接看大家怎麼說（不再多一個謝謝畫面）', async () => {
     const wrapper = mountFlow()
     await yes(wrapper)
     await click(wrapper, 'yayo')
     await click(wrapper, 'oyod')
     expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'mamalan', food_category: 'oyod' }, expect.anything())
-    expect(wrapper.find('[data-testid="step-done"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="thanks"]').exists()).toBe(true)
   })
 
   it('略過分類不會再送出', async () => {
@@ -79,7 +80,7 @@ describe('FishResponses 問答順序', () => {
     await click(wrapper, 'yayo')
     await click(wrapper, '略過')
     expect(post).toHaveBeenCalledTimes(1)
-    expect(wrapper.find('[data-testid="step-done"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
   })
 
   it('✖ 後保留文字輸入，選好部落後送出的是去空白後的叫法', async () => {
@@ -116,7 +117,7 @@ describe('FishResponses 做到一半離開，下次繼續', () => {
   it('回答都完整時不提示繼續', () => {
     const wrapper = mountFlow({ mine: [{ tribe: 'yayo', name: 'dalakan', food_category: 'rahet' }] })
     expect(wrapper.find('[data-testid="step-resume"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="step-done"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
   })
 
   it('還沒答過時第一個畫面是第一題，不是繼續', () => {
@@ -152,8 +153,8 @@ describe('FishResponses 回應人數與直接查看', () => {
     await click(wrapper, '看大家怎麼說')
     const bars = wrapper.findAll('[data-testid="response-tribe"]')[0].findAll('[data-testid="tribe-categories"] li')
     expect(bars.map((b) => b.text())).toEqual(['oyod4', 'rahet1'])
-    expect(bars[0].find('.bg-brand').attributes('style')).toContain('width: 100%')
-    expect(bars[1].find('.bg-brand').attributes('style')).toContain('width: 25%')
+    expect(bars[0].find('[data-testid="bar-fill"]').attributes('style')).toContain('width: 100%')
+    expect(bars[1].find('[data-testid="bar-fill"]').attributes('style')).toContain('width: 25%')
   })
 
   it('沒有人選分類的部落不畫長條，顯示「還沒有人選分類」', async () => {
@@ -173,6 +174,53 @@ describe('FishResponses 回應人數與直接查看', () => {
 
   it('還沒有人回答時沒有看大家怎麼說的入口', () => {
     expect(mountFlow().findAll('button').some((b) => b.text().includes('看大家怎麼說'))).toBe(false)
+  })
+})
+
+describe('FishResponses 答完直接看結果，自己的選擇特別標出', () => {
+  const mine = [{ tribe: 'yayo', name: 'Dalakan', food_category: 'oyod' }]
+
+  it('答過的人進來直接看大家怎麼說，自己的部落、叫法、分類都有標記', () => {
+    const wrapper = mountFlow({ summary: responded, mine, responders: 3 })
+    expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="thanks"]').exists()).toBe(false)
+    const [yayo, iratay] = wrapper.findAll('[data-testid="response-tribe"]')
+    expect(yayo.attributes('data-mine')).toBe('true')
+    expect(iratay.attributes('data-mine')).toBeUndefined()
+    const marked = yayo.findAll('[data-testid="tribe-names"] [data-mine]')
+    expect(marked).toHaveLength(1)
+    expect(marked[0].text()).toContain('dalakan')
+    const [oyod, rahet] = yayo.findAll('[data-testid="tribe-categories"] li')
+    expect(oyod.attributes('data-mine')).toBe('true')
+    expect(oyod.find('[data-testid="bar-fill"]').classes()).toContain('bg-amber-600')
+    expect(rahet.attributes('data-mine')).toBeUndefined()
+    expect(rahet.find('[data-testid="bar-fill"]').classes()).toContain('bg-brand')
+  })
+
+  it('下方有「再說一個部落」，沒有先出現謝謝畫面再多按一次', async () => {
+    const wrapper = mountFlow({ summary: responded, mine })
+    await click(wrapper, '再說一個部落')
+    expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(true)
+  })
+
+  it('完成最後一步後直接顯示結果並提示謝謝，再說一個部落的按鈕在下方', async () => {
+    const wrapper = mountFlow({ summary: responded, mine })
+    await click(wrapper, '再說一個部落')
+    await yes(wrapper)
+    await click(wrapper, 'iratay')
+    await click(wrapper, 'oyod')
+    expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="thanks"]').text()).toContain('謝謝')
+    expect(wrapper.findAll('button').some((b) => b.text().includes('再說一個部落'))).toBe(true)
+  })
+
+  it('還沒答過、從問題畫面點進來看的人有返回，沒有「再說一個部落」', async () => {
+    const wrapper = mountFlow({ summary: responded })
+    await click(wrapper, '看大家怎麼說')
+    expect(wrapper.find('button[aria-label="返回"]').exists()).toBe(true)
+    expect(wrapper.findAll('button').some((b) => b.text().includes('再說一個部落'))).toBe(false)
+    await wrapper.find('button[aria-label="返回"]').trigger('click')
+    expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(true)
   })
 })
 
@@ -218,7 +266,7 @@ describe('FishResponses 只填一項與修改', () => {
     await click(wrapper, '略過')
     expect(post).toHaveBeenCalledTimes(2)
     expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'mamalan', food_category: '' }, expect.anything())
-    expect(wrapper.find('[data-testid="step-done"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
   })
 
   it('修改時可以清空叫法、保留分類：略過叫法再重選原本的分類', async () => {

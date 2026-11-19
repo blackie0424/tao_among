@@ -50,34 +50,51 @@
       <button type="button" :class="linkButton" @click="skipCategory">略過 ›</button>
     </div>
 
-    <!-- 5 完成 -->
-    <div v-else-if="step === 'done'" data-testid="step-done">
-      <p class="mb-3 font-serif text-elder-name font-bold text-elder-text">✔ 謝謝！</p>
-      <button type="button" :class="bigButton" @click="startOver">再說一個部落</button>
-      <button type="button" class="mt-3 w-full min-h-touch-secondary bg-brand text-elder-body font-bold text-white" @click="step = 'others'">看大家怎麼說</button>
-    </div>
-
-    <!-- 6 大家怎麼說（一個部落一張卡，只列有回答的部落；叫法只列名稱，分類用長條圖） -->
+    <!-- 5 大家怎麼說：答完直接看，自己的選擇特別標出；下方可再說一個部落 -->
     <div v-else data-testid="step-others">
-      <button type="button" aria-label="返回" :class="linkButton" @click="step = homeStep()">‹</button>
+      <p v-if="justSubmitted" class="mb-2 text-elder-body font-bold text-green-700" data-testid="thanks">✔ 謝謝！</p>
+      <button v-if="backStep" type="button" aria-label="返回" :class="linkButton" @click="step = backStep">‹</button>
       <ul class="mt-2 space-y-3">
-        <li v-for="item in respondedTribes" :key="item.tribe" class="border border-rule bg-white p-3" data-testid="response-tribe">
+        <li
+          v-for="item in respondedTribes"
+          :key="item.tribe"
+          :class="['border bg-white p-3', mineOf(item) ? 'border-2 border-amber-600' : 'border-rule']"
+          :data-mine="mineOf(item) ? 'true' : undefined"
+          data-testid="response-tribe"
+        >
           <span class="font-serif text-elder-body font-bold text-elder-text">{{ item.tribe }}</span>
+          <span v-if="mineOf(item)" class="ml-2 text-elder-aux font-bold text-amber-700" aria-label="我選的">✔</span>
           <span v-if="item.has_variants" class="ml-2 text-elder-aux text-elder-subtext" aria-label="有不同說法">≠</span>
-          <p class="mt-1 text-elder-body text-elder-text" data-testid="tribe-names">{{ nameText(item) }}</p>
+          <p class="mt-1 text-elder-body text-elder-text" data-testid="tribe-names">
+            <template v-if="item.names.length">
+              <template v-for="(n, i) in item.names" :key="n.name">
+                <span v-if="i">、</span>
+                <span :class="isMyName(item, n.name) && 'font-bold text-amber-700'" :data-mine="isMyName(item, n.name) ? 'true' : undefined">{{ n.name }}<template v-if="isMyName(item, n.name)"> ✔</template></span>
+              </template>
+            </template>
+            <template v-else>—</template>
+          </p>
           <ul v-if="categoryBars(item).length" class="mt-2 space-y-1" data-testid="tribe-categories">
-            <li v-for="bar in categoryBars(item)" :key="bar.value" class="grid grid-cols-[4.5rem_1fr_1.5rem] items-center gap-2 text-elder-aux text-elder-text">
-              <span>{{ bar.value }}</span>
-              <span class="block h-3 rounded-sm bg-rule" aria-hidden="true"><span class="block h-3 rounded-sm bg-brand" :style="{ width: bar.width }"></span></span>
+            <li
+              v-for="bar in categoryBars(item)"
+              :key="bar.value"
+              :class="['grid grid-cols-[4.5rem_1fr_1.5rem] items-center gap-2 text-elder-aux', isMyCategory(item, bar.value) ? 'font-bold text-amber-700' : 'text-elder-text']"
+              :data-mine="isMyCategory(item, bar.value) ? 'true' : undefined"
+            >
+              <span>{{ bar.value }}<template v-if="isMyCategory(item, bar.value)"> ✔</template></span>
+              <span class="block h-3 rounded-sm bg-rule" aria-hidden="true">
+                <span :class="['block h-3 rounded-sm', isMyCategory(item, bar.value) ? 'bg-amber-600' : 'bg-brand']" :style="{ width: bar.width }" data-testid="bar-fill"></span>
+              </span>
               <span class="text-right">{{ bar.count }}</span>
             </li>
           </ul>
           <p v-else class="mt-2 text-elder-aux text-elder-subtext">還沒有人選分類</p>
         </li>
       </ul>
+      <button v-if="mine.length" type="button" :class="[bigButton, 'mt-4']" @click="startOver">再說一個部落</button>
     </div>
 
-    <button v-if="respondedTribes.length && ['confirm', 'name', 'tribe'].includes(step)" type="button" :class="linkButton" @click="step = 'others'">看大家怎麼說</button>
+    <button v-if="respondedTribes.length && ['resume', 'confirm', 'name', 'tribe'].includes(step)" type="button" :class="linkButton" @click="openOthers">看大家怎麼說</button>
     <p class="mt-3 text-elder-aux text-elder-subtext" data-testid="responders">{{ responders }} 人回應</p>
   </section>
 </template>
@@ -103,6 +120,8 @@ const draftName = ref(null) // null＝還沒決定；''＝略過叫法；其他�
 const agreed = ref(false)
 const savedName = ref('')
 const previousCategory = ref('')
+const backStep = ref(null) // 從問題畫面點「看大家怎麼說」進來時，可以返回原本的問題
+const justSubmitted = ref(false)
 
 // 魚目前的名字；「我不知道」不列為選項，這時第一題直接問叫什麼
 const fishName = computed(() => props.options.name_options[0] ?? null)
@@ -112,11 +131,33 @@ const respondedTribes = computed(() => props.summary.filter((item) => item.has_r
 const incomplete = computed(() => props.mine.find((r) => r.name && !r.food_category) ?? null)
 
 const firstQuestion = () => (fishName.value ? 'confirm' : 'name')
-const homeStep = () => (incomplete.value ? 'resume' : props.mine.length ? 'done' : firstQuestion())
+// 進來時：做到一半就提示繼續；答過的直接看大家怎麼說；沒答過就是第一題
+const homeStep = () => (incomplete.value ? 'resume' : props.mine.length ? 'others' : firstQuestion())
 const step = ref(homeStep())
+
+// 自己的選擇（用來在結果中特別標出）；寫法比對與後端一致：去前後空白、只有英文字母不分大小寫
+const asciiLower = (text) => text.trim().replace(/[A-Z]/g, (c) => c.toLowerCase())
+const mineOf = (item) => props.mine.find((r) => r.tribe === item.tribe)
+const isMyName = (item, name) => {
+  const mineName = mineOf(item)?.name
+  return Boolean(mineName) && asciiLower(mineName) === asciiLower(name)
+}
+const isMyCategory = (item, category) => mineOf(item)?.food_category === category
 
 // 字數以 Unicode 字元計（去前後空白後），與後端一致
 const codePointLength = (text) => Array.from(text).length
+
+function openOthers() {
+  backStep.value = step.value
+  justSubmitted.value = false
+  step.value = 'others'
+}
+
+function showResults() {
+  backStep.value = null
+  justSubmitted.value = true
+  step.value = 'others'
+}
 
 function agree() {
   agreed.value = true
@@ -174,14 +215,14 @@ function startOver() {
   typedName.value = ''
   draftName.value = null
   agreed.value = false
+  justSubmitted.value = false
+  backStep.value = null
   step.value = firstQuestion()
 }
 
 function saveCategory(category) {
   form.food_category = category
-  submit(savedName.value, category, () => {
-    step.value = 'done'
-  })
+  submit(savedName.value, category, showResults)
 }
 
 // 略過分類＝不填分類：原本有分類就送出空的把它清掉；叫法也沒有的話兩項皆空，無法送出，提示至少填一項
@@ -193,11 +234,11 @@ function skipCategory() {
   if (previousCategory.value) {
     submit(savedName.value, '', () => {
       previousCategory.value = ''
-      step.value = 'done'
+      showResults()
     })
     return
   }
-  step.value = 'done'
+  showResults()
 }
 
 function submit(name, foodCategory, onSuccess) {
@@ -205,9 +246,6 @@ function submit(name, foodCategory, onSuccess) {
     .transform((data) => ({ ...data, name, food_category: foodCategory }))
     .post(`/fish/${props.fishId}/responses`, { preserveScroll: true, onSuccess })
 }
-
-// 叫法只列名稱，不顯示人數
-const nameText = (item) => (item.names.length ? item.names.map((n) => n.name).join('、') : '—')
 
 // 分類長條圖：同一個部落內比較，最多人的選項填滿，其餘依比例；沒人選的選項不畫
 const categoryBars = (item) => {
