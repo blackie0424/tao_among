@@ -114,7 +114,7 @@ describe('FishResponses 逐步回答', () => {
     expect(rows[0].text()).toContain('dalakan 2、B 1')
     expect(rows[0].text()).toContain('oyod 2')
     expect(wrapper.text()).not.toContain('ivalino')
-    expect(wrapper.find('[data-testid="response-progress"]').text()).toBe('1／3')
+    expect(wrapper.find('[data-testid="response-progress"]').text()).toContain('1／3')
   })
 })
 
@@ -129,19 +129,24 @@ describe('FishResponses 不必先回答就能看', () => {
     expect(wrapper.find('[data-testid="step-tribe"]').exists()).toBe(true)
     await click(wrapper, '看大家怎麼說')
     expect(wrapper.findAll('[data-testid="response-tribe"]')).toHaveLength(1)
-    expect(wrapper.find('[data-testid="response-progress"]').text()).toBe('1／3')
+    expect(wrapper.find('[data-testid="response-progress"]').text()).toContain('1／3')
     expect(post).not.toHaveBeenCalled()
   })
 
   it('這條魚沒有回答、但別的魚已有回答時，第一個畫面直接看得到全站進度，不必作答', () => {
     const wrapper = mountFlow({ progress: { answered: 2, total: 5 } })
-    expect(wrapper.find('[data-testid="tribe-step-progress"]').text()).toBe('2／5')
+    expect(wrapper.find('[data-testid="tribe-step-progress"]').text()).toContain('2／5')
     expect(post).not.toHaveBeenCalled()
   })
 
-  it('全站都還沒有回答時不顯示進度（不顯示 0）', () => {
+  it('全站都還沒有回答時第一個畫面顯示 0／N（驗收 5 沒有隱藏零進度）', () => {
     const wrapper = mountFlow({ progress: { answered: 0, total: 5 } })
-    expect(wrapper.find('[data-testid="tribe-step-progress"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="tribe-step-progress"]').text()).toContain('0／5')
+  })
+
+  it('進度分母是 0 時第一個畫面顯示「—」', () => {
+    const wrapper = mountFlow({ progress: { answered: 0, total: 0 } })
+    expect(wrapper.find('[data-testid="tribe-step-progress"]').text()).toBe('—')
   })
 
   it('還沒有人回答時沒有這個入口', () => {

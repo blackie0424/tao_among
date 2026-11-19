@@ -8,7 +8,7 @@
           {{ tribe }}<span v-if="answeredTribes.has(tribe)" aria-label="已回答"> ✓</span>
         </button>
       </div>
-      <p v-if="progress.answered > 0" class="mt-3 text-elder-aux text-elder-subtext" data-testid="tribe-step-progress">{{ progressText }}</p>
+      <p class="mt-3 text-elder-aux text-elder-subtext" data-testid="tribe-step-progress">{{ progressText }}</p>
       <div class="flex flex-wrap gap-x-6">
         <button v-if="mine.length" type="button" aria-label="返回" :class="linkButton" @click="step = 'done'">‹</button>
         <button v-if="respondedTribes.length" type="button" :class="linkButton" @click="step = 'others'">看大家怎麼說</button>
@@ -94,7 +94,7 @@ const previousCategory = ref('')
 const fishName = computed(() => props.options.name_options[0] ?? null)
 const answeredTribes = computed(() => new Set(props.mine.map((r) => r.tribe)))
 const respondedTribes = computed(() => props.summary.filter((item) => item.has_responses))
-const progressText = computed(() => (props.progress.total > 0 ? `${props.progress.answered}／${props.progress.total}` : '—'))
+const progressText = computed(() => (props.progress.total > 0 ? `🐟 ${props.progress.answered}／${props.progress.total}` : '—'))
 
 // 字數以 Unicode 字元計（去前後空白後），與後端一致
 const codePointLength = (text) => Array.from(text).length
