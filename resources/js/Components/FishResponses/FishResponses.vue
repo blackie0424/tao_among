@@ -8,6 +8,7 @@
           {{ tribe }}<span v-if="answeredTribes.has(tribe)" aria-label="已回答"> ✓</span>
         </button>
       </div>
+      <p v-if="progress.answered > 0" class="mt-3 text-elder-aux text-elder-subtext" data-testid="tribe-step-progress">{{ progressText }}</p>
       <div class="flex flex-wrap gap-x-6">
         <button v-if="mine.length" type="button" aria-label="返回" :class="linkButton" @click="step = 'done'">‹</button>
         <button v-if="respondedTribes.length" type="button" :class="linkButton" @click="step = 'others'">看大家怎麼說</button>
@@ -40,6 +41,7 @@
       <div class="grid grid-cols-2 gap-3">
         <button v-for="category in options.food_categories" :key="category" type="button" :class="[bigButton, category === previousCategory && 'border-brand font-bold']" @click="saveCategory(category)">{{ category }}</button>
       </div>
+      <p v-if="previousCategory" class="mt-3 text-elder-aux text-elder-subtext" data-testid="previous-category">原本：{{ previousCategory }}</p>
       <p v-if="form.errors.food_category" role="alert" class="mt-2 text-elder-body text-red-700">{{ form.errors.food_category }}</p>
       <button type="button" :class="linkButton" @click="skipCategory">略過 ›</button>
     </div>
@@ -119,14 +121,14 @@ function startOver() {
 }
 
 // 叫法一確定就先送出；分類是下一步，另外送。
-// 修改時沿用規格：沒有再選的欄位視為清空，所以這裡送出的分類是空的，要保留得在下一步重選。
+// 修改時先沿用原本的分類，使用者中途離開也不會遺失；要清掉分類得在下一步按略過。
 function saveName(rawName) {
   const name = rawName.trim()
   if (codePointLength(name) > props.options.name_max_length) {
     form.setError('name', `叫法最多 ${props.options.name_max_length} 字`)
     return
   }
-  submit(name, '', () => {
+  submit(name, previousCategory.value, () => {
     savedName.value = name
     step.value = 'category'
   })
@@ -140,10 +142,17 @@ function skipName() {
   step.value = 'category'
 }
 
-// 叫法已送出時，略過分類就是不填分類；叫法也沒有的話兩項皆空，無法送出，提示至少填一項
+// 略過分類＝不填分類：原本有分類就送出空的把它清掉；叫法也沒有的話兩項皆空，無法送出，提示至少填一項
 function skipCategory() {
   if (!savedName.value) {
     form.setError('food_category', '至少要填一項')
+    return
+  }
+  if (previousCategory.value) {
+    submit(savedName.value, '', () => {
+      previousCategory.value = ''
+      step.value = 'done'
+    })
     return
   }
   step.value = 'done'

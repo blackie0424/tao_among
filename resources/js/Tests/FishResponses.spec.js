@@ -133,6 +133,17 @@ describe('FishResponses 不必先回答就能看', () => {
     expect(post).not.toHaveBeenCalled()
   })
 
+  it('這條魚沒有回答、但別的魚已有回答時，第一個畫面直接看得到全站進度，不必作答', () => {
+    const wrapper = mountFlow({ progress: { answered: 2, total: 5 } })
+    expect(wrapper.find('[data-testid="tribe-step-progress"]').text()).toBe('2／5')
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('全站都還沒有回答時不顯示進度（不顯示 0）', () => {
+    const wrapper = mountFlow({ progress: { answered: 0, total: 5 } })
+    expect(wrapper.find('[data-testid="tribe-step-progress"]').exists()).toBe(false)
+  })
+
   it('還沒有人回答時沒有這個入口', () => {
     const wrapper = mountFlow()
     expect(wrapper.findAll('button').some((b) => b.text().includes('看大家怎麼說'))).toBe(false)
@@ -168,14 +179,25 @@ describe('FishResponses 只填一項與修改', () => {
 
   const previous = [{ tribe: 'yayo', name: 'dalakan', food_category: 'rahet' }]
 
-  it('修改已有分類的回答時，略過分類＝清空：最後送出的分類是空的', async () => {
+  it('修改已有分類的回答時，送出叫法先沿用原本的分類，中途離開不會遺失', async () => {
+    const wrapper = mountFlow({ mine: previous })
+    await click(wrapper, '再說一個部落')
+    await click(wrapper, 'yayo')
+    await wrapper.find('button[aria-label="是"]').trigger('click')
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'mamalan', food_category: 'rahet' }, expect.anything())
+    expect(wrapper.find('[data-testid="previous-category"]').text()).toContain('rahet')
+  })
+
+  it('修改已有分類的回答時，按略過分類才會清掉分類', async () => {
     const wrapper = mountFlow({ mine: previous })
     await click(wrapper, '再說一個部落')
     await click(wrapper, 'yayo')
     await wrapper.find('button[aria-label="是"]').trigger('click')
     await click(wrapper, '略過')
-    expect(post).toHaveBeenCalledTimes(1)
+    expect(post).toHaveBeenCalledTimes(2)
     expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'mamalan', food_category: '' }, expect.anything())
+    expect(wrapper.find('[data-testid="step-done"]').exists()).toBe(true)
   })
 
   it('修改時可以清空叫法、保留分類：略過叫法再重選原本的分類', async () => {
