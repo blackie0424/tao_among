@@ -30,6 +30,7 @@ jobs:
           php-version: '8.5'
           extensions: mbstring, xml, mysql, pdo_mysql, sqlite3, pdo_sqlite
           coverage: none
+          ini-values: memory_limit=512M
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -94,6 +95,7 @@ jobs:
           php-version: '8.5'
           extensions: mbstring, xml, mysql, pdo_mysql
           coverage: none
+          ini-values: memory_limit=512M
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
