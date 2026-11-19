@@ -81,7 +81,7 @@ class FishController extends Controller
             'form' => FishTribeResponse::formOptions($details['fish']['name']),
             'summary' => FishTribeResponse::summaryForFish((int) $id),
             'mine' => FishTribeResponse::answersOf($request->user()->id, (int) $id),
-            'progress' => FishTribeResponse::progress(),
+            'responders' => FishTribeResponse::responderCount((int) $id),
         ];
 
         return Inertia::render('Fish', $details);

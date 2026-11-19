@@ -44,7 +44,7 @@
                   :options="responses.form"
                   :summary="responses.summary"
                   :mine="responses.mine"
-                  :progress="responses.progress"
+                  :responders="responses.responders"
                 />
               </template>
             </FishGridLayout>

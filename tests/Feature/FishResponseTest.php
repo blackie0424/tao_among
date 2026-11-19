@@ -259,7 +259,7 @@ it('gives unauthorised callers no response data and writes nothing, on every req
         $response = $send();
         expect($response->status())->toBeIn([302, 401, 403], $label);
         $body = $response->getContent();
-        foreach (['ZZ甲說法', 'oyod', 'answerer-secret', 'summary', 'progress', 'has_variants', 'categories'] as $leak) {
+        foreach (['ZZ甲說法', 'oyod', 'answerer-secret', 'summary', 'responders', 'has_variants', 'categories'] as $leak) {
             expect($body)->not->toContain($leak, "{$label} leaked {$leak}");
         }
     }
@@ -275,10 +275,10 @@ it('exposes exactly the whitelisted response fields to an activated caller and n
 
     $responses = responsesProps($me, $fish);
 
-    expect(array_keys($responses))->toBe(['form', 'summary', 'mine', 'progress'])
+    expect(array_keys($responses))->toBe(['form', 'summary', 'mine', 'responders'])
         ->and(array_keys($responses['summary'][0]))->toBe(['tribe', 'has_responses', 'names', 'has_variants', 'categories'])
         ->and(array_keys(summaryFor($responses, 'yayo')['names'][0]))->toBe(['name', 'count'])
-        ->and(array_keys($responses['progress']))->toBe(['answered', 'total']);
+        ->and($responses['responders'])->toBeInt();
 
     $json = json_encode($responses, JSON_UNESCAPED_UNICODE);
     expect($json)->not->toContain('other-person@example.test')
@@ -295,7 +295,7 @@ it('keeps the whitelist after a rejected submission and after a reload', functio
     $afterError = responsesProps($me, $fish);
     $reloaded = responsesProps($me, $fish);
 
-    expect(array_keys($afterError))->toBe(['form', 'summary', 'mine', 'progress'])
+    expect(array_keys($afterError))->toBe(['form', 'summary', 'mine', 'responders'])
         ->and($afterError['mine'])->toBe([])
         ->and($reloaded)->toBe($afterError);
 });
@@ -518,46 +518,40 @@ it('applies the later request on top of a row another request already created', 
     expect($row->name)->toBe('後到')->and($row->food_category)->toBe('oyod');
 });
 
-// ─── AC5 全站進度 ────────────────────────────────────────
+// ─── AC5 這條魚的回應人數 ────────────────────────────────
 
-it('counts fish with at least one answer over all live fish', function () {
-    $user = User::factory()->create(['role' => 'viewer']);
-    [$a, $b, $c] = Fish::factory()->count(3)->create();
-    addResponse($user, $a, 'yayo', 'x');
-    addResponse(User::factory()->create(['role' => 'viewer']), $a, 'yayo', 'y');
-    addResponse($user, $b, 'yayo', 'z');
+it('counts the distinct users who answered this fish, not rows and not other fish', function () {
+    $fish = Fish::factory()->create();
+    $otherFish = Fish::factory()->create();
+    [$u1, $u2, $u3] = User::factory()->count(3)->create(['role' => 'viewer']);
+    addResponse($u1, $fish, 'yayo', 'x');
+    addResponse($u1, $fish, 'iratay', 'y'); // 同一人答第二個部落，仍算 1 人
+    addResponse($u2, $fish, 'yayo', 'z');
+    addResponse($u3, $otherFish, 'yayo', 'w'); // 別條魚不算
 
-    expect(responsesProps($user, $c)['progress'])->toBe(['answered' => 2, 'total' => 3]);
+    expect(responsesProps($u3, $fish)['responders'])->toBe(2)
+        ->and(responsesProps($u3, $otherFish)['responders'])->toBe(1);
 });
 
-it('ignores soft-deleted fish in both numbers and counts them again after restore', function () {
+it('shows zero responders when nobody has answered this fish', function () {
+    $fish = Fish::factory()->create();
     $user = User::factory()->create(['role' => 'viewer']);
-    [$a, $b, $c] = Fish::factory()->count(3)->create();
-    addResponse($user, $a, 'yayo', 'x');
-    addResponse($user, $b, 'yayo', 'z');
 
-    $b->delete();
-    expect(responsesProps($user, $c)['progress'])->toBe(['answered' => 1, 'total' => 2]);
-
-    $b->restore();
-    expect(responsesProps($user, $c)['progress'])->toBe(['answered' => 2, 'total' => 3]);
+    expect(responsesProps($user, $fish)['responders'])->toBe(0);
 });
 
-it('removes a user\'s answers when the user is deleted', function () {
+it('removes a user\'s answers, and the count, when the user is deleted', function () {
+    $fish = Fish::factory()->create();
     $keeper = User::factory()->create(['role' => 'viewer']);
     $leaver = User::factory()->create(['role' => 'viewer']);
-    [$a, $b] = Fish::factory()->count(2)->create();
-    addResponse($keeper, $a, 'yayo', 'x');
-    addResponse($leaver, $b, 'yayo', 'y');
+    addResponse($keeper, $fish, 'yayo', 'x');
+    addResponse($leaver, $fish, 'iratay', 'y');
+    expect(responsesProps($keeper, $fish)['responders'])->toBe(2);
 
     $leaver->delete();
 
     expect(FishTribeResponse::count())->toBe(1)
-        ->and(responsesProps($keeper, $a)['progress'])->toBe(['answered' => 1, 'total' => 2]);
-});
-
-it('reports zero over zero when there are no fish', function () {
-    expect(FishTribeResponse::progress())->toBe(['answered' => 0, 'total' => 0]);
+        ->and(responsesProps($keeper, $fish)['responders'])->toBe(1);
 });
 
 // ─── AC6 表單選項 ────────────────────────────────────────

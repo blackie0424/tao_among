@@ -135,17 +135,10 @@ class FishTribeResponse extends Model
         }, config('fish_options.tribes'));
     }
 
-    /**
-     * 全站進度：至少有一位使用者回答過的魚數／魚總數（只計未刪除的魚）。
-     *
-     * @return array{answered: int, total: int}
-     */
-    public static function progress(): array
+    /** 回答過這條魚的不同使用者人數（不分部落，同一人答多個部落只算 1 人）。 */
+    public static function responderCount(int $fishId): int
     {
-        return [
-            'answered' => Fish::whereIn('id', self::select('fish_id'))->count(),
-            'total' => Fish::count(),
-        ];
+        return self::where('fish_id', $fishId)->distinct()->count('user_id');
     }
 
     /**
