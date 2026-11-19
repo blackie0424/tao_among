@@ -118,6 +118,77 @@ describe('FishResponses 逐步回答', () => {
   })
 })
 
+const responded = [
+  { tribe: 'ivalino', has_responses: false, names: [], has_variants: false, categories: [] },
+  { tribe: 'yayo', has_responses: true, names: [{ name: 'dalakan', count: 2 }], has_variants: false, categories: [] },
+]
+
+describe('FishResponses 不必先回答就能看', () => {
+  it('別人已經有回答時，沒回答過的人在第一個畫面就有入口，可以直接看', async () => {
+    const wrapper = mountFlow({ summary: responded, progress: { answered: 1, total: 3 } })
+    expect(wrapper.find('[data-testid="step-tribe"]').exists()).toBe(true)
+    await click(wrapper, '看大家怎麼說')
+    expect(wrapper.findAll('[data-testid="response-tribe"]')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="response-progress"]').text()).toBe('1／3')
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('還沒有人回答時沒有這個入口', () => {
+    const wrapper = mountFlow()
+    expect(wrapper.findAll('button').some((b) => b.text().includes('看大家怎麼說'))).toBe(false)
+  })
+
+  it('進度分母是 0 時顯示「—」', async () => {
+    const wrapper = mountFlow({ summary: responded, progress: { answered: 0, total: 0 } })
+    await click(wrapper, '看大家怎麼說')
+    expect(wrapper.find('[data-testid="response-progress"]').text()).toBe('—')
+  })
+})
+
+describe('FishResponses 只填一項與修改', () => {
+  it('可以只填分類：略過叫法、選分類，送出的叫法是空的', async () => {
+    const wrapper = mountFlow()
+    await click(wrapper, 'yayo')
+    await wrapper.find('button[aria-label="不是"]').trigger('click')
+    await click(wrapper, '略過')
+    await click(wrapper, 'oyod')
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: '', food_category: 'oyod' }, expect.anything())
+  })
+
+  it('叫法與分類都略過時不送出，並提示至少填一項', async () => {
+    const wrapper = mountFlow()
+    await click(wrapper, 'yayo')
+    await wrapper.find('button[aria-label="不是"]').trigger('click')
+    await click(wrapper, '略過')
+    await click(wrapper, '略過')
+    expect(post).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('至少要填一項')
+  })
+
+  const previous = [{ tribe: 'yayo', name: 'dalakan', food_category: 'rahet' }]
+
+  it('修改已有分類的回答時，略過分類＝清空：最後送出的分類是空的', async () => {
+    const wrapper = mountFlow({ mine: previous })
+    await click(wrapper, '再說一個部落')
+    await click(wrapper, 'yayo')
+    await wrapper.find('button[aria-label="是"]').trigger('click')
+    await click(wrapper, '略過')
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'mamalan', food_category: '' }, expect.anything())
+  })
+
+  it('修改時可以清空叫法、保留分類：略過叫法再重選原本的分類', async () => {
+    const wrapper = mountFlow({ mine: previous })
+    await click(wrapper, '再說一個部落')
+    await click(wrapper, 'yayo')
+    await wrapper.find('button[aria-label="不是"]').trigger('click')
+    await click(wrapper, '略過')
+    await click(wrapper, 'rahet')
+    expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: '', food_category: 'rahet' }, expect.anything())
+  })
+})
+
 describe('FishResponses 叫法字數', () => {
   async function submitCustomName(name) {
     const wrapper = mountFlow()
