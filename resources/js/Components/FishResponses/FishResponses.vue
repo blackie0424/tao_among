@@ -19,7 +19,7 @@
     <!-- 2 叫什麼（保留文字輸入） -->
     <div v-else-if="step === 'name'" data-testid="step-name">
       <button v-if="fishName" type="button" aria-label="返回" :class="backButton" @click="step = 'confirm'"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
-      <p class="my-3 font-serif text-elder-name font-bold text-elder-text">{{ fishName ? '叫什麼？' : '這條魚，你們叫什麼？' }}</p>
+      <p class="my-3 font-serif text-elder-name font-bold text-elder-text">{{ fishName ? '你們會怎麼稱呼呢？' : '這條魚，你們會怎麼稱呼呢？' }}</p>
       <input v-model="typedName" type="text" class="w-full min-h-touch-secondary border border-rule-strong bg-white px-3 text-elder-body" aria-label="叫法" />
       <p class="mt-1 text-elder-aux text-elder-subtext">羅馬拼音、接近的中文字都可以</p>
       <p v-if="form.errors.name" role="alert" class="mt-2 text-elder-body text-red-700">{{ form.errors.name }}</p>
@@ -30,7 +30,7 @@
     <!-- 3 哪個部落 -->
     <div v-else-if="step === 'tribe'" data-testid="step-tribe">
       <button type="button" aria-label="返回" :class="backButton" @click="step = agreed ? 'confirm' : 'name'"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
-      <p class="my-3 font-serif text-elder-name font-bold text-elder-text">哪個部落？</p>
+      <p class="my-3 font-serif text-elder-name font-bold text-elder-text">你要提供哪個部落的說法？</p>
       <div class="grid grid-cols-2 gap-3">
         <button v-for="tribe in options.tribes" :key="tribe" type="button" :disabled="form.processing" :class="bigButton" @click="chooseTribe(tribe)">
           {{ tribe }}<span v-if="answeredTribes.has(tribe)" aria-label="已回答"> ✓</span>
@@ -52,7 +52,7 @@
 
     <!-- 5 大家怎麼說：答完直接看，自己的選擇特別標出；下方可再說一個部落 -->
     <div v-else data-testid="step-others">
-      <p v-if="mine.length" class="mb-2 text-elder-aux text-amber-700" data-testid="legend">✔ 是你選的</p>
+      <p class="mb-2 text-elder-body text-elder-text" data-testid="intro">以下是不同部落的說法，提供參考。</p>
       <button v-if="backStep" type="button" aria-label="返回" :class="backButton" @click="step = backStep"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
       <ul class="mt-2 space-y-3">
         <li
@@ -78,10 +78,10 @@
             <li
               v-for="bar in categoryBars(item)"
               :key="bar.value"
-              :class="['grid grid-cols-[4.5rem_1fr_1.5rem] items-center gap-2 text-elder-aux', isMyCategory(item, bar.value) ? 'font-bold text-amber-700' : 'text-elder-text']"
+              :class="['grid grid-cols-[7rem_1fr_1.5rem] items-center gap-2 text-elder-aux', isMyCategory(item, bar.value) ? 'font-bold text-amber-700' : 'text-elder-text']"
               :data-mine="isMyCategory(item, bar.value) ? 'true' : undefined"
             >
-              <span>{{ bar.value }}<template v-if="isMyCategory(item, bar.value)"> ✔</template></span>
+              <span class="break-words">{{ bar.value }}<template v-if="isMyCategory(item, bar.value)"> ✔</template></span>
               <span class="block h-3 rounded-sm bg-rule" aria-hidden="true">
                 <span :class="['block h-3 rounded-sm', isMyCategory(item, bar.value) ? 'bg-amber-600' : 'bg-brand']" :style="{ width: bar.width }" data-testid="bar-fill"></span>
               </span>

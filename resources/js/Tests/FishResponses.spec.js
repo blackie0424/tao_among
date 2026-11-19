@@ -25,7 +25,7 @@ import FishResponses from '@/Components/FishResponses/FishResponses.vue'
 const ASTRAL = '\u{20BB7}' // 一個 Unicode 字元，UTF-16 佔 2 個單位
 const options = {
   tribes: ['ivalino', 'yayo'],
-  food_categories: ['oyod', 'rahet', '不分類', '不食用'],
+  food_categories: ['oyod', 'rahet', '不分類', '不食用', 'kakanen no rarakeh'],
   name_options: ['mamalan'],
   name_max_length: 60,
 }
@@ -53,6 +53,15 @@ describe('FishResponses 問答順序', () => {
     expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('你們也叫它 mamalan 嗎？')
     expect(wrapper.text()).not.toContain('還沒有人')
+  })
+
+  it('問題的文字：選部落問「你要提供哪個部落的說法？」、叫法問「你們會怎麼稱呼呢？」', async () => {
+    const wrapper = mountFlow()
+    await no(wrapper)
+    expect(wrapper.text()).toContain('你們會怎麼稱呼呢？')
+    await type(wrapper, 'dalakan')
+    await click(wrapper, 'OK')
+    expect(wrapper.text()).toContain('你要提供哪個部落的說法？')
   })
 
   it('✔ → 選部落，才把目前的魚名存成這個部落的叫法，接著問分類', async () => {
@@ -95,7 +104,7 @@ describe('FishResponses 問答順序', () => {
   it('魚名是「我不知道」時（沒有名字選項），第一題直接問這條魚叫什麼', async () => {
     const wrapper = mountFlow({ options: { ...options, name_options: [] } })
     expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('這條魚，你們叫什麼？')
+    expect(wrapper.text()).toContain('這條魚，你們會怎麼稱呼呢？')
     await type(wrapper, 'dalakan')
     await click(wrapper, 'OK')
     await click(wrapper, 'yayo')
@@ -183,7 +192,7 @@ describe('FishResponses 答完直接看結果，自己的選擇特別標出', ()
   it('答過的人進來直接看大家怎麼說，自己的部落、叫法、分類都有標記', () => {
     const wrapper = mountFlow({ summary: responded, mine, responders: 3 })
     expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="legend"]').text()).toBe('✔ 是你選的')
+    expect(wrapper.find('[data-testid="intro"]').text()).toBe('以下是不同部落的說法，提供參考。')
     expect(wrapper.text()).not.toContain('謝謝')
     const [yayo, iratay] = wrapper.findAll('[data-testid="response-tribe"]')
     expect(yayo.attributes('data-mine')).toBe('true')
@@ -211,7 +220,7 @@ describe('FishResponses 答完直接看結果，自己的選擇特別標出', ()
     await click(wrapper, 'ivalino')
     await click(wrapper, 'oyod')
     expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="legend"]').text()).toBe('✔ 是你選的')
+    expect(wrapper.find('[data-testid="intro"]').text()).toBe('以下是不同部落的說法，提供參考。')
     expect(wrapper.text()).not.toContain('謝謝')
     expect(wrapper.findAll('button').some((b) => b.text().includes('再說一個部落'))).toBe(true)
   })
@@ -251,6 +260,25 @@ describe('FishResponses 自己的叫法標記與後端分組一致', () => {
   it('非英文字母不折大小寫：希臘文 Α 與 α 是不同組', () => {
     const wrapper = mountFlow({ summary: summaryWith(['\u0391', '\u03B1']), mine: mineNamed('\u03B1') })
     expect(marked(wrapper)).toEqual(['\u03B1'])
+  })
+})
+
+describe('FishResponses 分類選項', () => {
+  it('分類步驟列出 oyod、rahet、不分類、不食用與 kakanen no rarakeh，選了就送出', async () => {
+    const wrapper = mountFlow()
+    await yes(wrapper)
+    await click(wrapper, 'yayo')
+    const labels = wrapper.findAll('[data-testid="step-category"] button').map((b) => b.text())
+    expect(labels).toEqual(expect.arrayContaining(['oyod', 'rahet', '不分類', '不食用', 'kakanen no rarakeh']))
+    await click(wrapper, 'kakanen no rarakeh')
+    expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'mamalan', food_category: 'kakanen no rarakeh' }, expect.anything())
+  })
+
+  it('長條圖也會畫出 kakanen no rarakeh', async () => {
+    const summary = [{ tribe: 'yayo', has_responses: true, names: [{ name: 'a', count: 1 }], has_variants: false, categories: [{ value: 'kakanen no rarakeh', count: 2 }] }]
+    const wrapper = mountFlow({ summary })
+    await click(wrapper, '看大家怎麼說')
+    expect(wrapper.find('[data-testid="tribe-categories"]').text()).toContain('kakanen no rarakeh')
   })
 })
 

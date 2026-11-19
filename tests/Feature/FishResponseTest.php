@@ -133,6 +133,19 @@ it('counts Unicode characters after trimming, including characters outside the B
         ->and(FishTribeResponse::where('tribe', 'iratay')->value('name'))->toBe(str_repeat('魚', 60));
 });
 
+it('accepts every response food category, including kakanen no rarakeh, and counts it', function () {
+    $fish = Fish::factory()->create();
+    $users = User::factory()->count(5)->create(['role' => 'viewer']);
+    foreach (['oyod', 'rahet', '不分類', '不食用', 'kakanen no rarakeh'] as $i => $category) {
+        postResponse($users[$i], $fish, ['tribe' => 'yayo', 'food_category' => $category])->assertSessionHasNoErrors();
+    }
+
+    $categories = collect(summaryFor(responsesProps($users[0], $fish), 'yayo')['categories'])->pluck('count', 'value');
+
+    expect(FishTribeResponse::count())->toBe(5)
+        ->and($categories['kakanen no rarakeh'])->toBe(1);
+});
+
 it('rejects an unknown tribe and an unsupported food category', function (array $data, string $field) {
     $viewer = User::factory()->create(['role' => 'viewer']);
     $fish = Fish::factory()->create();
@@ -372,7 +385,7 @@ it('counts each food category separately and keeps "不分類" apart from unfill
 
     $categories = collect(summaryFor(responsesProps($u1, $fish), 'yayo')['categories'])->pluck('count', 'value');
 
-    expect($categories->all())->toBe(['oyod' => 1, 'rahet' => 0, '不分類' => 1, '不食用' => 0]);
+    expect($categories->all())->toBe(['oyod' => 1, 'rahet' => 0, '不分類' => 1, '不食用' => 0, 'kakanen no rarakeh' => 0]);
 });
 
 it('lists tribes in the configured order', function () {
@@ -563,7 +576,7 @@ it('builds form options from config and the fish\'s current name', function () {
     $form = responsesProps($user, $fish)['form'];
 
     expect($form['tribes'])->toBe(config('fish_options.tribes'))
-        ->and($form['food_categories'])->toBe(['oyod', 'rahet', '不分類', '不食用'])
+        ->and($form['food_categories'])->toBe(['oyod', 'rahet', '不分類', '不食用', 'kakanen no rarakeh'])
         ->and($form['name_options'])->toBe(['目前名稱'])
         ->and($form['name_max_length'])->toBe(60);
 });

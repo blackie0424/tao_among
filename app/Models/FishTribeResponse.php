@@ -16,9 +16,6 @@ class FishTribeResponse extends Model
 
     private const DEADLOCK_RETRY_ATTEMPTS = 3;
 
-    /** 飲食分類選項中不開放給回答者選的值（佔位用） */
-    private const UNSELECTABLE_FOOD_CATEGORIES = ['?', '尚未紀錄'];
-
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     private const UNNAMED_FISH_NAME = '我不知道';
 
@@ -84,7 +81,7 @@ class FishTribeResponse extends Model
     /** @return list<string> */
     public static function selectableFoodCategories(): array
     {
-        return array_values(array_diff(config('fish_options.food_categories'), self::UNSELECTABLE_FOOD_CATEGORIES));
+        return config('fish_options.response_food_categories');
     }
 
     /** @return array{tribes: list<string>, food_categories: list<string>, name_options: list<string>, name_max_length: int} */
