@@ -11,6 +11,7 @@
  * @param {import('vue').Ref} currentFilters 篩選條件 ref（來自 Fishs.vue）
  * @param {import('vue').Ref} nameQuery      名稱關鍵字 ref（來自 Fishs.vue）
  * @param {() => Object} getPropsFilters     取得目前 URL 篩選條件的 getter function
+ * @param {() => string} [getView]           取得目前看法；不是 'all' 時不存也不還原快取
  */
 
 import { nextTick } from 'vue'
@@ -29,6 +30,7 @@ const STORAGE_KEY = 'fishs_list_state'
 const CACHE_TTL = 30 * 60 * 1000 // 30 分鐘
 const SCROLL_RESTORE_DELAY_MS = 50
 const GUEST_IDENTITY = 'guest'
+const ALL_VIEW = 'all'
 // 還原時要與目前 URL 比對的篩選欄位（name 另以 nameQuery 比對）
 const CACHE_FILTER_KEYS = [
   'tribe',
@@ -41,7 +43,14 @@ const CACHE_FILTER_KEYS = [
 /** 身分標記：未登入為 guest，登入者為「使用者 id:角色」 */
 const identityOf = (user) => (user ? `${user.id}:${user.role}` : GUEST_IDENTITY)
 
-export function useFishListCache(items, pageInfo, currentFilters, nameQuery, getPropsFilters) {
+export function useFishListCache(
+  items,
+  pageInfo,
+  currentFilters,
+  nameQuery,
+  getPropsFilters,
+  getView = () => ALL_VIEW
+) {
   const page = usePage()
 
   // 記下「這份清單建立時」的身分：返回上一頁時 Inertia 會先換成新頁面的 props，舊頁面才卸載並儲存，
@@ -89,6 +98,11 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
 
   /** 將目前狀態序列化至 sessionStorage */
   const saveStateToStorage = () => {
+    // 看法不是全部：不留快取，下次進來重取第一頁
+    if (getView() !== ALL_VIEW) {
+      clearStateStorage()
+      return
+    }
     try {
       const state = {
         items: items.value,
@@ -189,6 +203,7 @@ export function useFishListCache(items, pageInfo, currentFilters, nameQuery, get
    * @returns {Promise<boolean>} 是否成功還原
    */
   const restoreStateFromStorage = async () => {
+    if (getView() !== ALL_VIEW) return false
     try {
       const state = loadCachedState()
       if (!state) return false
