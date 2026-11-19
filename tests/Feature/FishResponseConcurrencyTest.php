@@ -15,6 +15,10 @@ const CONCURRENT_ROUNDS = 5;
 const WORKER_START_DELAY_SECONDS = 2.0;
 
 afterEach(function () {
+    if (DB::getDriverName() !== 'mysql') {
+        return;
+    }
+
     // 本測試的資料已提交（不在交易內），清掉以免影響其他測試
     DB::table('fish_tribe_responses')->delete();
     DB::table('fish')->delete();

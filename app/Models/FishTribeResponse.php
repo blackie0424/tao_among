@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -14,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 class FishTribeResponse extends Model
 {
     public const NAME_MAX_LENGTH = 60;
+
+    private const DEADLOCK_RETRY_ATTEMPTS = 3;
 
     /** 飲食分類選項中不開放給回答者選的值（佔位用） */
     private const UNSELECTABLE_FOOD_CATEGORIES = ['?', '尚未紀錄'];
@@ -42,28 +43,30 @@ class FishTribeResponse extends Model
     /**
      * 送出（或修改）使用者對這條魚、這個部落的說法；同一人同魚同部落只會有一筆，後到者的值生效。
      *
-     * 叫法的送出時間與寫入在同一個交易內、鎖住該列後判斷，兩個請求交錯時也不會用過期資料。
+     * 先直接新增（INSERT IGNORE，自動提交、不持有鎖）；已存在才在交易內鎖住該列再判斷與更新。
+     * 不先對「還不存在的鍵」做 SELECT ... FOR UPDATE，否則 InnoDB 下兩個請求會各自持有間隙鎖再同時新增而死鎖。
      * 叫法只是大小寫或前後空白不同（同一種寫法）時，保留原本的寫法與送出時間；
      * 換成不同寫法才記為重新送出。
      */
     public static function submit(array $keys, ?string $name, ?string $foodCategory): void
     {
+        $inserted = self::insertOrIgnore([[
+            ...$keys,
+            'name' => $name,
+            'food_category' => $foodCategory,
+            'name_submitted_at' => $name === null ? null : self::submissionTime(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]]);
+        if ($inserted === 1) {
+            return;
+        }
+
+        // 偶發的死鎖由 Laravel 重試
         DB::transaction(function () use ($keys, $name, $foodCategory) {
-            $row = self::where($keys)->lockForUpdate()->first();
-
-            if ($row === null) {
-                try {
-                    self::create([...$keys, 'name' => $name, 'food_category' => $foodCategory, 'name_submitted_at' => $name === null ? null : self::submissionTime()]);
-
-                    return;
-                } catch (UniqueConstraintViolationException) {
-                    // 另一個請求剛好先建立了同一筆：改走更新
-                    $row = self::where($keys)->lockForUpdate()->firstOrFail();
-                }
-            }
-
+            $row = self::where($keys)->lockForUpdate()->firstOrFail();
             $row->fill(['food_category' => $foodCategory, ...self::nameAttributes($row, $name)])->save();
-        });
+        }, attempts: self::DEADLOCK_RETRY_ATTEMPTS);
     }
 
     private static function nameAttributes(self $row, ?string $name): array
