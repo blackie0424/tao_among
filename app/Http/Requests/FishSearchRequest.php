@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 /**
@@ -60,28 +60,28 @@ class FishSearchRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         // Trim 文字參數，空字串視為 null（FR-004）
-        $textFields = ['name','tribe','capture_location','capture_method','processing_method','food_category'];
+        $textFields = ['name', 'tribe', 'capture_location', 'capture_method', 'processing_method', 'food_category'];
         $data = $this->all();
         if ($this->isPublicView()) {
             $data = array_diff_key($data, array_flip(self::PUBLIC_BLOCKED_FILTERS));
         }
         foreach ($textFields as $f) {
             if (array_key_exists($f, $data)) {
-                $v = trim((string)$data[$f]);
+                $v = trim((string) $data[$f]);
                 // 尚未紀錄 是特殊篩選值，保留不轉 null；空字串轉 null
                 $data[$f] = ($v === '') ? null : $v;
             }
         }
 
         // perPage 正規化（FR-007/FR-013）：非正整數或超界 → default
-        $default = (int)config('fish_search.per_page_default');
-        $max = (int)config('fish_search.per_page_max');
+        $default = (int) config('fish_search.per_page_default');
+        $max = (int) config('fish_search.per_page_max');
         $raw = $this->input('perPage');
         if ($raw === null) {
             $data['perPage'] = $default;
         } else {
             $parsed = filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-            $data['perPage'] = ($parsed === false || $parsed > $max) ? $default : (int)$parsed;
+            $data['perPage'] = ($parsed === false || $parsed > $max) ? $default : (int) $parsed;
         }
 
         $this->replace($data);
@@ -96,7 +96,7 @@ class FishSearchRequest extends FormRequest
     public function cleaned(): array
     {
         $raw = $this->input('without_audio');
-        $withoutAudio = (!empty($raw) && $raw !== '0' && $raw !== 'false') ? true : null;
+        $withoutAudio = (! empty($raw) && $raw !== '0' && $raw !== 'false') ? true : null;
 
         return [
             'name' => $this->input('name'),
@@ -106,7 +106,7 @@ class FishSearchRequest extends FormRequest
             'processing_method' => $this->input('processing_method'),
             'food_category' => $this->input('food_category'),
             'without_audio' => $withoutAudio,
-            'perPage' => (int)$this->input('perPage'),
+            'perPage' => (int) $this->input('perPage'),
             'last_id' => $this->input('last_id'),
         ];
     }
