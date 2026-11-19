@@ -304,6 +304,19 @@ class FishSearchService implements FishSearchServiceInterface
             // FR-003 名稱模糊（大小寫不敏感）— 使用 LOWER + LIKE 以支援 SQLite/PG
             $query->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($filters['name']).'%']);
         }
+        $this->applyListTribalFilters($query, $filters);
+        $this->applyListCaptureFilters($query, $filters);
+        // 無音檔篩選：全域顯示完全沒有 FishAudio 紀錄的魚類
+        if (! empty($filters['without_audio'])) {
+            $query->doesntHave('audios');
+        }
+
+        return $this->pageByIdCursor($query, $perPage, $lastId);
+    }
+
+    /** 部落分類篩選（FR-003）：tribe、food_category、processing_method */
+    private function applyListTribalFilters(Builder $query, array $filters): void
+    {
         if (! empty($filters['tribe']) || ! empty($filters['food_category']) || ! empty($filters['processing_method'])) {
             $tribe = $filters['tribe'] ?? null;
             $food = $filters['food_category'] ?? null;
@@ -335,6 +348,11 @@ class FishSearchService implements FishSearchServiceInterface
                 });
             }
         }
+    }
+
+    /** 捕獲紀錄篩選（FR-003）：capture_location、capture_method（包含比對） */
+    private function applyListCaptureFilters(Builder $query, array $filters): void
+    {
         if (! empty($filters['capture_location']) || ! empty($filters['capture_method'])) {
             $loc = $filters['capture_location'] ?? null;
             $met = $filters['capture_method'] ?? null;
@@ -349,12 +367,6 @@ class FishSearchService implements FishSearchServiceInterface
                 }
             });
         }
-        // 無音檔篩選：全域顯示完全沒有 FishAudio 紀錄的魚類
-        if (! empty($filters['without_audio'])) {
-            $query->doesntHave('audios');
-        }
-
-        return $this->pageByIdCursor($query, $perPage, $lastId);
     }
 
     // ── 清單看法（晚上、白天、名字一樣、字母順序）──────────────────

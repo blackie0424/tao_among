@@ -89,7 +89,10 @@ it('訪客與 guest 沒有選項，view 參數被忽略', function (?string $sta
     $plain = viewProps($this->get('/'));
     $withView = viewProps($this->get('/?view=night'));
 
+    $withCursor = viewProps($this->get('/?view=alpha&last_name=a'));
+
     expect($withView['viewOptions'] ?? null)->toBeNull();
+    expect(viewNames($withCursor))->toBe(viewNames($plain));
     expect(viewNames($withView))->toBe(viewNames($plain));
     expect(count($withView['items']))->toBe(2);
 })->with([null, 'lineGuest']);
@@ -113,48 +116,66 @@ it('晚上只回記錄為 mamacik 的魚，白天只回 mamasil，兩種都有�
     expect(count($night['items']))->toBe(viewOptionCounts($night)['night']);
 });
 
-it('比對是精確比對：去空白、不分大小寫，只是包含關鍵字的文字不算', function () {
+dataset('夜與日', [
+    '晚上' => ['night', 'mamacik'],
+    '白天' => ['day', 'mamasil'],
+]);
+
+it('比對是精確比對：去空白、不分大小寫，只是包含關鍵字的文字不算', function (string $view, string $method) {
     $this->actingAs(User::factory()->lineViewer()->create());
-    viewFish('exact-trimmed', [' MAMACIK ']);
-    viewFish('contains', ['mamacik 夜間釣魚']);
-    viewFish('prefixed', ['xmamacik']);
+    viewFish('exact-trimmed', ['  '.strtoupper($method).' ']);
+    viewFish('contains', [$method.' 說明文字']);
+    viewFish('prefixed', ['x'.$method]);
     viewFish('typo', ['mamasi']);
+    viewFish('empty-value', ['']);
 
-    $night = viewProps($this->get('/?view=night'));
+    $props = viewProps($this->get("/?view=$view"));
 
-    expect(viewNames($night))->toBe(['exact-trimmed']);
-});
+    expect(viewNames($props))->toBe(['exact-trimmed']);
+    expect(viewOptionCounts(viewProps($this->get('/')))[$view])->toBe(1);
+})->with('夜與日');
 
-it('同一條魚有多筆同方式紀錄只算一條，已刪除的紀錄與魚不計', function () {
+it('同一條魚有多筆同方式紀錄只算一條，已刪除的紀錄與魚不計', function (string $view, string $method) {
     $this->actingAs(User::factory()->lineViewer()->create());
-    viewFish('many-records', ['mamacik', 'mamacik', 'mamacik']);
-    $deletedRecord = viewFish('deleted-record', ['mamacik']);
+    viewFish('many-records', [$method, $method, $method]);
+    $deletedRecord = viewFish('deleted-record', [$method]);
     $deletedRecord->captureRecords()->delete();
-    $deletedFish = viewFish('deleted-fish', ['mamacik']);
+    $deletedFish = viewFish('deleted-fish', [$method]);
     $deletedFish->delete();
 
-    $props = viewProps($this->get('/?view=night'));
+    $props = viewProps($this->get("/?view=$view"));
 
     expect(viewNames($props))->toBe(['many-records']);
-    expect(viewOptionCounts(viewProps($this->get('/')))['night'])->toBe(1);
-});
+    expect(viewOptionCounts(viewProps($this->get('/')))[$view])->toBe(1);
+})->with('夜與日');
 
-it('晚上看法依編號新到舊分頁，所有頁合計等於選項數字', function () {
+it('只有其他方式或兩種都有的魚：兩種都有的兩邊出現，只有其他方式的兩邊都不出現', function (string $view, string $method) {
+    $this->actingAs(User::factory()->lineViewer()->create());
+    viewFish('both', ['mamacik', 'mamasil']);
+    viewFish('net-only', ['網魚', '船釣（拼板舟）']);
+    viewFish('no-record');
+
+    expect(viewNames(viewProps($this->get("/?view=$view"))))->toBe(['both']);
+})->with('夜與日');
+
+it('依編號新到舊分頁，所有頁合計等於選項數字', function (string $view, string $method) {
     $this->actingAs(User::factory()->lineViewer()->create());
     foreach (range(1, 5) as $i) {
-        viewFish("night-$i", ['mamacik']);
+        viewFish("$view-$i", [$method]);
     }
     viewFish('other', ['網魚']);
 
-    $page1 = viewProps($this->get('/?view=night&perPage=2'));
-    $page2 = viewProps($this->get('/?view=night&perPage=2&last_id='.$page1['pageInfo']['nextCursor']));
-    $page3 = viewProps($this->get('/?view=night&perPage=2&last_id='.$page2['pageInfo']['nextCursor']));
+    $page1 = viewProps($this->get("/?view=$view&perPage=2"));
+    $page2 = viewProps($this->get("/?view=$view&perPage=2&last_id=".$page1['pageInfo']['nextCursor']));
+    $page3 = viewProps($this->get("/?view=$view&perPage=2&last_id=".$page2['pageInfo']['nextCursor']));
 
-    expect(viewNames($page1))->toBe(['night-5', 'night-4']);
-    expect(viewNames($page2))->toBe(['night-3', 'night-2']);
-    expect(viewNames($page3))->toBe(['night-1']);
+    expect(viewNames($page1))->toBe(["$view-5", "$view-4"]);
+    expect(viewNames($page2))->toBe(["$view-3", "$view-2"]);
+    expect(viewNames($page3))->toBe(["$view-1"]);
     expect($page3['pageInfo']['hasMore'])->toBeFalse();
-});
+    expect(count($page1['items']) + count($page2['items']) + count($page3['items']))
+        ->toBe(viewOptionCounts(viewProps($this->get('/')))[$view]);
+})->with('夜與日');
 
 // ── 驗收 3：名字一樣 ──────────────────────────────────────────
 
@@ -249,22 +270,31 @@ it('字母段標題的魚數在第一頁一次給全部，往下載入不帶、�
 
 it('字母順序跨頁不重複不漏：同名與大小寫不同、段交界、空名都跨頁', function () {
     $this->actingAs(User::factory()->lineViewer()->create());
-    foreach (['bee', 'Bee', 'BEE', 'ant', 'zoo', 'Zoo', '', '', '3d', 'a'] as $name) {
-        viewFish($name);
-    }
-    $ids = array_column(viewProps($this->get('/?view=alpha&perPage=200'))['items'], 'id');
+    $bee = viewFish('bee');
+    $beeCap = viewFish('Bee');
+    $beeUpper = viewFish('BEE');
+    $ant = viewFish('ant');
+    $zoo = viewFish('zoo');
+    $zooCap = viewFish('Zoo');
+    $empty1 = viewFish('');
+    $empty2 = viewFish('');
+    $digit = viewFish('3d');
+    $a = viewFish('a');
 
-    $seen = [];
+    $expectedPages = [
+        [$a->id, $ant->id, $bee->id],
+        [$beeCap->id, $beeUpper->id, $zoo->id],
+        [$zooCap->id, $empty1->id, $empty2->id],
+        [$digit->id],
+    ];
+
     $url = '/?view=alpha&perPage=3';
-    $guard = 0;
-    do {
+    foreach ($expectedPages as $index => $expectedIds) {
         $props = viewProps($this->get($url));
-        array_push($seen, ...array_column($props['items'], 'id'));
+        expect(array_column($props['items'], 'id'))->toBe($expectedIds);
+        expect($props['pageInfo']['hasMore'])->toBe($index < count($expectedPages) - 1);
         $url = '/?view=alpha&perPage=3&last_id='.$props['pageInfo']['nextCursor'].'&last_name='.urlencode($props['pageInfo']['nextName'] ?? '');
-    } while ($props['pageInfo']['hasMore'] && ++$guard < 10);
-
-    expect(count($ids))->toBe(10);
-    expect($seen)->toBe($ids);
+    }
 });
 
 it('游標只給一半或格式不合法時回無效游標錯誤', function (string $query) {
@@ -289,6 +319,18 @@ it('last_name 為空字串是合法游標（空名魚）', function () {
 
     expect(array_column($props['items'], 'id'))->toBe([$second->id]);
 });
+
+it('view 帶陣列或其他型別也視為全部，不報錯', function (string $query) {
+    $this->actingAs(User::factory()->lineViewer()->create());
+    viewFish('a');
+    viewFish('b');
+
+    $response = $this->get('/?'.$query);
+
+    $response->assertStatus(200);
+    expect(viewProps($response)['view'])->toBe('all');
+    expect(count(viewProps($response)['items']))->toBe(2);
+})->with(['view[]=night', 'view[a]=night', 'view=']);
 
 it('無效的 view 值視為全部', function () {
     $this->actingAs(User::factory()->lineViewer()->create());

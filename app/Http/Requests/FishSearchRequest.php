@@ -51,7 +51,7 @@ class FishSearchRequest extends FormRequest
             'without_audio' => ['nullable', 'string'],
             'perPage' => ['nullable'],
             'last_id' => ['nullable', 'integer', 'min:1'],
-            'view' => ['nullable', 'string'],
+            'view' => ['nullable'], // 型別不限：無效的 view 由 normalizedView() 視為全部
             'last_name' => ['nullable', 'string'],
         ];
     }
