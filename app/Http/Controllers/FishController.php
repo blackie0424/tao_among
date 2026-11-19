@@ -118,7 +118,8 @@ class FishController extends Controller
             ),
             'pageInfo' => $paginated['pageInfo'],
             'view' => $filters['view'],
-            'viewOptions' => $this->viewOptionsOrNull(),
+            // 選項只在第一頁計算；往下載入（帶游標）不重算
+            'viewOptions' => isset($filters['last_id']) ? null : $this->viewOptionsOrNull(),
             'viewGroupCounts' => $paginated['groupCounts'] ?? null,
         ]);
     }
