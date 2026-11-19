@@ -36,7 +36,18 @@
                 <button @click="confirmDelete" class="inline-flex items-center rounded-lg bg-red-600 px-4 min-h-touch-secondary text-elder-body text-white hover:bg-red-700">刪除魚類</button>
               </div>
             </div>
-            <FishGridLayout />
+            <FishGridLayout>
+              <!-- 大家怎麼說（已開通的使用者；後端未提供資料時不顯示） -->
+              <template v-if="responses" #bottom>
+                <FishResponses
+                  :fishId="fish.id"
+                  :options="responses.form"
+                  :summary="responses.summary"
+                  :mine="responses.mine"
+                  :progress="responses.progress"
+                />
+              </template>
+            </FishGridLayout>
           </section>
 
           <!-- 地方知識 -->
@@ -51,17 +62,6 @@
               :classifications="tribalClassifications"
               :tribes="tribes"
               :fishId="fish.id"
-            />
-          </section>
-
-          <!-- 大家怎麼說（已開通的使用者；後端未提供資料時不顯示） -->
-          <section v-if="responses" v-show="activeTab === 'responses'" data-testid="responses-tab">
-            <FishResponses
-              :fishId="fish.id"
-              :options="responses.form"
-              :summary="responses.summary"
-              :mine="responses.mine"
-              :progress="responses.progress"
             />
           </section>
 
@@ -171,7 +171,6 @@ const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
 const ALL_TABS = [
   { key: 'basic', label: '基本' },
   { key: 'local', label: '地方知識' },
-  { key: 'responses', label: '大家怎麼說', responsesOnly: true },
   { key: 'advanced', label: '進階知識', editorOnly: true },
   { key: 'reference', label: '文獻知識', editorOnly: true },
   { key: 'capture', label: '捕獲紀錄' },
@@ -180,7 +179,7 @@ const ALL_TABS = [
 
 const visibleTabs = computed(() =>
   ALL_TABS.filter(
-    (t) => (!t.editorOnly || isEditor.value) && (!t.audioOnly || hasAudioAccess.value) && (!t.responsesOnly || props.responses)
+    (t) => (!t.editorOnly || isEditor.value) && (!t.audioOnly || hasAudioAccess.value)
   )
 )
 
