@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('tribe', 32);
             $table->string('name', 60)->nullable();
             $table->string('food_category', 32)->nullable();
-            // 目前這個叫法被送出的時間；改成不同叫法才會更新，用來判斷「最早送出」
-            $table->timestamp('name_submitted_at')->nullable();
+            // 目前這個叫法被送出的時間（微秒）；改成不同寫法才會更新，用來判斷「最早送出」
+            $table->timestamp('name_submitted_at', 6)->nullable();
             $table->timestamps();
 
             $table->unique(['user_id', 'fish_id', 'tribe'], 'fish_tribe_responses_user_fish_tribe_unique');

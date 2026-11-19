@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * 使用者對某條魚「這是哪個部落的說法」的回答。
@@ -21,17 +23,6 @@ class FishTribeResponse extends Model
 
     protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at'];
 
-    protected $casts = ['name_submitted_at' => 'datetime'];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $response) {
-            if ($response->name !== null && $response->name_submitted_at === null) {
-                $response->name_submitted_at = now();
-            }
-        });
-    }
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -40,6 +31,51 @@ class FishTribeResponse extends Model
     public function fish(): BelongsTo
     {
         return $this->belongsTo(Fish::class);
+    }
+
+    /** 微秒精度的時間字串（固定寬度，可直接字串排序），用來區分同一秒內的先後。 */
+    public static function submissionTime(): string
+    {
+        return now()->format('Y-m-d H:i:s.u');
+    }
+
+    /**
+     * 送出（或修改）使用者對這條魚、這個部落的說法；同一人同魚同部落只會有一筆，後到者的值生效。
+     *
+     * 叫法的送出時間與寫入在同一個交易內、鎖住該列後判斷，兩個請求交錯時也不會用過期資料。
+     * 叫法只是大小寫或前後空白不同（同一種寫法）時，保留原本的寫法與送出時間；
+     * 換成不同寫法才記為重新送出。
+     */
+    public static function submit(array $keys, ?string $name, ?string $foodCategory): void
+    {
+        DB::transaction(function () use ($keys, $name, $foodCategory) {
+            $row = self::where($keys)->lockForUpdate()->first();
+
+            if ($row === null) {
+                try {
+                    self::create([...$keys, 'name' => $name, 'food_category' => $foodCategory, 'name_submitted_at' => $name === null ? null : self::submissionTime()]);
+
+                    return;
+                } catch (UniqueConstraintViolationException) {
+                    // 另一個請求剛好先建立了同一筆：改走更新
+                    $row = self::where($keys)->lockForUpdate()->firstOrFail();
+                }
+            }
+
+            $row->fill(['food_category' => $foodCategory, ...self::nameAttributes($row, $name)])->save();
+        });
+    }
+
+    private static function nameAttributes(self $row, ?string $name): array
+    {
+        if ($name === null) {
+            return ['name' => null, 'name_submitted_at' => null];
+        }
+        if ($row->name !== null && self::sameSpelling($row->name, $name)) {
+            return [];
+        }
+
+        return ['name' => $name, 'name_submitted_at' => self::submissionTime()];
     }
 
     /** @return list<string> */

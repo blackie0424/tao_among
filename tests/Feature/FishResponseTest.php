@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 
 uses(RefreshDatabase::class);
 
@@ -43,7 +45,13 @@ function addResponse(User $user, Fish $fish, string $tribe, ?string $name, ?stri
         'tribe' => $tribe,
         'name' => $name,
         'food_category' => $category,
+        'name_submitted_at' => $name === null ? null : FishTribeResponse::submissionTime(),
     ]);
+}
+
+function at(string $time): void
+{
+    Carbon::setTestNow(Carbon::parse($time));
 }
 
 // ─── AC1 回答資料與驗證 ───────────────────────────────────
@@ -433,8 +441,90 @@ it('keeps the order when the same spelling is submitted again with other changes
     Carbon::setTestNow('2026-11-19 10:05:00');
     postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'b', 'food_category' => 'oyod']);
 
-    // 同一種寫法重送不重排；顯示的是目前存的拼法 b
-    expect(array_column(summaryFor(responsesProps($u1, $fish), 'yayo')['names'], 'name'))->toBe(['b', 'C']);
+    // 同一種寫法重送：不重排，也保留最早送出的原始寫法 B
+    expect(array_column(summaryFor(responsesProps($u1, $fish), 'yayo')['names'], 'name'))->toBe(['B', 'C']);
+});
+
+it('tells apart submissions made within the same second', function () {
+    $fish = Fish::factory()->create();
+    [$u1, $u2] = User::factory()->count(2)->create(['role' => 'viewer']);
+
+    at('2026-11-19 10:00:00.100000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'B']);
+    at('2026-11-19 10:00:00.200000');
+    postResponse($u2, $fish, ['tribe' => 'yayo', 'name' => 'C']);
+    at('2026-11-19 10:00:00.300000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'D']);
+
+    expect(array_column(summaryFor(responsesProps($u1, $fish), 'yayo')['names'], 'name'))->toBe(['C', 'D']);
+});
+
+it('shows the earlier spelling when a same-second change joins an existing group', function () {
+    $fish = Fish::factory()->create();
+    [$u1, $u2] = User::factory()->count(2)->create(['role' => 'viewer']);
+
+    at('2026-11-19 10:00:00.100000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'X']);
+    at('2026-11-19 10:00:00.200000');
+    postResponse($u2, $fish, ['tribe' => 'yayo', 'name' => 'Dalakan']);
+    at('2026-11-19 10:00:00.300000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'DALAKAN']);
+
+    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2]]);
+});
+
+it('keeps the original spelling when someone later changes only the letter case', function () {
+    $fish = Fish::factory()->create();
+    [$u1, $u2] = User::factory()->count(2)->create(['role' => 'viewer']);
+
+    at('2026-11-19 10:00:00.100000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'Dalakan']);
+    at('2026-11-19 10:00:00.200000');
+    postResponse($u2, $fish, ['tribe' => 'yayo', 'name' => 'dalakan']);
+    at('2026-11-19 10:00:00.300000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'DALAKAN']);
+
+    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2]])
+        ->and(responsesProps($u1, $fish)['mine'][0]['name'])->toBe('Dalakan');
+});
+
+it('restamps the time when a name is changed away and back again', function () {
+    $fish = Fish::factory()->create();
+    $u1 = User::factory()->create(['role' => 'viewer']);
+
+    at('2026-11-19 10:00:00.100000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'X']);
+    at('2026-11-19 10:00:00.200000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'Y']);
+    at('2026-11-19 10:00:00.300000');
+    postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'X']);
+
+    $row = FishTribeResponse::sole();
+    expect($row->name)->toBe('X')
+        ->and($row->name_submitted_at)->toBe('2026-11-19 10:00:00.300000');
+});
+
+it('applies the later request when another request creates the same row first', function () {
+    $viewer = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    $competitorInserted = false;
+    FishTribeResponse::creating(function () use (&$competitorInserted, $viewer, $fish) {
+        if ($competitorInserted) {
+            return;
+        }
+        $competitorInserted = true;
+        DB::table('fish_tribe_responses')->insert([
+            'user_id' => $viewer->id, 'fish_id' => $fish->id, 'tribe' => 'yayo', 'name' => '搶先',
+            'food_category' => null, 'name_submitted_at' => '2026-11-19 10:00:00.000000',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    });
+
+    postResponse($viewer, $fish, ['tribe' => 'yayo', 'name' => '後到', 'food_category' => 'oyod'])->assertSessionHasNoErrors();
+    Event::forget('eloquent.creating: '.FishTribeResponse::class);
+
+    $row = FishTribeResponse::sole();
+    expect($row->name)->toBe('後到')->and($row->food_category)->toBe('oyod');
 });
 
 // ─── AC5 全站進度 ────────────────────────────────────────
