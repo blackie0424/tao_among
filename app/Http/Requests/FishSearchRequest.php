@@ -20,7 +20,12 @@ class FishSearchRequest extends FormRequest
         'processing_method',
         'food_category',
         'without_audio',
+        'view',
+        'last_name',
     ];
+
+    /** 游標以名字排序的看法 */
+    private const NAME_CURSOR_VIEWS = ['alpha', 'same_name'];
 
     public function authorize(): bool
     {
@@ -46,7 +51,29 @@ class FishSearchRequest extends FormRequest
             'without_audio' => ['nullable', 'string'],
             'perPage' => ['nullable'],
             'last_id' => ['nullable', 'integer', 'min:1'],
+            'view' => ['nullable', 'string'],
+            'last_name' => ['nullable', 'string'],
         ];
+    }
+
+    /** 依名字排序的看法，游標必須同時帶 last_id 與 last_name（last_name 可為空字串） */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $hasId = $this->input('last_id') !== null;
+            $hasName = array_key_exists('last_name', $this->all());
+            if (in_array($this->normalizedView(), self::NAME_CURSOR_VIEWS, true) && $hasId !== $hasName) {
+                $validator->errors()->add('last_id', 'INVALID_CURSOR');
+            }
+        });
+    }
+
+    /** 無效或沒帶的 view 視為全部 */
+    public function normalizedView(): string
+    {
+        $view = $this->input('view');
+
+        return is_string($view) && array_key_exists($view, config('fish_options.list_views')) ? $view : 'all';
     }
 
     public function messages(): array
@@ -108,6 +135,8 @@ class FishSearchRequest extends FormRequest
             'without_audio' => $withoutAudio,
             'perPage' => (int) $this->input('perPage'),
             'last_id' => $this->input('last_id'),
+            'last_name' => $this->input('last_name'),
+            'view' => $this->normalizedView(),
         ];
     }
 }

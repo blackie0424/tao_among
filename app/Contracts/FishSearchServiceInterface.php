@@ -16,5 +16,7 @@ interface FishSearchServiceInterface
 
     public function paginate(array $filters): array;
 
+    public function getViewOptions(): array;
+
     public function getLatestAt(): ?int;
 }

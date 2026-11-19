@@ -117,7 +117,22 @@ class FishController extends Controller
                 $request->user()
             ),
             'pageInfo' => $paginated['pageInfo'],
+            'view' => $filters['view'],
+            'viewOptions' => $this->viewOptionsOrNull(),
+            'viewGroupCounts' => $paginated['groupCounts'] ?? null,
         ]);
+    }
+
+    /** 選項計算失敗時記錄錯誤並降級（回 null，前端不顯示小視窗），不影響清單本身 */
+    private function viewOptionsOrNull(): ?array
+    {
+        try {
+            return $this->fishSearchService->getViewOptions();
+        } catch (\Throwable $e) {
+            Log::error('魚類清單看法選項計算失敗', ['exception' => $e]);
+
+            return null;
+        }
     }
 
     /**
