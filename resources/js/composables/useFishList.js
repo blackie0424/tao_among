@@ -78,6 +78,8 @@ export function useFishList(currentFilters, nameQuery, view = ref(ALL_VIEW)) {
     if (!replaceInFlight && (isLoading.value || showCursorError.value)) return
     isLoading.value = true
     const seq = ++requestSeq
+    // 回應（成功或錯誤）是否已處理；沒處理就結束的請求是網路中斷或非 Inertia 的伺服器錯誤
+    let settled = false
     const params = buildQueryParams(opts)
     const isPagination = Boolean(params.last_id)
     router.get('/', params, {
@@ -85,6 +87,7 @@ export function useFishList(currentFilters, nameQuery, view = ref(ALL_VIEW)) {
       preserveScroll: true,
       replace: isPagination, // 分頁請求不堆疊歷史紀錄，避免返回鍵陷阱
       onSuccess: (page) => {
+        settled = true
         // 已被較新的選擇取代，或回應屬於別的看法：丟棄，不混入舊結果
         if (seq !== requestSeq || (page.props.view ?? ALL_VIEW) !== (params.view ?? ALL_VIEW))
           return
@@ -101,8 +104,15 @@ export function useFishList(currentFilters, nameQuery, view = ref(ALL_VIEW)) {
         cleanPaginationFromUrl()
       },
       onError: () => {
+        settled = true
         if (seq !== requestSeq) return
         // 422 INVALID_CURSOR → 顯示 Banner
+        isLoading.value = false
+        showCursorError.value = true
+      },
+      // 不論結果都會呼叫：沒有成功也沒有 onError、也不是被新請求取代，就是網路中斷或伺服器錯誤
+      onFinish: (visit) => {
+        if (settled || seq !== requestSeq || visit?.cancelled || visit?.interrupted) return
         isLoading.value = false
         showCursorError.value = true
       },

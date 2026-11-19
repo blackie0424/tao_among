@@ -267,7 +267,7 @@ it('字母段標題的魚數在第一頁一次給全部，往下載入不帶、�
     ]);
     expect($page2['viewGroupCounts'] ?? null)->toBeNull();
     expect($page1['viewOptions'])->not->toBeNull();
-    expect($page2['viewOptions'])->toBeNull();
+    expect($page2)->not->toHaveKey('viewOptions');
 });
 
 it('字母順序跨頁不重複不漏：同名與大小寫不同、段交界、空名都跨頁', function () {

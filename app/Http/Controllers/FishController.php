@@ -118,9 +118,9 @@ class FishController extends Controller
             ),
             'pageInfo' => $paginated['pageInfo'],
             'view' => $filters['view'],
-            // 選項只在第一頁計算；往下載入（帶游標）不重算
-            'viewOptions' => isset($filters['last_id']) ? null : $this->viewOptionsOrNull(),
             'viewGroupCounts' => $paginated['groupCounts'] ?? null,
+            // 選項只在第一頁計算：往下載入（帶游標）不帶這個欄位；第一頁計算失敗則為 null
+            ...(isset($filters['last_id']) ? [] : ['viewOptions' => $this->viewOptionsOrNull()]),
         ]);
     }
 

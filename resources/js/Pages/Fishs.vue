@@ -173,7 +173,8 @@ const props = defineProps({
   searchStats: { type: Object, default: () => ({}) },
   // 清單看法：後端目前的看法與小視窗選項（訪客與計算失敗時沒有選項）
   view: { type: String, default: 'all' },
-  viewOptions: { type: Array, default: null },
+  // 沒有這個欄位＝往下載入的回應；null＝第一頁選項計算失敗；陣列＝這次回應的選項
+  viewOptions: { type: Array, default: undefined },
 })
 
 // ── 共享狀態（傳入各 composable）──────────────────────────────
@@ -248,7 +249,12 @@ const viewLabels = ref({})
 watch(
   () => props.viewOptions,
   (options) => {
-    if (!Array.isArray(options)) return
+    if (options === undefined) return
+    // 計算失敗：不留舊選項與舊數字
+    if (!Array.isArray(options)) {
+      viewOptions.value = null
+      return
+    }
     viewOptions.value = options
     options.forEach(({ key, label, hint }) => {
       viewLabels.value[key] = { label, hint }
@@ -385,6 +391,13 @@ const showViewFailed = computed(() => showCursorError.value)
 
 // ── 初始化 ─────────────────────────────────────────────────────
 const initList = async () => {
+  // 看法不是全部（瀏覽器返回會還原舊的頁面資料，或網址帶了 view）：props 可能過期，重取第一頁
+  if (currentView.value !== ALL_VIEW) {
+    doSearch()
+    initObserver()
+    return
+  }
+
   const restored = await restoreStateFromStorage()
   if (restored && items.value.length) {
     initObserver()

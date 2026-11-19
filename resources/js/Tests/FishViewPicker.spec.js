@@ -361,6 +361,85 @@ describe('清單頁看法：小視窗、橫條、右下角鈕', () => {
       expect(routerGet.mock.calls[1][1].view).toBe('night')
     })
 
+    it('先成功、切換看法後第一頁選項計算失敗：不顯示舊數字，右下角換看法鈕消失', async () => {
+      const wrapper = await showPage(VIEWER)
+      find('view-option-night').click()
+      await flushPromises()
+      // 真實的 Inertia 回應會同時更新頁面 props；第一頁選項計算失敗時 viewOptions 為 null
+      const failedProps = {
+        items: NIGHT_ITEMS,
+        pageInfo: PAGE_INFO,
+        view: 'night',
+        viewOptions: null,
+      }
+      respond(0, failedProps)
+      await wrapper.setProps(failedProps)
+      await flushPromises()
+
+      expect(find('view-bar').textContent).toContain('晚上釣魚會遇到的魚')
+      expect(find('view-bar').textContent).not.toContain('（12）')
+      expect(find('floating-view')).toBeNull()
+      expect(document.body.textContent).toContain('mamacik-fish')
+    })
+
+    it('往下載入的回應沒有選項欄位：保留原本的選項，不當作失敗', async () => {
+      const wrapper = await showPage(VIEWER)
+      find('view-option-night').click()
+      await flushPromises()
+      respond(0, { items: NIGHT_ITEMS, pageInfo: PAGE_INFO, view: 'night', viewOptions: OPTIONS })
+      await wrapper.setProps({ view: 'night', items: NIGHT_ITEMS, viewOptions: OPTIONS })
+      await flushPromises()
+
+      // 往下載入的回應：沒有 viewOptions 欄位（Inertia 以新的 props 取代，欄位消失）
+      await wrapper.setProps({ viewOptions: undefined })
+      await flushPromises()
+
+      expect(find('floating-view')).not.toBeNull()
+      expect(find('view-bar').textContent).toContain('（12）')
+    })
+
+    it('網路中斷或伺服器錯誤（沒有成功也沒有 onError）：解除載入、顯示錯誤與重試、看全部', async () => {
+      await showPage(VIEWER)
+      find('view-option-night').click()
+      await flushPromises()
+
+      routerGet.mock.calls[0][2].onFinish({ cancelled: false, interrupted: false })
+      await flushPromises()
+
+      expect(find('view-error').textContent).toContain('載入失敗')
+      expect(find('view-error-retry')).not.toBeNull()
+      expect(find('view-error-all')).not.toBeNull()
+    })
+
+    it('請求被新的選擇取代（interrupted）或已成功處理：onFinish 不算失敗', async () => {
+      await showPage(VIEWER)
+      find('view-option-night').click()
+      await flushPromises()
+      routerGet.mock.calls[0][2].onFinish({ cancelled: false, interrupted: true })
+      await flushPromises()
+      expect(find('view-error')).toBeNull()
+
+      respond(0, { items: NIGHT_ITEMS, pageInfo: PAGE_INFO, view: 'night', viewOptions: OPTIONS })
+      routerGet.mock.calls[0][2].onFinish({ cancelled: false, interrupted: false })
+      await flushPromises()
+      expect(find('view-error')).toBeNull()
+    })
+
+    it('從詳細頁返回、歷史還原的是舊看法資料：重取第一頁，換成新的資料', async () => {
+      await showPage(VIEWER, {
+        view: 'night',
+        items: [{ id: 99, name: 'stale-night-fish', image_url: 'x' }],
+      })
+
+      expect(routerGet).toHaveBeenCalledTimes(1)
+      expect(routerGet.mock.calls[0][1].view).toBe('night')
+      respond(0, { items: NIGHT_ITEMS, pageInfo: PAGE_INFO, view: 'night', viewOptions: OPTIONS })
+      await flushPromises()
+
+      expect(document.body.textContent).toContain('mamacik-fish')
+      expect(document.body.textContent).not.toContain('stale-night-fish')
+    })
+
     it('計算選項失敗（沒有選項）時清單照常顯示', async () => {
       await showPage(VIEWER, { viewOptions: null })
 
