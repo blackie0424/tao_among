@@ -54,18 +54,19 @@
     <div v-else data-testid="step-others">
       <p class="mb-2 text-elder-body text-elder-text" data-testid="intro">以下是不同部落的說法，提供參考。</p>
       <button v-if="backStep" type="button" aria-label="返回" :class="backButton" @click="step = backStep"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
-      <ul class="mt-2 space-y-3">
+      <ul class="mt-2 grid grid-cols-1 gap-x-5 md:grid-cols-3">
         <li
           v-for="item in respondedTribes"
           :key="item.tribe"
-          :class="['border bg-white p-3', mineOf(item) ? 'border-2 border-amber-600' : 'border-rule']"
+          :class="['min-w-0 border-b border-rule py-3', mineOf(item) && 'text-amber-700']"
           :data-mine="mineOf(item) ? 'true' : undefined"
           data-testid="response-tribe"
         >
           <span class="font-serif text-elder-body font-bold text-elder-text">{{ item.tribe }}</span>
           <span v-if="mineOf(item)" class="ml-2 text-elder-aux font-bold text-amber-700" aria-label="我選的">✔</span>
           <span v-if="item.has_variants" class="ml-2 text-elder-aux text-elder-subtext" aria-label="有不同說法">≠</span>
-          <p class="mt-1 text-elder-body text-elder-text" data-testid="tribe-names">
+          <p class="mt-1 break-words text-elder-body text-elder-text" data-testid="tribe-names">
+            <span class="mr-2 text-elder-subtext">叫法</span>
             <template v-if="item.names.length">
               <template v-for="(n, i) in item.names" :key="n.name">
                 <span v-if="i">、</span>
@@ -74,21 +75,16 @@
             </template>
             <template v-else>—</template>
           </p>
-          <ul v-if="categoryBars(item).length" class="mt-2 space-y-1" data-testid="tribe-categories">
-            <li
-              v-for="bar in categoryBars(item)"
-              :key="bar.value"
-              :class="['grid grid-cols-[7rem_1fr_1.5rem] items-center gap-2 text-elder-aux', isMyCategory(item, bar.value) ? 'font-bold text-amber-700' : 'text-elder-text']"
-              :data-mine="isMyCategory(item, bar.value) ? 'true' : undefined"
-            >
-              <span class="break-words">{{ bar.value }}<template v-if="isMyCategory(item, bar.value)"> ✔</template></span>
-              <span class="block h-3 rounded-sm bg-rule" aria-hidden="true">
-                <span :class="['block h-3 rounded-sm', isMyCategory(item, bar.value) ? 'bg-amber-600' : 'bg-brand']" :style="{ width: bar.width }" data-testid="bar-fill"></span>
-              </span>
-              <span class="text-right">{{ bar.count }}</span>
-            </li>
-          </ul>
-          <p v-else class="mt-2 text-elder-aux text-elder-subtext">還沒有人選分類</p>
+          <p class="mt-1 break-words text-elder-aux text-elder-text" data-testid="tribe-categories">
+            <span class="mr-2 text-elder-subtext">分類</span>
+            <template v-if="selectedCategories(item).length">
+              <template v-for="(category, i) in selectedCategories(item)" :key="category.value">
+                <span v-if="i">、</span>
+                <span :class="isMyCategory(item, category.value) && 'font-bold text-amber-700'" :data-mine="isMyCategory(item, category.value) ? 'true' : undefined">{{ category.value }}<template v-if="isMyCategory(item, category.value)"> ✔</template> {{ category.count }} 人</span>
+              </template>
+            </template>
+            <template v-else>—</template>
+          </p>
         </li>
       </ul>
       <button v-if="mine.length" type="button" :class="[bigButton, 'mt-4']" @click="startOver">再說一個部落</button>
@@ -247,10 +243,7 @@ function submit(name, foodCategory, onSuccess) {
     .post(`/fish/${props.fishId}/responses`, { preserveScroll: true, onSuccess })
 }
 
-// 分類長條圖：同一個部落內比較，最多人的選項填滿，其餘依比例；沒人選的選項不畫
-const categoryBars = (item) => {
-  const picked = item.categories.filter((c) => c.count > 0)
-  const max = Math.max(...picked.map((c) => c.count))
-  return picked.map((c) => ({ ...c, width: `${Math.round((c.count / max) * 100)}%` }))
-}
+// 分類與叫法分開顯示，避免暗示兩者一一對應。
+const selectedCategories = (item) => item.categories.filter((category) => category.count > 0)
+
 </script>

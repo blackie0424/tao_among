@@ -153,25 +153,24 @@ describe('FishResponses 回應人數與直接查看', () => {
     const wrapper = mountFlow({ summary: responded })
     await click(wrapper, '看大家怎麼說')
     const [yayo, iratay] = wrapper.findAll('[data-testid="response-tribe"]')
-    expect(yayo.find('[data-testid="tribe-names"]').text()).toBe('dalakan、B')
-    expect(iratay.find('[data-testid="tribe-names"]').text()).toBe('mamalan')
+    expect(yayo.find('[data-testid="tribe-names"]').text()).toBe('叫法dalakan、B')
+    expect(iratay.find('[data-testid="tribe-names"]').text()).toBe('叫法mamalan')
   })
 
-  it('分類用長條圖：最多人的填滿、其餘依比例、沒人選的不畫，並標出人數', async () => {
+  it('分類逐項顯示人數、不列零人選項', async () => {
     const wrapper = mountFlow({ summary: responded })
     await click(wrapper, '看大家怎麼說')
-    const bars = wrapper.findAll('[data-testid="response-tribe"]')[0].findAll('[data-testid="tribe-categories"] li')
-    expect(bars.map((b) => b.text())).toEqual(['oyod4', 'rahet1'])
-    expect(bars[0].find('[data-testid="bar-fill"]').attributes('style')).toContain('width: 100%')
-    expect(bars[1].find('[data-testid="bar-fill"]').attributes('style')).toContain('width: 25%')
+    const categories = wrapper.findAll('[data-testid="response-tribe"]')[0].find('[data-testid="tribe-categories"]')
+    expect(categories.text()).toContain('oyod 4 人')
+    expect(categories.text()).toContain('rahet 1 人')
+    expect(categories.text()).not.toContain('不分類')
   })
 
-  it('沒有人選分類的部落不畫長條，顯示「還沒有人選分類」', async () => {
+  it('沒有人選分類時顯示破折號', async () => {
     const wrapper = mountFlow({ summary: responded })
     await click(wrapper, '看大家怎麼說')
     const iratay = wrapper.findAll('[data-testid="response-tribe"]')[1]
-    expect(iratay.find('[data-testid="tribe-categories"]').exists()).toBe(false)
-    expect(iratay.text()).toContain('還沒有人選分類')
+    expect(iratay.find('[data-testid="tribe-categories"]').text()).toBe('分類—')
   })
 
   it('每一步最上方都有標題「大家怎麼說」', async () => {
@@ -200,11 +199,10 @@ describe('FishResponses 答完直接看結果，自己的選擇特別標出', ()
     const marked = yayo.findAll('[data-testid="tribe-names"] [data-mine]')
     expect(marked).toHaveLength(1)
     expect(marked[0].text()).toContain('dalakan')
-    const [oyod, rahet] = yayo.findAll('[data-testid="tribe-categories"] li')
-    expect(oyod.attributes('data-mine')).toBe('true')
-    expect(oyod.find('[data-testid="bar-fill"]').classes()).toContain('bg-amber-600')
-    expect(rahet.attributes('data-mine')).toBeUndefined()
-    expect(rahet.find('[data-testid="bar-fill"]').classes()).toContain('bg-brand')
+    const categories = yayo.find('[data-testid="tribe-categories"]')
+    expect(categories.findAll('[data-mine]')).toHaveLength(1)
+    expect(categories.find('[data-mine]').text()).toContain('oyod ✔ 4 人')
+    expect(categories.text()).toContain('rahet 1 人')
   })
 
   it('下方有「再說一個部落」，沒有先出現謝謝畫面再多按一次', async () => {
