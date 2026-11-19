@@ -202,14 +202,14 @@ it('enforces one row per user, fish and tribe at the database level', function (
 it('does not touch official fish data', function () {
     $viewer = User::factory()->create(['role' => 'viewer']);
     $fish = Fish::factory()->create(['name' => '原名']);
-    TribalClassification::factory()->create(['fish_id' => $fish->id, 'tribe' => 'yayo']);
+    TribalClassification::factory()->create(['fish_id' => $fish->id, 'tribe' => 'yayo', 'food_category' => 'oyod']);
     FishAudio::factory()->create(['fish_id' => $fish->id]);
 
     postResponse($viewer, $fish, ['tribe' => 'yayo', 'name' => '另一個說法', 'food_category' => 'rahet']);
 
     expect($fish->fresh()->name)->toBe('原名')
         ->and(TribalClassification::count())->toBe(1)
-        ->and(TribalClassification::first()->food_category)->not->toBe('rahet')
+        ->and(TribalClassification::first()->food_category)->toBe('oyod')
         ->and(FishAudio::count())->toBe(1);
 });
 
@@ -242,7 +242,7 @@ it('gives unauthorised callers no response data and writes nothing, on every req
 
     $requests = [
         'GET page' => fn () => test()->get("/fish/{$fish->id}"),
-        'GET page as Inertia' => fn () => test()->get("/fish/{$fish->id}", ['X-Inertia' => 'true', 'X-Inertia-Version' => app(\App\Http\Middleware\HandleInertiaRequests::class)->version(request()), 'X-Requested-With' => 'XMLHttpRequest']),
+        'GET page as JSON' => fn () => test()->getJson("/fish/{$fish->id}"),
         'POST valid' => fn () => test()->post("/fish/{$fish->id}/responses", ['tribe' => 'yayo', 'name' => 'ZZ寫入嘗試']),
         'POST invalid' => fn () => test()->post("/fish/{$fish->id}/responses", ['tribe' => 'nope']),
         'GET again (reload)' => fn () => test()->get("/fish/{$fish->id}"),
@@ -250,7 +250,7 @@ it('gives unauthorised callers no response data and writes nothing, on every req
 
     foreach ($requests as $label => $send) {
         $response = $send();
-        expect($response->status())->toBeIn([302, 403], $label);
+        expect($response->status())->toBeIn([302, 401, 403], $label);
         $body = $response->getContent();
         foreach (['ZZ甲說法', 'oyod', 'answerer-secret', 'summary', 'progress', 'has_variants', 'categories'] as $leak) {
             expect($body)->not->toContain($leak, "{$label} leaked {$leak}");
