@@ -71,7 +71,7 @@ describe('FishResponses 問答順序', () => {
     await click(wrapper, 'oyod')
     expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'mamalan', food_category: 'oyod' }, expect.anything())
     expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="thanks"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('謝謝')
   })
 
   it('略過分類不會再送出', async () => {
@@ -183,7 +183,8 @@ describe('FishResponses 答完直接看結果，自己的選擇特別標出', ()
   it('答過的人進來直接看大家怎麼說，自己的部落、叫法、分類都有標記', () => {
     const wrapper = mountFlow({ summary: responded, mine, responders: 3 })
     expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="thanks"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="legend"]').text()).toBe('✔ 是你選的')
+    expect(wrapper.text()).not.toContain('謝謝')
     const [yayo, iratay] = wrapper.findAll('[data-testid="response-tribe"]')
     expect(yayo.attributes('data-mine')).toBe('true')
     expect(iratay.attributes('data-mine')).toBeUndefined()
@@ -203,14 +204,15 @@ describe('FishResponses 答完直接看結果，自己的選擇特別標出', ()
     expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(true)
   })
 
-  it('完成最後一步後直接顯示結果並提示謝謝，再說一個部落的按鈕在下方', async () => {
+  it('完成最後一步後直接顯示結果，說明句與剛填完、之後再進來時一樣，再說一個部落的按鈕在下方', async () => {
     const wrapper = mountFlow({ summary: responded, mine })
     await click(wrapper, '再說一個部落')
     await yes(wrapper)
     await click(wrapper, 'ivalino')
     await click(wrapper, 'oyod')
     expect(wrapper.find('[data-testid="step-others"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="thanks"]').text()).toContain('謝謝')
+    expect(wrapper.find('[data-testid="legend"]').text()).toBe('✔ 是你選的')
+    expect(wrapper.text()).not.toContain('謝謝')
     expect(wrapper.findAll('button').some((b) => b.text().includes('再說一個部落'))).toBe(true)
   })
 
@@ -249,6 +251,18 @@ describe('FishResponses 自己的叫法標記與後端分組一致', () => {
   it('非英文字母不折大小寫：希臘文 Α 與 α 是不同組', () => {
     const wrapper = mountFlow({ summary: summaryWith(['\u0391', '\u03B1']), mine: mineNamed('\u03B1') })
     expect(marked(wrapper)).toEqual(['\u03B1'])
+  })
+})
+
+describe('FishResponses 返回鍵', () => {
+  it('返回鍵是圖示按鈕（svg），不是文字符號 ‹', async () => {
+    const wrapper = mountFlow()
+    await yes(wrapper)
+    const back = wrapper.find('button[aria-label="返回"]')
+    expect(back.find('svg').exists()).toBe(true)
+    expect(back.text()).toBe('')
+    await back.trigger('click')
+    expect(wrapper.find('[data-testid="step-confirm"]').exists()).toBe(true)
   })
 })
 

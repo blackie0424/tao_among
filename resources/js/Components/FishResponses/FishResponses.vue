@@ -18,7 +18,7 @@
 
     <!-- 2 叫什麼（保留文字輸入） -->
     <div v-else-if="step === 'name'" data-testid="step-name">
-      <button v-if="fishName" type="button" aria-label="返回" :class="linkButton" @click="step = 'confirm'">‹</button>
+      <button v-if="fishName" type="button" aria-label="返回" :class="backButton" @click="step = 'confirm'"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
       <p class="my-3 font-serif text-elder-name font-bold text-elder-text">{{ fishName ? '叫什麼？' : '這條魚，你們叫什麼？' }}</p>
       <input v-model="typedName" type="text" class="w-full min-h-touch-secondary border border-rule-strong bg-white px-3 text-elder-body" aria-label="叫法" />
       <p class="mt-1 text-elder-aux text-elder-subtext">羅馬拼音、接近的中文字都可以</p>
@@ -29,7 +29,7 @@
 
     <!-- 3 哪個部落 -->
     <div v-else-if="step === 'tribe'" data-testid="step-tribe">
-      <button type="button" aria-label="返回" :class="linkButton" @click="step = agreed ? 'confirm' : 'name'">‹</button>
+      <button type="button" aria-label="返回" :class="backButton" @click="step = agreed ? 'confirm' : 'name'"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
       <p class="my-3 font-serif text-elder-name font-bold text-elder-text">哪個部落？</p>
       <div class="grid grid-cols-2 gap-3">
         <button v-for="tribe in options.tribes" :key="tribe" type="button" :disabled="form.processing" :class="bigButton" @click="chooseTribe(tribe)">
@@ -52,8 +52,8 @@
 
     <!-- 5 大家怎麼說：答完直接看，自己的選擇特別標出；下方可再說一個部落 -->
     <div v-else data-testid="step-others">
-      <p v-if="justSubmitted" class="mb-2 text-elder-body font-bold text-green-700" data-testid="thanks">✔ 謝謝！</p>
-      <button v-if="backStep" type="button" aria-label="返回" :class="linkButton" @click="step = backStep">‹</button>
+      <p v-if="mine.length" class="mb-2 text-elder-aux text-amber-700" data-testid="legend">✔ 是你選的</p>
+      <button v-if="backStep" type="button" aria-label="返回" :class="backButton" @click="step = backStep"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
       <ul class="mt-2 space-y-3">
         <li
           v-for="item in respondedTribes"
@@ -112,6 +112,7 @@ const props = defineProps({
 })
 
 const bigButton = 'w-full min-h-[3.5rem] border-2 border-rule-strong bg-white px-2 text-elder-body text-elder-text'
+const backButton = 'mt-1 inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand text-brand hover:bg-paper'
 const linkButton = 'mt-3 min-h-touch-secondary text-elder-body text-brand underline'
 
 const form = useForm({ tribe: '', name: '', food_category: '' })
@@ -121,7 +122,6 @@ const agreed = ref(false)
 const savedName = ref('')
 const previousCategory = ref('')
 const backStep = ref(null) // 從問題畫面點「看大家怎麼說」進來時，可以返回原本的問題
-const justSubmitted = ref(false)
 
 // 魚目前的名字；「我不知道」不列為選項，這時第一題直接問叫什麼
 const fishName = computed(() => props.options.name_options[0] ?? null)
@@ -152,13 +152,11 @@ const codePointLength = (text) => Array.from(text).length
 
 function openOthers() {
   backStep.value = step.value
-  justSubmitted.value = false
   step.value = 'others'
 }
 
 function showResults() {
   backStep.value = null
-  justSubmitted.value = true
   step.value = 'others'
 }
 
@@ -218,7 +216,6 @@ function startOver() {
   typedName.value = ''
   draftName.value = null
   agreed.value = false
-  justSubmitted.value = false
   backStep.value = null
   step.value = firstQuestion()
 }
