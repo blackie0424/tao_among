@@ -41,7 +41,6 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
 
   let session = 0 // 每次開始或重設就加一；舊的非同步工作發現編號不同就放棄
   let mediaRecorder = null
-  let chunks = []
   let timer = null
   let interval = null
   let audioContext = null
@@ -124,6 +123,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
   }
 
   function attachRecorderHandlers(recorder, stream, mimeType, mySession) {
+    const chunks = [] // 每段錄音各自一份，被作廢的舊錄音延遲送來的片段不會混進新的錄音
     recorder.ondataavailable = (e) => {
       chunks.push(e.data)
     }
@@ -162,7 +162,6 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     autoStopped.value = false
     audioBlob.value = null
     audioUrl.value = ''
-    chunks = []
     remaining.value = maxSeconds
 
     if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {

@@ -134,4 +134,37 @@ describe('useAudioRecorder', () => {
     expect(recorder.audioBlob.value).toBeNull()
     expect(stopped).toHaveBeenCalled()
   })
+
+  it('取消的錄音延遲送來的片段與結束事件，不會混進緊接著開始的新錄音', async () => {
+    const recorders = []
+    vi.stubGlobal('MediaRecorder', class {
+      static isTypeSupported() { return true }
+      constructor() { recorders.push(this) }
+      start() {}
+      stop() {}
+    })
+    const tracks = [{ stop: vi.fn() }, { stop: vi.fn() }]
+    let opened = 0
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => ({ getTracks: () => [tracks[opened++]] }) },
+    })
+    URL.createObjectURL = vi.fn(() => 'blob:audio')
+    const recorder = useAudioRecorder({ maxSeconds: 30 })
+
+    await recorder.start() // 錄音 A
+    recorder.reset()
+    await recorder.start() // 錄音 B
+    const [a, b] = recorders
+    a.ondataavailable({ data: new Blob(['AAAA']) }) // A 的延遲片段與結束事件在 B 錄音中才到
+    a.onstop()
+    expect(recorder.isRecording.value).toBe(true)
+    expect(recorder.audioBlob.value).toBeNull()
+    b.ondataavailable({ data: new Blob(['BB']) })
+    recorder.stop()
+    b.onstop()
+
+    expect(recorder.audioBlob.value.size).toBe(2)
+    expect(tracks[0].stop).toHaveBeenCalled()
+  })
 })
