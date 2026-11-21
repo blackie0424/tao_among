@@ -94,4 +94,44 @@ describe('useAudioRecorder', () => {
     expect(recorder.audioUrl.value).toBe('')
     expect(recorder.remaining.value).toBe(30)
   })
+
+  it('錄音中 reset：之後才結束的錄音不會寫回，麥克風也釋放', async () => {
+    const stopped = vi.fn()
+    vi.stubGlobal('MediaRecorder', class {
+      static isTypeSupported() { return true }
+      start() {}
+      stop() { Promise.resolve().then(() => { this.ondataavailable({ data: new Blob(['audio']) }); this.onstop() }) }
+    })
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => ({ getTracks: () => [{ stop: stopped }] }) } })
+    URL.createObjectURL = vi.fn(() => 'blob:audio')
+    const recorder = useAudioRecorder({ maxSeconds: 30 })
+    await recorder.start()
+    recorder.reset()
+    await flushPromises()
+    expect(recorder.audioBlob.value).toBeNull()
+    expect(recorder.audioUrl.value).toBe('')
+    expect(recorder.isRecording.value).toBe(false)
+    expect(stopped).toHaveBeenCalled()
+  })
+
+  it('等麥克風授權時就 reset：授權通過也不會開始錄音，並釋放麥克風', async () => {
+    const stopped = vi.fn()
+    let allow
+    vi.stubGlobal('MediaRecorder', class {
+      static isTypeSupported() { return true }
+      start() { throw new Error('不該開始錄音') }
+    })
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: () => new Promise((resolve) => { allow = () => resolve({ getTracks: () => [{ stop: stopped }] }) }) },
+    })
+    const recorder = useAudioRecorder({ maxSeconds: 30 })
+    const starting = recorder.start()
+    recorder.reset()
+    allow()
+    await starting
+    expect(recorder.isRecording.value).toBe(false)
+    expect(recorder.audioBlob.value).toBeNull()
+    expect(stopped).toHaveBeenCalled()
+  })
 })

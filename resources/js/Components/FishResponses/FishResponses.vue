@@ -58,12 +58,13 @@
     <div v-else-if="step === 'review'" data-testid="step-review">
       <button type="button" aria-label="返回" :class="backButton" @click="leaveRecording"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
       <p class="my-3 font-serif text-elder-name font-bold text-elder-text">這樣可以嗎？</p>
-      <p v-if="recorder.autoStopped.value" class="mb-2 text-elder-aux text-elder-subtext" data-testid="auto-stopped">已錄滿 {{ RECORDING_MAX_SECONDS }} 秒，自動停止。</p>
+      <p v-if="recorder.autoStopped.value" aria-live="polite" class="mb-2 text-elder-aux text-elder-subtext" data-testid="auto-stopped">已錄滿 {{ RECORDING_MAX_SECONDS }} 秒，自動停止。</p>
       <audio ref="previewAudio" :src="recorder.audioUrl.value" class="hidden"></audio>
       <button type="button" :class="bigButton" data-testid="preview-play" @click="playPreview">▶ 聽聽看</button>
       <button type="button" :disabled="uploading" class="mt-3 w-full min-h-touch-secondary bg-brand text-elder-body font-bold text-white disabled:opacity-60" data-testid="review-ok" @click="confirmRecording">{{ uploading ? '上傳中…' : 'OK' }}</button>
       <button type="button" :disabled="uploading" :class="[bigButton, 'mt-3']" data-testid="re-record" @click="reRecord">重錄</button>
       <p v-if="uploadError" role="alert" class="mt-2 text-elder-body text-red-700" data-testid="upload-error">{{ uploadError }}</p>
+      <p v-if="form.errors.recording" role="alert" class="mt-2 text-elder-body text-red-700" data-testid="recording-error">{{ form.errors.recording }}</p>
       <button v-if="uploadError" type="button" :class="linkButton" data-testid="switch-to-typing" @click="switchToTyping">改用打的</button>
       <button v-if="!rerecordTribe" type="button" :class="linkButton" data-testid="add-typed" @click="step = 'name'">用打的補上</button>
     </div>
@@ -76,6 +77,7 @@
       <p class="mt-1 text-elder-aux text-elder-subtext">羅馬拼音、接近的中文字都可以</p>
       <p v-if="form.errors.name" role="alert" class="mt-2 text-elder-body text-red-700">{{ form.errors.name }}</p>
       <p v-if="uploadError" role="alert" class="mt-2 text-elder-body text-red-700" data-testid="upload-error">{{ uploadError }}</p>
+      <button v-if="uploadError" type="button" :class="linkButton" data-testid="send-text-only" @click="sendTextOnly">只送文字，不傳錄音</button>
       <button type="button" :disabled="!typedName.trim() || uploading" class="mt-3 w-full min-h-touch-secondary bg-brand text-elder-body font-bold text-white disabled:opacity-60" @click="confirmTyped">OK</button>
       <button type="button" :class="linkButton" @click="skipName">略過 ›</button>
     </div>
@@ -213,6 +215,7 @@ const micAsked = ref(false) // 第一次錄音前先說明會用到麥克風
 const rerecordTribe = ref(null) // 從結果重錄某個部落的錄音時，部落已固定
 const confirmingDelete = ref(null)
 const previewAudio = ref(null)
+let uploadSeq = 0 // 每次取消就加一；舊的上傳回來發現編號不同就放棄，不再往下走
 
 // 魚目前的名字；「我不知道」不列為選項，這時第一題直接問叫什麼
 const fishName = computed(() => props.options.name_options[0] ?? null)
@@ -272,9 +275,9 @@ function agree() {
 
 // ── 錄音 ──
 function chooseSpeak() {
+  cancelUpload()
   uploadError.value = ''
-  recorder.reset()
-  pendingRecording.value = null
+  finishRecording()
   step.value = 'record'
 }
 
@@ -289,18 +292,23 @@ function playPreview() {
 
 // 重錄：丟掉還沒送出的錄音，回到錄音畫面
 function reRecord() {
+  cancelUpload()
   uploadError.value = ''
   form.clearErrors()
-  recorder.reset()
-  pendingRecording.value = null
+  finishRecording()
   step.value = 'record'
+}
+
+// 取消進行中的上傳（返回、重錄、改用打的）：舊的上傳完成後不會再記下檔名或繼續送出
+function cancelUpload() {
+  uploadSeq++
+  uploading.value = false
 }
 
 // 錄音畫面或試聽畫面按返回：不改動任何已存的回答（錄音還沒送出）
 function leaveRecording() {
-  recorder.stop()
-  recorder.reset()
-  pendingRecording.value = null
+  cancelUpload()
+  finishRecording()
   uploadError.value = ''
   step.value = rerecordTribe.value ? 'others' : 'method'
   rerecordTribe.value = null
@@ -308,14 +316,23 @@ function leaveRecording() {
 
 // 不能錄或不想錄：丟掉錄音，改用打的
 function switchToTyping() {
-  recorder.reset()
-  pendingRecording.value = null
+  cancelUpload()
+  finishRecording()
   uploadError.value = ''
   step.value = 'name'
 }
 
+// 打字頁上傳失敗：不傳錄音，已輸入的叫法照常送出
+function sendTextOnly() {
+  cancelUpload()
+  finishRecording()
+  uploadError.value = ''
+  step.value = 'tribe'
+}
+
 // 取得上傳網址後直傳到暫存資料夾；成功才記下暫存檔名
 async function uploadRecording() {
+  const mySeq = ++uploadSeq
   uploading.value = true
   uploadError.value = ''
   try {
@@ -327,13 +344,14 @@ async function uploadRecording() {
     if (!res.ok || !data.url) throw new Error('取得上傳網址失敗')
     const put = await fetch(data.url, { method: 'PUT', body: recorder.audioBlob.value })
     if (!put.ok) throw new Error('上傳失敗')
+    if (mySeq !== uploadSeq) return false // 上傳途中已取消
     pendingRecording.value = data.filename
     return true
   } catch (e) {
-    uploadError.value = UPLOAD_FAILED_MESSAGE
+    if (mySeq === uploadSeq) uploadError.value = UPLOAD_FAILED_MESSAGE
     return false
   } finally {
-    uploading.value = false
+    if (mySeq === uploadSeq) uploading.value = false
   }
 }
 
@@ -348,10 +366,15 @@ async function confirmRecording() {
     if (!pendingRecording.value && !(await uploadRecording())) return
     const row = props.mine.find((r) => r.tribe === rerecordTribe.value)
     form.tribe = rerecordTribe.value
-    submit(row?.name ?? '', row?.food_category ?? '', showResultsAfterRerecord, pendingRecording.value)
+    submit(row?.name ?? '', row?.food_category ?? '', showResultsAfterRerecord, pendingRecording.value, discardPendingRecording)
     return
   }
   await readyForTribe()
+}
+
+// 送出被伺服器拒絕：這個暫存檔不能再用，下次按 OK 重新上傳（錄音還在）
+function discardPendingRecording() {
+  pendingRecording.value = null
 }
 
 function showResultsAfterRerecord() {
@@ -473,10 +496,10 @@ function skipCategory() {
 }
 
 // recording 只有帶新錄音時才送；沒帶＝保留舊錄音
-function submit(name, foodCategory, onSuccess, recording = null) {
+function submit(name, foodCategory, onSuccess, recording = null, onError = undefined) {
   form
     .transform((data) => ({ ...data, name, food_category: foodCategory, ...(recording ? { recording } : {}) }))
-    .post(`/fish/${props.fishId}/responses`, { preserveScroll: true, onSuccess })
+    .post(`/fish/${props.fishId}/responses`, { preserveScroll: true, onSuccess, onError })
 }
 
 // 分類與叫法分開顯示，避免暗示兩者一一對應。

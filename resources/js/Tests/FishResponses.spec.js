@@ -18,8 +18,10 @@ vi.mock('@inertiajs/vue3', async () => {
       form.transform = (fn) => { form._transform = fn; return form }
       form.post = (url, options) => {
         const result = post(url, form._transform({ tribe: form.tribe, name: form.name, food_category: form.food_category }), options)
-        if (result?.errors) Object.assign(form.errors, result.errors)
-        else options?.onSuccess?.()
+        if (result?.errors) {
+          Object.assign(form.errors, result.errors)
+          options?.onError?.(result.errors)
+        } else options?.onSuccess?.()
       }
       form.delete = (url, options) => {
         const result = del(url, { tribe: form.tribe }, options)
@@ -433,7 +435,7 @@ const byId = (wrapper, id) => wrapper.find(`[data-testid="${id}"]`)
 const click_ = (wrapper, id) => byId(wrapper, id).trigger('click')
 const SIGN = { ok: true, json: async () => ({ url: 'https://s3.test/put', filename: 'pending-1.m4a' }) }
 
-function stubRecording({ mic = 'ok', mimeSupported = true } = {}) {
+function stubRecording({ mic = 'ok', mimeSupported = true, lateStop = false } = {}) {
   vi.stubGlobal('fetch', vi.fn())
   if (mic === 'unsupported') {
     vi.stubGlobal('MediaRecorder', undefined)
@@ -441,7 +443,11 @@ function stubRecording({ mic = 'ok', mimeSupported = true } = {}) {
     vi.stubGlobal('MediaRecorder', class {
       static isTypeSupported() { return mimeSupported }
       start() {}
-      stop() { this.ondataavailable({ data: new Blob(['audio']) }); this.onstop() }
+      stop() {
+        const finish = () => { this.ondataavailable({ data: new Blob(['audio']) }); this.onstop() }
+        if (lateStop) Promise.resolve().then(finish)
+        else finish()
+      }
     })
   }
   Object.defineProperty(navigator, 'mediaDevices', {
@@ -749,5 +755,144 @@ describe('說法卡的錄音', () => {
     await click(wrapper, '略過')
     expect(byId(wrapper, 'step-others').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('至少要填一項')
+  })
+})
+
+describe('取消、失敗與退路（審查意見）', () => {
+  const rows = [
+    { tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording_url: 'https://s3.test/a.m4a' },
+    { tribe: 'iratay', name: 'mamalan', food_category: 'rahet', recording_url: 'https://s3.test/b.m4a' },
+  ]
+  const summaryRows = [
+    none[0],
+    { tribe: 'yayo', has_responses: true, names: [{ name: 'dalakan', count: 1 }], recordings_only: [], has_variants: false, categories: [] },
+    { tribe: 'iratay', has_responses: true, names: [{ name: 'mamalan', count: 1 }], recordings_only: [], has_variants: false, categories: [] },
+  ]
+  const signOf = (filename) => ({ ok: true, json: async () => ({ url: `https://s3.test/put/${filename}`, filename }) })
+  const deferred = () => {
+    let release
+    const promise = new Promise((resolve) => { release = resolve })
+    return { promise, release }
+  }
+  /** 依序回應取得上傳網址的請求；直傳（PUT）一律成功 */
+  const routeFetch = (signs) => {
+    fetch.mockImplementation((url) => (String(url).endsWith('/recording-url') ? Promise.resolve(signs.shift()) : Promise.resolve({ ok: true })))
+  }
+
+  beforeEach(() => stubRecording())
+
+  it('上傳中返回：舊的上傳完成後不會跳到選部落，也不會把錄音帶進之後的回答', async () => {
+    const slow = deferred()
+    routeFetch([slow.promise])
+    const wrapper = await goSpeak()
+    await recordOnce(wrapper)
+    await click_(wrapper, 'review-ok')
+    await wrapper.find('button[aria-label="返回"]').trigger('click')
+    slow.release(signOf('pending-old.m4a'))
+    await flushPromises()
+    expect(byId(wrapper, 'step-method').exists()).toBe(true)
+    await click_(wrapper, 'method-type')
+    await type(wrapper, 'dalakan')
+    await click(wrapper, 'OK')
+    await flushPromises()
+    await click(wrapper, 'yayo')
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: '' }, expect.anything())
+  })
+
+  it('重錄上傳中返回、改重錄另一個部落：舊錄音不會送到新部落', async () => {
+    const slow = deferred()
+    routeFetch([slow.promise, signOf('pending-new.m4a')])
+    const wrapper = mountFlow({ summary: summaryRows, mine: rows })
+    const reRecordButtons = () => wrapper.findAll('[data-testid="my-re-record"]')
+    await reRecordButtons()[0].trigger('click') // yayo
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    await click_(wrapper, 'record-stop')
+    await flushPromises()
+    await click_(wrapper, 'review-ok') // 上傳中
+    await wrapper.find('button[aria-label="返回"]').trigger('click')
+    await reRecordButtons()[1].trigger('click') // iratay
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    await click_(wrapper, 'record-stop')
+    await flushPromises()
+    await click_(wrapper, 'review-ok')
+    await flushPromises()
+    slow.release(signOf('pending-old.m4a')) // 第一個部落的舊上傳這時才回來
+    await flushPromises()
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'iratay', name: 'mamalan', food_category: 'rahet', recording: 'pending-new.m4a' }, expect.anything())
+  })
+
+  it('錄音中返回，錄音之後才結束：已取消的錄音不會被上傳', async () => {
+    stubRecording({ lateStop: true })
+    const wrapper = await goSpeak()
+    await click_(wrapper, 'method-speak')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    await wrapper.find('button[aria-label="返回"]').trigger('click')
+    await flushPromises()
+    expect(byId(wrapper, 'step-method').exists()).toBe(true)
+    await click_(wrapper, 'method-type')
+    await type(wrapper, 'dalakan')
+    await click(wrapper, 'OK')
+    await flushPromises()
+    await click(wrapper, 'yayo')
+    expect(fetch).not.toHaveBeenCalled()
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: '' }, expect.anything())
+  })
+
+  it('「用打的補上」後上傳失敗：可以只送文字，已輸入的叫法照常送出，不再重傳錄音', async () => {
+    fetch.mockResolvedValueOnce({ ok: false, json: async () => ({}) })
+    const wrapper = await goSpeak()
+    await recordOnce(wrapper)
+    await click_(wrapper, 'add-typed')
+    await type(wrapper, 'dalakan')
+    await click(wrapper, 'OK')
+    await flushPromises()
+    expect(byId(wrapper, 'upload-error').text()).toContain('錄音上傳失敗')
+    expect(wrapper.find('input[aria-label="叫法"]').element.value).toBe('dalakan')
+    await click_(wrapper, 'send-text-only')
+    expect(byId(wrapper, 'step-tribe').exists()).toBe(true)
+    await click(wrapper, 'yayo')
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: '' }, expect.anything())
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('重錄送出被伺服器拒絕：試聽頁顯示訊息，再按 OK 會重新上傳新的暫存檔，也可以重錄', async () => {
+    routeFetch([signOf('pending-1.m4a'), signOf('pending-2.m4a')])
+    post.mockReturnValueOnce({ errors: { recording: '錄音儲存失敗，請重試' } })
+    const wrapper = mountFlow({ summary: summaryRows, mine: rows })
+    await wrapper.findAll('[data-testid="my-re-record"]')[0].trigger('click')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    await click_(wrapper, 'record-stop')
+    await flushPromises()
+    await click_(wrapper, 'review-ok')
+    await flushPromises()
+    expect(byId(wrapper, 'step-review').exists()).toBe(true)
+    expect(byId(wrapper, 'recording-error').text()).toContain('錄音儲存失敗')
+    await click_(wrapper, 'review-ok')
+    await flushPromises()
+    expect(post).toHaveBeenCalledTimes(2)
+    expect(post.mock.calls[0][1].recording).toBe('pending-1.m4a')
+    expect(post.mock.calls[1][1].recording).toBe('pending-2.m4a')
+    expect(byId(wrapper, 'step-others').exists()).toBe(true)
+  })
+
+  it('重錄送出失敗後按重錄：回到錄音畫面並清掉錯誤', async () => {
+    routeFetch([signOf('pending-1.m4a')])
+    post.mockReturnValueOnce({ errors: { recording: '錄音檔不存在或太大，請重錄' } })
+    const wrapper = mountFlow({ summary: summaryRows, mine: rows })
+    await wrapper.findAll('[data-testid="my-re-record"]')[0].trigger('click')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    await click_(wrapper, 'record-stop')
+    await flushPromises()
+    await click_(wrapper, 'review-ok')
+    await flushPromises()
+    await click_(wrapper, 're-record')
+    expect(byId(wrapper, 'step-record').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('請重錄')
   })
 })

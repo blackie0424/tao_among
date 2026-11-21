@@ -4,6 +4,7 @@
  * 抽自新增魚發音頁（CreateFishAudio.vue）與「大家怎麼說」共用：
  * 全平台優先用 M4A（audio/mp4），其次 audio/aac；滿 maxSeconds 秒自動停止。
  * 傳入 canvasRef 時會在錄音中畫出聲音波形。
+ * reset() 會讓進行中的錄音作廢：之後才完成的 onstop 或麥克風授權不會再寫回錄音。
  */
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
 
@@ -19,6 +20,15 @@ const WAVE_AMPLITUDE = 1.5 // 振幅放大倍率，建議 1.5~2.5
 const WAVE_FFT_SIZE = 256
 const WAVE_COLOR = '#4d7f99'
 const MS_PER_SECOND = 1000
+const LOG_PREFIX = '[audio-recorder]'
+
+function pickMimeType() {
+  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4' // M4A (AAC)，iOS、Chrome、Firefox、Edge、Safari 皆可
+  if (MediaRecorder.isTypeSupported('audio/aac')) return 'audio/aac' // 純 AAC（降級）
+  return ''
+}
+
+const stopTracks = (stream) => stream?.getTracks().forEach((track) => track.stop())
 
 export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
   const isRecording = ref(false)
@@ -29,27 +39,23 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
   const remaining = ref(maxSeconds)
   const autoStopped = ref(false)
 
+  let session = 0 // 每次開始或重設就加一；舊的非同步工作發現編號不同就放棄
   let mediaRecorder = null
   let chunks = []
   let timer = null
   let interval = null
   let audioContext = null
   let analyser = null
-  let source = null
   let animationId = null
-  let stream = null
+  let currentStream = null
 
   // 錄成 audio/aac 時存成 aac，其餘一律 m4a
   const ext = computed(() => (audioBlob.value?.type === 'audio/aac' ? 'aac' : 'm4a'))
 
-  function fail(kind, message) {
+  function fail(kind, message, stream = currentStream) {
     errorKind.value = kind
     error.value = message
-    stopTracks()
-  }
-
-  function stopTracks() {
-    stream?.getTracks().forEach((track) => track.stop())
+    stopTracks(stream)
   }
 
   function drawWave() {
@@ -82,12 +88,13 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
   }
 
   function safeCloseAudioContext() {
-    if (audioContext) {
-      try {
-        audioContext.close()
-      } catch (e) {}
-      audioContext = null
+    if (!audioContext) return
+    try {
+      audioContext.close()
+    } catch (e) {
+      console.warn(`${LOG_PREFIX} 關閉 AudioContext 失敗`, e)
     }
+    audioContext = null
   }
 
   function clearTimers() {
@@ -96,13 +103,60 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     if (animationId) cancelAnimationFrame(animationId)
   }
 
-  function pickMimeType() {
-    if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4' // M4A (AAC)，iOS、Chrome、Firefox、Edge、Safari 皆可
-    if (MediaRecorder.isTypeSupported('audio/aac')) return 'audio/aac' // 純 AAC（降級）
-    return ''
+  async function startWaveform(stream) {
+    if (!canvasRef) return
+    audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    analyser = audioContext.createAnalyser()
+    analyser.fftSize = WAVE_FFT_SIZE
+    audioContext.createMediaStreamSource(stream).connect(analyser)
+    await nextTick() // 確保 canvas 已渲染
+    drawWave()
+  }
+
+  function startCountdown() {
+    timer = setTimeout(() => {
+      autoStopped.value = true
+      stop()
+    }, maxSeconds * MS_PER_SECOND)
+    interval = setInterval(() => {
+      if (remaining.value > 0) remaining.value--
+    }, MS_PER_SECOND)
+  }
+
+  function attachRecorderHandlers(recorder, stream, mimeType, mySession) {
+    recorder.ondataavailable = (e) => {
+      chunks.push(e.data)
+    }
+    recorder.onstop = () => {
+      stopTracks(stream)
+      if (mySession !== session) return // 這段錄音已被作廢（返回或重設），不寫回
+      audioBlob.value = new Blob(chunks, { type: mimeType })
+      audioUrl.value = URL.createObjectURL(audioBlob.value)
+      isRecording.value = false
+      clearTimers()
+      safeCloseAudioContext()
+    }
+  }
+
+  async function beginRecording(stream, mySession) {
+    if (mySession !== session) return stopTracks(stream) // 等授權的時候已經返回或重設
+    currentStream = stream
+    const mimeType = pickMimeType()
+    if (!mimeType) return fail(RecordingErrorKind.UNSUPPORTED, UNSUPPORTED_FORMAT_MESSAGE, stream)
+    try {
+      mediaRecorder = new MediaRecorder(stream, { mimeType })
+    } catch (e) {
+      return fail(RecordingErrorKind.UNSUPPORTED, UNSUPPORTED_RECORDER_MESSAGE, stream)
+    }
+    mediaRecorder.start()
+    isRecording.value = true
+    startCountdown()
+    attachRecorderHandlers(mediaRecorder, stream, mimeType, mySession)
+    await startWaveform(stream)
   }
 
   function start() {
+    const mySession = ++session
     error.value = ''
     errorKind.value = ''
     autoStopped.value = false
@@ -115,57 +169,11 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
       fail(RecordingErrorKind.UNSUPPORTED, UNSUPPORTED_RECORDER_MESSAGE)
       return Promise.resolve()
     }
-
     return navigator.mediaDevices
       .getUserMedia({ audio: true })
-      .then(async (_stream) => {
-        stream = _stream
-        const mimeType = pickMimeType()
-        if (!mimeType) {
-          fail(RecordingErrorKind.UNSUPPORTED, UNSUPPORTED_FORMAT_MESSAGE)
-          return
-        }
-        try {
-          mediaRecorder = new MediaRecorder(stream, { mimeType })
-        } catch (e) {
-          fail(RecordingErrorKind.UNSUPPORTED, UNSUPPORTED_RECORDER_MESSAGE)
-          return
-        }
-        mediaRecorder.start()
-        isRecording.value = true
-        timer = setTimeout(() => {
-          autoStopped.value = true
-          stop()
-        }, maxSeconds * MS_PER_SECOND)
-        interval = setInterval(() => {
-          if (remaining.value > 0) {
-            remaining.value--
-          }
-        }, MS_PER_SECOND)
-        mediaRecorder.ondataavailable = (e) => {
-          chunks.push(e.data)
-        }
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: mimeType })
-          audioBlob.value = blob
-          audioUrl.value = URL.createObjectURL(blob)
-          isRecording.value = false
-          stopTracks()
-          clearTimers()
-          safeCloseAudioContext()
-        }
-        if (canvasRef) {
-          // 聲音波形分析
-          audioContext = new (window.AudioContext || window.webkitAudioContext)()
-          analyser = audioContext.createAnalyser()
-          analyser.fftSize = WAVE_FFT_SIZE
-          source = audioContext.createMediaStreamSource(stream)
-          source.connect(analyser)
-          await nextTick() // 確保 canvas 已渲染
-          drawWave()
-        }
-      })
+      .then((stream) => beginRecording(stream, mySession))
       .catch(() => {
+        if (mySession !== session) return
         fail(RecordingErrorKind.PERMISSION, PERMISSION_MESSAGE)
         isRecording.value = false
       })
@@ -181,7 +189,14 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     }
   }
 
+  // 丟掉目前的錄音（含進行中的）並回到初始狀態
   function reset() {
+    const wasRecording = isRecording.value
+    session++
+    if (wasRecording) mediaRecorder?.stop()
+    isRecording.value = false
+    clearTimers()
+    safeCloseAudioContext()
     audioBlob.value = null
     audioUrl.value = ''
     error.value = ''
