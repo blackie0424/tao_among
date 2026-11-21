@@ -65,174 +65,41 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, nextTick } from 'vue'
+import { ref, watch } from 'vue'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
 import LazyImage from '../Components/UI/LazyImage.vue'
 
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
 import { apiFetch } from '@/utils/apiFetch'
+import { useAudioRecorder } from '@/composables/useAudioRecorder.js'
 
 const props = defineProps({
   fish: Object,
 })
 
-const isRecording = ref(false)
-const audioBlob = ref(null)
-const audioUrl = ref('')
+const PAGE_RECORDING_SECONDS = 5
+
 const submitting = ref(false)
 const recordingError = ref('')
-const timerCount = ref(5)
 const waveCanvas = ref(null)
-let mediaRecorder = null
-let chunks = []
-let timer = null
-let interval = null
-let audioContext = null
-let analyser = null
-let source = null
-let animationId = null
-let stream = null
+const recorder = useAudioRecorder({ maxSeconds: PAGE_RECORDING_SECONDS, canvasRef: waveCanvas })
+const { isRecording, audioBlob, audioUrl, remaining: timerCount } = recorder
 
-function isSafari() {
-  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-}
+watch(recorder.error, (message) => {
+  recordingError.value = message
+})
 
 function goBack() {
   router.visit(`/fish/${props.fish.id}?tab=audio`)
 }
 
-function drawWave() {
-  if (!analyser || !waveCanvas.value) return
-  const canvas = waveCanvas.value
-  const ctx = canvas.getContext('2d')
-  const bufferLength = analyser.fftSize
-  const dataArray = new Uint8Array(bufferLength)
-  analyser.getByteTimeDomainData(dataArray)
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.lineWidth = 2
-  ctx.strokeStyle = '#4d7f99'
-  ctx.beginPath()
-
-  // 振幅放大倍率，原本是 /2，這裡可調整為 /1.2 或直接 *1.5
-  const amplitude = 1.5 // 建議可調整 1.5~2.5
-  const sliceWidth = canvas.width / bufferLength
-  let x = 0
-  for (let i = 0; i < bufferLength; i++) {
-    const v = dataArray[i] / 128.0
-    // 放大振幅
-    const y = (v - 1) * (canvas.height / amplitude) + canvas.height / 2
-    if (i === 0) {
-      ctx.moveTo(x, y)
-    } else {
-      ctx.lineTo(x, y)
-    }
-    x += sliceWidth
-  }
-  ctx.stroke()
-  animationId = requestAnimationFrame(drawWave)
-}
-
-function startRecording() {
-  recordingError.value = ''
-  audioBlob.value = null
-  audioUrl.value = ''
-  chunks = []
-  timerCount.value = 5
-
-  navigator.mediaDevices
-    .getUserMedia({ audio: true })
-    .then(async (_stream) => {
-      stream = _stream
-      // 判斷支援格式，全平台統一優先使用 M4A (AAC 編碼)
-      let mimeType = ''
-
-      // 優先使用 M4A 格式，確保跨平台相容性
-      // M4A (audio/mp4) 支援：iOS、Chrome、Firefox、Edge、Safari
-      // 不再使用 WebM，避免 iOS Safari 不相容問題
-      if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        mimeType = 'audio/mp4' // M4A 格式 (AAC 編碼)
-      } else if (MediaRecorder.isTypeSupported('audio/aac')) {
-        mimeType = 'audio/aac' // 純 AAC 格式 (降級選項)
-      } else {
-        recordingError.value =
-          '瀏覽器不支援錄音格式，請使用現代瀏覽器 (Chrome、Firefox、Safari、Edge)'
-        stream.getTracks().forEach((track) => track.stop())
-        return
-      }
-      try {
-        mediaRecorder = new MediaRecorder(stream, { mimeType })
-      } catch (e) {
-        recordingError.value = '瀏覽器不支援錄音，請改用 Chrome 或 Edge。'
-        stream.getTracks().forEach((track) => track.stop())
-        return
-      }
-      mediaRecorder.start()
-      isRecording.value = true
-      timer = setTimeout(() => {
-        stopRecording()
-      }, 5000)
-      interval = setInterval(() => {
-        if (timerCount.value > 0) {
-          timerCount.value--
-        }
-      }, 1000)
-      mediaRecorder.ondataavailable = (e) => {
-        chunks.push(e.data)
-      }
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType })
-        audioBlob.value = blob
-        audioUrl.value = URL.createObjectURL(blob)
-        isRecording.value = false
-        stream.getTracks().forEach((track) => track.stop())
-        clearTimeout(timer)
-        clearInterval(interval)
-        safeCloseAudioContext()
-        if (animationId) cancelAnimationFrame(animationId)
-      }
-      // 聲音波形分析
-      audioContext = new (window.AudioContext || window.webkitAudioContext)()
-      analyser = audioContext.createAnalyser()
-      analyser.fftSize = 256
-      source = audioContext.createMediaStreamSource(stream)
-      source.connect(analyser)
-      await nextTick() // 確保 canvas 已渲染
-      drawWave()
-    })
-    .catch(() => {
-      recordingError.value = '無法取得麥克風權限'
-      isRecording.value = false
-    })
-}
-
-function safeCloseAudioContext() {
-  if (audioContext) {
-    try {
-      audioContext.close()
-    } catch (e) {}
-    audioContext = null
-  }
-}
-
-function stopRecording() {
-  if (mediaRecorder && isRecording.value) {
-    mediaRecorder.stop()
-    isRecording.value = false
-    clearTimeout(timer)
-    clearInterval(interval)
-    timerCount.value = 0
-    if (animationId) cancelAnimationFrame(animationId)
-    safeCloseAudioContext()
-  }
-}
+const startRecording = () => recorder.start()
+const stopRecording = () => recorder.stop()
 
 function resetRecording() {
-  audioBlob.value = null
-  audioUrl.value = ''
+  recorder.reset()
   recordingError.value = ''
-  timerCount.value = 5
 }
 
 // 取得 fish id（從網址 /fish/:id/audio/create 取出）
@@ -249,13 +116,6 @@ async function handleNext() {
   }
   submitting.value = true
   try {
-    // 根據錄製的 MIME 類型決定副檔名
-    // 統一使用 M4A 格式 (audio/mp4 with AAC encoding)
-    // 確保跨平台相容性 (iOS、Android、Desktop 全支援)
-    let ext = 'm4a' // 預設 M4A 格式
-    if (audioBlob.value.type === 'audio/mp4') ext = 'm4a' // M4A 格式（AAC 編碼）
-    if (audioBlob.value.type === 'audio/aac') ext = 'aac' // 純 AAC（降級）
-
     // 取得 fish id
     const fishId = getFishIdFromUrl()
     if (!fishId) throw new Error('無法取得魚類編號')
@@ -264,7 +124,7 @@ async function handleNext() {
     const uploadRes = await apiFetch(`/prefix/api/fish/${fishId}/storage/signed-upload-audio-url`, {
       method: 'POST',
       body: JSON.stringify({
-        filename: `audio_${Date.now()}.${ext}`,
+        filename: `audio_${Date.now()}.${recorder.ext.value}`,
       }),
     })
     const uploadData = await uploadRes.json()
@@ -288,9 +148,4 @@ async function handleNext() {
     submitting.value = false
   }
 }
-
-onBeforeUnmount(() => {
-  if (animationId) cancelAnimationFrame(animationId)
-  safeCloseAudioContext()
-})
 </script>
