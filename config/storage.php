@@ -25,6 +25,9 @@ return [
                 'image' => env('AWS_IMAGE_FOLDER', 'images'),
                 'audio' => env('AWS_AUDIO_FOLDER', 'audio'),
                 'webp' => env('AWS_WEBP_FOLDER', 'webp'),
+                // 「大家怎麼說」的回答錄音：正式資料夾，以及還沒送出的暫存資料夾（由 S3 生命週期規則自動過期）
+                'response_audio' => env('AWS_RESPONSE_AUDIO_FOLDER', 'response-audio'),
+                'response_audio_pending' => env('AWS_RESPONSE_AUDIO_PENDING_FOLDER', 'audio-pending'),
             ],
         ],
     ],

@@ -14,12 +14,18 @@ class FishTribeResponse extends Model
 {
     public const NAME_MAX_LENGTH = 60;
 
+    /** 錄音上傳網址的有效秒數 */
+    public const RECORDING_UPLOAD_TTL_SECONDS = 300;
+
+    /** 錄音檔可用的副檔名（audio/mp4 存成 m4a、audio/aac 存成 aac） */
+    public const RECORDING_EXTENSIONS = ['m4a', 'aac'];
+
     private const DEADLOCK_RETRY_ATTEMPTS = 3;
 
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     private const UNNAMED_FISH_NAME = '我不知道';
 
-    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at'];
+    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at', 'recording_filename', 'recording_submitted_at'];
 
     public function user(): BelongsTo
     {
@@ -29,6 +35,12 @@ class FishTribeResponse extends Model
     public function fish(): BelongsTo
     {
         return $this->belongsTo(Fish::class);
+    }
+
+    /** 還沒送出的錄音暫存路徑：放在該使用者專屬的資料夾，別人的檔名在自己的資料夾找不到。 */
+    public static function pendingRecordingPath(int $userId, string $filename): string
+    {
+        return config('storage.drivers.s3.folders.response_audio_pending').'/'.$userId.'/'.$filename;
     }
 
     /** 微秒精度的時間字串（固定寬度，可直接字串排序），用來區分同一秒內的先後。 */

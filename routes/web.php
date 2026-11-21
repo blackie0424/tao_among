@@ -173,3 +173,4 @@ Route::middleware(['auth', 'browse'])->group(function () {
 // 魚類詳細頁需放在最後，避免與 /fish/create 等路由衝突
 Route::get('/fish/{id}', [FishController::class, 'getFish'])->middleware(['auth', 'browse']);
 Route::post('/fish/{id}/responses', [FishResponseController::class, 'store'])->middleware(['auth', 'browse'])->name('fish.responses.store');
+Route::post('/fish/{id}/responses/recording-url', [FishResponseController::class, 'recordingUploadUrl'])->middleware(['auth', 'browse', 'throttle:10,1'])->whereNumber('id')->name('fish.responses.recording-url');
