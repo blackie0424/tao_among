@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Contracts\StorageServiceInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * 使用者對某條魚「這是哪個部落的說法」的回答。
@@ -20,7 +23,12 @@ class FishTribeResponse extends Model
     /** 錄音檔可用的副檔名（audio/mp4 存成 m4a、audio/aac 存成 aac） */
     public const RECORDING_EXTENSIONS = ['m4a', 'aac'];
 
+    /** 錄音檔大小上限（位元組）：2 MB */
+    public const RECORDING_MAX_BYTES = 2 * 1024 * 1024;
+
     private const DEADLOCK_RETRY_ATTEMPTS = 3;
+
+    public const EMPTY_RESPONSE_MESSAGE = '叫法、分類、錄音至少填一項';
 
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     private const UNNAMED_FISH_NAME = '我不知道';
@@ -43,6 +51,23 @@ class FishTribeResponse extends Model
         return config('storage.drivers.s3.folders.response_audio_pending').'/'.$userId.'/'.$filename;
     }
 
+    /** 已送出的錄音在正式資料夾的路徑。 */
+    public static function recordingPath(string $filename): string
+    {
+        return config('storage.drivers.s3.folders.response_audio').'/'.$filename;
+    }
+
+    /** 暫存檔名的格式：UUID 加白名單副檔名，不含任何路徑。 */
+    public static function recordingFilenamePattern(): string
+    {
+        return '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.('.implode('|', self::RECORDING_EXTENSIONS).')$/';
+    }
+
+    private static function recordingUrl(string $filename): string
+    {
+        return app(StorageServiceInterface::class)->getUrl('response_audio', $filename);
+    }
+
     /** 微秒精度的時間字串（固定寬度，可直接字串排序），用來區分同一秒內的先後。 */
     public static function submissionTime(): string
     {
@@ -56,26 +81,78 @@ class FishTribeResponse extends Model
      * 不先對「還不存在的鍵」做 SELECT ... FOR UPDATE，否則 InnoDB 下兩個請求會各自持有間隙鎖再同時新增而死鎖。
      * 叫法只是大小寫或前後空白不同（同一種寫法）時，保留原本的寫法與送出時間；
      * 換成不同寫法才記為重新送出。
+     * 錄音不適用「略過視為清空」：沒帶新錄音就保留舊的，「至少一項」以保留後的最終狀態判斷。
+     *
+     * @param  string|null  $recording  已複製到正式資料夾的新錄音檔名
+     * @return string|null 被新錄音取代的舊錄音檔名（呼叫端在提交後刪除）
+     *
+     * @throws ValidationException 保留後叫法、分類、錄音皆空
      */
-    public static function submit(array $keys, ?string $name, ?string $foodCategory): void
+    public static function submit(array $keys, ?string $name, ?string $foodCategory, ?string $recording = null): ?string
     {
-        $inserted = self::insertOrIgnore([[
-            ...$keys,
-            'name' => $name,
-            'food_category' => $foodCategory,
-            'name_submitted_at' => $name === null ? null : self::submissionTime(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]]);
-        if ($inserted === 1) {
-            return;
+        $hasNewContent = $name !== null || $foodCategory !== null || $recording !== null;
+        if ($hasNewContent) {
+            $inserted = self::insertOrIgnore([[
+                ...$keys,
+                'name' => $name,
+                'food_category' => $foodCategory,
+                'name_submitted_at' => $name === null ? null : self::submissionTime(),
+                'recording_filename' => $recording,
+                'recording_submitted_at' => $recording === null ? null : self::submissionTime(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]]);
+            if ($inserted === 1) {
+                return null;
+            }
         }
 
         // 偶發的死鎖由 Laravel 重試
-        DB::transaction(function () use ($keys, $name, $foodCategory) {
-            $row = self::where($keys)->lockForUpdate()->firstOrFail();
-            $row->fill(['food_category' => $foodCategory, ...self::nameAttributes($row, $name)])->save();
+        return DB::transaction(function () use ($keys, $name, $foodCategory, $recording, $hasNewContent) {
+            $row = self::where($keys)->lockForUpdate()->first();
+            if ($row === null && $hasNewContent) {
+                throw new ModelNotFoundException;
+            }
+            if ($row === null || (! $hasNewContent && $row->recording_filename === null)) {
+                throw ValidationException::withMessages(['name' => self::EMPTY_RESPONSE_MESSAGE]);
+            }
+            $replaced = $recording === null ? null : $row->recording_filename;
+            $row->fill(['food_category' => $foodCategory, ...self::nameAttributes($row, $name), ...self::recordingAttributes($recording)])->save();
+
+            return $replaced;
         }, attempts: self::DEADLOCK_RETRY_ATTEMPTS);
+    }
+
+    /**
+     * 刪除作者自己在某部落的錄音。先刪檔案，成功才改資料表（失敗時資料表不變，可重試）；
+     * 刪後叫法、分類、錄音皆空就連整筆回答一起刪。
+     *
+     * @param  callable(string): bool  $deleteFile  刪除正式資料夾裡指定檔名的檔案
+     * @return bool 檔案刪除失敗時為 false
+     */
+    public static function removeRecording(array $keys, callable $deleteFile): bool
+    {
+        return DB::transaction(function () use ($keys, $deleteFile) {
+            $row = self::where($keys)->lockForUpdate()->first();
+            if ($row === null || $row->recording_filename === null) {
+                return true;
+            }
+            if (! $deleteFile($row->recording_filename)) {
+                return false;
+            }
+            if ($row->name === null && $row->food_category === null) {
+                $row->delete();
+            } else {
+                $row->update(['recording_filename' => null, 'recording_submitted_at' => null]);
+            }
+
+            return true;
+        }, attempts: self::DEADLOCK_RETRY_ATTEMPTS);
+    }
+
+    private static function recordingAttributes(?string $recording): array
+    {
+        return $recording === null ? [] : ['recording_filename' => $recording, 'recording_submitted_at' => self::submissionTime()];
     }
 
     private static function nameAttributes(self $row, ?string $name): array
@@ -107,14 +184,19 @@ class FishTribeResponse extends Model
         ];
     }
 
-    /** 目前使用者對這條魚已送出的回答。 */
+    /** 目前使用者對這條魚已送出的回答（錄音以網址提供）。 */
     public static function answersOf(int $userId, int $fishId): array
     {
         return self::where('user_id', $userId)
             ->where('fish_id', $fishId)
             ->orderBy('id')
-            ->get(['tribe', 'name', 'food_category'])
-            ->map->only(['tribe', 'name', 'food_category'])
+            ->get()
+            ->map(fn (self $row) => [
+                'tribe' => $row->tribe,
+                'name' => $row->name,
+                'food_category' => $row->food_category,
+                'recording_url' => $row->recording_filename === null ? null : self::recordingUrl($row->recording_filename),
+            ])
             ->all();
     }
 
@@ -135,6 +217,7 @@ class FishTribeResponse extends Model
                 'tribe' => $tribe,
                 'has_responses' => $rows->isNotEmpty(),
                 'names' => $names,
+                'recordings_only' => self::recordingsOnly($rows),
                 'has_variants' => count($names) > 1,
                 'categories' => array_map(fn (string $category) => [
                     'value' => $category,
@@ -164,7 +247,10 @@ class FishTribeResponse extends Model
         return strtolower(trim($name));
     }
 
-    /** @return list<array{name: string, count: int}> 人數多者在前，同數依該寫法最早被送出的時間 */
+    /**
+     * @return list<array{name: string, count: int, recording_url?: string}> 人數多者在前，同數依該寫法最早被送出的時間；
+     *                                                                       該組最早送出的錄音網址放在 recording_url，沒人錄音就沒有這個欄位
+     */
     private static function groupNames($rows): array
     {
         $groups = [];
@@ -174,14 +260,39 @@ class FishTribeResponse extends Model
                 continue;
             }
             $key = self::spellingKey($name);
-            $groups[$key] ??= ['name' => $name, 'count' => 0];
+            $groups[$key] ??= ['name' => $name, 'count' => 0, 'recording' => null];
             $groups[$key]['count']++;
+            if ($row->recording_filename !== null && self::recordedBefore($row, $groups[$key]['recording'])) {
+                $groups[$key]['recording'] = $row;
+            }
         }
 
         // PHP 的 usort 是穩定排序，同人數時保留先出現（最早送出）的順序
         $groups = array_values($groups);
         usort($groups, fn ($a, $b) => $b['count'] <=> $a['count']);
 
-        return $groups;
+        return array_map(fn (array $group) => [
+            'name' => $group['name'],
+            'count' => $group['count'],
+            ...($group['recording'] === null ? [] : ['recording_url' => self::recordingUrl($group['recording']->recording_filename)]),
+        ], $groups);
+    }
+
+    /** @return list<array{recording_url: string}> 沒有叫法、只有錄音的回答，依錄音送出時間（相同時依編號）排列 */
+    private static function recordingsOnly($rows): array
+    {
+        return $rows
+            ->filter(fn (self $row) => trim((string) $row->name) === '' && $row->recording_filename !== null)
+            ->sort(fn (self $a, self $b) => self::recordedBefore($a, $b) ? -1 : 1)
+            ->map(fn (self $row) => ['recording_url' => self::recordingUrl($row->recording_filename)])
+            ->values()
+            ->all();
+    }
+
+    /** 錄音是否比另一筆早送出：先比微秒精度的時間，相同再比編號。 */
+    private static function recordedBefore(self $row, ?self $other): bool
+    {
+        return $other === null
+            || [$row->recording_submitted_at, $row->id] < [$other->recording_submitted_at, $other->id];
     }
 }

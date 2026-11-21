@@ -174,3 +174,4 @@ Route::middleware(['auth', 'browse'])->group(function () {
 Route::get('/fish/{id}', [FishController::class, 'getFish'])->middleware(['auth', 'browse']);
 Route::post('/fish/{id}/responses', [FishResponseController::class, 'store'])->middleware(['auth', 'browse'])->name('fish.responses.store');
 Route::post('/fish/{id}/responses/recording-url', [FishResponseController::class, 'recordingUploadUrl'])->middleware(['auth', 'browse', 'throttle:10,1'])->whereNumber('id')->name('fish.responses.recording-url');
+Route::delete('/fish/{id}/responses/recording', [FishResponseController::class, 'destroyRecording'])->middleware(['auth', 'browse'])->whereNumber('id')->name('fish.responses.recording.destroy');

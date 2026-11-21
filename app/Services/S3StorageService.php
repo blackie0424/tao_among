@@ -225,6 +225,20 @@ class S3StorageService implements StorageServiceInterface
         }
     }
 
+    public function copyObject(string $sourcePath, string $destPath): bool
+    {
+        try {
+            return Storage::disk('s3')->copy($sourcePath, $destPath);
+        } catch (\Exception $e) {
+            Log::error('Failed to copy object in S3', [
+                'source' => $sourcePath,
+                'destination' => $destPath,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
     public function fileSize(string $filePath): ?int
     {
         try {
