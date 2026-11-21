@@ -105,7 +105,12 @@ class FishResponseController extends Controller
     {
         $pendingPath = FishTribeResponse::pendingRecordingPath($userId, $pendingName);
         $size = $storage->fileSize($pendingPath);
-        if ($size === null || $size > FishTribeResponse::RECORDING_MAX_BYTES) {
+        if ($size === null) {
+            throw ValidationException::withMessages(['recording' => self::RECORDING_MISSING_MESSAGE]);
+        }
+        if ($size > FishTribeResponse::RECORDING_MAX_BYTES) {
+            // 太大的暫存檔直接刪掉；刪不掉只記日誌，仍然拒絕這次送出
+            $this->deleteStorageFile($storage, $pendingPath, $pendingName);
             throw ValidationException::withMessages(['recording' => self::RECORDING_MISSING_MESSAGE]);
         }
 

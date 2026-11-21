@@ -303,6 +303,21 @@ it('rejects a recording name that carries a path', function (string $name) {
     expect(FishTribeResponse::count())->toBe(0);
 })->with(['../x.m4a', 'audio-pending/1/11111111-1111-4111-8111-111111111111.m4a', '..\\x.m4a']);
 
+it('deletes an oversize pending file when rejecting it, and still rejects when the delete fails', function (array $fail) {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    $storage = recordingStorage([pendingPath($user) => FishTribeResponse::RECORDING_MAX_BYTES + 1], $fail);
+    Log::spy();
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasErrors('recording');
+
+    expect(FishTribeResponse::count())->toBe(0)
+        ->and(isset($storage['files'][pendingPath($user)]))->toBe($fail !== []);
+    if ($fail !== []) {
+        Log::shouldHaveReceived('warning')->withArgs(fn ($message, $context = []) => str_contains($message, '[response-recording]') && ($context['filename'] ?? null) === PENDING_NAME);
+    }
+})->with(['delete works' => [[]], 'delete fails' => [['delete']]]);
+
 it('accepts a recording of exactly the size limit', function () {
     $user = User::factory()->create(['role' => 'viewer']);
     $fish = Fish::factory()->create();
@@ -435,6 +450,28 @@ it('still succeeds, points to the new file and logs when the old file cannot be 
     Log::shouldHaveReceived('warning')->withArgs(fn ($message, $context = []) => str_contains($message, '[response-recording]') && ($context['filename'] ?? null) === 'old.m4a');
 });
 
+it('still completes a re-record when the author deleted the recording-only response in between', function () {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    $storage = recordingStorage([pendingPath($user) => 100, 'response-audio/old.m4a' => 50]);
+    recordingRow($user, $fish, 'yayo', ['recording_filename' => 'old.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+    // 重錄的新增因唯一鍵被略過後，刪除先拿到鎖、刪掉整筆
+    $raced = false;
+    DB::listen(function ($query) use (&$raced) {
+        if (! $raced && str_contains(strtolower($query->sql), 'ignore')) {
+            $raced = true;
+            DB::table('fish_tribe_responses')->delete();
+        }
+    });
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+
+    $row = FishTribeResponse::firstOrFail();
+    expect($raced)->toBeTrue()
+        ->and($row->recording_filename)->not->toBe('old.m4a')
+        ->and($storage['files'])->toHaveKey("response-audio/{$row->recording_filename}");
+});
+
 // ─── AC6 作者刪除 ─────────────────────────────────────────
 
 it('deletes only the author recording of that tribe and keeps the rest of the response', function () {
@@ -497,22 +534,56 @@ it('refuses guests and logged-out visitors from deleting, and 404s for a soft-de
 
 // ─── AC7 可見範圍 ─────────────────────────────────────────
 
-it('gives viewer, editor and admin the recording urls and keeps them away from guests', function (string $role) {
+const LEAK_MARKERS = ['secret-a', 'secret-b', 'response_audio', 'recording_url', 'recording_filename'];
+
+function assertNoRecordingLeak($response): void
+{
+    foreach (LEAK_MARKERS as $marker) {
+        expect($response->getContent())->not->toContain($marker);
+    }
+}
+
+it('gives viewer, editor and admin exactly the whitelisted response data including recording urls', function (string $role) {
     $author = User::factory()->create(['role' => 'viewer']);
     $reader = User::factory()->create(['role' => $role]);
-    $guest = User::factory()->create(['role' => 'guest']);
     $fish = Fish::factory()->create();
     recordingStorage();
-    recordingRow($author, $fish, 'yayo', ['name' => 'dalakan', 'recording_filename' => 'secret-a.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+    recordingRow($author, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => '2026-11-21 09:00:00.000001', 'recording_filename' => 'secret-a.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+    recordingRow($author, $fish, 'imowrod', ['recording_filename' => 'secret-b.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000002']);
+    recordingRow($reader, $fish, 'iraraley', ['name' => 'rakan', 'recording_filename' => 'secret-b.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000003']);
 
-    $names = tribeSummary(responsesFor($reader, $fish), 'yayo')['names'];
-    expect($names[0]['recording_url'])->toBe('https://s3.test/response_audio/secret-a.m4a');
+    $responses = responsesFor($reader, $fish);
 
-    test()->actingAs($guest)->get("/fish/{$fish->id}")->assertForbidden()->assertDontSee('secret-a');
-    test()->actingAs($guest)->post("/fish/{$fish->id}/responses", ['tribe' => 'yayo', 'name' => 'x'])->assertForbidden()->assertDontSee('secret-a');
-    auth()->logout();
-    test()->get("/fish/{$fish->id}")->assertDontSee('secret-a');
+    expect(array_keys($responses))->toBe(['form', 'summary', 'mine', 'responders'])
+        ->and(array_keys($responses['summary'][0]))->toBe(['tribe', 'has_responses', 'names', 'recordings_only', 'has_variants', 'categories'])
+        ->and(array_keys(tribeSummary($responses, 'yayo')['names'][0]))->toBe(['name', 'count', 'recording_url'])
+        ->and(array_keys(tribeSummary($responses, 'imowrod')['recordings_only'][0]))->toBe(['recording_url'])
+        ->and(array_keys($responses['mine'][0]))->toBe(['tribe', 'name', 'food_category', 'recording_url'])
+        ->and(tribeSummary($responses, 'yayo')['names'][0]['recording_url'])->toBe('https://s3.test/response_audio/secret-a.m4a')
+        ->and(tribeSummary($responses, 'imowrod')['recordings_only'][0]['recording_url'])->toBe('https://s3.test/response_audio/secret-b.m4a')
+        ->and($responses['mine'][0]['recording_url'])->toBe('https://s3.test/response_audio/secret-b.m4a')
+        ->and(json_encode($responses))->not->toContain('recording_filename');
 })->with(['viewer', 'editor', 'admin']);
+
+it('keeps every recording out of every response for guests and logged-out visitors', function (?string $role) {
+    $author = User::factory()->create(['role' => 'viewer']);
+    $visitor = $role === null ? null : User::factory()->create(['role' => $role]);
+    $fish = Fish::factory()->create();
+    recordingStorage([pendingPath($author) => 100]);
+    recordingRow($author, $fish, 'yayo', ['name' => 'dalakan', 'recording_filename' => 'secret-a.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+    $as = fn () => $visitor ? test()->actingAs($visitor) : test();
+    $inertia = ['X-Inertia' => 'true', 'X-Requested-With' => 'XMLHttpRequest'];
+
+    assertNoRecordingLeak($as()->get("/fish/{$fish->id}"));
+    assertNoRecordingLeak($as()->get("/fish/{$fish->id}", $inertia));
+    assertNoRecordingLeak($as()->get("/fish/{$fish->id}"));
+    assertNoRecordingLeak($as()->post("/fish/{$fish->id}/responses", ['tribe' => 'yayo', 'name' => 'x']));
+    assertNoRecordingLeak($as()->post("/fish/{$fish->id}/responses", ['tribe' => 'nowhere', 'recording' => '../x'], $inertia));
+    assertNoRecordingLeak($as()->postJson("/fish/{$fish->id}/responses/recording-url"));
+    assertNoRecordingLeak($as()->delete("/fish/{$fish->id}/responses/recording", ['tribe' => 'yayo']));
+
+    expect(FishTribeResponse::count())->toBe(1)->and(FishTribeResponse::firstOrFail()->name)->toBe('dalakan');
+})->with(['guest', 'logged out' => [null]]);
 
 it('gives the author their own recording url in mine', function () {
     $author = User::factory()->create(['role' => 'viewer']);

@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Contracts\StorageServiceInterface;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -91,27 +90,28 @@ class FishTribeResponse extends Model
     public static function submit(array $keys, ?string $name, ?string $foodCategory, ?string $recording = null): ?string
     {
         $hasNewContent = $name !== null || $foodCategory !== null || $recording !== null;
-        if ($hasNewContent) {
-            $inserted = self::insertOrIgnore([[
-                ...$keys,
-                'name' => $name,
-                'food_category' => $foodCategory,
-                'name_submitted_at' => $name === null ? null : self::submissionTime(),
-                'recording_filename' => $recording,
-                'recording_submitted_at' => $recording === null ? null : self::submissionTime(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]]);
-            if ($inserted === 1) {
-                return null;
-            }
+        $newRow = [
+            ...$keys,
+            'name' => $name,
+            'food_category' => $foodCategory,
+            'name_submitted_at' => $name === null ? null : self::submissionTime(),
+            'recording_filename' => $recording,
+            'recording_submitted_at' => $recording === null ? null : self::submissionTime(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+        if ($hasNewContent && self::insertOrIgnore([$newRow]) === 1) {
+            return null;
         }
 
         // 偶發的死鎖由 Laravel 重試
-        return DB::transaction(function () use ($keys, $name, $foodCategory, $recording, $hasNewContent) {
+        return DB::transaction(function () use ($keys, $name, $foodCategory, $recording, $hasNewContent, $newRow) {
             $row = self::where($keys)->lockForUpdate()->first();
+            // 先前的新增因為已存在而被略過，但那一筆在這之間被刪除（例如作者刪掉只有錄音的回答）：照鎖的先後，現在重新新增
             if ($row === null && $hasNewContent) {
-                throw new ModelNotFoundException;
+                self::insert($newRow);
+
+                return null;
             }
             if ($row === null || (! $hasNewContent && $row->recording_filename === null)) {
                 throw ValidationException::withMessages(['name' => self::EMPTY_RESPONSE_MESSAGE]);

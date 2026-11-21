@@ -233,8 +233,9 @@ class S3StorageService implements StorageServiceInterface
             Log::error('Failed to copy object in S3', [
                 'source' => $sourcePath,
                 'destination' => $destPath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -246,8 +247,9 @@ class S3StorageService implements StorageServiceInterface
         } catch (\Exception $e) {
             Log::error('Failed to read file size from S3', [
                 'filePath' => $filePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
