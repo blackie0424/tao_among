@@ -115,4 +115,14 @@ interface StorageServiceInterface
      * @return bool
      */
     public function fileExists(string $filePath): bool;
+
+    /**
+     * 取得檔案大小（位元組）；檔案不存在或讀取失敗時為 null
+     */
+    public function fileSize(string $filePath): ?int;
+
+    /**
+     * 複製物件（保留來源）；成功為 true
+     */
+    public function copyObject(string $sourcePath, string $destPath): bool;
 }

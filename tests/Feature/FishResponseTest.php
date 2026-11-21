@@ -289,7 +289,7 @@ it('exposes exactly the whitelisted response fields to an activated caller and n
     $responses = responsesProps($me, $fish);
 
     expect(array_keys($responses))->toBe(['form', 'summary', 'mine', 'responders'])
-        ->and(array_keys($responses['summary'][0]))->toBe(['tribe', 'has_responses', 'names', 'has_variants', 'categories'])
+        ->and(array_keys($responses['summary'][0]))->toBe(['tribe', 'has_responses', 'names', 'recordings_only', 'has_variants', 'categories'])
         ->and(array_keys(summaryFor($responses, 'yayo')['names'][0]))->toBe(['name', 'count'])
         ->and($responses['responders'])->toBeInt();
 
