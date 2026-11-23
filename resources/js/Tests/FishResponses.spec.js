@@ -3,9 +3,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const post = vi.fn()
 const del = vi.fn()
-vi.mock('@/Components/UI/Volume.vue', async () => {
+vi.mock('@/Components/FishResponses/RecordingPlayButton.vue', async () => {
   const { h } = await import('vue')
-  return { default: { name: 'Volume', props: ['audioUrl'], render() { return h('span', { 'data-url': this.audioUrl, role: 'button' }) } } }
+  // 播放狀態本身另在 RecordingPlayButton.spec.js 測；這裡只確認各處放了播放鈕、播的是哪個網址
+  return {
+    default: {
+      name: 'RecordingPlayButton',
+      props: ['src', 'variant', 'knownSeconds', 'idleLabel', 'endedLabel', 'errorLabel'],
+      render() { return h('span', { 'data-url': this.src, 'data-variant': this.variant ?? 'circle', 'data-known-seconds': this.knownSeconds, role: 'button' }) },
+    },
+  }
 })
 vi.mock('@inertiajs/vue3', async () => {
   const { reactive } = await import('vue')
@@ -526,7 +533,7 @@ describe('錄音流程', () => {
     await click_(wrapper, 'record-stop')
     await flushPromises()
     expect(byId(wrapper, 'step-review').exists()).toBe(true)
-    expect(wrapper.text()).toContain('聽聽看')
+    expect(byId(wrapper, 'preview-play').attributes('data-variant')).toBe('bar')
   })
 
   it('滿 30 秒自動停止並提示', async () => {
@@ -544,8 +551,10 @@ describe('錄音流程', () => {
   it('試聽可以播放；重錄回到錄音畫面；返回不送出任何東西', async () => {
     const wrapper = await goSpeak()
     await recordOnce(wrapper)
-    await click_(wrapper, 'preview-play')
-    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled()
+    const preview = byId(wrapper, 'preview-play')
+    expect(preview.attributes('data-url')).toBe('blob:audio')
+    expect(preview.attributes('data-variant')).toBe('bar')
+    expect(preview.attributes('data-known-seconds')).toBe('0') // 假的計時沒有走秒，錄音秒數照實傳入
     await click_(wrapper, 're-record')
     expect(byId(wrapper, 'step-record').exists()).toBe(true)
     await click_(wrapper, 'record-start')
@@ -690,26 +699,82 @@ describe('說法卡的錄音', () => {
     expect(plain.findAll('[data-testid="name-recording"]')).toHaveLength(0)
   })
 
-  it('自己的錄音：顯示「你的錄音」，可試聽、重錄、刪除；刪除要二次確認，確認後只刪該部落', async () => {
+  it('自己的錄音：平常只有一顆「編輯我的錄音」，沒有第二顆播放圖示或並排的重錄、刪除', () => {
+    const wrapper = mountFlow({ summary: withRecordings, mine: mineRows })
+    const mineBlock = byId(wrapper, 'my-recording')
+    expect(mineBlock.text()).toContain('編輯我的錄音')
+    expect(mineBlock.find('svg').exists()).toBe(true) // 鉛筆圖示
+    expect(byId(wrapper, 'my-edit-panel').exists()).toBe(false)
+    expect(byId(wrapper, 'my-play').exists()).toBe(false)
+    expect(byId(wrapper, 'my-re-record').exists()).toBe(false)
+    expect(byId(wrapper, 'my-delete').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('你的錄音')
+  })
+
+  it('按「編輯我的錄音」展開面板（試聽自己的錄音、重錄、刪除、收起）；再按或按收起就收回', async () => {
+    const wrapper = mountFlow({ summary: withRecordings, mine: mineRows })
+    await click_(wrapper, 'my-edit')
+    expect(byId(wrapper, 'my-edit-panel').text()).toContain('你的錄音')
+    expect(byId(wrapper, 'my-play').attributes('data-url')).toBe('https://s3.test/mine.m4a')
+    expect(byId(wrapper, 'my-re-record').exists()).toBe(true)
+    expect(byId(wrapper, 'my-delete').exists()).toBe(true)
+    await click_(wrapper, 'my-collapse')
+    expect(byId(wrapper, 'my-edit-panel').exists()).toBe(false)
+    await click_(wrapper, 'my-edit')
+    await click_(wrapper, 'my-edit')
+    expect(byId(wrapper, 'my-edit-panel').exists()).toBe(false)
+  })
+
+  it('面板一次只開一個部落', async () => {
     const mine = [...mineRows, { tribe: 'iratay', name: null, food_category: 'rahet', recording_url: 'https://s3.test/mine2.m4a' }]
     const wrapper = mountFlow({ summary: withRecordings, mine })
-    const first = wrapper.findAll('[data-testid="my-recording"]')[0]
-    expect(first.text()).toContain('你的錄音')
-    await first.find('[data-testid="my-delete"]').trigger('click')
+    const edits = () => wrapper.findAll('[data-testid="my-edit"]')
+    await edits()[0].trigger('click')
+    await edits()[1].trigger('click')
+    expect(wrapper.findAll('[data-testid="my-edit-panel"]')).toHaveLength(1)
+    expect(byId(wrapper, 'my-play').attributes('data-url')).toBe('https://s3.test/mine2.m4a')
+  })
+
+  it('刪除要二次確認；還有叫法或分類時說明「叫法與分類會保留」，確認後只刪該部落', async () => {
+    const mine = [...mineRows, { tribe: 'iratay', name: null, food_category: 'rahet', recording_url: 'https://s3.test/mine2.m4a' }]
+    const wrapper = mountFlow({ summary: withRecordings, mine })
+    await wrapper.findAll('[data-testid="my-edit"]')[0].trigger('click')
+    await click_(wrapper, 'my-delete')
     expect(del).not.toHaveBeenCalled()
-    expect(first.text()).toContain('確定刪除？')
-    await first.find('[data-testid="delete-cancel"]').trigger('click')
+    expect(byId(wrapper, 'delete-message').text()).toBe('確定刪除這段錄音？叫法與分類會保留。')
+    expect(byId(wrapper, 'delete-confirm').text()).toBe('刪除')
+    await click_(wrapper, 'delete-cancel')
     expect(del).not.toHaveBeenCalled()
-    await first.find('[data-testid="my-delete"]').trigger('click')
-    await first.find('[data-testid="delete-confirm"]').trigger('click')
+    await click_(wrapper, 'my-delete')
+    await click_(wrapper, 'delete-confirm')
     expect(del).toHaveBeenCalledTimes(1)
     expect(del.mock.calls[0][0]).toBe('/fish/5/responses/recording')
     expect(del.mock.calls[0][1]).toEqual({ tribe: 'yayo' })
+    expect(byId(wrapper, 'my-edit-panel').exists()).toBe(false) // 刪除成功後收起面板
+  })
+
+  it('只有分類沒有叫法時刪除錄音，同樣說明叫法與分類會保留', async () => {
+    const wrapper = mountFlow({ summary: withRecordings, mine: [{ tribe: 'iratay', name: null, food_category: 'rahet', recording_url: 'https://s3.test/mine2.m4a' }] })
+    await click_(wrapper, 'my-edit')
+    await click_(wrapper, 'my-delete')
+    expect(byId(wrapper, 'delete-message').text()).toContain('叫法與分類會保留')
+  })
+
+  it('錄音是唯一內容時，確認文字明講整筆說法也會刪除，確認鈕寫「刪除說法」', async () => {
+    const wrapper = mountFlow({ summary: withRecordings, mine: [{ tribe: 'yayo', name: null, food_category: null, recording_url: 'https://s3.test/only.m4a' }] })
+    await click(wrapper, '看大家怎麼說') // 只有錄音、還沒分類：先是「繼續」提示
+    await click_(wrapper, 'my-edit')
+    await click_(wrapper, 'my-delete')
+    expect(byId(wrapper, 'delete-message').text()).toBe('這個部落你只有這段錄音，刪除後這筆說法也會一起刪除。確定嗎？')
+    expect(byId(wrapper, 'delete-confirm').text()).toBe('刪除說法')
+    await click_(wrapper, 'delete-confirm')
+    expect(del).toHaveBeenCalledWith('/fish/5/responses/recording', { tribe: 'yayo' }, expect.anything())
   })
 
   it('刪除失敗顯示訊息並保留確認列，可以再試', async () => {
     del.mockReturnValueOnce({ errors: { recording: '刪除失敗，請重試' } })
     const wrapper = mountFlow({ summary: withRecordings, mine: mineRows })
+    await click_(wrapper, 'my-edit')
     await click_(wrapper, 'my-delete')
     await click_(wrapper, 'delete-confirm')
     expect(byId(wrapper, 'delete-error').text()).toContain('刪除失敗')
@@ -723,6 +788,7 @@ describe('說法卡的錄音', () => {
     fetch.mockResolvedValueOnce(SIGN).mockResolvedValueOnce({ ok: true })
     const mine = [{ tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording_url: 'https://s3.test/mine.m4a' }]
     const wrapper = mountFlow({ summary: withRecordings, mine })
+    await click_(wrapper, 'my-edit')
     await click_(wrapper, 'my-re-record')
     expect(byId(wrapper, 'step-record').exists()).toBe(true)
     await click_(wrapper, 'record-start')
@@ -739,6 +805,7 @@ describe('說法卡的錄音', () => {
   it('重錄中途返回：保留原本的錄音，不送出', async () => {
     stubRecording()
     const wrapper = mountFlow({ summary: withRecordings, mine: mineRows })
+    await click_(wrapper, 'my-edit')
     await click_(wrapper, 'my-re-record')
     await wrapper.find('button[aria-label="返回"]').trigger('click')
     expect(byId(wrapper, 'step-others').exists()).toBe(true)
@@ -803,15 +870,18 @@ describe('取消、失敗與退路（審查意見）', () => {
     const slow = deferred()
     routeFetch([slow.promise, signOf('pending-new.m4a')])
     const wrapper = mountFlow({ summary: summaryRows, mine: rows })
-    const reRecordButtons = () => wrapper.findAll('[data-testid="my-re-record"]')
-    await reRecordButtons()[0].trigger('click') // yayo
+    const reRecord = async (index) => {
+      await wrapper.findAll('[data-testid="my-edit"]')[index].trigger('click')
+      await wrapper.find('[data-testid="my-re-record"]').trigger('click')
+    }
+    await reRecord(0) // yayo
     await click_(wrapper, 'record-start')
     await flushPromises()
     await click_(wrapper, 'record-stop')
     await flushPromises()
     await click_(wrapper, 'review-ok') // 上傳中
     await wrapper.find('button[aria-label="返回"]').trigger('click')
-    await reRecordButtons()[1].trigger('click') // iratay
+    await reRecord(1) // iratay
     await click_(wrapper, 'record-start')
     await flushPromises()
     await click_(wrapper, 'record-stop')
@@ -863,7 +933,8 @@ describe('取消、失敗與退路（審查意見）', () => {
     routeFetch([signOf('pending-1.m4a'), signOf('pending-2.m4a')])
     post.mockReturnValueOnce({ errors: { recording: '錄音儲存失敗，請重試' } })
     const wrapper = mountFlow({ summary: summaryRows, mine: rows })
-    await wrapper.findAll('[data-testid="my-re-record"]')[0].trigger('click')
+    await wrapper.find('[data-testid="my-edit"]').trigger('click')
+    await wrapper.find('[data-testid="my-re-record"]').trigger('click')
     await click_(wrapper, 'record-start')
     await flushPromises()
     await click_(wrapper, 'record-stop')
@@ -884,7 +955,8 @@ describe('取消、失敗與退路（審查意見）', () => {
     routeFetch([signOf('pending-1.m4a')])
     post.mockReturnValueOnce({ errors: { recording: '錄音檔不存在或太大，請重錄' } })
     const wrapper = mountFlow({ summary: summaryRows, mine: rows })
-    await wrapper.findAll('[data-testid="my-re-record"]')[0].trigger('click')
+    await wrapper.find('[data-testid="my-edit"]').trigger('click')
+    await wrapper.find('[data-testid="my-re-record"]').trigger('click')
     await click_(wrapper, 'record-start')
     await flushPromises()
     await click_(wrapper, 'record-stop')

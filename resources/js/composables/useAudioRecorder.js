@@ -38,6 +38,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
   const errorKind = ref('')
   const remaining = ref(maxSeconds)
   const autoStopped = ref(false)
+  const recordedSeconds = ref(0) // 這段錄音實際錄了幾秒（試聽顯示總秒數用）
 
   let session = 0 // 每次開始或重設就加一；舊的非同步工作發現編號不同就放棄
   let mediaRecorder = null
@@ -116,6 +117,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     timer = setTimeout(() => {
       autoStopped.value = true
       stop()
+      recordedSeconds.value = maxSeconds // 滿時間：計時器與倒數同時觸發，倒數可能還差一秒
     }, maxSeconds * MS_PER_SECOND)
     interval = setInterval(() => {
       if (remaining.value > 0) remaining.value--
@@ -160,6 +162,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     error.value = ''
     errorKind.value = ''
     autoStopped.value = false
+    recordedSeconds.value = 0
     audioBlob.value = null
     audioUrl.value = ''
     remaining.value = maxSeconds
@@ -180,6 +183,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
 
   function stop() {
     if (mediaRecorder && isRecording.value) {
+      recordedSeconds.value = maxSeconds - remaining.value
       mediaRecorder.stop()
       isRecording.value = false
       clearTimers()
@@ -201,6 +205,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     error.value = ''
     errorKind.value = ''
     autoStopped.value = false
+    recordedSeconds.value = 0
     remaining.value = maxSeconds
   }
 
@@ -209,5 +214,5 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     safeCloseAudioContext()
   })
 
-  return { isRecording, audioBlob, audioUrl, error, errorKind, remaining, autoStopped, ext, start, stop, reset }
+  return { isRecording, audioBlob, audioUrl, error, errorKind, remaining, autoStopped, recordedSeconds, ext, start, stop, reset }
 }

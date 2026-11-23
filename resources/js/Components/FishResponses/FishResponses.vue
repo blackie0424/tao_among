@@ -59,8 +59,7 @@
       <button type="button" aria-label="返回" :class="backButton" @click="leaveRecording"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
       <p class="my-3 font-serif text-elder-name font-bold text-elder-text">這樣可以嗎？</p>
       <p v-if="recorder.autoStopped.value" aria-live="polite" class="mb-2 text-elder-aux text-elder-subtext" data-testid="auto-stopped">已錄滿 {{ RECORDING_MAX_SECONDS }} 秒，自動停止。</p>
-      <audio ref="previewAudio" :src="recorder.audioUrl.value" class="hidden"></audio>
-      <button type="button" :class="bigButton" data-testid="preview-play" @click="playPreview">▶ 聽聽看</button>
+      <RecordingPlayButton :src="recorder.audioUrl.value" variant="bar" :known-seconds="recorder.recordedSeconds.value" idle-label="聽聽看" ended-label="再聽一次" error-label="無法播放，請重錄" data-testid="preview-play" />
       <button type="button" :disabled="uploading" class="mt-3 w-full min-h-touch-secondary bg-brand text-elder-body font-bold text-white disabled:opacity-60" data-testid="review-ok" @click="confirmRecording">{{ uploading ? '上傳中…' : 'OK' }}</button>
       <button type="button" :disabled="uploading" :class="[bigButton, 'mt-3']" data-testid="re-record" @click="reRecord">重錄</button>
       <p v-if="uploadError" role="alert" class="mt-2 text-elder-body text-red-700" data-testid="upload-error">{{ uploadError }}</p>
@@ -130,28 +129,39 @@
               <template v-for="(n, i) in item.names" :key="n.name">
                 <span v-if="i">、</span>
                 <span :class="isMyName(item, n.name) && 'font-bold text-amber-700'" :data-mine="isMyName(item, n.name) ? 'true' : undefined">{{ n.name }}<template v-if="isMyName(item, n.name)"> ✔</template></span>
-                <Volume v-if="n.recording_url" :audioUrl="n.recording_url" data-testid="name-recording" />
+                <RecordingPlayButton v-if="n.recording_url" :src="n.recording_url" data-testid="name-recording" />
               </template>
             </template>
             <template v-else-if="!item.recordings_only?.length">—</template>
             <span v-if="item.recordings_only?.length" class="ml-2" data-testid="recordings-only">
               <span class="text-elder-subtext">只有錄音</span>
-              <Volume v-for="r in item.recordings_only" :key="r.recording_url" :audioUrl="r.recording_url" data-testid="only-recording" />
+              <RecordingPlayButton v-for="r in item.recordings_only" :key="r.recording_url" :src="r.recording_url" data-testid="only-recording" />
             </span>
           </p>
-          <div v-if="mineOf(item)?.recording_url" class="mt-1" data-testid="my-recording">
-            <span class="mr-2 text-elder-subtext">你的錄音</span>
-            <Volume :audioUrl="mineOf(item).recording_url" />
-            <template v-if="confirmingDelete === item.tribe">
-              <span class="ml-2 text-elder-body text-elder-text">確定刪除？</span>
-              <button type="button" class="ml-2 min-h-touch-secondary border-2 border-red-700 px-3 text-elder-body text-red-700" data-testid="delete-confirm" @click="deleteRecording(item.tribe)">刪除</button>
-              <button type="button" class="ml-2 min-h-touch-secondary border-2 border-rule-strong px-3 text-elder-body" data-testid="delete-cancel" @click="confirmingDelete = null">不要</button>
-            </template>
-            <template v-else>
-              <button type="button" class="ml-2 min-h-touch-secondary border-2 border-rule-strong px-3 text-elder-body" data-testid="my-re-record" @click="startReRecord(item.tribe)">重錄</button>
-              <button type="button" class="ml-2 min-h-touch-secondary border-2 border-rule-strong px-3 text-elder-body" data-testid="my-delete" @click="confirmingDelete = item.tribe">刪除</button>
-            </template>
-            <p v-if="deleteForm.errors.recording && confirmingDelete === item.tribe" role="alert" class="text-elder-body text-red-700" data-testid="delete-error">{{ deleteForm.errors.recording }}</p>
+          <div v-if="mineOf(item)?.recording_url" class="mt-2" data-testid="my-recording">
+            <button type="button" class="inline-flex min-h-touch-secondary items-center gap-2 border-2 border-rule-strong bg-white px-3 text-elder-body text-elder-text" :aria-expanded="editingTribe === item.tribe" data-testid="my-edit" @click="toggleEdit(item.tribe)">
+              <svg class="h-5 w-5 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+              編輯我的錄音
+            </button>
+            <div v-if="editingTribe === item.tribe" class="mt-2 border-2 border-brand bg-white p-3" data-testid="my-edit-panel">
+              <p class="mb-2 text-elder-body text-elder-subtext">你的錄音</p>
+              <RecordingPlayButton :src="mineOf(item).recording_url" data-testid="my-play" />
+              <template v-if="confirmingDelete === item.tribe">
+                <p class="mt-3 text-elder-body font-bold text-elder-text" data-testid="delete-message">{{ onlyRecording(item) ? DELETE_ONLY_RECORDING_MESSAGE : DELETE_RECORDING_MESSAGE }}</p>
+                <div class="mt-2 flex gap-3">
+                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-red-700 bg-red-700 px-3 text-elder-body font-bold text-white" data-testid="delete-confirm" @click="deleteRecording(item.tribe)">{{ onlyRecording(item) ? '刪除說法' : '刪除' }}</button>
+                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong px-3 text-elder-body" data-testid="delete-cancel" @click="confirmingDelete = null">不要</button>
+                </div>
+                <p v-if="deleteForm.errors.recording" role="alert" class="mt-2 text-elder-body text-red-700" data-testid="delete-error">{{ deleteForm.errors.recording }}</p>
+              </template>
+              <template v-else>
+                <div class="mt-3 flex gap-3">
+                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong px-3 text-elder-body" data-testid="my-re-record" @click="startReRecord(item.tribe)">重錄</button>
+                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong px-3 text-elder-body" data-testid="my-delete" @click="confirmingDelete = item.tribe">刪除</button>
+                </div>
+                <button type="button" :class="linkButton" data-testid="my-collapse" @click="toggleEdit(item.tribe)">收起</button>
+              </template>
+            </div>
           </div>
           <p class="mt-1 break-words text-elder-aux text-elder-text" data-testid="tribe-categories">
             <span class="mr-2 text-elder-subtext">分類</span>
@@ -176,7 +186,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
-import Volume from '@/Components/UI/Volume.vue'
+import RecordingPlayButton from '@/Components/FishResponses/RecordingPlayButton.vue'
 import { apiFetch } from '@/utils/apiFetch'
 import { useAudioRecorder } from '@/composables/useAudioRecorder.js'
 
@@ -191,6 +201,8 @@ const props = defineProps({
 // 錄音最長秒數（與驗收條件一致：30 秒）
 const RECORDING_MAX_SECONDS = 30
 const SECONDS_PER_MINUTE = 60
+const DELETE_RECORDING_MESSAGE = '確定刪除這段錄音？叫法與分類會保留。'
+const DELETE_ONLY_RECORDING_MESSAGE = '這個部落你只有這段錄音，刪除後這筆說法也會一起刪除。確定嗎？'
 const UPLOAD_FAILED_MESSAGE = '錄音上傳失敗，請再按一次 OK，或改用打的'
 
 const bigButton = 'w-full min-h-[3.5rem] border-2 border-rule-strong bg-white px-2 text-elder-body text-elder-text'
@@ -214,7 +226,7 @@ const uploadError = ref('')
 const micAsked = ref(false) // 第一次錄音前先說明會用到麥克風
 const rerecordTribe = ref(null) // 從結果重錄某個部落的錄音時，部落已固定
 const confirmingDelete = ref(null)
-const previewAudio = ref(null)
+const editingTribe = ref(null) // 結果頁展開「編輯我的錄音」面板的部落（一次只開一個）
 let uploadSeq = 0 // 每次取消就加一；舊的上傳回來發現編號不同就放棄，不再往下走
 
 // 魚目前的名字；「我不知道」不列為選項，這時第一題直接問叫什麼
@@ -284,10 +296,6 @@ function chooseSpeak() {
 async function startRecord() {
   micAsked.value = true
   await recorder.start()
-}
-
-function playPreview() {
-  previewAudio.value?.play?.()
 }
 
 // 重錄：丟掉還沒送出的錄音，回到錄音畫面
@@ -388,8 +396,20 @@ function finishRecording() {
   pendingRecording.value = null
 }
 
+function toggleEdit(tribe) {
+  editingTribe.value = editingTribe.value === tribe ? null : tribe
+  confirmingDelete.value = null
+}
+
+// 刪除後叫法、分類、錄音都沒有時，整筆說法會一起刪除
+function onlyRecording(item) {
+  const row = mineOf(item)
+  return !row?.name && !row?.food_category
+}
+
 function startReRecord(tribe) {
   rerecordTribe.value = tribe
+  editingTribe.value = null
   confirmingDelete.value = null
   reRecord()
 }
@@ -400,6 +420,7 @@ function deleteRecording(tribe) {
     preserveScroll: true,
     onSuccess: () => {
       confirmingDelete.value = null
+      editingTribe.value = null
     },
   })
 }
@@ -469,6 +490,7 @@ function startOver() {
   backStep.value = null
   rerecordTribe.value = null
   confirmingDelete.value = null
+  editingTribe.value = null
   uploadError.value = ''
   finishRecording()
   step.value = firstQuestion()

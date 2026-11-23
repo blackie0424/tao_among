@@ -167,4 +167,24 @@ describe('useAudioRecorder', () => {
     expect(recorder.audioBlob.value.size).toBe(2)
     expect(tracks[0].stop).toHaveBeenCalled()
   })
+
+  it('記下錄了幾秒：手動停止是實際秒數，滿時間自動停止是最長秒數，reset 後歸零', async () => {
+    vi.useFakeTimers()
+    stubBrowser()
+    const manual = useAudioRecorder({ maxSeconds: 30 })
+    await manual.start()
+    vi.advanceTimersByTime(7000)
+    manual.stop()
+    expect(manual.recordedSeconds.value).toBe(7)
+    expect(manual.remaining.value).toBe(0)
+
+    const auto = useAudioRecorder({ maxSeconds: 5 })
+    await auto.start()
+    vi.advanceTimersByTime(5000)
+    await flushPromises()
+    expect(auto.recordedSeconds.value).toBe(5)
+
+    manual.reset()
+    expect(manual.recordedSeconds.value).toBe(0)
+  })
 })
