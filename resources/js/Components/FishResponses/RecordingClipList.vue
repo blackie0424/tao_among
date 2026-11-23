@@ -1,6 +1,6 @@
 <template>
   <div v-if="clips.length" data-testid="clip-list">
-    <p class="mt-2 mb-1 text-elder-aux text-elder-subtext">有人只用說的</p>
+    <p v-if="showLabel" class="mt-2 mb-1 text-elder-aux text-elder-subtext">{{ label }}</p>
     <div
       v-for="(clip, index) in visibleClips"
       :key="clip.recording_url"
@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import RecordingPlayButton from '@/Components/FishResponses/RecordingPlayButton.vue'
 
 // 沒有文字的錄音一段一列；預設先顯示前 3 段，超過才收合
@@ -42,9 +42,18 @@ const PREVIEW_COUNT = 3
 
 const props = defineProps({
   clips: { type: Array, default: () => [] }, // [{ recording_url, recording_seconds }]，最早的在前
+  showLabel: { type: Boolean, default: true }, // 叫法下面的清單不需要標題
+  label: { type: String, default: '有人只用說的' },
 })
 
 const expanded = ref(false)
+// 段數降到 3 段以內時，「全部展開」的狀態一併清除；之後再超過 3 段，回到先顯示前 3 段
+watch(
+  () => props.clips.length,
+  (count) => {
+    if (count <= PREVIEW_COUNT) expanded.value = false
+  }
+)
 const visibleClips = computed(() => (expanded.value ? props.clips : props.clips.slice(0, PREVIEW_COUNT)))
 const hiddenCount = computed(() => (expanded.value ? 0 : Math.max(0, props.clips.length - PREVIEW_COUNT)))
 </script>

@@ -260,8 +260,9 @@ class FishTribeResponse extends Model
     }
 
     /**
-     * @return list<array{name: string, count: int, recording_url?: string, recording_seconds?: int|null}> 人數多者在前，同數依該寫法最早被送出的時間；
-     *                                                                                                     該組最早送出的錄音網址放在 recording_url，沒人錄音就沒有這個欄位
+     * @return list<array{name: string, count: int, recordings: list<array{recording_url: string, recording_seconds: int|null}>}>
+     *                                                                                                                            人數多者在前，同數依該寫法最早被送出的時間；
+     *                                                                                                                            recordings＝該組「其他人」（排除 $viewerId）的全部錄音，依錄音送出時間由早到晚
      */
     private static function groupNames($rows, ?int $viewerId): array
     {
@@ -272,10 +273,10 @@ class FishTribeResponse extends Model
                 continue;
             }
             $key = self::spellingKey($name);
-            $groups[$key] ??= ['name' => $name, 'count' => 0, 'recording' => null];
+            $groups[$key] ??= ['name' => $name, 'count' => 0, 'rows' => []];
             $groups[$key]['count']++;
-            if ($row->recording_filename !== null && $row->user_id !== $viewerId && self::recordedBefore($row, $groups[$key]['recording'])) {
-                $groups[$key]['recording'] = $row;
+            if ($row->recording_filename !== null && $row->user_id !== $viewerId) {
+                $groups[$key]['rows'][] = $row;
             }
         }
 
@@ -286,22 +287,26 @@ class FishTribeResponse extends Model
         return array_map(fn (array $group) => [
             'name' => $group['name'],
             'count' => $group['count'],
-            ...($group['recording'] === null ? [] : [
-                'recording_url' => self::recordingUrl($group['recording']->recording_filename),
-                'recording_seconds' => $group['recording']->recording_seconds,
-            ]),
+            'recordings' => self::recordingClips(collect($group['rows'])),
         ], $groups);
+    }
+
+    /** @return list<array{recording_url: string, recording_seconds: int|null}> 依錄音送出時間（相同時依編號）由早到晚 */
+    private static function recordingClips($rows): array
+    {
+        return $rows
+            ->sort(fn (self $a, self $b) => self::recordedBefore($a, $b) ? -1 : 1)
+            ->map(fn (self $row) => ['recording_url' => self::recordingUrl($row->recording_filename), 'recording_seconds' => $row->recording_seconds])
+            ->values()
+            ->all();
     }
 
     /** @return list<array{recording_url: string, recording_seconds: int|null}> 其他人沒有叫法、只有錄音的回答，依錄音送出時間（相同時依編號）排列 */
     private static function recordingsOnly($rows, ?int $viewerId): array
     {
-        return $rows
-            ->filter(fn (self $row) => trim((string) $row->name) === '' && $row->recording_filename !== null && $row->user_id !== $viewerId)
-            ->sort(fn (self $a, self $b) => self::recordedBefore($a, $b) ? -1 : 1)
-            ->map(fn (self $row) => ['recording_url' => self::recordingUrl($row->recording_filename), 'recording_seconds' => $row->recording_seconds])
-            ->values()
-            ->all();
+        return self::recordingClips(
+            $rows->filter(fn (self $row) => trim((string) $row->name) === '' && $row->recording_filename !== null && $row->user_id !== $viewerId)
+        );
     }
 
     /** 錄音是否比另一筆早送出：先比微秒精度的時間，相同再比編號。 */
