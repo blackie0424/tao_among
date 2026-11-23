@@ -554,7 +554,7 @@ describe('錄音流程', () => {
     const preview = byId(wrapper, 'preview-play')
     expect(preview.attributes('data-url')).toBe('blob:audio')
     expect(preview.attributes('data-variant')).toBe('bar')
-    expect(preview.attributes('data-known-seconds')).toBe('0') // 假的計時沒有走秒，錄音秒數照實傳入
+    expect(preview.attributes('data-known-seconds')).toBe('1') // 假的計時沒有走秒（不足一秒），仍記 1 秒傳入
     await click_(wrapper, 're-record')
     expect(byId(wrapper, 'step-record').exists()).toBe(true)
     await click_(wrapper, 'record-start')
