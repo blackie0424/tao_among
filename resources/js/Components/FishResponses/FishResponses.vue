@@ -120,50 +120,26 @@
           :data-mine="mineOf(item) ? 'true' : undefined"
           data-testid="response-tribe"
         >
-          <span class="font-serif text-elder-body font-bold text-elder-text">{{ item.tribe }}</span>
-          <span v-if="mineOf(item)" class="ml-2 text-elder-aux font-bold text-amber-700" aria-label="我選的">✔</span>
-          <span v-if="item.has_variants" class="ml-2 text-elder-aux text-elder-subtext" aria-label="有不同說法">≠</span>
-          <p class="mt-1 break-words text-elder-body text-elder-text" data-testid="tribe-names">
-            <span class="mr-2 text-elder-subtext">叫法</span>
-            <template v-if="item.names.length">
-              <template v-for="(n, i) in item.names" :key="n.name">
-                <span v-if="i">、</span>
-                <span :class="isMyName(item, n.name) && 'font-bold text-amber-700'" :data-mine="isMyName(item, n.name) ? 'true' : undefined">{{ n.name }}<template v-if="isMyName(item, n.name)"> ✔</template></span>
-                <RecordingPlayButton v-if="n.recording_url" :src="n.recording_url" :known-seconds="n.recording_seconds" data-testid="name-recording" />
-              </template>
-            </template>
-            <template v-else-if="!item.recordings_only?.length">—</template>
-            <span v-if="item.recordings_only?.length" class="ml-2" data-testid="recordings-only">
-              <span class="text-elder-subtext">只有錄音</span>
-              <RecordingPlayButton v-for="r in item.recordings_only" :key="r.recording_url" :src="r.recording_url" :known-seconds="r.recording_seconds" data-testid="only-recording" />
-            </span>
+          <p class="flex items-center gap-2 font-serif text-elder-body font-bold text-elder-text">
+            <span>{{ item.tribe }}</span>
+            <span v-if="mineOf(item)" class="text-elder-aux font-bold text-amber-700" aria-label="我選的">✔</span>
+            <span v-if="item.has_variants" class="ml-auto border border-rule px-2 text-elder-aux font-normal text-elder-subtext" aria-label="有不同說法">≠ 有不同說法</span>
           </p>
-          <div v-if="mineOf(item)?.recording_url" class="mt-2" data-testid="my-recording">
-            <button type="button" class="inline-flex min-h-touch-secondary items-center gap-2 border-2 border-rule-strong bg-white px-3 text-elder-body text-elder-text" :aria-expanded="editingTribe === item.tribe" data-testid="my-edit" @click="toggleEdit(item.tribe)">
-              <svg class="h-5 w-5 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-              編輯我的錄音
-            </button>
-            <div v-if="editingTribe === item.tribe" class="mt-2 border-2 border-brand bg-white p-3" data-testid="my-edit-panel">
-              <p class="mb-2 text-elder-body text-elder-subtext">你的錄音</p>
-              <RecordingPlayButton :src="mineOf(item).recording_url" :known-seconds="mineOf(item).recording_seconds" data-testid="my-play" />
-              <template v-if="confirmingDelete === item.tribe">
-                <p class="mt-3 text-elder-body font-bold text-elder-text" data-testid="delete-message">{{ onlyRecording(item) ? DELETE_ONLY_RECORDING_MESSAGE : DELETE_RECORDING_MESSAGE }}</p>
-                <div class="mt-2 flex gap-3">
-                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-red-700 bg-red-700 px-3 text-elder-body font-bold text-white" data-testid="delete-confirm" @click="deleteRecording(item.tribe)">{{ onlyRecording(item) ? '刪除說法' : '刪除' }}</button>
-                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong px-3 text-elder-body" data-testid="delete-cancel" @click="confirmingDelete = null">不要</button>
-                </div>
-                <p v-if="deleteForm.errors.recording" role="alert" class="mt-2 text-elder-body text-red-700" data-testid="delete-error">{{ deleteForm.errors.recording }}</p>
-              </template>
-              <template v-else>
-                <div class="mt-3 flex gap-3">
-                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong px-3 text-elder-body" data-testid="my-re-record" @click="startReRecord(item.tribe)">重錄</button>
-                  <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong px-3 text-elder-body" data-testid="my-delete" @click="confirmingDelete = item.tribe">刪除</button>
-                </div>
-                <button type="button" :class="linkButton" data-testid="my-collapse" @click="toggleEdit(item.tribe)">收起</button>
-              </template>
+          <p class="mt-2 text-elder-aux text-elder-subtext">大家的說法</p>
+          <div data-testid="tribe-names">
+            <div
+              v-for="n in item.names"
+              :key="n.name"
+              class="flex min-h-[3rem] items-center justify-between border-t border-rule text-elder-body text-elder-text"
+              data-testid="name-row"
+            >
+              <span class="break-words" :class="isMyName(item, n.name) && 'font-bold text-amber-700'" :data-mine="isMyName(item, n.name) ? 'true' : undefined">{{ n.name }}<template v-if="isMyName(item, n.name)"> ✔</template></span>
+              <RecordingPlayButton v-if="n.recording_url" :src="n.recording_url" :known-seconds="n.recording_seconds" data-testid="name-recording" />
             </div>
+            <p v-if="!item.names.length && !item.recordings_only?.length" class="flex min-h-[3rem] items-center border-t border-rule text-elder-body text-elder-subtext" data-testid="no-names">目前沒有人提供叫法</p>
           </div>
-          <p class="mt-1 break-words text-elder-aux text-elder-text" data-testid="tribe-categories">
+          <RecordingClipList :clips="item.recordings_only ?? []" />
+          <p class="mt-1 break-words border-t border-rule pt-2 text-elder-aux text-elder-text" data-testid="tribe-categories">
             <span class="mr-2 text-elder-subtext">分類</span>
             <template v-if="selectedCategories(item).length">
               <template v-for="(category, i) in selectedCategories(item)" :key="category.value">
@@ -173,6 +149,42 @@
             </template>
             <template v-else>—</template>
           </p>
+          <div v-if="mineOf(item)" class="mt-3 border border-rule-strong bg-paper p-3" data-testid="my-answer">
+            <p class="text-elder-aux font-bold text-brand">我的回答</p>
+            <p class="mt-1 text-elder-body text-elder-text" data-testid="my-answer-text">
+              <span class="text-elder-subtext">叫法</span> <b v-if="mineOf(item).name">{{ mineOf(item).name }}</b><template v-else>（沒有打字）</template>
+              <span class="ml-3 text-elder-subtext">分類</span> {{ mineOf(item).food_category || '—' }}
+            </p>
+            <div v-if="mineOf(item).recording_url" class="mt-2" data-testid="my-recording">
+              <div class="flex items-center gap-2 text-elder-body text-elder-text">
+                <span class="text-elder-subtext">我的錄音</span>
+                <RecordingPlayButton :src="mineOf(item).recording_url" :known-seconds="mineOf(item).recording_seconds" data-testid="my-play" />
+              </div>
+              <button type="button" class="mt-2 inline-flex min-h-touch-secondary items-center gap-2 border-2 border-rule-strong bg-white px-3 text-elder-body text-elder-text" :aria-expanded="editingTribe === item.tribe" data-testid="my-edit" @click="toggleEdit(item.tribe)">
+                <svg class="h-5 w-5 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+                修改我的錄音
+              </button>
+              <div v-if="editingTribe === item.tribe" class="mt-2" data-testid="my-edit-panel">
+                <template v-if="confirmingDelete === item.tribe">
+                  <div class="border-2 border-red-700 bg-white p-2">
+                    <p class="text-elder-body font-bold text-elder-text" data-testid="delete-message">{{ onlyRecording(item) ? DELETE_ONLY_RECORDING_MESSAGE : DELETE_RECORDING_MESSAGE }}</p>
+                    <div class="mt-2 flex gap-3">
+                      <button type="button" class="min-h-touch-secondary flex-1 border-2 border-red-700 bg-red-700 px-3 text-elder-body font-bold text-white" data-testid="delete-confirm" @click="deleteRecording(item.tribe)">{{ onlyRecording(item) ? '刪除說法' : '刪除' }}</button>
+                      <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong px-3 text-elder-body" data-testid="delete-cancel" @click="confirmingDelete = null">不要</button>
+                    </div>
+                    <p v-if="deleteForm.errors.recording" role="alert" class="mt-2 text-elder-body text-red-700" data-testid="delete-error">{{ deleteForm.errors.recording }}</p>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex gap-3">
+                    <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong bg-white px-3 text-elder-body" data-testid="my-re-record" @click="startReRecord(item.tribe)">重錄</button>
+                    <button type="button" class="min-h-touch-secondary flex-1 border-2 border-rule-strong bg-white px-3 text-elder-body" data-testid="my-delete" @click="confirmingDelete = item.tribe">刪除錄音</button>
+                  </div>
+                  <button type="button" :class="linkButton" data-testid="my-collapse" @click="toggleEdit(item.tribe)">收起</button>
+                </template>
+              </div>
+            </div>
+          </div>
         </li>
       </ul>
       <button v-if="mine.length" type="button" :class="[bigButton, 'mt-4']" @click="startOver">繼續提供說法</button>
@@ -186,6 +198,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
+import RecordingClipList from '@/Components/FishResponses/RecordingClipList.vue'
 import RecordingPlayButton from '@/Components/FishResponses/RecordingPlayButton.vue'
 import { apiFetch } from '@/utils/apiFetch'
 import { useAudioRecorder } from '@/composables/useAudioRecorder.js'

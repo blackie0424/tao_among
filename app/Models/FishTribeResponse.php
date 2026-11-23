@@ -214,21 +214,22 @@ class FishTribeResponse extends Model
     /**
      * 各部落說法彙總（依設定檔的部落順序）。
      * 人數＝說出相同寫法的不同使用者數；寫法以去前後空白、不分大小寫判斷相同。
+     * 錄音只取「其他人」的：排除 $viewerId 自己的（自己的錄音在 answersOf，畫面上放在「我的回答」）。
      */
-    public static function summaryForFish(int $fishId): array
+    public static function summaryForFish(int $fishId, ?int $viewerId = null): array
     {
         $byTribe = self::where('fish_id', $fishId)->orderBy('name_submitted_at')->orderBy('id')->get()->groupBy('tribe');
         $categories = self::selectableFoodCategories();
 
-        return array_map(function (string $tribe) use ($byTribe, $categories) {
+        return array_map(function (string $tribe) use ($byTribe, $categories, $viewerId) {
             $rows = $byTribe->get($tribe, collect());
-            $names = self::groupNames($rows);
+            $names = self::groupNames($rows, $viewerId);
 
             return [
                 'tribe' => $tribe,
                 'has_responses' => $rows->isNotEmpty(),
                 'names' => $names,
-                'recordings_only' => self::recordingsOnly($rows),
+                'recordings_only' => self::recordingsOnly($rows, $viewerId),
                 'has_variants' => count($names) > 1,
                 'categories' => array_map(fn (string $category) => [
                     'value' => $category,
@@ -262,7 +263,7 @@ class FishTribeResponse extends Model
      * @return list<array{name: string, count: int, recording_url?: string, recording_seconds?: int|null}> 人數多者在前，同數依該寫法最早被送出的時間；
      *                                                                                                     該組最早送出的錄音網址放在 recording_url，沒人錄音就沒有這個欄位
      */
-    private static function groupNames($rows): array
+    private static function groupNames($rows, ?int $viewerId): array
     {
         $groups = [];
         foreach ($rows as $row) {
@@ -273,7 +274,7 @@ class FishTribeResponse extends Model
             $key = self::spellingKey($name);
             $groups[$key] ??= ['name' => $name, 'count' => 0, 'recording' => null];
             $groups[$key]['count']++;
-            if ($row->recording_filename !== null && self::recordedBefore($row, $groups[$key]['recording'])) {
+            if ($row->recording_filename !== null && $row->user_id !== $viewerId && self::recordedBefore($row, $groups[$key]['recording'])) {
                 $groups[$key]['recording'] = $row;
             }
         }
@@ -292,11 +293,11 @@ class FishTribeResponse extends Model
         ], $groups);
     }
 
-    /** @return list<array{recording_url: string, recording_seconds: int|null}> 沒有叫法、只有錄音的回答，依錄音送出時間（相同時依編號）排列 */
-    private static function recordingsOnly($rows): array
+    /** @return list<array{recording_url: string, recording_seconds: int|null}> 其他人沒有叫法、只有錄音的回答，依錄音送出時間（相同時依編號）排列 */
+    private static function recordingsOnly($rows, ?int $viewerId): array
     {
         return $rows
-            ->filter(fn (self $row) => trim((string) $row->name) === '' && $row->recording_filename !== null)
+            ->filter(fn (self $row) => trim((string) $row->name) === '' && $row->recording_filename !== null && $row->user_id !== $viewerId)
             ->sort(fn (self $a, self $b) => self::recordedBefore($a, $b) ? -1 : 1)
             ->map(fn (self $row) => ['recording_url' => self::recordingUrl($row->recording_filename), 'recording_seconds' => $row->recording_seconds])
             ->values()

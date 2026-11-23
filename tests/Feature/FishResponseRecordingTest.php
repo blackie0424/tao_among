@@ -626,7 +626,8 @@ it('breaks ties on recording time by response id', function () {
     recordingRow($u1, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => $same, 'recording_filename' => 'first.m4a', 'recording_submitted_at' => $same]);
     recordingRow($u2, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => $same, 'recording_filename' => 'second.m4a', 'recording_submitted_at' => $same]);
 
-    $summary = tribeSummary(responsesFor($u1, $fish), 'yayo');
+    $viewer = User::factory()->create(['role' => 'viewer']);
+    $summary = tribeSummary(responsesFor($viewer, $fish), 'yayo');
 
     expect($summary['names'][0]['recording_url'])->toBe('https://s3.test/response_audio/first.m4a');
 });
@@ -639,7 +640,8 @@ it('lists recording-only responses of a tribe in recording order and counts them
     recordingRow($u2, $fish, 'imowrod', ['recording_filename' => 'first.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000001', 'food_category' => 'oyod']);
     recordingRow($u3, $fish, 'imowrod', ['name' => 'rakan', 'name_submitted_at' => '2026-11-21 09:00:00.000001']);
 
-    $responses = responsesFor($u1, $fish);
+    $viewer = User::factory()->create(['role' => 'viewer']);
+    $responses = responsesFor($viewer, $fish);
     $summary = tribeSummary($responses, 'imowrod');
 
     expect($summary['has_responses'])->toBeTrue()
@@ -784,4 +786,69 @@ it('gives the seconds of the earliest recording of a spelling group, of recordin
     expect($summary['names'][0]['recording_seconds'])->toBe(7)
         ->and($summary['recordings_only'][0]['recording_seconds'])->toBe(4)
         ->and($responses['mine'][0]['recording_seconds'])->toBe(20);
+});
+
+// ─── 修訂 5：說法卡的錄音排除查看者自己的 ───────────────────
+
+it('shows each viewer the earliest recording of others, never their own, in the same spelling group', function () {
+    [$me, $other, $third] = User::factory()->count(3)->create(['role' => 'viewer'])->all();
+    $fish = Fish::factory()->create();
+    recordingStorage();
+    recordingRow($me, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => '2026-11-21 09:00:00.000001', 'recording_filename' => 'mine-early.m4a', 'recording_seconds' => 10, 'recording_submitted_at' => '2026-11-21 10:00:00.000000']);
+    recordingRow($other, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => '2026-11-21 09:00:00.000002', 'recording_filename' => 'other-late.m4a', 'recording_seconds' => 9, 'recording_submitted_at' => '2026-11-21 11:00:00.000000']);
+    recordingRow($third, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => '2026-11-21 09:00:00.000003', 'recording_filename' => 'third-latest.m4a', 'recording_seconds' => 14, 'recording_submitted_at' => '2026-11-21 12:00:00.000000']);
+
+    $mine = tribeSummary(responsesFor($me, $fish), 'yayo')['names'][0];
+    $theirs = tribeSummary(responsesFor($other, $fish), 'yayo')['names'][0];
+
+    expect($mine['count'])->toBe(3)
+        ->and($mine['recording_url'])->toBe('https://s3.test/response_audio/other-late.m4a')
+        ->and($mine['recording_seconds'])->toBe(9)
+        ->and($theirs['count'])->toBe(3)
+        ->and($theirs['recording_url'])->toBe('https://s3.test/response_audio/mine-early.m4a');
+});
+
+it('attaches no recording to a group when the only recording is the viewer own, but keeps it in mine', function () {
+    [$me, $other] = User::factory()->count(2)->create(['role' => 'viewer'])->all();
+    $fish = Fish::factory()->create();
+    recordingStorage();
+    recordingRow($me, $fish, 'yayo', ['name' => 'dalakan', 'recording_filename' => 'mine.m4a', 'recording_seconds' => 10, 'recording_submitted_at' => '2026-11-21 10:00:00.000000']);
+    recordingRow($other, $fish, 'yayo', ['name' => 'dalakan']);
+
+    $responses = responsesFor($me, $fish);
+
+    expect(tribeSummary($responses, 'yayo')['names'])->toBe([['name' => 'dalakan', 'count' => 2]])
+        ->and($responses['mine'][0]['recording_url'])->toBe('https://s3.test/response_audio/mine.m4a')
+        ->and(array_keys(tribeSummary(responsesFor($other, $fish), 'yayo')['names'][0]))->toBe(['name', 'count', 'recording_url', 'recording_seconds']);
+});
+
+it('lists only the recordings of others as recording-only entries, and still counts the viewer', function () {
+    [$me, $a, $b] = User::factory()->count(3)->create(['role' => 'viewer'])->all();
+    $fish = Fish::factory()->create();
+    recordingStorage();
+    recordingRow($me, $fish, 'imowrod', ['recording_filename' => 'mine.m4a', 'recording_seconds' => 3, 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+    recordingRow($a, $fish, 'imowrod', ['recording_filename' => 'a.m4a', 'recording_seconds' => 5, 'recording_submitted_at' => '2026-11-21 10:00:00.000002']);
+    recordingRow($b, $fish, 'imowrod', ['recording_filename' => 'b.m4a', 'recording_seconds' => 8, 'recording_submitted_at' => '2026-11-21 10:00:00.000003']);
+
+    $responses = responsesFor($me, $fish);
+    $summary = tribeSummary($responses, 'imowrod');
+
+    expect($summary['recordings_only'])->toBe([
+        ['recording_url' => 'https://s3.test/response_audio/a.m4a', 'recording_seconds' => 5],
+        ['recording_url' => 'https://s3.test/response_audio/b.m4a', 'recording_seconds' => 8],
+    ])->and($summary['has_responses'])->toBeTrue()
+        ->and($responses['responders'])->toBe(3);
+});
+
+it('keeps a tribe with only the viewer recording-only response as a responded tribe with nothing to list', function () {
+    $me = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage();
+    recordingRow($me, $fish, 'imowrod', ['recording_filename' => 'mine.m4a', 'recording_seconds' => 3, 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+
+    $summary = tribeSummary(responsesFor($me, $fish), 'imowrod');
+
+    expect($summary['has_responses'])->toBeTrue()
+        ->and($summary['names'])->toBe([])
+        ->and($summary['recordings_only'])->toBe([]);
 });

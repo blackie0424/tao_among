@@ -255,4 +255,23 @@ describe('RecordingPlayButton 狀態', () => {
     expect(wrapper.find('[data-testid="play-time"]').text()).toBe('0:02')
     expect(wrapper.find('[data-testid="play-ring"]').attributes('data-indeterminate')).toBe('true')
   })
+
+  it('圓形版平常就顯示總秒數（有資料時），播放中換成已播／總秒數，播完回到總秒數', async () => {
+    const wrapper = mountCircle({ knownSeconds: 12 })
+    expect(wrapper.find('[data-testid="play-duration"]').text()).toBe('0:12')
+    await press(wrapper)
+    instances[0].emit('playing')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="play-duration"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="play-time"]').text()).toBe('0:00／0:12')
+    instances[0].emit('ended')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="play-duration"]').text()).toBe('0:12')
+  })
+
+  it('圓形版沒有秒數資料（舊資料）時，平常不顯示秒數', () => {
+    const wrapper = mountCircle()
+    expect(wrapper.find('[data-testid="play-duration"]').exists()).toBe(false)
+  })
 })
+

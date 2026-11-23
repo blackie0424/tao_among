@@ -54,6 +54,7 @@
       </button>
       <span v-if="state === 'playing'" class="text-elder-aux font-bold text-brand" data-testid="play-time">{{ timeText }}</span>
       <span v-else-if="state === 'error'" role="alert" class="text-elder-aux text-red-700" data-testid="play-error">{{ errorLabel }}，再按一次</span>
+      <span v-else-if="totalSeconds" class="text-elder-aux text-elder-subtext" data-testid="play-duration">{{ formatTime(totalSeconds) }}</span>
     </template>
   </span>
 </template>

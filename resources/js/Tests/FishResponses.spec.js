@@ -178,12 +178,13 @@ describe('FishResponses 回應人數與直接查看', () => {
     expect(post).not.toHaveBeenCalled()
   })
 
-  it('每個部落一張卡：叫法只列名稱（不含人數）', async () => {
+  it('每個部落一張卡：每個叫法一列，只列名稱（不含人數）', async () => {
     const wrapper = mountFlow({ summary: responded })
     await click(wrapper, '看大家怎麼說')
     const [yayo, iratay] = wrapper.findAll('[data-testid="response-tribe"]')
-    expect(yayo.find('[data-testid="tribe-names"]').text()).toBe('叫法dalakan、B')
-    expect(iratay.find('[data-testid="tribe-names"]').text()).toBe('叫法mamalan')
+    expect(yayo.findAll('[data-testid="name-row"]').map((row) => row.text())).toEqual(['dalakan', 'B'])
+    expect(iratay.findAll('[data-testid="name-row"]').map((row) => row.text())).toEqual(['mamalan'])
+    expect(yayo.text()).toContain('大家的說法')
   })
 
   it('分類逐項顯示人數、不列零人選項', async () => {
@@ -327,7 +328,7 @@ describe('FishResponses 顯示細節', () => {
   it('同一部落有兩種以上叫法時標「≠」（有不同說法），只有一種時不標', async () => {
     const many = mountFlow({ summary: summaryWith(['a', 'b']) })
     await click(many, '看大家怎麼說')
-    expect(many.find('[aria-label="有不同說法"]').text()).toBe('≠')
+    expect(many.find('[aria-label="有不同說法"]').text()).toBe('≠ 有不同說法')
     const one = mountFlow({ summary: summaryWith(['a']) })
     await click(one, '看大家怎麼說')
     expect(one.find('[aria-label="有不同說法"]').exists()).toBe(false)
@@ -680,50 +681,74 @@ describe('說法卡的錄音', () => {
   const mineRows = [{ tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording_url: 'https://s3.test/mine.m4a' }]
   const viewOthers = async (wrapper) => { await click(wrapper, '看大家怎麼說'); return wrapper }
 
-  it('有錄音的寫法旁邊有播放圖示、沒錄音的沒有；「只有錄音」每段一顆', async () => {
+  it('有其他人錄音的寫法，那一列右側有播放圖示、沒錄音的沒有；「有人只用說的」條列每一段', async () => {
     const wrapper = await viewOthers(mountFlow({ summary: withRecordings, mine: [] }))
     const yayo = wrapper.findAll('[data-testid="response-tribe"]')[0]
-    const names = yayo.find('[data-testid="tribe-names"]')
-    expect(names.findAll('[data-testid="name-recording"]').map((n) => n.attributes('data-url'))).toEqual(['https://s3.test/early.m4a'])
-    expect(names.text()).toContain('rakan')
-    expect(yayo.findAll('[data-testid="only-recording"]').map((n) => n.attributes('data-url'))).toEqual(['https://s3.test/o1.m4a', 'https://s3.test/o2.m4a'])
-    expect(yayo.find('[data-testid="recordings-only"]').text()).toContain('只有錄音')
+    const rows = yayo.findAll('[data-testid="name-row"]')
+    expect(rows.map((row) => row.text())).toEqual(['dalakan', 'rakan'])
+    expect(rows[0].find('[data-testid="name-recording"]').attributes('data-url')).toBe('https://s3.test/early.m4a')
+    expect(rows[1].find('[data-testid="name-recording"]').exists()).toBe(false)
+    expect(yayo.findAll('[data-testid="clip-row"]').map((row) => row.find('[data-url]').attributes('data-url'))).toEqual(['https://s3.test/o1.m4a', 'https://s3.test/o2.m4a'])
+    expect(yayo.text()).toContain('有人只用說的')
   })
 
-  it('只有錄音的部落叫法欄顯示「只有錄音」而不是破折號；沒有任何資料時才是破折號', async () => {
+  it('只有其他人錄音的部落：列出「有人只用說的」，不顯示「目前沒有人提供叫法」；沒有任何叫法與錄音才顯示', async () => {
     const wrapper = await viewOthers(mountFlow({ summary: withRecordings, mine: [] }))
     const iratay = wrapper.findAll('[data-testid="response-tribe"]')[1]
-    expect(iratay.find('[data-testid="tribe-names"]').text()).toContain('只有錄音')
-    expect(iratay.find('[data-testid="tribe-names"]').text()).not.toContain('—')
-    const plain = await viewOthers(mountFlow({ summary: responded, mine: [] }))
-    expect(plain.find('[data-testid="tribe-names"]').text()).not.toContain('只有錄音')
-    expect(plain.findAll('[data-testid="name-recording"]')).toHaveLength(0)
+    expect(iratay.findAll('[data-testid="clip-row"]')).toHaveLength(1)
+    expect(iratay.find('[data-testid="no-names"]').exists()).toBe(false)
+    const empty = [none[0], { tribe: 'yayo', has_responses: true, has_variants: false, names: [], recordings_only: [], categories: [{ value: 'oyod', count: 1 }] }]
+    const plain = await viewOthers(mountFlow({ summary: empty, mine: [] }))
+    expect(plain.find('[data-testid="no-names"]').text()).toBe('目前沒有人提供叫法')
+    expect(plain.find('[data-testid="tribe-names"]').text()).not.toContain('—')
   })
 
-  it('自己的錄音：平常只有一顆「編輯我的錄音」，沒有第二顆播放圖示或並排的重錄、刪除', () => {
+  it('自己的錄音：「我的回答」區平常只有一顆播放鈕與一個「修改我的錄音」，沒有並排的重錄、刪除', () => {
     const wrapper = mountFlow({ summary: withRecordings, mine: mineRows })
-    const mineBlock = byId(wrapper, 'my-recording')
-    expect(mineBlock.text()).toContain('編輯我的錄音')
-    expect(mineBlock.find('svg').exists()).toBe(true) // 鉛筆圖示
+    const answer = byId(wrapper, 'my-answer')
+    expect(answer.text()).toContain('我的回答')
+    expect(answer.find('[data-testid="my-answer-text"]').text()).toContain('dalakan')
+    expect(answer.findAll('[data-testid="my-play"]')).toHaveLength(1)
+    expect(byId(wrapper, 'my-edit').text()).toContain('修改我的錄音')
+    expect(byId(wrapper, 'my-edit').find('svg').exists()).toBe(true) // 鉛筆圖示
     expect(byId(wrapper, 'my-edit-panel').exists()).toBe(false)
-    expect(byId(wrapper, 'my-play').exists()).toBe(false)
     expect(byId(wrapper, 'my-re-record').exists()).toBe(false)
     expect(byId(wrapper, 'my-delete').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain('你的錄音')
   })
 
-  it('按「編輯我的錄音」展開面板（試聽自己的錄音、重錄、刪除、收起）；再按或按收起就收回', async () => {
+  it('自己的錄音只出現在「我的回答」：大家的說法裡沒有重複的播放鈕', () => {
+    const summaryOfOthers = [none[0], { tribe: 'yayo', has_responses: true, has_variants: false, names: [{ name: 'dalakan', count: 1 }], recordings_only: [], categories: [] }]
+    const wrapper = mountFlow({ summary: summaryOfOthers, mine: mineRows })
+    expect(wrapper.findAll('[data-testid="name-recording"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-testid="only-recording"]')).toHaveLength(0)
+    expect(byId(wrapper, 'my-play').attributes('data-url')).toBe('https://s3.test/mine.m4a')
+  })
+
+  it('按「修改我的錄音」展開重錄、刪除錄音、收起；再按或按收起就收回', async () => {
     const wrapper = mountFlow({ summary: withRecordings, mine: mineRows })
     await click_(wrapper, 'my-edit')
-    expect(byId(wrapper, 'my-edit-panel').text()).toContain('你的錄音')
-    expect(byId(wrapper, 'my-play').attributes('data-url')).toBe('https://s3.test/mine.m4a')
-    expect(byId(wrapper, 'my-re-record').exists()).toBe(true)
-    expect(byId(wrapper, 'my-delete').exists()).toBe(true)
+    expect(byId(wrapper, 'my-edit').attributes('aria-expanded')).toBe('true')
+    expect(byId(wrapper, 'my-re-record').text()).toBe('重錄')
+    expect(byId(wrapper, 'my-delete').text()).toBe('刪除錄音')
     await click_(wrapper, 'my-collapse')
     expect(byId(wrapper, 'my-edit-panel').exists()).toBe(false)
     await click_(wrapper, 'my-edit')
     await click_(wrapper, 'my-edit')
     expect(byId(wrapper, 'my-edit-panel').exists()).toBe(false)
+  })
+
+  it('沒有自己的錄音：「我的回答」只列叫法與分類，不顯示錄音列與修改按鈕；沒打字寫（沒有打字）', () => {
+    const rowsWithoutRecording = [{ tribe: 'yayo', name: null, food_category: 'oyod', recording_url: null, recording_seconds: null }]
+    const wrapper = mountFlow({ summary: withRecordings, mine: rowsWithoutRecording })
+    expect(byId(wrapper, 'my-answer-text').text()).toContain('（沒有打字）')
+    expect(byId(wrapper, 'my-answer-text').text()).toContain('oyod')
+    expect(byId(wrapper, 'my-recording').exists()).toBe(false)
+    expect(byId(wrapper, 'my-edit').exists()).toBe(false)
+  })
+
+  it('沒回答過的部落沒有「我的回答」區', async () => {
+    const wrapper = await viewOthers(mountFlow({ summary: withRecordings, mine: [] }))
+    expect(byId(wrapper, 'my-answer').exists()).toBe(false)
   })
 
   it('面板一次只開一個部落', async () => {
@@ -733,8 +758,9 @@ describe('說法卡的錄音', () => {
     await edits()[0].trigger('click')
     await edits()[1].trigger('click')
     expect(wrapper.findAll('[data-testid="my-edit-panel"]')).toHaveLength(1)
-    expect(byId(wrapper, 'my-play').attributes('data-url')).toBe('https://s3.test/mine2.m4a')
   })
+
+
 
   it('刪除要二次確認；還有叫法或分類時說明「叫法與分類會保留」，確認後只刪該部落', async () => {
     const mine = [...mineRows, { tribe: 'iratay', name: null, food_category: 'rahet', recording_url: 'https://s3.test/mine2.m4a' }]
@@ -1013,10 +1039,9 @@ describe('錄音秒數（規格修訂 4）', () => {
     ]
     const mine = [{ tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording_url: 'https://s3.test/a.m4a', recording_seconds: 12 }]
     const wrapper = mountFlow({ summary, mine })
-    const seconds = (id) => wrapper.findAll(`[data-testid="${id}"]`).map((n) => n.attributes('data-known-seconds'))
-    expect(seconds('name-recording')).toEqual(['12', undefined])
-    expect(seconds('only-recording')).toEqual(['4'])
-    await click_(wrapper, 'my-edit')
+    const seconds = (selector) => wrapper.findAll(selector).map((n) => n.attributes('data-known-seconds'))
+    expect(seconds('[data-testid="name-recording"]')).toEqual(['12', undefined])
+    expect(seconds('[data-testid="clip-row"] [data-url]')).toEqual(['4'])
     expect(byId(wrapper, 'my-play').attributes('data-known-seconds')).toBe('12')
   })
 
@@ -1036,6 +1061,31 @@ describe('錄音秒數（規格修訂 4）', () => {
     await click_(wrapper, 'review-ok')
     await flushPromises()
     expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording: 'pending-1.m4a', recording_seconds: 5 }, expect.anything())
+  })
+})
+
+describe('有人只用說的：先顯示 3 段再展開（規格修訂 5）', () => {
+  const clips = (count) => Array.from({ length: count }, (_, i) => ({ recording_url: `https://s3.test/c${i + 1}.m4a`, recording_seconds: i + 3 }))
+  const summaryOf = (count) => [none[0], { tribe: 'yayo', has_responses: true, has_variants: false, names: [], recordings_only: clips(count), categories: [] }]
+  const view = async (count) => {
+    const wrapper = mountFlow({ summary: summaryOf(count) })
+    await click(wrapper, '看大家怎麼說')
+    return wrapper
+  }
+
+  it('5 段：卡片上先看到 3 段，按「還有 2 段，全部展開」才看到全部，再按收起', async () => {
+    const wrapper = await view(5)
+    expect(wrapper.findAll('[data-testid="clip-row"]')).toHaveLength(3)
+    await click_(wrapper, 'clips-more')
+    expect(wrapper.findAll('[data-testid="clip-row"]')).toHaveLength(5)
+    await click_(wrapper, 'clips-less')
+    expect(wrapper.findAll('[data-testid="clip-row"]')).toHaveLength(3)
+  })
+
+  it('3 段以內：全部顯示，沒有收合按鈕', async () => {
+    const wrapper = await view(3)
+    expect(wrapper.findAll('[data-testid="clip-row"]')).toHaveLength(3)
+    expect(wrapper.find('[data-testid="clips-more"]').exists()).toBe(false)
   })
 })
 

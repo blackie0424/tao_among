@@ -79,7 +79,7 @@ class FishController extends Controller
         $details = $this->locationVisibilityService->filter($details, $request->user());
         $details['responses'] = [
             'form' => FishTribeResponse::formOptions($details['fish']['name']),
-            'summary' => FishTribeResponse::summaryForFish((int) $id),
+            'summary' => FishTribeResponse::summaryForFish((int) $id, $request->user()->id),
             'mine' => FishTribeResponse::answersOf($request->user()->id, (int) $id),
             'responders' => FishTribeResponse::responderCount((int) $id),
         ];
