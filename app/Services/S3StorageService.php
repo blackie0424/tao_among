@@ -28,7 +28,7 @@ class S3StorageService implements StorageServiceInterface
     /**
      * 取得檔案的公開 URL
      *
-     * @param string $type 檔案類型 ('image', 'audio', 'webp')
+     * @param string $type 檔案類型 ('image', 'audio', 'webp', 'response_audio')
      * @param string $filename 檔案名稱
      * @param bool|null $hasWebp 是否有 webp 版本（僅用於 image）
      * @return string 完整的檔案 URL
@@ -46,6 +46,7 @@ class S3StorageService implements StorageServiceInterface
         $folder = match ($type) {
             'image', 'images' => $this->getImageFolder(),
             'audio', 'audios' => $this->getAudioFolder(),
+            'response_audio' => $this->getFolderConfig('response_audio'),
             'webp' => $this->getWebpFolder(),
             default => throw new \InvalidArgumentException("Invalid type: {$type}")
         };
@@ -221,6 +222,35 @@ class S3StorageService implements StorageServiceInterface
                 'error' => $e->getMessage()
             ]);
             return false;
+        }
+    }
+
+    public function copyObject(string $sourcePath, string $destPath): bool
+    {
+        try {
+            return Storage::disk('s3')->copy($sourcePath, $destPath);
+        } catch (\Exception $e) {
+            Log::error('Failed to copy object in S3', [
+                'source' => $sourcePath,
+                'destination' => $destPath,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    public function fileSize(string $filePath): ?int
+    {
+        try {
+            return Storage::disk('s3')->size($filePath);
+        } catch (\Exception $e) {
+            Log::error('Failed to read file size from S3', [
+                'filePath' => $filePath,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
         }
     }
 
