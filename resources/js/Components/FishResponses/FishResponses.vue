@@ -23,6 +23,7 @@
       <button type="button" :class="methodButton" data-testid="method-speak" @click="chooseSpeak">
         <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /></svg>
         用說的
+        <span class="text-elder-aux font-normal text-elder-subtext">最長 {{ RECORDING_MAX_SECONDS }} 秒</span>
       </button>
       <button type="button" :class="[methodButton, 'mt-3']" data-testid="method-type" @click="step = 'name'">
         <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" /></svg>
@@ -36,8 +37,14 @@
       <button type="button" aria-label="返回" :class="backButton" @click="leaveRecording"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg></button>
       <p class="my-3 font-serif text-elder-name font-bold text-elder-text">請說出你們的叫法</p>
       <template v-if="recorder.isRecording.value">
-        <p class="text-center text-4xl font-bold text-red-700" data-testid="recording-time">{{ elapsedLabel }}</p>
-        <p class="mb-3 text-center text-elder-aux text-elder-subtext">最長 {{ RECORDING_MAX_SECONDS }} 秒，還剩 {{ recorder.remaining.value }} 秒</p>
+        <p class="text-center text-4xl font-bold" :class="nearLimit ? 'text-red-700' : 'text-brand'" data-testid="recording-time">{{ elapsedLabel }}</p>
+        <div class="my-2 h-3 bg-rule" role="progressbar" aria-label="已錄時間" aria-valuemin="0" :aria-valuemax="RECORDING_MAX_SECONDS" :aria-valuenow="elapsedSeconds" :data-warning="nearLimit || undefined" data-testid="record-progress">
+          <div class="h-3" :class="nearLimit ? 'bg-red-700' : 'bg-brand'" :style="{ width: `${progressPercent}%` }"></div>
+        </div>
+        <p class="text-center text-elder-aux text-elder-subtext">最長 {{ RECORDING_MAX_SECONDS }} 秒，還剩 {{ recorder.remaining.value }} 秒</p>
+        <p class="mb-3 min-h-[1.75rem] text-center text-elder-body font-bold text-red-700" aria-live="polite" data-testid="record-warning-region">
+          <span v-if="nearLimit" class="motion-safe:animate-pulse" data-testid="record-warning">快到了，請說完</span>
+        </p>
         <button type="button" class="w-full min-h-[4rem] bg-red-700 text-elder-name font-bold text-white" data-testid="record-stop" @click="recorder.stop()">錄好了</button>
       </template>
       <template v-else>
@@ -212,6 +219,8 @@ const props = defineProps({
 })
 
 const SECONDS_PER_MINUTE = 60
+const PERCENT = 100
+const RECORDING_WARNING_SECONDS = 10 // 剩這麼多秒（含）以內，進度條與時間變紅並提示
 const DELETE_RECORDING_MESSAGE = '確定刪除這段錄音？叫法與分類會保留。'
 const DELETE_ONLY_RECORDING_MESSAGE = '這個部落你只有這段錄音，刪除後這筆說法也會一起刪除。確定嗎？'
 const UPLOAD_FAILED_MESSAGE = '錄音上傳失敗，請再按一次 OK，或改用打的'
@@ -249,10 +258,11 @@ const answeredTribes = computed(() => new Set(props.mine.map((r) => r.tribe)))
 const respondedTribes = computed(() => props.summary.filter((item) => item.has_responses))
 // 做到一半：已經有叫法或錄音、但還沒選分類的回答
 const incomplete = computed(() => props.mine.find((r) => (r.name || r.recording_url) && !r.food_category) ?? null)
-const elapsedLabel = computed(() => {
-  const elapsed = RECORDING_MAX_SECONDS - recorder.remaining.value
-  return `${Math.floor(elapsed / SECONDS_PER_MINUTE)}:${String(elapsed % SECONDS_PER_MINUTE).padStart(2, '0')}`
-})
+const elapsedSeconds = computed(() => RECORDING_MAX_SECONDS - recorder.remaining.value)
+const elapsedLabel = computed(() => `${Math.floor(elapsedSeconds.value / SECONDS_PER_MINUTE)}:${String(elapsedSeconds.value % SECONDS_PER_MINUTE).padStart(2, '0')}`)
+const progressPercent = computed(() => Math.min(PERCENT, Math.round((elapsedSeconds.value / RECORDING_MAX_SECONDS) * PERCENT)))
+// 最後幾秒警示：最長秒數不超過警示秒數時不警示（否則一開始就紅）
+const nearLimit = computed(() => RECORDING_MAX_SECONDS > RECORDING_WARNING_SECONDS && recorder.remaining.value <= RECORDING_WARNING_SECONDS)
 
 const firstQuestion = () => (fishName.value ? 'confirm' : 'method')
 // 進來時：做到一半就提示繼續；答過的直接看大家怎麼說；沒答過就是第一題
