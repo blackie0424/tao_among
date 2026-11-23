@@ -672,7 +672,7 @@ describe('說法卡的錄音', () => {
     none[0],
     {
       tribe: 'yayo', has_responses: true, has_variants: false,
-      names: [{ name: 'dalakan', count: 2, recording_url: 'https://s3.test/early.m4a' }, { name: 'rakan', count: 1 }],
+      names: [{ name: 'dalakan', count: 2, recordings: [{ recording_url: 'https://s3.test/early.m4a', recording_seconds: null }] }, { name: 'rakan', count: 1, recordings: [] }],
       recordings_only: [{ recording_url: 'https://s3.test/o1.m4a' }, { recording_url: 'https://s3.test/o2.m4a' }],
       categories: [],
     },
@@ -1032,7 +1032,7 @@ describe('錄音秒數（規格修訂 4）', () => {
       none[0],
       {
         tribe: 'yayo', has_responses: true, has_variants: false,
-        names: [{ name: 'dalakan', count: 1, recording_url: 'https://s3.test/a.m4a', recording_seconds: 12 }, { name: 'rakan', count: 1, recording_url: 'https://s3.test/b.m4a', recording_seconds: null }],
+        names: [{ name: 'dalakan', count: 1, recordings: [{ recording_url: 'https://s3.test/a.m4a', recording_seconds: 12 }] }, { name: 'rakan', count: 1, recordings: [{ recording_url: 'https://s3.test/b.m4a', recording_seconds: null }] }],
         recordings_only: [{ recording_url: 'https://s3.test/o.m4a', recording_seconds: 4 }],
         categories: [],
       },
@@ -1193,6 +1193,151 @@ describe('錄音時間提示：進度條與最後 10 秒警示（#165）', () =>
     expect(byId(wrapper, 'record-error').exists()).toBe(true)
     expect(byId(wrapper, 'record-progress').exists()).toBe(false)
     expect(byId(wrapper, 'record-warning').exists()).toBe(false)
+  })
+})
+
+describe('同一種寫法的多段錄音（#166）', () => {
+  const clip = (i, seconds = i + 3) => ({ recording_url: `https://s3.test/g${i}.m4a`, recording_seconds: seconds })
+  const clips = (count) => Array.from({ length: count }, (_, i) => clip(i + 1))
+  const summaryOf = (...names) => [none[0], { tribe: 'yayo', has_responses: true, has_variants: names.length > 1, names, recordings_only: [], categories: [] }]
+  const group = (name, count) => ({ name, count: 3, recordings: clips(count) })
+  const view = async (summary) => {
+    const wrapper = mountFlow({ summary })
+    await click(wrapper, '看大家怎麼說')
+    return wrapper
+  }
+  const toggle = (wrapper, index = 0) => wrapper.findAll('[data-testid="name-clips-toggle"]')[index]
+  const clipRows = (wrapper) => wrapper.findAll('[data-testid="clip-row"]')
+  const update = async (wrapper, summary) => {
+    await wrapper.setProps({ summary })
+  }
+
+  it('其他人的錄音 0 段：叫法旁沒有任何按鈕', async () => {
+    const wrapper = await view(summaryOf(group('dalakan', 0)))
+    expect(wrapper.find('[data-testid="name-recording"]').exists()).toBe(false)
+    expect(toggle(wrapper)).toBeUndefined()
+  })
+
+  it('1 段：一顆播放鈕與秒數，不出現「N 段錄音」', async () => {
+    const wrapper = await view(summaryOf(group('dalakan', 1)))
+    expect(wrapper.find('[data-testid="name-recording"]').attributes('data-url')).toBe('https://s3.test/g1.m4a')
+    expect(wrapper.find('[data-testid="name-recording"]').attributes('data-known-seconds')).toBe('4')
+    expect(toggle(wrapper)).toBeUndefined()
+  })
+
+  it('2 段以上：叫法旁只有「▶ N 段錄音 ▾」按鈕，沒有播放鈕；點開才在下方條列每一段，再點收回', async () => {
+    const wrapper = await view(summaryOf(group('dalakan', 2)))
+    expect(toggle(wrapper).text()).toBe('▶ 2 段錄音 ▾')
+    expect(toggle(wrapper).attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('[data-testid="name-recording"]').exists()).toBe(false)
+    expect(clipRows(wrapper)).toHaveLength(0)
+    await toggle(wrapper).trigger('click')
+    expect(toggle(wrapper).text()).toBe('▶ 2 段錄音 ▴')
+    expect(toggle(wrapper).attributes('aria-expanded')).toBe('true')
+    expect(clipRows(wrapper).map((row) => row.text())).toEqual(['第 1 段', '第 2 段'])
+    expect(clipRows(wrapper).map((row) => row.find('[data-url]').attributes('data-url'))).toEqual(['https://s3.test/g1.m4a', 'https://s3.test/g2.m4a'])
+    expect(wrapper.text()).not.toContain('有人只用說的') // 叫法下的清單沒有「有人只用說的」標題
+    await toggle(wrapper).trigger('click')
+    expect(clipRows(wrapper)).toHaveLength(0)
+  })
+
+  it('5 段：展開後先 3 段，再「還有 2 段，全部展開」才看到全部', async () => {
+    const wrapper = await view(summaryOf(group('dalakan', 5)))
+    await toggle(wrapper).trigger('click')
+    expect(clipRows(wrapper)).toHaveLength(3)
+    await wrapper.find('[data-testid="clips-more"]').trigger('click')
+    expect(clipRows(wrapper)).toHaveLength(5)
+  })
+
+  it('兩個叫法組各自展開，互不影響', async () => {
+    const wrapper = await view(summaryOf(group('dalakan', 2), group('rakan', 3)))
+    await toggle(wrapper, 0).trigger('click')
+    expect(clipRows(wrapper)).toHaveLength(2)
+    expect(toggle(wrapper, 1).attributes('aria-expanded')).toBe('false')
+    await toggle(wrapper, 1).trigger('click')
+    expect(clipRows(wrapper)).toHaveLength(5)
+  })
+
+  it('同一種寫法在兩個部落各自記錄展開狀態', async () => {
+    const both = [none[0], { tribe: 'yayo', has_responses: true, has_variants: false, names: [group('dalakan', 2)], recordings_only: [], categories: [] }, { tribe: 'iratay', has_responses: true, has_variants: false, names: [group('dalakan', 2)], recordings_only: [], categories: [] }]
+    const wrapper = await view(both)
+    await toggle(wrapper, 0).trigger('click')
+    expect(toggle(wrapper, 0).attributes('aria-expanded')).toBe('true')
+    expect(toggle(wrapper, 1).attributes('aria-expanded')).toBe('false')
+  })
+
+  describe('資料更新時展開狀態維持', () => {
+    it('同組的顯示寫法因大小寫或前後空白不同而改變：展開維持', async () => {
+      const wrapper = await view(summaryOf(group('Dalakan', 3)))
+      await toggle(wrapper).trigger('click')
+      expect(clipRows(wrapper)).toHaveLength(3)
+      await update(wrapper, summaryOf(group('dalakan', 3)))
+      expect(clipRows(wrapper)).toHaveLength(3)
+      await update(wrapper, summaryOf(group(' DALAKAN ', 4)))
+      expect(clipRows(wrapper)).toHaveLength(3) // 4 段先顯示 3 段
+      expect(toggle(wrapper).attributes('aria-expanded')).toBe('true')
+    })
+
+    it('最早的寫法被刪除、顯示寫法換成同組的另一種：展開維持', async () => {
+      const wrapper = await view(summaryOf({ name: 'Dalakan', count: 3, recordings: clips(3) }))
+      await toggle(wrapper).trigger('click')
+      await update(wrapper, summaryOf({ name: 'dalakan', count: 2, recordings: clips(2) }))
+      expect(wrapper.find('[data-testid="name-row"]').text()).toContain('dalakan')
+      expect(clipRows(wrapper)).toHaveLength(2)
+      expect(toggle(wrapper).attributes('aria-expanded')).toBe('true')
+    })
+
+    it('段數 3→2 維持展開；2→1 變單顆播放鈕並清除展開；1→2 回到收合', async () => {
+      const wrapper = await view(summaryOf(group('dalakan', 3)))
+      await toggle(wrapper).trigger('click')
+      await update(wrapper, summaryOf(group('dalakan', 2)))
+      expect(clipRows(wrapper)).toHaveLength(2)
+      await update(wrapper, summaryOf(group('dalakan', 1)))
+      expect(toggle(wrapper)).toBeUndefined()
+      expect(wrapper.find('[data-testid="name-recording"]').exists()).toBe(true)
+      expect(clipRows(wrapper)).toHaveLength(0)
+      await update(wrapper, summaryOf(group('dalakan', 2)))
+      expect(toggle(wrapper).attributes('aria-expanded')).toBe('false')
+      expect(clipRows(wrapper)).toHaveLength(0)
+    })
+
+    it('段數降到 0 也清除展開；再增加到 2 段回到收合', async () => {
+      const wrapper = await view(summaryOf(group('dalakan', 2)))
+      await toggle(wrapper).trigger('click')
+      await update(wrapper, summaryOf(group('dalakan', 0)))
+      await update(wrapper, summaryOf(group('dalakan', 2)))
+      expect(toggle(wrapper).attributes('aria-expanded')).toBe('false')
+    })
+
+    it('整個叫法組消失又回來：回到收合', async () => {
+      const wrapper = await view(summaryOf(group('dalakan', 2), group('rakan', 2)))
+      await toggle(wrapper, 0).trigger('click')
+      await update(wrapper, summaryOf(group('rakan', 2)))
+      await update(wrapper, summaryOf(group('dalakan', 2), group('rakan', 2)))
+      expect(toggle(wrapper, 0).attributes('aria-expanded')).toBe('false')
+    })
+
+    it('內層「全部展開」：5→3 清除，再回到 5 段時先顯示 3 段', async () => {
+      const wrapper = await view(summaryOf(group('dalakan', 5)))
+      await toggle(wrapper).trigger('click')
+      await wrapper.find('[data-testid="clips-more"]').trigger('click')
+      expect(clipRows(wrapper)).toHaveLength(5)
+      await update(wrapper, summaryOf(group('dalakan', 3)))
+      expect(clipRows(wrapper)).toHaveLength(3)
+      expect(wrapper.find('[data-testid="clips-more"]').exists()).toBe(false)
+      await update(wrapper, summaryOf(group('dalakan', 5)))
+      expect(clipRows(wrapper)).toHaveLength(3)
+      expect(wrapper.find('[data-testid="clips-more"]').text()).toContain('還有 2 段')
+    })
+
+    it('重新載入頁面（重新掛載元件）：收合', async () => {
+      const first = await view(summaryOf(group('dalakan', 3)))
+      await toggle(first).trigger('click')
+      first.unmount()
+      const second = await view(summaryOf(group('dalakan', 3)))
+      expect(toggle(second).attributes('aria-expanded')).toBe('false')
+      expect(clipRows(second)).toHaveLength(0)
+    })
   })
 })
 

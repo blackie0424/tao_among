@@ -71,4 +71,32 @@ describe('RecordingClipList 有人只用說的', () => {
     const wrapper = mountList(8)
     expect(rows(wrapper).map((row) => row.find('[data-url]').attributes('data-url'))).toEqual(['https://s3.test/1.m4a', 'https://s3.test/2.m4a', 'https://s3.test/3.m4a'])
   })
+
+  it('標題可以省略（叫法下的清單用）', () => {
+    const wrapper = mount(RecordingClipList, { props: { clips: clipsOf(2), showLabel: false } })
+    expect(wrapper.text()).not.toContain('有人只用說的')
+    expect(rows(wrapper)).toHaveLength(2)
+  })
+
+  it('段數降到 3 段以內：「全部展開」的狀態清除；再超過 3 段回到先顯示 3 段', async () => {
+    const wrapper = mountList(5)
+    await more(wrapper).trigger('click')
+    expect(rows(wrapper)).toHaveLength(5)
+    await wrapper.setProps({ clips: clipsOf(3) })
+    expect(rows(wrapper)).toHaveLength(3)
+    expect(more(wrapper).exists()).toBe(false)
+    expect(less(wrapper).exists()).toBe(false)
+    await wrapper.setProps({ clips: clipsOf(5) })
+    expect(rows(wrapper)).toHaveLength(3)
+    expect(more(wrapper).text()).toBe('還有 2 段，全部展開 ▾')
+  })
+
+  it('段數在 3 段以上之間變動：維持已展開', async () => {
+    const wrapper = mountList(5)
+    await more(wrapper).trigger('click')
+    await wrapper.setProps({ clips: clipsOf(6) })
+    expect(rows(wrapper)).toHaveLength(6)
+    expect(less(wrapper).exists()).toBe(true)
+  })
 })
+

@@ -134,14 +134,24 @@
           </p>
           <p class="mt-2 text-elder-aux text-elder-subtext">大家的說法</p>
           <div data-testid="tribe-names">
-            <div
-              v-for="n in item.names"
-              :key="n.name"
-              class="flex min-h-[3rem] items-center justify-between border-t border-rule text-elder-body text-elder-text"
-              data-testid="name-row"
-            >
-              <span class="break-words" :class="isMyName(item, n.name) && 'font-bold text-amber-700'" :data-mine="isMyName(item, n.name) ? 'true' : undefined">{{ n.name }}<template v-if="isMyName(item, n.name)"> ✔</template></span>
-              <RecordingPlayButton v-if="n.recording_url" :src="n.recording_url" :known-seconds="n.recording_seconds" data-testid="name-recording" />
+            <div v-for="n in item.names" :key="groupKey(item, n)" data-testid="name-group">
+              <div class="flex min-h-[3rem] items-center justify-between gap-2 border-t border-rule text-elder-body text-elder-text" data-testid="name-row">
+                <span class="break-words" :class="isMyName(item, n.name) && 'font-bold text-amber-700'" :data-mine="isMyName(item, n.name) ? 'true' : undefined">{{ n.name }}<template v-if="isMyName(item, n.name)"> ✔</template></span>
+                <RecordingPlayButton v-if="clipsOf(n).length === 1" :src="clipsOf(n)[0].recording_url" :known-seconds="clipsOf(n)[0].recording_seconds" data-testid="name-recording" />
+                <button
+                  v-else-if="clipsOf(n).length >= 2"
+                  type="button"
+                  class="inline-flex min-h-touch-secondary shrink-0 items-center gap-1 border-2 border-brand px-3 text-elder-aux text-brand"
+                  :aria-expanded="isGroupExpanded(item, n)"
+                  data-testid="name-clips-toggle"
+                  @click="toggleGroup(item, n)"
+                >
+                  ▶ {{ clipsOf(n).length }} 段錄音 {{ isGroupExpanded(item, n) ? '▴' : '▾' }}
+                </button>
+              </div>
+              <div v-if="clipsOf(n).length >= 2 && isGroupExpanded(item, n)" class="pl-3" data-testid="name-clips">
+                <RecordingClipList :clips="clipsOf(n)" :show-label="false" />
+              </div>
             </div>
             <p v-if="!item.names.length && !item.recordings_only?.length" class="flex min-h-[3rem] items-center border-t border-rule text-elder-body text-elder-subtext" data-testid="no-names">目前沒有人提供叫法</p>
           </div>
@@ -282,6 +292,32 @@ watch(
 // 只有英文字母 A–Z 不分大小寫，其他文字不折。
 const PHP_TRIM_CHARS = /^[ \n\r\t\x0B\x00]+|[ \n\r\t\x0B\x00]+$/g
 const asciiLower = (text) => text.replace(PHP_TRIM_CHARS, '').replace(/[A-Z]/g, (c) => c.toLowerCase())
+// 叫法組的身分＝部落＋比對鍵（去前後空白、英文字母不分大小寫，同後端分組規則），不是顯示的寫法：
+// 同組最早的寫法被刪除或改名時顯示寫法會變，但仍是同一組，展開狀態才不會跟著丟失。
+const groupKey = (item, n) => `${item.tribe}\u0000${asciiLower(n.name)}`
+const clipsOf = (n) => n.recordings ?? []
+const expandedGroups = ref(new Set()) // 其他人錄音 2 段以上、已展開的叫法組
+const isGroupExpanded = (item, n) => expandedGroups.value.has(groupKey(item, n))
+function toggleGroup(item, n) {
+  const next = new Set(expandedGroups.value)
+  const key = groupKey(item, n)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  expandedGroups.value = next
+}
+// 資料更新後：叫法組消失、或其他人的錄音降到 1 段以下，就清除該組的展開狀態（之後再增加回 2 段是收合）
+watch(
+  () => props.summary,
+  (summary) => {
+    const stillExpandable = new Set()
+    for (const item of summary) {
+      for (const n of item.names) {
+        if (clipsOf(n).length >= 2) stillExpandable.add(groupKey(item, n))
+      }
+    }
+    expandedGroups.value = new Set([...expandedGroups.value].filter((key) => stillExpandable.has(key)))
+  }
+)
 const mineOf = (item) => props.mine.find((r) => r.tribe === item.tribe)
 const isMyName = (item, name) => {
   const mineName = mineOf(item)?.name

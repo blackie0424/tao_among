@@ -290,7 +290,7 @@ it('exposes exactly the whitelisted response fields to an activated caller and n
 
     expect(array_keys($responses))->toBe(['form', 'summary', 'mine', 'responders'])
         ->and(array_keys($responses['summary'][0]))->toBe(['tribe', 'has_responses', 'names', 'recordings_only', 'has_variants', 'categories'])
-        ->and(array_keys(summaryFor($responses, 'yayo')['names'][0]))->toBe(['name', 'count'])
+        ->and(array_keys(summaryFor($responses, 'yayo')['names'][0]))->toBe(['name', 'count', 'recordings'])
         ->and($responses['responders'])->toBeInt();
 
     $json = json_encode($responses, JSON_UNESCAPED_UNICODE);
@@ -338,8 +338,8 @@ it('groups names by trimmed, case-insensitive spelling and shows the earliest or
 
     expect($imowrod['has_responses'])->toBeTrue()
         ->and($imowrod['names'])->toBe([
-            ['name' => 'Dalakan', 'count' => 2],
-            ['name' => '乙', 'count' => 1],
+            ['name' => 'Dalakan', 'count' => 2, 'recordings' => []],
+            ['name' => '乙', 'count' => 1, 'recordings' => []],
         ])
         ->and($imowrod['has_variants'])->toBeTrue();
 });
@@ -408,9 +408,9 @@ it('folds only English letters, not other scripts', function () {
     $yayo = summaryFor(responsesProps($u1, $fish), 'yayo');
 
     expect($yayo['names'])->toBe([
-        ['name' => 'Abc', 'count' => 2],
-        ['name' => "\u{0391}\u{03B1}", 'count' => 1],
-        ['name' => "\u{03B1}\u{03B1}", 'count' => 1],
+        ['name' => 'Abc', 'count' => 2, 'recordings' => []],
+        ['name' => "\u{0391}\u{03B1}", 'count' => 1, 'recordings' => []],
+        ['name' => "\u{03B1}\u{03B1}", 'count' => 1, 'recordings' => []],
     ])->and($yayo['has_variants'])->toBeTrue();
 });
 
@@ -439,7 +439,7 @@ it('shows the earliest current spelling of a group after someone changes their n
     Carbon::setTestNow('2026-11-19 10:02:00');
     postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'DALAKAN']);
 
-    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2]]);
+    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2, 'recordings' => []]]);
 });
 
 it('keeps the order when the same spelling is submitted again with other changes', function () {
@@ -482,7 +482,7 @@ it('shows the earlier spelling when a same-second change joins an existing group
     at('2026-11-19 10:00:00.300000');
     postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'DALAKAN']);
 
-    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2]]);
+    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2, 'recordings' => []]]);
 });
 
 it('keeps the original spelling when someone later changes only the letter case', function () {
@@ -496,7 +496,7 @@ it('keeps the original spelling when someone later changes only the letter case'
     at('2026-11-19 10:00:00.300000');
     postResponse($u1, $fish, ['tribe' => 'yayo', 'name' => 'DALAKAN']);
 
-    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2]])
+    expect(summaryFor(responsesProps($u1, $fish), 'yayo')['names'])->toBe([['name' => 'Dalakan', 'count' => 2, 'recordings' => []]])
         ->and(responsesProps($u1, $fish)['mine'][0]['name'])->toBe('Dalakan');
 });
 
@@ -579,7 +579,7 @@ it('stops counting answers of a soft-deleted fish and counts them again after re
     $fish->restore();
     $responses = responsesProps($user, $fish);
     expect($responses['responders'])->toBe(1)
-        ->and(summaryFor($responses, 'yayo')['names'])->toBe([['name' => 'x', 'count' => 1]]);
+        ->and(summaryFor($responses, 'yayo')['names'])->toBe([['name' => 'x', 'count' => 1, 'recordings' => []]]);
 });
 
 it('keeps a name containing HTML exactly as typed (it is shown as plain text by the page)', function () {
