@@ -1089,3 +1089,110 @@ describe('有人只用說的：先顯示 3 段再展開（規格修訂 5）', ()
   })
 })
 
+describe('錄音時間提示：進度條與最後 10 秒警示（#165）', () => {
+  beforeEach(() => stubRecording())
+  const startRecording = async (props = {}) => {
+    vi.useFakeTimers()
+    const wrapper = await goSpeak(props)
+    await click_(wrapper, 'method-speak')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    return wrapper
+  }
+  const tick = async (wrapper, seconds) => {
+    vi.advanceTimersByTime(seconds * 1000)
+    await flushPromises()
+  }
+  const bar = (wrapper) => byId(wrapper, 'record-progress')
+  const width = (wrapper) => bar(wrapper).find('div').attributes('style')
+
+  it('選項頁：「用說的」下面有小字「最長 30 秒」，數字取自後端設定；「用打的」沒有', async () => {
+    const wrapper = await goSpeak()
+    expect(byId(wrapper, 'method-speak').text()).toContain('最長 30 秒')
+    expect(byId(wrapper, 'method-type').text()).not.toContain('最長')
+    const short = await goSpeak({ options: { ...options, recording_max_seconds: 15 } })
+    expect(byId(short, 'method-speak').text()).toContain('最長 15 秒')
+  })
+
+  it('進度條：開始是空的，錄到一半是 50%，並提供輔助技術可讀的進度', async () => {
+    const wrapper = await startRecording()
+    expect(bar(wrapper).attributes('role')).toBe('progressbar')
+    expect(bar(wrapper).attributes('aria-valuemin')).toBe('0')
+    expect(bar(wrapper).attributes('aria-valuemax')).toBe('30')
+    expect(bar(wrapper).attributes('aria-valuenow')).toBe('0')
+    expect(width(wrapper)).toContain('width: 0%')
+    await tick(wrapper, 15)
+    expect(bar(wrapper).attributes('aria-valuenow')).toBe('15')
+    expect(width(wrapper)).toContain('width: 50%')
+    expect(byId(wrapper, 'recording-time').text()).toBe('0:15')
+    expect(wrapper.text()).toContain('還剩 15 秒')
+  })
+
+  it('剩 11 秒沒有警示；剛好剩 10 秒才出現「快到了，請說完」，進度條與時間變紅', async () => {
+    const wrapper = await startRecording()
+    await tick(wrapper, 19)
+    expect(wrapper.text()).toContain('還剩 11 秒')
+    expect(byId(wrapper, 'record-warning').exists()).toBe(false)
+    expect(bar(wrapper).attributes('data-warning')).toBeUndefined()
+    await tick(wrapper, 1)
+    expect(wrapper.text()).toContain('還剩 10 秒')
+    expect(byId(wrapper, 'record-warning').text()).toBe('快到了，請說完')
+    expect(bar(wrapper).attributes('data-warning')).toBe('true')
+    expect(bar(wrapper).find('div').classes()).toContain('bg-red-700')
+    expect(byId(wrapper, 'recording-time').classes()).toContain('text-red-700')
+  })
+
+  it('警示區是朗讀用的 aria-live，閃動在「減少動態效果」時停用，也沒有聲音或震動', async () => {
+    const wrapper = await startRecording()
+    await tick(wrapper, 20)
+    expect(byId(wrapper, 'record-warning-region').attributes('aria-live')).toBe('polite')
+    expect(byId(wrapper, 'record-warning').classes()).toContain('motion-safe:animate-pulse')
+    expect(byId(wrapper, 'record-warning').classes().join(' ')).not.toContain('animate-pulse motion-reduce')
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate })
+    await tick(wrapper, 5)
+    expect(vibrate).not.toHaveBeenCalled()
+  })
+
+  it('最長秒數不超過 10 秒：全程沒有警示（否則一開始就紅）', async () => {
+    const wrapper = await startRecording({ options: { ...options, recording_max_seconds: 10 } })
+    expect(byId(wrapper, 'record-warning').exists()).toBe(false)
+    await tick(wrapper, 5)
+    expect(byId(wrapper, 'record-warning').exists()).toBe(false)
+    expect(bar(wrapper).attributes('data-warning')).toBeUndefined()
+    expect(width(wrapper)).toContain('width: 50%')
+  })
+
+  it('滿 30 秒自動停止：進入試聽並提示，進度條與警示消失', async () => {
+    const wrapper = await startRecording()
+    await tick(wrapper, 30)
+    expect(byId(wrapper, 'step-review').exists()).toBe(true)
+    expect(byId(wrapper, 'auto-stopped').text()).toContain('30 秒')
+    expect(byId(wrapper, 'record-progress').exists()).toBe(false)
+    expect(byId(wrapper, 'record-warning').exists()).toBe(false)
+  })
+
+  it('重錄後再開始：進度條回到 0，警示消失', async () => {
+    const wrapper = await startRecording()
+    await tick(wrapper, 22)
+    await click_(wrapper, 'record-stop')
+    await flushPromises()
+    await click_(wrapper, 're-record')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    expect(width(wrapper)).toContain('width: 0%')
+    expect(byId(wrapper, 'record-warning').exists()).toBe(false)
+  })
+
+  it('沒有麥克風權限：沒有進度條與警示，維持錯誤畫面', async () => {
+    stubRecording({ mic: 'denied' })
+    const wrapper = await goSpeak()
+    await click_(wrapper, 'method-speak')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    expect(byId(wrapper, 'record-error').exists()).toBe(true)
+    expect(byId(wrapper, 'record-progress').exists()).toBe(false)
+    expect(byId(wrapper, 'record-warning').exists()).toBe(false)
+  })
+})
+
