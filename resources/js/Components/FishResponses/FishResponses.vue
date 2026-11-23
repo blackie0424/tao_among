@@ -129,13 +129,13 @@
               <template v-for="(n, i) in item.names" :key="n.name">
                 <span v-if="i">、</span>
                 <span :class="isMyName(item, n.name) && 'font-bold text-amber-700'" :data-mine="isMyName(item, n.name) ? 'true' : undefined">{{ n.name }}<template v-if="isMyName(item, n.name)"> ✔</template></span>
-                <RecordingPlayButton v-if="n.recording_url" :src="n.recording_url" data-testid="name-recording" />
+                <RecordingPlayButton v-if="n.recording_url" :src="n.recording_url" :known-seconds="n.recording_seconds" data-testid="name-recording" />
               </template>
             </template>
             <template v-else-if="!item.recordings_only?.length">—</template>
             <span v-if="item.recordings_only?.length" class="ml-2" data-testid="recordings-only">
               <span class="text-elder-subtext">只有錄音</span>
-              <RecordingPlayButton v-for="r in item.recordings_only" :key="r.recording_url" :src="r.recording_url" data-testid="only-recording" />
+              <RecordingPlayButton v-for="r in item.recordings_only" :key="r.recording_url" :src="r.recording_url" :known-seconds="r.recording_seconds" data-testid="only-recording" />
             </span>
           </p>
           <div v-if="mineOf(item)?.recording_url" class="mt-2" data-testid="my-recording">
@@ -145,7 +145,7 @@
             </button>
             <div v-if="editingTribe === item.tribe" class="mt-2 border-2 border-brand bg-white p-3" data-testid="my-edit-panel">
               <p class="mb-2 text-elder-body text-elder-subtext">你的錄音</p>
-              <RecordingPlayButton :src="mineOf(item).recording_url" data-testid="my-play" />
+              <RecordingPlayButton :src="mineOf(item).recording_url" :known-seconds="mineOf(item).recording_seconds" data-testid="my-play" />
               <template v-if="confirmingDelete === item.tribe">
                 <p class="mt-3 text-elder-body font-bold text-elder-text" data-testid="delete-message">{{ onlyRecording(item) ? DELETE_ONLY_RECORDING_MESSAGE : DELETE_RECORDING_MESSAGE }}</p>
                 <div class="mt-2 flex gap-3">
@@ -198,8 +198,6 @@ const props = defineProps({
   responders: { type: Number, default: 0 },
 })
 
-// 錄音最長秒數（與驗收條件一致：30 秒）
-const RECORDING_MAX_SECONDS = 30
 const SECONDS_PER_MINUTE = 60
 const DELETE_RECORDING_MESSAGE = '確定刪除這段錄音？叫法與分類會保留。'
 const DELETE_ONLY_RECORDING_MESSAGE = '這個部落你只有這段錄音，刪除後這筆說法也會一起刪除。確定嗎？'
@@ -212,6 +210,7 @@ const linkButton = 'mt-3 min-h-touch-secondary text-elder-body text-brand underl
 
 const form = useForm({ tribe: '', name: '', food_category: '' })
 const deleteForm = useForm({ tribe: '' })
+const RECORDING_MAX_SECONDS = props.options.recording_max_seconds // 由後端傳來，前後端共用同一個最長秒數
 const recorder = useAudioRecorder({ maxSeconds: RECORDING_MAX_SECONDS })
 const typedName = ref('')
 const draftName = ref(null) // null＝還沒決定；''＝略過叫法；其他＝已決定的叫法
@@ -221,6 +220,7 @@ const savedHasRecording = ref(false) // 目前這個部落的回答已經有錄�
 const previousCategory = ref('')
 const backStep = ref(null) // 從問題畫面點「看大家怎麼說」進來時，可以返回原本的問題
 const pendingRecording = ref(null) // 已上傳到暫存資料夾、還沒送出的錄音檔名
+const pendingRecordingSeconds = ref(null) // 這段暫存錄音的秒數（錄音時記下，送出時一併帶上）
 const uploading = ref(false)
 const uploadError = ref('')
 const micAsked = ref(false) // 第一次錄音前先說明會用到麥克風
@@ -354,6 +354,7 @@ async function uploadRecording() {
     if (!put.ok) throw new Error('上傳失敗')
     if (mySeq !== uploadSeq) return false // 上傳途中已取消
     pendingRecording.value = data.filename
+    pendingRecordingSeconds.value = recorder.recordedSeconds.value
     return true
   } catch (e) {
     if (mySeq === uploadSeq) uploadError.value = UPLOAD_FAILED_MESSAGE
@@ -394,6 +395,7 @@ function showResultsAfterRerecord() {
 function finishRecording() {
   recorder.reset()
   pendingRecording.value = null
+  pendingRecordingSeconds.value = null
 }
 
 function toggleEdit(tribe) {
@@ -520,7 +522,7 @@ function skipCategory() {
 // recording 只有帶新錄音時才送；沒帶＝保留舊錄音
 function submit(name, foodCategory, onSuccess, recording = null, onError = undefined) {
   form
-    .transform((data) => ({ ...data, name, food_category: foodCategory, ...(recording ? { recording } : {}) }))
+    .transform((data) => ({ ...data, name, food_category: foodCategory, ...(recording ? { recording, recording_seconds: pendingRecordingSeconds.value } : {}) }))
     .post(`/fish/${props.fishId}/responses`, { preserveScroll: true, onSuccess, onError })
 }
 

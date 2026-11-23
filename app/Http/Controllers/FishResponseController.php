@@ -19,6 +19,10 @@ class FishResponseController extends Controller
 {
     private const RECORDING_MISSING_MESSAGE = '錄音檔不存在或太大，請重錄';
 
+    private const SECONDS_WITHOUT_RECORDING_MESSAGE = '沒有錄音時不能帶錄音秒數';
+
+    private const RECORDING_SECONDS_MESSAGE = '錄音秒數不正確，請重錄';
+
     private const LOG_PREFIX = '[response-recording]';
 
     public function store(Request $request, int $id, StorageServiceInterface $storage): RedirectResponse
@@ -26,22 +30,33 @@ class FishResponseController extends Controller
         $fish = Fish::findOrFail($id);
         $input = $this->normalizedInput($request);
 
-        $data = Validator::make($input, [
+        $validator = Validator::make($input, [
             'tribe' => ['required', Rule::in(config('fish_options.tribes'))],
             'name' => ['nullable', 'string', 'max:'.FishTribeResponse::NAME_MAX_LENGTH],
             'food_category' => ['nullable', Rule::in(FishTribeResponse::selectableFoodCategories())],
             'recording' => ['nullable', 'string', 'regex:'.FishTribeResponse::recordingFilenamePattern()],
+            'recording_seconds' => ['nullable', 'integer', 'between:1,'.FishTribeResponse::RECORDING_MAX_SECONDS, 'required_with:recording'],
         ], [
             'name.max' => '叫法最多 '.FishTribeResponse::NAME_MAX_LENGTH.' 字',
             'recording.regex' => self::RECORDING_MISSING_MESSAGE,
-        ])->validate();
+            'recording_seconds.integer' => self::RECORDING_SECONDS_MESSAGE,
+            'recording_seconds.between' => self::RECORDING_SECONDS_MESSAGE,
+            'recording_seconds.required_with' => self::RECORDING_SECONDS_MESSAGE,
+        ]);
+        // 沒有錄音卻帶了秒數：兩者對不上，拒絕
+        $validator->after(function ($validator) use ($input) {
+            if ($input['recording'] === null && $input['recording_seconds'] !== null) {
+                $validator->errors()->add('recording_seconds', self::SECONDS_WITHOUT_RECORDING_MESSAGE);
+            }
+        });
+        $data = $validator->validate();
 
         $userId = $request->user()->id;
         $keys = ['user_id' => $userId, 'fish_id' => $fish->id, 'tribe' => $data['tribe']];
         $stored = $data['recording'] === null ? null : $this->copyPendingRecording($storage, $userId, $data['recording']);
 
         try {
-            $replaced = FishTribeResponse::submit($keys, $data['name'], $data['food_category'], $stored);
+            $replaced = FishTribeResponse::submit($keys, $data['name'], $data['food_category'], $stored, $data['recording_seconds'] === null ? null : (int) $data['recording_seconds']);
         } catch (Throwable $e) {
             if ($stored !== null) {
                 $this->deleteRecordingFile($storage, $stored);
@@ -142,12 +157,14 @@ class FishResponseController extends Controller
         $name = is_string($name) ? preg_replace('/^[\s\x{3000}]+|[\s\x{3000}]+$/u', '', $name) : $name;
         $category = $request->input('food_category');
         $recording = $request->input('recording');
+        $recordingSeconds = $request->input('recording_seconds');
 
         return [
             'tribe' => $request->input('tribe'),
             'name' => $name === '' ? null : $name,
             'food_category' => $category === '' ? null : $category,
             'recording' => $recording === '' ? null : $recording,
+            'recording_seconds' => $recordingSeconds === '' ? null : $recordingSeconds,
         ];
     }
 }

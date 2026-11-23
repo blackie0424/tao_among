@@ -43,6 +43,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
 
   let session = 0 // 每次開始或重設就加一；舊的非同步工作發現編號不同就放棄
   let mediaRecorder = null
+  let startedAt = 0
   let timer = null
   let interval = null
   let audioContext = null
@@ -118,7 +119,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
     timer = setTimeout(() => {
       autoStopped.value = true
       stop()
-      recordedSeconds.value = maxSeconds // 滿時間：計時器與倒數同時觸發，倒數可能還差一秒
+      recordedSeconds.value = maxSeconds // 自動停止一律記最長秒數
     }, maxSeconds * MS_PER_SECOND)
     interval = setInterval(() => {
       if (remaining.value > 0) remaining.value--
@@ -152,6 +153,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
       return fail(RecordingErrorKind.UNSUPPORTED, UNSUPPORTED_RECORDER_MESSAGE, stream)
     }
     mediaRecorder.start()
+    startedAt = Date.now()
     isRecording.value = true
     startCountdown()
     attachRecorderHandlers(mediaRecorder, stream, mimeType, mySession)
@@ -182,9 +184,15 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
       })
   }
 
+  // 實際經過的時間四捨五入到整秒：不足一秒記 1（0 代表沒錄），不超過最長秒數
+  function elapsedSeconds() {
+    const seconds = Math.round((Date.now() - startedAt) / MS_PER_SECOND)
+    return Math.min(maxSeconds, Math.max(MIN_RECORDED_SECONDS, seconds))
+  }
+
   function stop() {
     if (mediaRecorder && isRecording.value) {
-      recordedSeconds.value = Math.max(MIN_RECORDED_SECONDS, maxSeconds - remaining.value) // 不足一秒也記 1 秒，0 代表沒錄
+      recordedSeconds.value = elapsedSeconds()
       mediaRecorder.stop()
       isRecording.value = false
       clearTimers()

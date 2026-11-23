@@ -48,6 +48,7 @@ const options = {
   food_categories: ['oyod', 'rahet', '不分類', '不食用', 'kakanen no rarakeh'],
   name_options: ['mamalan'],
   name_max_length: 60,
+  recording_max_seconds: 30,
 }
 const none = [
   { tribe: 'ivalino', has_responses: false, names: [], has_variants: false, categories: [] },
@@ -581,7 +582,7 @@ describe('錄音流程', () => {
     expect(byId(wrapper, 'step-tribe').exists()).toBe(true)
     expect(post).not.toHaveBeenCalled()
     await click(wrapper, 'yayo')
-    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: '', food_category: '', recording: 'pending-1.m4a' }, expect.anything())
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: '', food_category: '', recording: 'pending-1.m4a', recording_seconds: 1 }, expect.anything())
     await click(wrapper, 'oyod')
     expect(post).toHaveBeenLastCalledWith('/fish/5/responses', { tribe: 'yayo', name: '', food_category: 'oyod' }, expect.anything())
   })
@@ -607,7 +608,7 @@ describe('錄音流程', () => {
     await click(wrapper, 'OK')
     await flushPromises()
     await click(wrapper, 'yayo')
-    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: '', recording: 'pending-1.m4a' }, expect.anything())
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: '', recording: 'pending-1.m4a', recording_seconds: 1 }, expect.anything())
   })
 
   it('上傳失敗：留在試聽畫面顯示明確文字，可再按 OK，也可改用打的', async () => {
@@ -798,7 +799,7 @@ describe('說法卡的錄音', () => {
     expect(byId(wrapper, 'add-typed').exists()).toBe(false)
     await click_(wrapper, 'review-ok')
     await flushPromises()
-    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording: 'pending-1.m4a' }, expect.anything())
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording: 'pending-1.m4a', recording_seconds: 1 }, expect.anything())
     expect(byId(wrapper, 'step-others').exists()).toBe(true)
   })
 
@@ -891,7 +892,7 @@ describe('取消、失敗與退路（審查意見）', () => {
     slow.release(signOf('pending-old.m4a')) // 第一個部落的舊上傳這時才回來
     await flushPromises()
     expect(post).toHaveBeenCalledTimes(1)
-    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'iratay', name: 'mamalan', food_category: 'rahet', recording: 'pending-new.m4a' }, expect.anything())
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'iratay', name: 'mamalan', food_category: 'rahet', recording: 'pending-new.m4a', recording_seconds: 1 }, expect.anything())
   })
 
   it('錄音中返回，錄音之後才結束：已取消的錄音不會被上傳', async () => {
@@ -968,3 +969,73 @@ describe('取消、失敗與退路（審查意見）', () => {
     expect(wrapper.text()).not.toContain('請重錄')
   })
 })
+
+describe('錄音秒數（規格修訂 4）', () => {
+  beforeEach(() => stubRecording())
+
+  it('最長秒數取自後端傳來的設定，不是寫死 30', async () => {
+    const wrapper = await goSpeak({ options: { ...options, recording_max_seconds: 10 } })
+    await click_(wrapper, 'method-speak')
+    expect(wrapper.text()).toContain('最長 10 秒')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    expect(wrapper.text()).toContain('還剩 10 秒')
+  })
+
+  it('送出時帶上錄音時記下的秒數：錄 7 秒就送 7', async () => {
+    vi.useFakeTimers()
+    fetch.mockResolvedValueOnce(SIGN).mockResolvedValueOnce({ ok: true })
+    const wrapper = await goSpeak()
+    await click_(wrapper, 'method-speak')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    vi.advanceTimersByTime(7000)
+    await click_(wrapper, 'record-stop')
+    await flushPromises()
+    expect(byId(wrapper, 'preview-play').attributes('data-known-seconds')).toBe('7')
+    await click_(wrapper, 'review-ok')
+    await flushPromises()
+    await click(wrapper, 'yayo')
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: '', food_category: '', recording: 'pending-1.m4a', recording_seconds: 7 }, expect.anything())
+    await click(wrapper, 'oyod')
+    expect(post.mock.calls.at(-1)[1]).not.toHaveProperty('recording_seconds') // 之後的分類不再帶錄音與秒數
+  })
+
+  it('說法卡、只有錄音、自己的面板的播放鈕都拿到資料裡的秒數；舊資料沒有秒數就是空', async () => {
+    const summary = [
+      none[0],
+      {
+        tribe: 'yayo', has_responses: true, has_variants: false,
+        names: [{ name: 'dalakan', count: 1, recording_url: 'https://s3.test/a.m4a', recording_seconds: 12 }, { name: 'rakan', count: 1, recording_url: 'https://s3.test/b.m4a', recording_seconds: null }],
+        recordings_only: [{ recording_url: 'https://s3.test/o.m4a', recording_seconds: 4 }],
+        categories: [],
+      },
+    ]
+    const mine = [{ tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording_url: 'https://s3.test/a.m4a', recording_seconds: 12 }]
+    const wrapper = mountFlow({ summary, mine })
+    const seconds = (id) => wrapper.findAll(`[data-testid="${id}"]`).map((n) => n.attributes('data-known-seconds'))
+    expect(seconds('name-recording')).toEqual(['12', undefined])
+    expect(seconds('only-recording')).toEqual(['4'])
+    await click_(wrapper, 'my-edit')
+    expect(byId(wrapper, 'my-play').attributes('data-known-seconds')).toBe('12')
+  })
+
+  it('重錄送出時也帶新錄音的秒數', async () => {
+    vi.useFakeTimers()
+    fetch.mockResolvedValueOnce(SIGN).mockResolvedValueOnce({ ok: true })
+    const mine = [{ tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording_url: 'https://s3.test/a.m4a', recording_seconds: 12 }]
+    const summary = [none[0], { tribe: 'yayo', has_responses: true, has_variants: false, names: [{ name: 'dalakan', count: 1 }], recordings_only: [], categories: [] }]
+    const wrapper = mountFlow({ summary, mine })
+    await click_(wrapper, 'my-edit')
+    await click_(wrapper, 'my-re-record')
+    await click_(wrapper, 'record-start')
+    await flushPromises()
+    vi.advanceTimersByTime(5000)
+    await click_(wrapper, 'record-stop')
+    await flushPromises()
+    await click_(wrapper, 'review-ok')
+    await flushPromises()
+    expect(post).toHaveBeenCalledWith('/fish/5/responses', { tribe: 'yayo', name: 'dalakan', food_category: 'oyod', recording: 'pending-1.m4a', recording_seconds: 5 }, expect.anything())
+  })
+})
+

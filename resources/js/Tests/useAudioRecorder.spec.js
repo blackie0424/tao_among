@@ -197,4 +197,25 @@ describe('useAudioRecorder', () => {
     recorder.stop()
     expect(recorder.recordedSeconds.value).toBe(1)
   })
+
+  it('秒數用實際經過時間四捨五入：1.4 秒記 1、1.5 秒記 2；超過最長秒數記最長；計時被延遲也不超過上限', async () => {
+    vi.useFakeTimers()
+    stubBrowser()
+    const secondsAfter = async (ms) => {
+      const recorder = useAudioRecorder({ maxSeconds: 30 })
+      await recorder.start()
+      vi.advanceTimersByTime(ms)
+      recorder.stop()
+      return recorder.recordedSeconds.value
+    }
+    expect(await secondsAfter(1400)).toBe(1)
+    expect(await secondsAfter(1500)).toBe(2)
+    expect(await secondsAfter(12000)).toBe(12)
+
+    const delayed = useAudioRecorder({ maxSeconds: 30 })
+    await delayed.start()
+    vi.setSystemTime(Date.now() + 45000) // 系統時間跳過 45 秒，但計時器還沒觸發
+    delayed.stop()
+    expect(delayed.recordedSeconds.value).toBe(30)
+  })
 })

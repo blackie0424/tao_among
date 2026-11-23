@@ -22,6 +22,9 @@ class FishTribeResponse extends Model
     /** 錄音檔可用的副檔名（audio/mp4 存成 m4a、audio/aac 存成 aac） */
     public const RECORDING_EXTENSIONS = ['m4a', 'aac'];
 
+    /** 錄音最長秒數（前後端共用，由 formOptions 傳給前端） */
+    public const RECORDING_MAX_SECONDS = 30;
+
     /** 錄音檔大小上限（位元組）：2 MB */
     public const RECORDING_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -32,7 +35,7 @@ class FishTribeResponse extends Model
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     private const UNNAMED_FISH_NAME = '我不知道';
 
-    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at', 'recording_filename', 'recording_submitted_at'];
+    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
 
     public function user(): BelongsTo
     {
@@ -83,11 +86,12 @@ class FishTribeResponse extends Model
      * 錄音不適用「略過視為清空」：沒帶新錄音就保留舊的，「至少一項」以保留後的最終狀態判斷。
      *
      * @param  string|null  $recording  已複製到正式資料夾的新錄音檔名
+     * @param  int|null  $recordingSeconds  新錄音的秒數（有新錄音時才有值）
      * @return string|null 被新錄音取代的舊錄音檔名（呼叫端在提交後刪除）
      *
      * @throws ValidationException 保留後叫法、分類、錄音皆空
      */
-    public static function submit(array $keys, ?string $name, ?string $foodCategory, ?string $recording = null): ?string
+    public static function submit(array $keys, ?string $name, ?string $foodCategory, ?string $recording = null, ?int $recordingSeconds = null): ?string
     {
         $hasNewContent = $name !== null || $foodCategory !== null || $recording !== null;
         $newRow = [
@@ -97,6 +101,7 @@ class FishTribeResponse extends Model
             'name_submitted_at' => $name === null ? null : self::submissionTime(),
             'recording_filename' => $recording,
             'recording_submitted_at' => $recording === null ? null : self::submissionTime(),
+            'recording_seconds' => $recording === null ? null : $recordingSeconds,
             'created_at' => now(),
             'updated_at' => now(),
         ];
@@ -105,7 +110,7 @@ class FishTribeResponse extends Model
         }
 
         // 偶發的死鎖由 Laravel 重試
-        return DB::transaction(function () use ($keys, $name, $foodCategory, $recording, $hasNewContent, $newRow) {
+        return DB::transaction(function () use ($keys, $name, $foodCategory, $recording, $recordingSeconds, $hasNewContent, $newRow) {
             $row = self::where($keys)->lockForUpdate()->first();
             // 先前的新增因為已存在而被略過，但那一筆在這之間被刪除（例如作者刪掉只有錄音的回答）：照鎖的先後，現在重新新增
             if ($row === null && $hasNewContent) {
@@ -117,7 +122,7 @@ class FishTribeResponse extends Model
                 throw ValidationException::withMessages(['name' => self::EMPTY_RESPONSE_MESSAGE]);
             }
             $replaced = $recording === null ? null : $row->recording_filename;
-            $row->fill(['food_category' => $foodCategory, ...self::nameAttributes($row, $name), ...self::recordingAttributes($recording)])->save();
+            $row->fill(['food_category' => $foodCategory, ...self::nameAttributes($row, $name), ...self::recordingAttributes($recording, $recordingSeconds)])->save();
 
             return $replaced;
         }, attempts: self::DEADLOCK_RETRY_ATTEMPTS);
@@ -143,16 +148,20 @@ class FishTribeResponse extends Model
             if ($row->name === null && $row->food_category === null) {
                 $row->delete();
             } else {
-                $row->update(['recording_filename' => null, 'recording_submitted_at' => null]);
+                $row->update(['recording_filename' => null, 'recording_submitted_at' => null, 'recording_seconds' => null]);
             }
 
             return true;
         }, attempts: self::DEADLOCK_RETRY_ATTEMPTS);
     }
 
-    private static function recordingAttributes(?string $recording): array
+    private static function recordingAttributes(?string $recording, ?int $recordingSeconds): array
     {
-        return $recording === null ? [] : ['recording_filename' => $recording, 'recording_submitted_at' => self::submissionTime()];
+        return $recording === null ? [] : [
+            'recording_filename' => $recording,
+            'recording_submitted_at' => self::submissionTime(),
+            'recording_seconds' => $recordingSeconds,
+        ];
     }
 
     private static function nameAttributes(self $row, ?string $name): array
@@ -173,7 +182,7 @@ class FishTribeResponse extends Model
         return config('fish_options.response_food_categories');
     }
 
-    /** @return array{tribes: list<string>, food_categories: list<string>, name_options: list<string>, name_max_length: int} */
+    /** @return array{tribes: list<string>, food_categories: list<string>, name_options: list<string>, name_max_length: int, recording_max_seconds: int} */
     public static function formOptions(string $fishName): array
     {
         return [
@@ -181,6 +190,7 @@ class FishTribeResponse extends Model
             'food_categories' => self::selectableFoodCategories(),
             'name_options' => $fishName === self::UNNAMED_FISH_NAME ? [] : [$fishName],
             'name_max_length' => self::NAME_MAX_LENGTH,
+            'recording_max_seconds' => self::RECORDING_MAX_SECONDS,
         ];
     }
 
@@ -196,6 +206,7 @@ class FishTribeResponse extends Model
                 'name' => $row->name,
                 'food_category' => $row->food_category,
                 'recording_url' => $row->recording_filename === null ? null : self::recordingUrl($row->recording_filename),
+                'recording_seconds' => $row->recording_seconds,
             ])
             ->all();
     }
@@ -248,8 +259,8 @@ class FishTribeResponse extends Model
     }
 
     /**
-     * @return list<array{name: string, count: int, recording_url?: string}> 人數多者在前，同數依該寫法最早被送出的時間；
-     *                                                                       該組最早送出的錄音網址放在 recording_url，沒人錄音就沒有這個欄位
+     * @return list<array{name: string, count: int, recording_url?: string, recording_seconds?: int|null}> 人數多者在前，同數依該寫法最早被送出的時間；
+     *                                                                                                     該組最早送出的錄音網址放在 recording_url，沒人錄音就沒有這個欄位
      */
     private static function groupNames($rows): array
     {
@@ -274,17 +285,20 @@ class FishTribeResponse extends Model
         return array_map(fn (array $group) => [
             'name' => $group['name'],
             'count' => $group['count'],
-            ...($group['recording'] === null ? [] : ['recording_url' => self::recordingUrl($group['recording']->recording_filename)]),
+            ...($group['recording'] === null ? [] : [
+                'recording_url' => self::recordingUrl($group['recording']->recording_filename),
+                'recording_seconds' => $group['recording']->recording_seconds,
+            ]),
         ], $groups);
     }
 
-    /** @return list<array{recording_url: string}> 沒有叫法、只有錄音的回答，依錄音送出時間（相同時依編號）排列 */
+    /** @return list<array{recording_url: string, recording_seconds: int|null}> 沒有叫法、只有錄音的回答，依錄音送出時間（相同時依編號）排列 */
     private static function recordingsOnly($rows): array
     {
         return $rows
             ->filter(fn (self $row) => trim((string) $row->name) === '' && $row->recording_filename !== null)
             ->sort(fn (self $a, self $b) => self::recordedBefore($a, $b) ? -1 : 1)
-            ->map(fn (self $row) => ['recording_url' => self::recordingUrl($row->recording_filename)])
+            ->map(fn (self $row) => ['recording_url' => self::recordingUrl($row->recording_filename), 'recording_seconds' => $row->recording_seconds])
             ->values()
             ->all();
     }

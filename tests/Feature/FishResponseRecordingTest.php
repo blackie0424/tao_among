@@ -251,7 +251,7 @@ it('copies a valid pending recording to the response folder and stores it on the
     $fish = Fish::factory()->create();
     $storage = recordingStorage([pendingPath($user) => 100]);
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
 
     $row = FishTribeResponse::firstOrFail();
     expect($row->recording_filename)->toMatch('/^[0-9a-f-]{36}\.m4a$/')
@@ -268,7 +268,7 @@ it('gives two responses that use the same pending name different stored files', 
     $fish = Fish::factory()->create();
     recordingStorage([pendingPath($user) => 100]);
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
     $first = FishTribeResponse::firstOrFail()->recording_filename;
 
     expect(FishTribeResponse::where('recording_filename', $first)->count())->toBe(1);
@@ -281,7 +281,7 @@ it('rejects a recording that is missing, malformed, too big, or belongs to anoth
     $owner = $mine ? $user : $other;
     $storage = recordingStorage($size === null ? [] : [pendingPath($owner, $name) => $size]);
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'name' => 'dalakan', 'recording' => $name])->assertSessionHasErrors('recording');
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'name' => 'dalakan', 'recording' => $name, 'recording_seconds' => 12])->assertSessionHasErrors('recording');
 
     expect(FishTribeResponse::count())->toBe(0)
         ->and(array_keys($storage['files']))->each->not->toStartWith('response-audio/');
@@ -298,7 +298,7 @@ it('rejects a recording name that carries a path', function (string $name) {
     $fish = Fish::factory()->create();
     recordingStorage();
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => $name])->assertSessionHasErrors('recording');
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => $name, 'recording_seconds' => 12])->assertSessionHasErrors('recording');
 
     expect(FishTribeResponse::count())->toBe(0);
 })->with(['../x.m4a', 'audio-pending/1/11111111-1111-4111-8111-111111111111.m4a', '..\\x.m4a']);
@@ -309,7 +309,7 @@ it('deletes an oversize pending file when rejecting it, and still rejects when t
     $storage = recordingStorage([pendingPath($user) => FishTribeResponse::RECORDING_MAX_BYTES + 1], $fail);
     Log::spy();
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasErrors('recording');
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasErrors('recording');
 
     expect(FishTribeResponse::count())->toBe(0)
         ->and(isset($storage['files'][pendingPath($user)]))->toBe($fail !== []);
@@ -323,7 +323,7 @@ it('accepts a recording of exactly the size limit', function () {
     $fish = Fish::factory()->create();
     recordingStorage([pendingPath($user) => FishTribeResponse::RECORDING_MAX_BYTES]);
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
 
     expect(FishTribeResponse::count())->toBe(1);
 });
@@ -333,12 +333,12 @@ it('writes nothing and keeps the pending file when the copy fails, and works on 
     $fish = Fish::factory()->create();
     $storage = recordingStorage([pendingPath($user) => 100], ['copy']);
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])
         ->assertSessionHasErrors(['recording' => '錄音儲存失敗，請重試']);
     expect(FishTribeResponse::count())->toBe(0)->and($storage['files'])->toHaveKey(pendingPath($user));
 
     $storage['fail'] = [];
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
     expect(FishTribeResponse::count())->toBe(1);
 });
 
@@ -350,7 +350,7 @@ it('removes the copied file and keeps the old state when the database write fail
     FishTribeResponse::saving(fn () => throw new RuntimeException('db down'));
 
     $this->withoutExceptionHandling();
-    expect(fn () => sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME]))->toThrow(RuntimeException::class);
+    expect(fn () => sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12]))->toThrow(RuntimeException::class);
 
     expect(FishTribeResponse::firstOrFail()->recording_filename)->toBe('old.m4a')
         ->and(array_keys($storage['files']))->toEqualCanonicalizing(['response-audio/old.m4a', pendingPath($user)]);
@@ -396,7 +396,7 @@ it('saves a recording first, then skipping the category and re-answering after r
     $fish = Fish::factory()->create();
     recordingStorage([pendingPath($user) => 100]);
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
     $stored = FishTribeResponse::firstOrFail()->recording_filename;
     sendResponse($user, $fish, ['tribe' => 'yayo', 'food_category' => 'rahet'])->assertSessionHasNoErrors();
     sendResponse($user, $fish, ['tribe' => 'yayo', 'food_category' => ''])->assertSessionHasNoErrors();
@@ -427,7 +427,7 @@ it('replaces the recording, updates its time and removes the old file', function
     recordingRow($user, $fish, 'yayo', ['recording_filename' => 'old.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000000']);
     Carbon::setTestNow(Carbon::parse('2026-11-21 12:00:00'));
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
 
     $row = FishTribeResponse::firstOrFail();
     expect($row->recording_filename)->not->toBe('old.m4a')
@@ -443,7 +443,7 @@ it('still succeeds, points to the new file and logs when the old file cannot be 
     recordingRow($user, $fish, 'yayo', ['recording_filename' => 'old.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000000']);
     Log::spy();
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
 
     expect(FishTribeResponse::firstOrFail()->recording_filename)->not->toBe('old.m4a')
         ->and($storage['files'])->toHaveKey('response-audio/old.m4a');
@@ -464,7 +464,7 @@ it('still completes a re-record when the author deleted the recording-only respo
         }
     });
 
-    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 12])->assertSessionHasNoErrors();
 
     $row = FishTribeResponse::firstOrFail();
     expect($raced)->toBeTrue()
@@ -556,9 +556,9 @@ it('gives viewer, editor and admin exactly the whitelisted response data includi
 
     expect(array_keys($responses))->toBe(['form', 'summary', 'mine', 'responders'])
         ->and(array_keys($responses['summary'][0]))->toBe(['tribe', 'has_responses', 'names', 'recordings_only', 'has_variants', 'categories'])
-        ->and(array_keys(tribeSummary($responses, 'yayo')['names'][0]))->toBe(['name', 'count', 'recording_url'])
-        ->and(array_keys(tribeSummary($responses, 'imowrod')['recordings_only'][0]))->toBe(['recording_url'])
-        ->and(array_keys($responses['mine'][0]))->toBe(['tribe', 'name', 'food_category', 'recording_url'])
+        ->and(array_keys(tribeSummary($responses, 'yayo')['names'][0]))->toBe(['name', 'count', 'recording_url', 'recording_seconds'])
+        ->and(array_keys(tribeSummary($responses, 'imowrod')['recordings_only'][0]))->toBe(['recording_url', 'recording_seconds'])
+        ->and(array_keys($responses['mine'][0]))->toBe(['tribe', 'name', 'food_category', 'recording_url', 'recording_seconds'])
         ->and(tribeSummary($responses, 'yayo')['names'][0]['recording_url'])->toBe('https://s3.test/response_audio/secret-a.m4a')
         ->and(tribeSummary($responses, 'imowrod')['recordings_only'][0]['recording_url'])->toBe('https://s3.test/response_audio/secret-b.m4a')
         ->and($responses['mine'][0]['recording_url'])->toBe('https://s3.test/response_audio/secret-b.m4a')
@@ -613,7 +613,7 @@ it('attaches the earliest recording of a spelling group and leaves recording-les
     $names = tribeSummary(responsesFor($u1, $fish), 'yayo')['names'];
 
     expect($names)->toBe([
-        ['name' => 'dalakan', 'count' => 2, 'recording_url' => 'https://s3.test/response_audio/early.m4a'],
+        ['name' => 'dalakan', 'count' => 2, 'recording_url' => 'https://s3.test/response_audio/early.m4a', 'recording_seconds' => null],
         ['name' => 'rakan', 'count' => 2],
     ]);
 });
@@ -644,8 +644,8 @@ it('lists recording-only responses of a tribe in recording order and counts them
 
     expect($summary['has_responses'])->toBeTrue()
         ->and($summary['recordings_only'])->toBe([
-            ['recording_url' => 'https://s3.test/response_audio/first.m4a'],
-            ['recording_url' => 'https://s3.test/response_audio/second.m4a'],
+            ['recording_url' => 'https://s3.test/response_audio/first.m4a', 'recording_seconds' => null],
+            ['recording_url' => 'https://s3.test/response_audio/second.m4a', 'recording_seconds' => null],
         ])
         ->and($summary['names'])->toBe([['name' => 'rakan', 'count' => 1]])
         ->and($summary['has_variants'])->toBeFalse()
@@ -661,4 +661,127 @@ it('counts a recording-only responder once even with recordings in two tribes', 
     recordingRow($u1, $fish, 'yayo', ['recording_filename' => 'b.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000002']);
 
     expect(responsesFor($u1, $fish)['responders'])->toBe(1);
+});
+
+// ─── 修訂 4：錄音秒數 ─────────────────────────────────────
+
+const SECONDS_ERROR = '錄音秒數不正確，請重錄';
+
+it('adds a nullable recording_seconds column and exposes the shared maximum to the form', function () {
+    expect(Schema::hasColumn('fish_tribe_responses', 'recording_seconds'))->toBeTrue();
+    expect(FishTribeResponse::RECORDING_MAX_SECONDS)->toBe(30);
+
+    $viewer = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage();
+    expect(responsesFor($viewer, $fish)['form']['recording_max_seconds'])->toBe(30);
+});
+
+it('stores the recording seconds together with the recording', function (int $seconds) {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage([pendingPath($user) => 100]);
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => $seconds])->assertSessionHasNoErrors();
+
+    expect(FishTribeResponse::firstOrFail()->recording_seconds)->toBe($seconds);
+})->with([1, 12, 30]);
+
+it('rejects missing, out-of-range or non-integer seconds and keeps the pending file', function (mixed $seconds) {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    $storage = recordingStorage([pendingPath($user) => 100]);
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'name' => 'dalakan', 'recording' => PENDING_NAME, 'recording_seconds' => $seconds])
+        ->assertSessionHasErrors(['recording_seconds' => SECONDS_ERROR]);
+
+    expect(FishTribeResponse::count())->toBe(0)
+        ->and(array_keys($storage['files']))->toBe([pendingPath($user)]);
+})->with(['missing' => [null], 'zero' => [0], 'over the limit' => [31], 'decimal' => ['1.5'], 'text' => ['abc'], 'negative' => [-3]]);
+
+it('rejects seconds sent without a recording', function () {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage();
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'name' => 'dalakan', 'recording_seconds' => 12])
+        ->assertSessionHasErrors(['recording_seconds' => '沒有錄音時不能帶錄音秒數']);
+
+    expect(FishTribeResponse::count())->toBe(0);
+});
+
+it('validates fields before touching storage: bad seconds and a huge file answers only the seconds error and keeps the file', function () {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    $storage = recordingStorage([pendingPath($user) => FishTribeResponse::RECORDING_MAX_BYTES + 1]);
+
+    $response = sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 99]);
+
+    $response->assertSessionHasErrors(['recording_seconds' => SECONDS_ERROR])->assertSessionDoesntHaveErrors('recording');
+    expect($storage['files'])->toHaveKey(pendingPath($user));
+});
+
+it('validates fields before touching storage: bad seconds and a missing file answers only the seconds error', function () {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage();
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => PENDING_NAME, 'recording_seconds' => 0])
+        ->assertSessionHasErrors(['recording_seconds' => SECONDS_ERROR])
+        ->assertSessionDoesntHaveErrors('recording');
+});
+
+it('reports a malformed file name and bad seconds together without touching storage', function () {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage();
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'recording' => '../x.m4a', 'recording_seconds' => 0])
+        ->assertSessionHasErrors(['recording', 'recording_seconds']);
+});
+
+it('keeps the old seconds when a later submit carries no recording, and an old recording without seconds stays empty', function () {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage();
+    recordingRow($user, $fish, 'yayo', ['name' => 'dalakan', 'recording_filename' => 'new.m4a', 'recording_seconds' => 9, 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+    recordingRow($user, $fish, 'imowrod', ['name' => 'rakan', 'recording_filename' => 'old.m4a', 'recording_submitted_at' => '2026-11-21 10:00:00.000002']);
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'name' => 'dalakan', 'food_category' => 'oyod'])->assertSessionHasNoErrors();
+    sendResponse($user, $fish, ['tribe' => 'imowrod', 'name' => 'rakan', 'food_category' => 'oyod'])->assertSessionHasNoErrors();
+
+    $mine = collect(responsesFor($user, $fish)['mine'])->keyBy('tribe');
+    expect($mine['yayo']['recording_seconds'])->toBe(9)
+        ->and($mine['imowrod']['recording_url'])->not->toBeNull()
+        ->and($mine['imowrod']['recording_seconds'])->toBeNull();
+});
+
+it('updates the seconds when the recording is replaced, and clears them when the recording is deleted', function () {
+    $user = User::factory()->create(['role' => 'viewer']);
+    $fish = Fish::factory()->create();
+    recordingStorage([pendingPath($user) => 100, 'response-audio/old.m4a' => 50]);
+    recordingRow($user, $fish, 'yayo', ['name' => 'dalakan', 'recording_filename' => 'old.m4a', 'recording_seconds' => 5, 'recording_submitted_at' => '2026-11-21 10:00:00.000001']);
+
+    sendResponse($user, $fish, ['tribe' => 'yayo', 'name' => 'dalakan', 'recording' => PENDING_NAME, 'recording_seconds' => 21])->assertSessionHasNoErrors();
+    expect(FishTribeResponse::firstOrFail()->recording_seconds)->toBe(21);
+
+    removeRecording($user, $fish->id, ['tribe' => 'yayo'])->assertSessionHasNoErrors();
+    $row = FishTribeResponse::firstOrFail();
+    expect($row->recording_filename)->toBeNull()->and($row->recording_seconds)->toBeNull();
+});
+
+it('gives the seconds of the earliest recording of a spelling group, of recording-only entries and of mine', function () {
+    [$u1, $u2, $u3] = User::factory()->count(3)->create(['role' => 'viewer'])->all();
+    $fish = Fish::factory()->create();
+    recordingStorage();
+    recordingRow($u1, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => '2026-11-21 09:00:00.000001', 'recording_filename' => 'late.m4a', 'recording_seconds' => 20, 'recording_submitted_at' => '2026-11-21 11:00:00.000000']);
+    recordingRow($u2, $fish, 'yayo', ['name' => 'dalakan', 'name_submitted_at' => '2026-11-21 09:00:00.000002', 'recording_filename' => 'early.m4a', 'recording_seconds' => 7, 'recording_submitted_at' => '2026-11-21 10:00:00.000000']);
+    recordingRow($u3, $fish, 'yayo', ['recording_filename' => 'only.m4a', 'recording_seconds' => 4, 'recording_submitted_at' => '2026-11-21 10:30:00.000000']);
+
+    $responses = responsesFor($u1, $fish);
+    $summary = tribeSummary($responses, 'yayo');
+
+    expect($summary['names'][0]['recording_seconds'])->toBe(7)
+        ->and($summary['recordings_only'][0]['recording_seconds'])->toBe(4)
+        ->and($responses['mine'][0]['recording_seconds'])->toBe(20);
 });
