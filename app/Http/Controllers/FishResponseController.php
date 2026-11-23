@@ -28,6 +28,21 @@ class FishResponseController extends Controller
     public function store(Request $request, int $id, StorageServiceInterface $storage): RedirectResponse
     {
         $fish = Fish::findOrFail($id);
+        $data = $this->validatedResponseInput($request);
+        $userId = $request->user()->id;
+        $keys = ['user_id' => $userId, 'fish_id' => $fish->id, 'tribe' => $data['tribe']];
+
+        $this->saveResponse($storage, $keys, $data);
+
+        return back();
+    }
+
+    /**
+     * 驗證送出的欄位（只看請求本身，不碰儲存空間，所以暫存檔原樣保留）。
+     * 帶錄音時秒數必填；沒錄音卻帶了秒數，兩者對不上，拒絕。
+     */
+    private function validatedResponseInput(Request $request): array
+    {
         $input = $this->normalizedInput($request);
 
         $validator = Validator::make($input, [
@@ -43,20 +58,26 @@ class FishResponseController extends Controller
             'recording_seconds.between' => self::RECORDING_SECONDS_MESSAGE,
             'recording_seconds.required_with' => self::RECORDING_SECONDS_MESSAGE,
         ]);
-        // 沒有錄音卻帶了秒數：兩者對不上，拒絕
         $validator->after(function ($validator) use ($input) {
             if ($input['recording'] === null && $input['recording_seconds'] !== null) {
                 $validator->errors()->add('recording_seconds', self::SECONDS_WITHOUT_RECORDING_MESSAGE);
             }
         });
-        $data = $validator->validate();
 
-        $userId = $request->user()->id;
-        $keys = ['user_id' => $userId, 'fish_id' => $fish->id, 'tribe' => $data['tribe']];
-        $stored = $data['recording'] === null ? null : $this->copyPendingRecording($storage, $userId, $data['recording']);
+        return $validator->validate();
+    }
+
+    /**
+     * 存回答：有錄音時先複製到正式資料夾，寫資料表失敗就刪掉剛複製的新檔；
+     * 成功後才盡力刪掉被取代的舊檔與暫存檔。
+     */
+    private function saveResponse(StorageServiceInterface $storage, array $keys, array $data): void
+    {
+        $stored = $data['recording'] === null ? null : $this->copyPendingRecording($storage, $keys['user_id'], $data['recording']);
+        $seconds = $data['recording_seconds'] === null ? null : (int) $data['recording_seconds'];
 
         try {
-            $replaced = FishTribeResponse::submit($keys, $data['name'], $data['food_category'], $stored, $data['recording_seconds'] === null ? null : (int) $data['recording_seconds']);
+            $replaced = FishTribeResponse::submit($keys, $data['name'], $data['food_category'], $stored, $seconds);
         } catch (Throwable $e) {
             if ($stored !== null) {
                 $this->deleteRecordingFile($storage, $stored);
@@ -64,14 +85,12 @@ class FishResponseController extends Controller
             throw $e;
         }
 
-        if ($data['recording'] !== null) {
-            if ($replaced !== null) {
-                $this->deleteRecordingFile($storage, $replaced);
-            }
-            $this->deleteStorageFile($storage, FishTribeResponse::pendingRecordingPath($userId, $data['recording']), $data['recording']);
+        if ($replaced !== null) {
+            $this->deleteRecordingFile($storage, $replaced);
         }
-
-        return back();
+        if ($data['recording'] !== null) {
+            $this->deleteStorageFile($storage, FishTribeResponse::pendingRecordingPath($keys['user_id'], $data['recording']), $data['recording']);
+        }
     }
 
     /** 作者刪除自己在某部落的錄音。 */
