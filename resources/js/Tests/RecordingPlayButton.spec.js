@@ -23,12 +23,15 @@ class FakeAudio {
   pause() { this.paused = true }
 }
 
+const originalPlay = FakeAudio.prototype.play
+
 const mountBar = (props = {}) => mount(RecordingPlayButton, { props: { src: 'blob:a', variant: 'bar', ...props }, attrs: { 'data-testid': 'play' } })
 const mountCircle = (props = {}) => mount(RecordingPlayButton, { props: { src: 'https://s3.test/a.m4a', ...props }, attrs: { 'data-testid': 'play' } })
 const state = (wrapper) => wrapper.find('[data-testid="play"]').attributes('data-state')
 const press = (wrapper) => wrapper.find('[data-testid="play"]').trigger('click')
 
 beforeEach(() => {
+  FakeAudio.prototype.play = originalPlay
   instances = []
   vi.stubGlobal('Audio', FakeAudio)
 })
@@ -176,5 +179,80 @@ describe('RecordingPlayButton 狀態', () => {
     await wrapper.setProps({ src: 'blob:new' })
     expect(state(wrapper)).toBe('idle')
     expect(instances[0].paused).toBe(true)
+  })
+
+  it('載入中停止後，play() 才延遲拒絕：按鈕維持平常，不會變成失敗', async () => {
+    const wrapper = mountBar()
+    let rejectPlay
+    FakeAudio.prototype.play = function () { return new Promise((_, reject) => { rejectPlay = reject }) }
+    await press(wrapper) // 載入中
+    await press(wrapper) // 停止
+    rejectPlay(new Error('late'))
+    await flushPromises()
+    expect(state(wrapper)).toBe('idle')
+  })
+
+  it('舊的 play() 延遲拒絕，不會影響已重新開始的播放，也不會讓兩段同時播放', async () => {
+    const first = mountCircle({ src: 'https://s3.test/1.m4a' })
+    const second = mountCircle({ src: 'https://s3.test/2.m4a' })
+    const rejects = []
+    FakeAudio.prototype.play = function () { return new Promise((_, reject) => { rejects.push(reject) }) }
+    await press(first) // 第一次播放（之後會晚到拒絕）
+    await press(first) // 停止
+    await press(first) // 立刻重播
+    instances[0].emit('playing')
+    rejects[0](new Error('late')) // 舊的那次現在才拒絕
+    await flushPromises()
+    expect(state(first)).toBe('playing')
+    await press(second) // 再播另一段：第一段必須停下，不會兩段同時播
+    expect(state(first)).toBe('idle')
+    expect(instances[0].paused).toBe(true)
+    expect(state(second)).toBe('loading')
+  })
+
+  it('停止後才晚到的「播放中」或錯誤事件，不會把按鈕改回播放中或失敗', async () => {
+    const wrapper = mountBar()
+    await press(wrapper)
+    await press(wrapper) // 停止
+    instances[0].emit('playing')
+    instances[0].emit('error')
+    await flushPromises()
+    expect(state(wrapper)).toBe('idle')
+  })
+
+  it('圓形版失敗時看得到「無法播放」文字（不只是驚嘆號），再按一次可重試', async () => {
+    const wrapper = mountCircle()
+    await press(wrapper)
+    instances[0].emit('error')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="play-error"]').text()).toContain('無法播放')
+    await press(wrapper)
+    expect(state(wrapper)).toBe('loading')
+    expect(wrapper.find('[data-testid="play-error"]').exists()).toBe(false)
+  })
+
+  it('短錄音（1 秒）且瀏覽器讀不到長度：仍顯示「已播／1 秒」與進度', async () => {
+    const wrapper = mountBar({ knownSeconds: 1 })
+    await press(wrapper)
+    instances[0].duration = Infinity
+    instances[0].emit('playing')
+    instances[0].currentTime = 0.5
+    instances[0].emit('timeupdate')
+    await flushPromises()
+    expect(wrapper.text()).toContain('播放中 0:00／0:01')
+    expect(wrapper.find('[data-testid="play-progress"]').attributes('style')).toContain('width: 50%')
+    expect(wrapper.find('[data-testid="play-progress"]').attributes('data-indeterminate')).toBeUndefined()
+  })
+
+  it('不知道總長度（說法卡讀不到）：只顯示已播秒數，進度改成閃動而不是停在 0%', async () => {
+    const wrapper = mountCircle()
+    await press(wrapper)
+    instances[0].duration = NaN
+    instances[0].emit('playing')
+    instances[0].currentTime = 2
+    instances[0].emit('timeupdate')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="play-time"]').text()).toBe('0:02')
+    expect(wrapper.find('[data-testid="play-ring"]').attributes('data-indeterminate')).toBe('true')
   })
 })

@@ -20,6 +20,7 @@ const WAVE_AMPLITUDE = 1.5 // 振幅放大倍率，建議 1.5~2.5
 const WAVE_FFT_SIZE = 256
 const WAVE_COLOR = '#4d7f99'
 const MS_PER_SECOND = 1000
+const MIN_RECORDED_SECONDS = 1
 const LOG_PREFIX = '[audio-recorder]'
 
 function pickMimeType() {
@@ -183,7 +184,7 @@ export function useAudioRecorder({ maxSeconds = 5, canvasRef = null } = {}) {
 
   function stop() {
     if (mediaRecorder && isRecording.value) {
-      recordedSeconds.value = maxSeconds - remaining.value
+      recordedSeconds.value = Math.max(MIN_RECORDED_SECONDS, maxSeconds - remaining.value) // 不足一秒也記 1 秒，0 代表沒錄
       mediaRecorder.stop()
       isRecording.value = false
       clearTimers()

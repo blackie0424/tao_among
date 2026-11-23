@@ -187,4 +187,14 @@ describe('useAudioRecorder', () => {
     manual.reset()
     expect(manual.recordedSeconds.value).toBe(0)
   })
+
+  it('不足一秒就停止：記 1 秒，不會記成 0（0 代表沒錄）', async () => {
+    vi.useFakeTimers()
+    stubBrowser()
+    const recorder = useAudioRecorder({ maxSeconds: 30 })
+    await recorder.start()
+    vi.advanceTimersByTime(400)
+    recorder.stop()
+    expect(recorder.recordedSeconds.value).toBe(1)
+  })
 })

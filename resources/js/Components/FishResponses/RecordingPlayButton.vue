@@ -22,7 +22,7 @@
       <span v-else-if="state === 'idle' || state === 'ended'" aria-hidden="true">▶</span>
       <span>{{ barText }}</span>
       <span v-if="state === 'playing'" class="absolute bottom-0 left-0 h-1.5 w-full bg-white/25" aria-hidden="true">
-        <span class="block h-1.5 bg-white" :style="{ width: `${percent}%` }" data-testid="play-progress"></span>
+        <span class="block h-1.5 bg-white" :class="indeterminate && 'animate-pulse'" :style="{ width: indeterminate ? '100%' : `${percent}%` }" :data-indeterminate="indeterminate || undefined" data-testid="play-progress"></span>
       </span>
     </button>
 
@@ -36,7 +36,7 @@
         v-bind="$attrs"
         @click="toggle"
       >
-        <span v-if="state === 'playing'" class="flex h-12 w-12 items-center justify-center rounded-full" :style="{ background: `conic-gradient(${RING_COLOR} ${percent}%, ${RING_TRACK_COLOR} 0)` }" data-testid="play-ring" :data-percent="percent">
+        <span v-if="state === 'playing'" class="flex h-12 w-12 items-center justify-center rounded-full" :class="indeterminate && 'animate-pulse'" :style="{ background: indeterminate ? RING_COLOR : `conic-gradient(${RING_COLOR} ${percent}%, ${RING_TRACK_COLOR} 0)` }" data-testid="play-ring" :data-percent="percent" :data-indeterminate="indeterminate || undefined">
           <span class="flex h-[2.4rem] w-[2.4rem] items-center justify-center rounded-full bg-brand text-white">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <rect class="rpb-bar" x="4" y="10" width="4" height="10" />
@@ -53,6 +53,7 @@
         <svg v-else class="h-5 w-5 text-brand" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
       </button>
       <span v-if="state === 'playing'" class="text-elder-aux font-bold text-brand" data-testid="play-time">{{ timeText }}</span>
+      <span v-else-if="state === 'error'" role="alert" class="text-elder-aux text-red-700" data-testid="play-error">{{ errorLabel }}，再按一次</span>
     </template>
   </span>
 </template>
@@ -81,6 +82,7 @@ const PERCENT = 100
 const RING_COLOR = '#2f5d62' // 進度外圈（品牌色）
 const RING_TRACK_COLOR = '#cfc5b3' // 進度外圈底色（框線色）
 
+let playSeq = 0 // 每次開始或停止就加一；舊的 play() 延遲才拒絕時，發現編號不同就放棄
 const state = ref('idle') // idle | loading | playing | ended | error
 const currentTime = ref(0)
 const audioDuration = ref(NaN)
@@ -90,6 +92,7 @@ const totalSeconds = computed(() => {
   if (props.knownSeconds) return props.knownSeconds
   return Number.isFinite(audioDuration.value) && audioDuration.value > 0 ? Math.round(audioDuration.value) : null
 })
+const indeterminate = computed(() => state.value === 'playing' && !totalSeconds.value) // 讀不到總長度：進度不明，改用閃動表示播放中
 const percent = computed(() => (totalSeconds.value ? Math.min(PERCENT, Math.floor((currentTime.value / totalSeconds.value) * PERCENT)) : 0))
 
 const formatTime = (seconds) => `${Math.floor(seconds / SECONDS_PER_MINUTE)}:${String(Math.floor(seconds % SECONDS_PER_MINUTE)).padStart(2, '0')}`
@@ -137,7 +140,7 @@ function ensureAudio() {
   if (audio) return audio
   audio = new Audio(props.src)
   audio.addEventListener('playing', () => {
-    state.value = 'playing'
+    if (state.value === 'loading') state.value = 'playing' // 已經停止或取消的不再變回播放中
   })
   audio.addEventListener('loadedmetadata', () => {
     audioDuration.value = audio.duration
@@ -156,12 +159,14 @@ function ensureAudio() {
 }
 
 function fail() {
+  if (state.value === 'idle') return // 已經停止的按鈕不會被晚到的錯誤改成失敗
   state.value = 'error'
   currentTime.value = 0
   release()
 }
 
 function stop() {
+  playSeq++
   if (audio) {
     audio.pause()
     audio.currentTime = 0
@@ -176,9 +181,12 @@ function start() {
   activePlayer = player
   state.value = 'loading'
   currentTime.value = 0
+  const mySeq = ++playSeq
   const element = ensureAudio()
   element.currentTime = 0
-  element.play()?.catch?.(fail)
+  element.play()?.catch?.(() => {
+    if (mySeq === playSeq) fail()
+  })
 }
 
 function toggle() {
@@ -187,6 +195,7 @@ function toggle() {
 }
 
 function dispose() {
+  playSeq++
   if (audio) audio.pause()
   audio = null
   audioDuration.value = NaN
