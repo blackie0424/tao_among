@@ -113,6 +113,7 @@ class LineAudioUploadIntegrationTest extends TestCase
         
         // 設定使用者狀態（模擬使用者已點擊「新增發音」）
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         
         // 2. 建立有效的音檔資料
         $audioBlob = $this->createValidM4aAudioBlob(5000);
@@ -237,6 +238,7 @@ class LineAudioUploadIntegrationTest extends TestCase
         $reflection = new \ReflectionClass($controller);
         $method = $reflection->getMethod('saveFishAudio');
         $method->setAccessible(true);
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, $userId, $fish->id, $audioBlob, $duration, 'test_token');
         
         // 3. 驗證音檔格式
@@ -295,6 +297,7 @@ class LineAudioUploadIntegrationTest extends TestCase
             
             // 設定使用者狀態
             Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+            Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
             
             // 建立音檔資料
             $audioBlob = $this->createValidM4aAudioBlob(3000);
@@ -406,6 +409,7 @@ class LineAudioUploadIntegrationTest extends TestCase
         
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         
         // 建立無效的音檔資料（太小）
         $invalidAudioBlob = str_repeat('x', 50); // 只有 50 bytes
@@ -559,6 +563,7 @@ class LineAudioUploadIntegrationTest extends TestCase
         $reflection = new \ReflectionClass($controller);
         $method = $reflection->getMethod('saveFishAudio');
         $method->setAccessible(true);
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, $userId, $fish->id, $audioBlob, $duration, 'test_token');
         
         // 驗證 URL 生成
@@ -601,6 +606,7 @@ class LineAudioUploadIntegrationTest extends TestCase
         
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         
         // 建立音檔資料
         $audioBlob = $this->createValidM4aAudioBlob(6000);
@@ -731,6 +737,7 @@ class LineAudioUploadIntegrationTest extends TestCase
         $reflection = new \ReflectionClass($controller);
         $method = $reflection->getMethod('saveFishAudio');
         $method->setAccessible(true);
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, $userId, $fish->id, $audioBlob, $duration, 'test_token');
         
         // 驗證結果
@@ -787,6 +794,7 @@ class LineAudioUploadIntegrationTest extends TestCase
             
             // 設定使用者狀態
             Cache::put("line_user_{$userIds[$i]}_adding_audio", $fish->id, now()->addMinutes(5));
+            Cache::put("line_user_{$userIds[$i]}_audio_tribe", 'yayo', now()->addMinutes(5));
         }
         
         // 為每個使用者執行上傳

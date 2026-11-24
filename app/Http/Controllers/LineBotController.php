@@ -7,9 +7,10 @@ use App\Contracts\LineMessagingClientInterface;
 use App\Contracts\LineUserServiceInterface;
 use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
-use App\Models\FishAudio;
 use App\Models\User;
 use App\Services\CaptureRecordBatchService;
+use App\Services\FishAudioRecordingService;
+use App\Services\FishNameSplitter;
 use App\Services\FishNoteService;
 use App\Services\Line\LineCreateFishReplyBuilder;
 use App\Services\Line\LineFishKnowledgeMessageBuilder;
@@ -911,6 +912,20 @@ class LineBotController extends Controller
         return true;
     }
 
+    /** 新增發音前的檢查，有問題回傳要給使用者的訊息，沒問題回傳 null。 */
+    protected function audioPrecheckError(int $fishId, ?string $tribe): ?string
+    {
+        if (! $tribe || ! in_array($tribe, config('fish_options.tribes', []), true)) {
+            return '❌ 部落資料無效，請重新操作。';
+        }
+        $fish = Fish::find($fishId);
+        if ($fish && app(FishNameSplitter::class)->split($fish->name) === []) {
+            return '❌ 這隻魚還沒有名稱，請先到網站編輯名稱再新增發音。';
+        }
+
+        return null;
+    }
+
     /**
      * 儲存魚類發音檔案（使用 LINE 專用的上傳服務）
      */
@@ -926,6 +941,19 @@ class LineBotController extends Controller
                 'blobSize' => strlen($audioBlob),
                 'duration' => $duration,
             ]);
+
+            // 上傳前先檢查：部落要是可選的部落；魚名不能是空的（沒有名稱可對應）
+            $tribe = Cache::get("line_user_{$userId}_audio_tribe");
+            $precheckError = $this->audioPrecheckError($fishId, $tribe);
+            if ($precheckError) {
+                Cache::forget("line_user_{$userId}_adding_audio");
+                Cache::forget("line_user_{$userId}_audio_tribe");
+                $this->lineMessagingClient->replyMessage($replyToken, [
+                    new \LINE\Clients\MessagingApi\Model\TextMessage(['type' => 'text', 'text' => $precheckError]),
+                ]);
+
+                return;
+            }
 
             // 上傳音檔到 S3（LINE 專用流程）
             try {
@@ -979,20 +1007,9 @@ class LineBotController extends Controller
                     throw new \Exception('Fish not found with ID: '.$fishId);
                 }
 
-                // 更新 fish 表的主要音檔檔名
-                $fish->update([
-                    'audio_filename' => $filename,
-                ]);
-
-                // 在 fish_audios 表中創建詳細記錄
-                // locate 從 Cache 讀取使用者選擇的部落（由 select_tribe_for_audio postback 設定）
-                $tribe = Cache::get("line_user_{$userId}_audio_tribe", 'unknown');
-                FishAudio::create([
-                    'fish_id' => $fishId,
-                    'name' => $filename, // 檔案名稱（UUID.m4a）
-                    'locate' => $tribe,    // 使用者選擇的部落
-                    'duration' => $duration, // 實際錄音長度（毫秒）
-                ]);
+                // 新增一筆錄音（不覆蓋舊的）；名稱：單一名稱的魚自動帶入，多名稱的魚先留空（選名稱流程見 #176）
+                $recordedBy = User::where('line_user_id', $userId)->value('id');
+                app(FishAudioRecordingService::class)->create($fish, null, $tribe, $filename, $duration, $recordedBy);
 
             } catch (\Exception $e) {
                 // 清除使用者狀態
@@ -1041,7 +1058,7 @@ class LineBotController extends Controller
             $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
-                    'text' => "✅ 發音檔已成功新增！\n💡 不滿意可再次錄製覆蓋",
+                    'text' => "✅ 發音檔已成功新增！\n💡 再錄一次會新增另一段，不會蓋掉舊的",
                 ]),
             ]);
 
@@ -1655,7 +1672,7 @@ class LineBotController extends Controller
                 $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
-                        'text' => '✅ 已選擇部落：'.ucfirst($tribe)."\n\n🎤 請錄製魚類發音（限 5 秒以內）\n💡 不滿意可再次錄製覆蓋",
+                        'text' => '✅ 已選擇部落：'.ucfirst($tribe)."\n\n🎤 請錄製魚類發音（限 5 秒以內）\n💡 再錄一次會新增另一段，不會蓋掉舊的",
                     ]),
                 ]);
 
@@ -1688,7 +1705,7 @@ class LineBotController extends Controller
                 $this->lineMessagingClient->replyMessage($replyToken, [
                     new \LINE\Clients\MessagingApi\Model\TextMessage([
                         'type' => 'text',
-                        'text' => "🎤 請重新錄製（限 5 秒以內）\n💡 不滿意可再次錄製覆蓋",
+                        'text' => "🎤 請重新錄製（限 5 秒以內）\n💡 再錄一次會新增另一段，不會蓋掉舊的",
                     ]),
                 ]);
 

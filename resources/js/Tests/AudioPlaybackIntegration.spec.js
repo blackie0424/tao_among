@@ -14,7 +14,6 @@ import { nextTick } from 'vue'
 
 // Import components and services
 import Volume from '../Components/UI/Volume.vue'
-import FishAudioCard from '../Components/FishAudio/FishAudioCard.vue'
 import { useAudioPlayback } from '../composables/useAudioPlayback.js'
 
 // Mock AnimationOptimizer — 此測試關注音頻播放整合，不測試動畫優化邏輯
@@ -214,9 +213,8 @@ Object.defineProperty(navigator, 'onLine', {
 })
 global.fetch = vi.fn().mockResolvedValue({ ok: true })
 
-// Mock FishAudioCard component for integration tests
-vi.mock('../Components/FishAudio/FishAudioCard.vue', () => ({
-  default: {
+// 測試用的簡化版播放卡（原本的 FishAudioCard 已由管理發音頁的 AudioClipRow 取代；這裡只驗證互斥播放）
+const FishAudioCard = {
     name: 'FishAudioCard',
     props: ['audio', 'fishId'],
     emits: ['deleted'],
@@ -245,8 +243,7 @@ vi.mock('../Components/FishAudio/FishAudioCard.vue', () => ({
         buttonText,
       }
     },
-  },
-}))
+}
 
 describe('音頻播放系統整合測試', () => {
   let mockAudioPlayerService

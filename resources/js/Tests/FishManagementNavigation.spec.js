@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3'
 import ManageLocal from '@/Pages/ManageTribalClassification.vue'
 import CreateNote from '@/Pages/CreateFishNote.vue'
 import EditCapture from '@/Pages/EditCaptureRecord.vue'
-import CreateAudio from '@/Pages/CreateFishAudio.vue'
+vi.mock('@/Components/UI/Volume.vue', () => ({ default: { template: '<span data-testid="volume" />' } }))
 vi.mock('@inertiajs/vue3', () => ({
   router: { visit: vi.fn(), post: vi.fn() },
   Head: { template: '<div />' },
@@ -35,22 +35,10 @@ it('EditCapture 取消回 capture tab', async () => {
  expect(router.visit).toHaveBeenCalledWith('/fish/4?tab=capture')
 })
 
-it('CreateAudio 取消回 audio tab', async () => {
- const page = mount(CreateAudio, options)
- await page.get('button[aria-label="關閉"]').trigger('click')
- expect(router.visit).toHaveBeenCalledWith('/fish/4?tab=audio')
-})
-
 it('編輯進階知識提供回進階 tab 的取消鍵', async () => {
   const { default: Page } = await import('@/Pages/Fish/EditKnowledge.vue')
   const page = mount(Page, { ...options, props: { ...props, note: { id: 8 } } })
   expect(page.get('a[href="/fish/4?tab=advanced"]').text()).toBe('取消')
-})
-
-it('編輯發音提供回發音 tab 的取消鍵', async () => {
-  const { default: Page } = await import('@/Pages/Fish/EditAudio.vue')
-  const page = mount(Page, { ...options, props: { ...props, audio: { id: 8 } }, global: { stubs: { EditFishAudioForm: true } } })
-  expect(page.get('a[href="/fish/4?tab=audio"]').text()).toBe('取消')
 })
 
 it('文獻 Create 取消回文獻 tab', async () => {
@@ -106,11 +94,3 @@ vi.stubGlobal('window', new Proxy(realWindow, { get: (target, key) => key === 'l
 try { await page.get('button[title="新增"]').trigger('click'); expect(location.href).toBe('/fish/4/knowledge/create') } finally {vi.stubGlobal('window', realWindow); page.unmount()}
 })
 
-it('FishAudioList 新增按鈕打開有效表單', async () => {
-const {default: Page}=await import('@/Pages/FishAudioList.vue')
-const page=mount(Page,listOptions)
-const location={href:''}
-const realWindow=window
-vi.stubGlobal('window', new Proxy(realWindow, { get: (target, key) => key === 'location' ? location : Reflect.get(target, key) }))
-try { await page.get('button[title="新增"]').trigger('click'); expect(location.href).toBe('/fish/4/audio/create') } finally {vi.stubGlobal('window', realWindow); page.unmount()}
-})

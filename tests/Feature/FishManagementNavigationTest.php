@@ -32,10 +32,10 @@ it('edit-note returns to advanced tab', function () {
     $this->actingAs(User::factory()->create())->put('/fish/114/knowledge/8', ['note' => 'Changed'])->assertRedirect('/fish/114?tab=advanced')->assertSessionHas('success');
 });
 
-it('edit-audio returns to audio tab', function () {
+it('edit-audio returns to the audio list', function () {
     Fish::factory()->create(['id' => 114]);
     \App\Models\FishAudio::factory()->create(['id' => 8, 'fish_id' => 114]);
-    $this->actingAs(User::factory()->create())->put('/fish/114/audio/8', ['name' => 'Changed'])->assertRedirect('/fish/114?tab=audio')->assertSessionHas('success');
+    $this->actingAs(User::factory()->create())->put('/fish/114/audio/8', ['tribe' => 'yayo'])->assertRedirect('/fish/114/audio-list')->assertSessionHas('success');
 });
 
 it('edit-capture stays at its destination', function () {
@@ -63,8 +63,8 @@ it('delete-audio stays at its destination', function () {
 });
 
 it('primary audio stays on the audio list', function () {
-    Fish::factory()->create(['id' => 114]);
-    \App\Models\FishAudio::factory()->create(['id' => 8, 'fish_id' => 114]);
+    Fish::factory()->create(['id' => 114, 'name' => 'Angsa']);
+    \App\Models\FishAudio::factory()->create(['id' => 8, 'fish_id' => 114, 'spoken_name' => 'Angsa']);
     $this->actingAs(User::factory()->create())->put('/fish/114/audio/8/set-base')
         ->assertRedirect('/fish/114/audio-list')->assertSessionHas('success');
 });
@@ -123,7 +123,7 @@ it('invalid forms return errors without success', function ($method, $url, $form
     ['put', '/fish/114/name', '/fish/114/edit', ['name' => ''], 'name'],
     ['post', '/fish/114/tribal-classifications', '/fish/114/tribal-classifications/create', [], 'classifications'],
     ['put', '/fish/114/capture-records/8', '/fish/114/capture-records/8/edit', ['image_scale' => 5], 'image_scale'],
-    ['put', '/fish/114/audio/8', '/fish/114/audio/8/edit', ['name' => ''], 'name'],
+    ['put', '/fish/114/audio/8', '/fish/114/audio/8/edit', ['tribe' => ''], 'tribe'],
     ['post', '/fish/114/reference-knowledge', '/fish/114/reference-knowledge/create', [], 'content'],
     ['put', '/fish/114/reference-knowledge/8', '/fish/114/reference-knowledge/8/edit', ['content' => ''], 'content'],
 ]);
