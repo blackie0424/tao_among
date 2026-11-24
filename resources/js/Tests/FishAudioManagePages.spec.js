@@ -18,11 +18,12 @@ const stubs = { FishAppLayout: Layout, Volume: true }
 let wrapper
 afterEach(() => { wrapper?.unmount(); vi.clearAllMocks() })
 
+const TRIBE_LIST = ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley']
 const fish = { id: 4, name: 'mivazlt、mivanivang', audio_filename: 'a1.m4a' }
 const audio = (over = {}) => ({ id: 1, name: 'a1.m4a', url: 'https://example.test/a1.m4a', locate: 'iraraley', duration: 4000, recorder_name: '甲', ...over })
 
 describe('AudioClipRow 顯示值的意思', () => {
-  const row = (a, extra = {}) => mount(AudioClipRow, { props: { audio: a, fishId: 4, ...extra }, global: { stubs: { Volume: true, Link: { props: ['href'], template: '<a :href="href"><slot /></a>' } } } })
+  const row = (a, extra = {}) => mount(AudioClipRow, { props: { audio: a, fishId: 4, tribes: TRIBE_LIST, ...extra }, global: { stubs: { Volume: true, Link: { props: ['href'], template: '<a :href="href"><slot /></a>' } } } })
 
   it('部落、長度、錄音者照資料顯示', () => {
     wrapper = row(audio())
@@ -35,6 +36,15 @@ describe('AudioClipRow 顯示值的意思', () => {
     wrapper = row(audio({ locate: null, recorder_name: null }))
     expect(wrapper.text()).toContain('未標部落')
     expect(wrapper.text()).toContain('錄音者：未記錄')
+  })
+
+  it('不在六個部落內的值（unknown、supabase、檔名、其他字串）一律顯示「未標部落」，不當成部落顯示', () => {
+    for (const locate of ['unknown', 'supabase', 'abc-123.m4a', '某個未知字串', '']) {
+      wrapper = row(audio({ locate }))
+      expect(wrapper.text()).toContain('未標部落')
+      expect(wrapper.text()).not.toContain(locate === '' ? '__none__' : locate)
+      wrapper.unmount()
+    }
   })
 
   it('長度為 0 或空時不顯示長度（不顯示 0:00）', () => {
@@ -72,6 +82,7 @@ describe('管理發音頁', () => {
           { name: 'mivanivang', audios: [] },
         ],
         unassignedAudios: [],
+        tribes: TRIBE_LIST,
         ...props,
       },
       global: { stubs },
@@ -127,10 +138,20 @@ describe('管理發音頁', () => {
     expect(router.put).toHaveBeenCalledWith('/fish/4/audio/9/name', { name: 'mivanivang' })
   })
 
-  it('魚名為空時提示先編輯名稱', () => {
-    mountList({ fish: { id: 4, name: '' }, audioGroups: [] })
+  it('未對應名稱的錄音仍有編輯入口（可換音檔、改部落、刪除）', () => {
+    mountList({ unassignedAudios: [audio({ id: 9, name: 'old.m4a', locate: 'supabase', recorder_name: null })] })
+    const section = wrapper.get('[data-testid="unassigned"]')
+    expect(section.get('a[href="/fish/4/audio/9/edit"]').text()).toBe('編輯')
+    expect(section.text()).toContain('未標部落')
+    expect(section.text()).not.toContain('supabase')
+  })
+
+  it('魚名為空時提示先編輯名稱；既有的錄音仍可編輯（沒有名稱可指派）', () => {
+    mountList({ fish: { id: 4, name: '' }, audioGroups: [], unassignedAudios: [audio({ id: 9, name: 'old.m4a' })] })
     expect(wrapper.text()).toContain('這隻魚還沒有名稱')
     expect(wrapper.get('a[href="/fish/4/edit"]').text()).toBe('編輯名稱')
+    expect(wrapper.get('[data-testid="unassigned"] a[href="/fish/4/audio/9/edit"]').text()).toBe('編輯')
+    expect(wrapper.get('[data-testid="unassigned"] select').findAll('option')).toHaveLength(1) // 只有「選名稱」，沒有可指派的名稱
   })
 })
 

@@ -23,7 +23,7 @@ class FishAudio extends Model
     public const MAX_BYTES = 2 * 1024 * 1024;
 
     /** 網頁錄音檔可用的副檔名 */
-    public const EXTENSIONS = ['mp3', 'wav', 'm4a', 'webm'];
+    public const EXTENSIONS = ['mp3', 'wav', 'm4a', 'aac', 'webm'];
 
     /** 暫存簽名網址的有效秒數 */
     public const UPLOAD_TTL_SECONDS = 300;

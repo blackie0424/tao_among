@@ -35,6 +35,7 @@
           :key="audio.id"
           :audio="audio"
           :fishId="fish.id"
+          :tribes="tribes"
           :isCurrent="isCurrent(audio)"
         />
       </section>
@@ -46,9 +47,10 @@
           :key="audio.id"
           :audio="audio"
           :fishId="fish.id"
+          :tribes="tribes"
           :isCurrent="isCurrent(audio)"
         >
-          <template #actions>
+          <template #extra>
             <div class="flex items-center gap-2">
               <select
                 v-model="assignTo[audio.id]"
@@ -84,6 +86,7 @@ const props = defineProps({
   fish: { type: Object, required: true },
   audioGroups: { type: Array, default: () => [] },
   unassignedAudios: { type: Array, default: () => [] },
+  tribes: { type: Array, default: () => [] },
 })
 
 const assignTo = reactive({})

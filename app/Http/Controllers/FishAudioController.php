@@ -77,6 +77,7 @@ class FishAudioController extends BaseController
                     ->map(fn ($audios, $name) => ['name' => $name, 'audios' => $audios->map(fn ($a) => $this->withRecorder($a))->values()])
                     ->values(),
                 'unassignedAudios' => $grouped['unassigned']->map(fn ($a) => $this->withRecorder($a))->values(),
+                'tribes' => config('fish_options.tribes', []),
             ]);
         } catch (Exception $e) {
             return $this->handleControllerError($e, '無法載入發音列表');

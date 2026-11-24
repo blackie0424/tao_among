@@ -333,6 +333,14 @@ it('取得音訊簽名上傳網址只簽名到登入者的暫存資料夾，不�
     expect($fish->fresh()->audio_filename)->toBe('main.m4a');
 });
 
+it('取得音訊簽名上傳網址：m4a、aac、mp3、wav、webm 都可以，其他副檔名被拒絕', function (string $filename, int $status) {
+    $fish = Fish::factory()->create();
+    $this->mock(\App\Contracts\StorageServiceInterface::class)->shouldIgnoreMissing()
+        ->shouldReceive('createSignedUploadUrl')->andReturn('https://mocked-url');
+
+    $this->postJson("/prefix/api/fish/{$fish->id}/storage/signed-upload-audio-url", ['filename' => $filename])->assertStatus($status);
+})->with([['a.m4a', 200], ['a.aac', 200], ['a.mp3', 200], ['a.wav', 200], ['a.webm', 200], ['a.exe', 422], ['a.ogg', 422]]);
+
 it('取得音訊簽名上傳網址時魚不存在回 404', function () {
     $this->postJson('/prefix/api/fish/9999/storage/signed-upload-audio-url', ['filename' => 'a.m4a'])
         ->assertStatus(404);

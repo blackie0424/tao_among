@@ -59,6 +59,18 @@ it('確認後複製成新的正式檔名並新增一筆：部落、名稱、長�
     expect($fish->fresh()->audio_filename)->toBe($audio->name);
 });
 
+it('AAC 錄音（.aac）也能確認：複製成 .aac 的正式檔並新增一筆', function () {
+    $fish = Fish::factory()->create(['name' => 'mivazlt']);
+    $pendingAac = '99999999-8888-7777-6666-555555555555.aac';
+    $this->storage->shouldReceive('fileSize')->with(FishAudio::pendingPath($this->user->id, $pendingAac))->andReturn(40_000);
+
+    postConfirm($this, $fish, ['filename' => $pendingAac])->assertStatus(201);
+
+    $audio = FishAudio::firstOrFail();
+    expect($audio->name)->toEndWith('.aac');
+    expect($this->copied[0])->toBe('audios/'.$audio->name);
+});
+
 it('同名稱同部落再錄一段是新增一筆，舊錄音與舊檔都在', function () {
     $fish = Fish::factory()->create(['name' => 'mivazlt']);
     $old = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'old.m4a', 'locate' => 'yayo', 'spoken_name' => 'mivazlt']);

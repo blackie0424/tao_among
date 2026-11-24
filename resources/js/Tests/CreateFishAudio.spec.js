@@ -84,6 +84,24 @@ describe('新增發音頁', () => {
     expect(router.visit).toHaveBeenCalledWith('/fish/4/audio-list')
   })
 
+  it('瀏覽器只支援 AAC 時：錄成 .aac，簽名、確認都帶 aac 檔名', async () => {
+    vi.stubGlobal('MediaRecorder', class {
+      static isTypeSupported(type) { return type === 'audio/aac' }
+      constructor(stream, options) { this.mimeType = options?.mimeType }
+      start() {}
+      stop() { this.ondataavailable({ data: new Blob(['audio'], { type: 'audio/aac' }) }); this.onstop() }
+    })
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ url: 'https://example.test/upload', filename: '11111111-2222-3333-4444-555555555555.aac' }) })
+      .mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+    mountPage()
+
+    await recordAndSave()
+
+    expect(JSON.parse(fetch.mock.calls[0][1].body).filename).toMatch(/\.aac$/)
+    expect(JSON.parse(fetch.mock.calls[2][1].body).filename).toBe('11111111-2222-3333-4444-555555555555.aac')
+    expect(router.visit).toHaveBeenCalledWith('/fish/4/audio-list')
+  })
+
   it('請求帶 CSRF token 與 JSON 標頭', async () => {
     document.cookie = 'XSRF-TOKEN=' + encodeURIComponent('token-abc=') + '; path=/'
     fetch.mockResolvedValueOnce(signedOk()).mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: true, json: async () => ({}) })

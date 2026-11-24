@@ -228,6 +228,25 @@ describe('Fish Audio Management', function () {
             expect($fish->fresh()->audio_filename)->toBe('old.m4a');
         });
 
+        it('換音檔：AAC（.aac）的暫存檔也能換', function () {
+            $user = User::factory()->create();
+            $pendingName = '11111111-2222-3333-4444-555555555555.aac';
+            $fish = Fish::factory()->create();
+            $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'old.m4a', 'locate' => 'yayo']);
+            $storage = $this->mock(StorageServiceInterface::class)->shouldIgnoreMissing();
+            $storage->shouldReceive('getAudioFolder')->andReturn('audios');
+            $storage->shouldReceive('fileSize')->andReturn(50_000);
+            $storage->shouldReceive('copyObject')->once()->andReturn(true);
+
+            $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
+                'tribe' => 'yayo',
+                'pending_filename' => $pendingName,
+                'duration_ms' => 3000,
+            ])->assertRedirect("/fish/{$fish->id}/audio-list");
+
+            expect($audio->fresh()->name)->toEndWith('.aac');
+        });
+
         it('部落必填且須是可選的部落', function (mixed $tribe) {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();
@@ -594,6 +613,7 @@ describe('錄音者可見度', function () {
                 ->where('audioGroups.0.audios.0.recorder_name', '甲')
                 ->has('audioGroups.1.audios', 0)
                 ->where('unassignedAudios.0.recorder_name', null)
+                ->where('tribes', config('fish_options.tribes'))
         );
 
         expect(FishAudio::first()->toArray())->not->toHaveKey('recorded_by');
