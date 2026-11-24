@@ -22,13 +22,17 @@ class LineAudioFlowState
 
     private const TTL_MINUTES = 5;
 
-    /** 新流程開始：清掉前一次的所有暫存，綁定這隻魚；多名稱的魚暫存這次的拼字清單。 */
+    /**
+     * 新流程開始（前一次的暫存要先 clear）：綁定這隻魚。
+     * 多名稱的魚暫存這次的拼字清單，等使用者選；單一名稱的魚當下就綁定該拼字，之後改名要被擋下。
+     */
     public function begin(string $userId, int $fishId, array $names): void
     {
-        $this->clear($userId);
         $this->put($userId, 'audio_fish', $fishId);
         if (count($names) > 1) {
             $this->put($userId, 'audio_choices', array_values($names));
+        } else {
+            $this->put($userId, 'audio_name', $names[0]);
         }
     }
 
@@ -49,7 +53,8 @@ class LineAudioFlowState
     public function chooseName(string $userId, int $fishId, int $index, array $currentNames): string
     {
         $choices = Cache::get($this->key($userId, 'audio_choices'));
-        if (! $this->owns($userId, $fishId) || ! is_array($choices) || ! isset($choices[$index])) {
+        // 已經選過拼字（之後的階段）就不能再改選：舊選單的按鈕一律過期
+        if (! $this->owns($userId, $fishId) || $this->selectedName($userId) !== null || ! is_array($choices) || ! isset($choices[$index])) {
             throw new \DomainException(self::MESSAGE_EXPIRED);
         }
         if (array_values($currentNames) !== $choices) {

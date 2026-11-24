@@ -335,6 +335,66 @@ describe('流程狀態與邊界（#176 AC 8）', function () {
         expect($line->buttons())->toHaveCount(13);
     });
 
+    it('8d 單一名稱的魚開始時就綁定拼字：上傳前改名，不上傳、不寫資料，不會以新名稱存檔', function () {
+        $fish = lineFishNamed('甲');
+        $line = new LineAudioFlowDriver;
+        $line->postback("action=start_add_audio&fish_id={$fish->id}")
+            ->postback("action=select_tribe_for_audio&fish_id={$fish->id}&tribe=yayo");
+        $fish->update(['name' => '乙']);
+
+        $line->audio();
+
+        expect($line->last())->toContain('名稱已變更，請重新操作');
+        expect($line->uploads)->toBe(0);
+        expect(FishAudio::count())->toBe(0);
+    });
+
+    it('8d 單一名稱的魚上傳後才改名：不寫資料、刪除剛上傳的檔，回「名稱已變更」', function () {
+        $fish = lineFishNamed('甲');
+        $line = new LineAudioFlowDriver;
+        $line->duringUpload = fn () => $fish->update(['name' => '乙']);
+        $line->postback("action=start_add_audio&fish_id={$fish->id}")
+            ->postback("action=select_tribe_for_audio&fish_id={$fish->id}&tribe=yayo");
+        $folder = app(App\Contracts\StorageServiceInterface::class)->getAudioFolder();
+        Storage::disk('s3')->put("{$folder}/line-name-test.m4a", 'x');
+
+        $line->audio();
+
+        expect($line->uploads)->toBe(1);
+        expect($line->last())->toContain('名稱已變更，請重新操作');
+        expect(FishAudio::count())->toBe(0);
+        Storage::disk('s3')->assertMissing("{$folder}/line-name-test.m4a");
+    });
+
+    it('8b 重新按「新增發音」遇到空名或拼字太多的魚：舊流程一併清除，之後的錄音不會存到前一隻魚', function (string $nextName) {
+        $fishA = lineFishNamed('甲、乙');
+        $fishB = lineFishNamed($nextName);
+        $line = new LineAudioFlowDriver;
+        $line->postback("action=start_add_audio&fish_id={$fishA->id}")
+            ->postback("action=select_name_for_audio&fish_id={$fishA->id}&idx=0")
+            ->postback("action=select_tribe_for_audio&fish_id={$fishA->id}&tribe=yayo");
+
+        $line->postback("action=start_add_audio&fish_id={$fishB->id}")->audio();
+
+        expect($line->last())->toContain('請先點擊');
+        expect($line->uploads)->toBe(0);
+        expect(FishAudio::count())->toBe(0);
+    })->with(['空名' => '', '拼字太多' => implode('、', range(1, 14))]);
+
+    it('8b 已選過拼字後重按舊選單的另一個拼字：過期，不改寫已選的拼字，錄音仍存原本選的', function () {
+        $fish = lineFishNamed('甲、乙');
+        $line = new LineAudioFlowDriver;
+        $line->postback("action=start_add_audio&fish_id={$fish->id}")
+            ->postback("action=select_name_for_audio&fish_id={$fish->id}&idx=0")
+            ->postback("action=select_tribe_for_audio&fish_id={$fish->id}&tribe=yayo");
+
+        $line->postback("action=select_name_for_audio&fish_id={$fish->id}&idx=1");
+        expect($line->last())->toContain('這個按鈕已過期，請重新操作');
+
+        $line->audio();
+        expect(FishAudio::where('fish_id', $fish->id)->value('spoken_name'))->toBe('甲');
+    });
+
     it('多名稱的魚沒選拼字就有錄音（舊暫存）：不上傳、不寫資料，請重新操作', function () {
         $fish = lineFishNamed('甲、乙');
         Cache::put('line_user_'.LINE_NAME_TEST_USER.'_audio_tribe', 'yayo', now()->addMinutes(5));

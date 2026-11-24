@@ -1088,6 +1088,8 @@ class LineBotController extends Controller
     {
         $this->clearBatchCaptureState($userId);
         $this->clearLineKnowledgeState($userId);
+        // 重新開始一律先清掉前一次的流程，即使這次因為魚名空白等原因開不起來
+        app(LineAudioFlowState::class)->clear($userId);
 
         $fish = Fish::find((int) ($params['fish_id'] ?? 0));
         if (! $fish) {
