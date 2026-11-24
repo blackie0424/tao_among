@@ -26,12 +26,12 @@ class FishAudioRecordingService
      * 網頁新增必填名稱，由呼叫端驗證後傳入。
      * 主要發音設定維持現狀：新增時指向新檔（是否改變見 #174）。
      */
-    public function create(Fish $fish, ?string $spokenName, string $tribe, string $filename, ?int $durationMs, ?int $recordedBy, ?string $uploadKey = null): FishAudio
+    public function create(Fish $fish, ?string $spokenName, string $tribe, string $filename, ?int $durationMs, ?int $recordedBy): FishAudio
     {
         $spokenName = $this->resolveSpokenName($fish, $spokenName);
         $this->assertTribe($tribe);
 
-        return DB::transaction(function () use ($fish, $spokenName, $tribe, $filename, $durationMs, $recordedBy, $uploadKey) {
+        return DB::transaction(function () use ($fish, $spokenName, $tribe, $filename, $durationMs, $recordedBy) {
             $audio = FishAudio::create([
                 'fish_id' => $fish->id,
                 'name' => $filename,
@@ -39,7 +39,6 @@ class FishAudioRecordingService
                 'spoken_name' => $spokenName,
                 'duration' => $durationMs,
                 'recorded_by' => $recordedBy,
-                'upload_key' => $uploadKey,
             ]);
             $fish->update(['audio_filename' => $filename]);
 
@@ -51,12 +50,12 @@ class FishAudioRecordingService
      * 換音檔：換的是主要發音檔時，指標同交易改為新檔名。
      * 舊檔等最外層交易提交後才刪；外層回滾時資料仍指向舊檔，舊檔要還在。
      */
-    public function replaceFile(FishAudio $audio, string $newFilename, ?int $durationMs, ?string $uploadKey = null): FishAudio
+    public function replaceFile(FishAudio $audio, string $newFilename, ?int $durationMs): FishAudio
     {
         $oldFilename = $audio->name;
 
-        DB::transaction(function () use ($audio, $newFilename, $durationMs, $oldFilename, $uploadKey) {
-            $audio->update(['name' => $newFilename, 'duration' => $durationMs, 'upload_key' => $uploadKey]);
+        DB::transaction(function () use ($audio, $newFilename, $durationMs, $oldFilename) {
+            $audio->update(['name' => $newFilename, 'duration' => $durationMs]);
             Fish::where('id', $audio->fish_id)
                 ->where('audio_filename', $oldFilename)
                 ->update(['audio_filename' => $newFilename]);

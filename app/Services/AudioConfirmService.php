@@ -5,19 +5,23 @@ namespace App\Services;
 use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
+use App\Models\FishAudioUpload;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
  * 網頁錄音的「確認」步驟（做法同 #157 的叫法錄音）：
  * 瀏覽器已把音檔 PUT 到登入者專屬的暫存資料夾，這裡驗證暫存檔、複製到正式資料夾、同一交易寫入紀錄；
- * 失敗就回滾並刪掉已複製的正式檔。暫存檔留著，由 bucket 的生命週期規則清理。
+ * 失敗就回滾並刪掉自己複製的正式檔。暫存檔留著，由 bucket 的生命週期規則清理。
  *
- * 一個暫存檔只能確認成一筆紀錄：以資料庫唯一欄位 upload_key（<使用者編號>:<暫存檔名>）保證，
- * 所以並發重送與跨魚重用都由資料庫擋下；正式檔名沿用暫存檔名（UUID），不會有兩筆紀錄共用同一個正式檔。
+ * - 每次確認都複製成新的 UUID 檔名：正式檔只屬於當次請求，補償只會刪自己的檔，不會牽連別的請求或紀錄。
+ * - 一個暫存檔只能確認成一筆紀錄：已消耗的暫存檔記在 fish_audio_uploads（唯一約束、換檔與軟刪除後仍在）。
+ *   複製前先查（同一對象的重送回傳同一筆；用在別隻魚、或紀錄已被刪除則直接拒絕，不複製）；
+ *   查到之後才並發搶進來的，由唯一約束擋下，輸的那個刪掉自己複製的檔。
  * 呼叫端不要再包外層交易：複製檔案後的失敗補償只涵蓋這裡的交易。
  */
 class AudioConfirmService
@@ -36,7 +40,7 @@ class AudioConfirmService
         return $this->confirmOnce(
             $userId,
             $pendingFilename,
-            fn (string $key) => $this->recordings->create($fish, $spokenName, $tribe, $pendingFilename, $durationMs, $userId, $key),
+            fn (string $finalName) => $this->recordings->create($fish, $spokenName, $tribe, $finalName, $durationMs, $userId),
             fn (FishAudio $existing) => $existing->fish_id === $fish->id,
         );
     }
@@ -47,8 +51,8 @@ class AudioConfirmService
         return $this->confirmOnce(
             $userId,
             $pendingFilename,
-            fn (string $key) => $this->recordings->updateTribe(
-                $this->recordings->replaceFile($audio, $pendingFilename, $durationMs, $key),
+            fn (string $finalName) => $this->recordings->updateTribe(
+                $this->recordings->replaceFile($audio, $finalName, $durationMs),
                 $tribe
             ),
             fn (FishAudio $existing) => $existing->id === $audio->id,
@@ -56,52 +60,64 @@ class AudioConfirmService
     }
 
     /**
-     * @param  callable(string): FishAudio  $persist  寫入（收到 upload_key）
-     * @param  callable(FishAudio): bool  $isSameTarget  已存在的紀錄是不是這次要確認的對象
+     * @param  callable(string): FishAudio  $persist  寫入（收到正式檔名）
+     * @param  callable(FishAudio): bool  $isSameTarget  已消耗這個暫存檔的紀錄，是不是這次要確認的對象
      */
-    private function confirmOnce(int $userId, string $filename, callable $persist, callable $isSameTarget): FishAudio
+    private function confirmOnce(int $userId, string $pendingFilename, callable $persist, callable $isSameTarget): FishAudio
     {
-        $key = $userId.':'.$filename;
+        $key = FishAudioUpload::keyFor($userId, $pendingFilename);
 
-        if ($existing = FishAudio::where('upload_key', $key)->first()) {
-            return $this->sameTargetOrReject($existing, $isSameTarget);
+        if ($used = FishAudioUpload::where('upload_key', $key)->first()) {
+            return $this->resolveUsed($used, $isSameTarget);
         }
 
-        $pendingPath = FishAudio::pendingPath($userId, $filename);
+        $pendingPath = FishAudio::pendingPath($userId, $pendingFilename);
         $size = $this->storage->fileSize($pendingPath);
         if ($size === null || $size > FishAudio::MAX_BYTES) {
             throw ValidationException::withMessages(['recording' => '找不到錄音檔或檔案太大，請重新錄音']);
         }
 
-        $finalPath = $this->storage->getAudioFolder().'/'.$filename;
+        $finalName = Str::uuid()->toString().'.'.pathinfo($pendingFilename, PATHINFO_EXTENSION);
+        $finalPath = $this->storage->getAudioFolder().'/'.$finalName;
         if (! $this->storage->copyObject($pendingPath, $finalPath)) {
             throw ValidationException::withMessages(['recording' => '錄音儲存失敗，請重試']);
         }
 
         try {
-            return DB::transaction(fn () => $persist($key));
-        } catch (UniqueConstraintViolationException $e) {
-            // 同一個暫存檔被另一個請求搶先確認了：正式檔屬於那一筆，這裡不能刪
-            $winner = FishAudio::withTrashed()->where('upload_key', $key)->first();
-            if (! $winner || $winner->trashed()) {
-                throw ValidationException::withMessages(['recording' => '這段錄音已使用過，請重新錄音']);
-            }
+            return DB::transaction(function () use ($persist, $finalName, $key) {
+                $audio = $persist($finalName);
+                FishAudioUpload::create(['upload_key' => $key, 'fish_audio_id' => $audio->id]);
 
-            return $this->sameTargetOrReject($winner, $isSameTarget);
+                return $audio;
+            });
         } catch (Throwable $e) {
-            if (! $this->storage->delete($finalPath)) {
-                Log::warning('[audio.confirm] 補償刪除正式檔失敗', ['path' => $finalPath]);
+            $this->deleteOwnCopy($finalPath);
+
+            if ($e instanceof UniqueConstraintViolationException && ($used = FishAudioUpload::where('upload_key', $key)->first())) {
+                // 查到之後才有別的請求搶先確認了同一個暫存檔：回傳搶贏的那一筆
+                return $this->resolveUsed($used, $isSameTarget);
             }
             throw $e;
         }
     }
 
-    private function sameTargetOrReject(FishAudio $existing, callable $isSameTarget): FishAudio
+    private function resolveUsed(FishAudioUpload $used, callable $isSameTarget): FishAudio
     {
+        $existing = FishAudio::find($used->fish_audio_id); // 軟刪除的找不到
+        if (! $existing) {
+            throw ValidationException::withMessages(['recording' => '這段錄音已使用過，請重新錄音']);
+        }
         if (! $isSameTarget($existing)) {
             throw ValidationException::withMessages(['recording' => '這段錄音已用在別的紀錄，請重新錄音']);
         }
 
         return $existing;
+    }
+
+    private function deleteOwnCopy(string $finalPath): void
+    {
+        if (! $this->storage->delete($finalPath)) {
+            Log::warning('[audio.confirm] 補償刪除正式檔失敗', ['path' => $finalPath]);
+        }
     }
 }

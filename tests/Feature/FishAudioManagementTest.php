@@ -167,26 +167,28 @@ describe('Fish Audio Management', function () {
             expect($audio->fresh()->name)->toBe('original.m4a');
         });
 
-        it('換音檔：複製暫存檔後 name 改為新檔名、長度更新，主要發音檔跟著改，舊檔刪除', function () {
+        it('換音檔：複製暫存檔成新檔名後 name 改為新檔名、長度更新，主要發音檔跟著改，舊檔刪除', function () {
             $user = User::factory()->create();
-            $newName = '11111111-2222-3333-4444-555555555555.m4a';
+            $pendingName = '11111111-2222-3333-4444-555555555555.m4a';
             $fish = Fish::factory()->create(['audio_filename' => 'old.m4a']);
             $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'old.m4a', 'locate' => 'yayo']);
 
             $storage = $this->mock(StorageServiceInterface::class)->shouldIgnoreMissing();
             $storage->shouldReceive('getAudioFolder')->andReturn('audios');
-            $storage->shouldReceive('fileSize')->with(FishAudio::pendingPath($user->id, $newName))->andReturn(50_000);
-            $storage->shouldReceive('copyObject')->once()->with(FishAudio::pendingPath($user->id, $newName), "audios/{$newName}")->andReturn(true);
+            $storage->shouldReceive('fileSize')->with(FishAudio::pendingPath($user->id, $pendingName))->andReturn(50_000);
+            $storage->shouldReceive('copyObject')->once()->with(FishAudio::pendingPath($user->id, $pendingName), \Mockery::pattern('#^audios/[0-9a-f-]{36}\.m4a$#'))->andReturn(true);
             $storage->shouldReceive('delete')->with('audios/old.m4a')->andReturn(true);
 
             $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
                 'tribe' => 'yayo',
-                'pending_filename' => $newName,
+                'pending_filename' => $pendingName,
                 'duration_ms' => 4200,
             ])->assertRedirect("/fish/{$fish->id}/audio-list");
 
-            expect($audio->fresh()->only(['name', 'duration']))->toBe(['name' => $newName, 'duration' => 4200]);
-            expect($fish->fresh()->audio_filename)->toBe($newName);
+            $fresh = $audio->fresh();
+            expect($fresh->name)->toMatch('/^[0-9a-f-]{36}\.m4a$/')->not->toBe('old.m4a');
+            expect($fresh->duration)->toBe(4200);
+            expect($fish->fresh()->audio_filename)->toBe($fresh->name);
         });
 
         it('換音檔後續步驟失敗：整筆回滾、刪掉已複製的新檔，舊檔與資料原封不動', function () {
@@ -198,8 +200,17 @@ describe('Fish Audio Management', function () {
             $storage = $this->mock(StorageServiceInterface::class)->shouldIgnoreMissing();
             $storage->shouldReceive('getAudioFolder')->andReturn('audios');
             $storage->shouldReceive('fileSize')->andReturn(50_000);
-            $storage->shouldReceive('copyObject')->once()->andReturn(true);
-            $storage->shouldReceive('delete')->once()->with("audios/{$newName}")->andReturn(true); // 只補償新檔，不碰舊檔
+            $copiedTo = null;
+            $storage->shouldReceive('copyObject')->once()->andReturnUsing(function ($from, $to) use (&$copiedTo) {
+                $copiedTo = $to;
+
+                return true;
+            });
+            $storage->shouldReceive('delete')->once()->andReturnUsing(function ($path) use (&$copiedTo) {
+                expect($path)->toBe($copiedTo); // 只補償自己複製的新檔，不碰舊檔
+
+                return true;
+            });
             $updates = 0;
             FishAudio::updating(function () use (&$updates) {
                 if (++$updates === 2) { // 第 1 次是換檔，第 2 次是改部落
@@ -521,7 +532,6 @@ describe('Fish Audio Management', function () {
         });
     });
 });
-
 
 describe('指派名稱與未對應名稱', function () {
     it('把未對應的錄音指派到這隻魚目前的某個名稱，存檔後回管理發音頁', function () {
