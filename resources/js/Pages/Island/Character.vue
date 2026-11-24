@@ -140,10 +140,13 @@ function startCountdown(seconds) {
   }, ONE_SECOND_MS)
 }
 
+// Retry-After 只接受正整數的秒數（例如 "45"）；"1.5"、"45abc"、"0" 都不算
+const POSITIVE_INTEGER = /^[1-9]\d*$/
+
 /** 429 回應的 Retry-After（秒）；沒有值或不是正整數時用預設值 */
 function retryAfterSeconds(response) {
-  const seconds = Number.parseInt(response.headers?.['retry-after'], 10)
-  return seconds > 0 ? seconds : DEFAULT_WAIT_SECONDS
+  const value = String(response.headers?.['retry-after'] ?? '').trim()
+  return POSITIVE_INTEGER.test(value) ? Number(value) : DEFAULT_WAIT_SECONDS
 }
 
 // 被限流時伺服器回的不是頁面資料，預設會跳出瀏覽器的錯誤視窗；這裡攔下來，改在表單上顯示還要等多久

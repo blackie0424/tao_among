@@ -157,6 +157,9 @@ describe('魚島角色設定頁', () => {
     ['不是數字', { 'retry-after': 'soon' }],
     ['是 0', { 'retry-after': '0' }],
     ['是負數', { 'retry-after': '-5' }],
+    ['是小數', { 'retry-after': '1.5' }],
+    ['數字後面帶其他字', { 'retry-after': '45abc' }],
+    ['是空字串', { 'retry-after': '' }],
   ])('回應的等待秒數%s時從 60 秒開始', async (_label, headers) => {
     const wrapper = mountPage()
 
