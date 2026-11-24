@@ -640,3 +640,16 @@ describe('錄音者可見度', function () {
         expect(json_encode($response->json()))->not->toContain('recorded_by');
     });
 });
+
+describe('設為魚頁使用', function () {
+    it('魚頁使用的主要發音指向被選的那一段，存檔後回管理發音頁', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create(['name' => 'mivazlt', 'audio_filename' => 'a.m4a']);
+        FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'a.m4a', 'spoken_name' => 'mivazlt']);
+        $b = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'b.m4a', 'spoken_name' => 'mivazlt']);
+
+        $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$b->id}/set-base")->assertRedirect("/fish/{$fish->id}/audio-list");
+
+        expect($fish->fresh()->audio_filename)->toBe('b.m4a');
+    });
+});

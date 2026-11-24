@@ -119,6 +119,31 @@ describe('管理發音頁', () => {
     expect(clips[1].text()).not.toContain('魚頁目前使用')
   })
 
+  it('第一個名稱底下沒有在用的錄音有「設為魚頁使用」，按了切換主要發音；在用的那段不顯示按鈕', async () => {
+    mountList()
+    const first = wrapper.get('[data-testid="name-group-mivazlt"]').findAll('[data-testid="audio-clip"]')
+    expect(first[0].text()).toContain('魚頁目前使用')
+    expect(first[0].text()).not.toContain('設為魚頁使用')
+
+    await first[1].findAll('button').find((b) => b.text() === '設為魚頁使用').trigger('click')
+
+    expect(router.put).toHaveBeenCalledWith('/fish/4/audio/2/set-base')
+  })
+
+  it('其他名稱與未對應名稱底下的錄音不顯示「設為魚頁使用」', () => {
+    mountList({
+      audioGroups: [
+        { name: 'mivazlt', audios: [audio()] },
+        { name: 'mivanivang', audios: [audio({ id: 3, name: 'a3.m4a' })] },
+      ],
+      unassignedAudios: [audio({ id: 9, name: 'old.m4a' })],
+    })
+    const buttons = wrapper.findAll('button').filter((b) => b.text() === '設為魚頁使用')
+    expect(buttons).toHaveLength(0) // 第一個名稱底下唯一的一段就是目前使用中的
+    expect(wrapper.get('[data-testid="name-group-mivanivang"]').text()).not.toContain('設為魚頁使用')
+    expect(wrapper.get('[data-testid="unassigned"]').text()).not.toContain('設為魚頁使用')
+  })
+
   it('沒有未對應的錄音時不顯示「未對應名稱」區', () => {
     mountList()
     expect(wrapper.find('[data-testid="unassigned"]').exists()).toBe(false)
