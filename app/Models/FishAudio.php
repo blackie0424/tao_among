@@ -2,17 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Contracts\StorageServiceInterface;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use App\Contracts\StorageServiceInterface;
 
 class FishAudio extends Model
 {
-
     use HasFactory, SoftDeletes;
+
     protected $table = 'fish_audios';
 
     protected $fillable = ['fish_id', 'name', 'locate', 'duration'];
@@ -27,7 +27,7 @@ class FishAudio extends Model
             if ($audio->name) {
                 $storage = app(StorageServiceInterface::class);
                 $audioFolder = $storage->getAudioFolder();
-                $storage->delete($audioFolder . '/' . $audio->name);
+                $storage->delete($audioFolder.'/'.$audio->name);
             }
         });
     }
@@ -51,10 +51,10 @@ class FishAudio extends Model
             get: function ($value, $attributes) {
                 // 檢查 name 是否存在且不為 null
                 // name 欄位儲存檔案名稱
-                if (!isset($attributes['name']) || $attributes['name'] === null) {
+                if (! isset($attributes['name']) || $attributes['name'] === null) {
                     return null;
                 }
-                
+
                 return app(StorageServiceInterface::class)->getUrl('audios', $attributes['name'], null);
             }
         );
