@@ -8,6 +8,14 @@
     </div>
 
     <form class="space-y-3" @submit.prevent="submit">
+      <p
+        v-if="rateLimited"
+        role="alert"
+        class="rounded-island bg-white p-4 text-elder-body font-bold text-red-700"
+      >
+        送出太多次了，請等一下再試
+      </p>
+
       <div class="rounded-island bg-white p-4">
         <label for="island-name" class="block text-elder-body font-bold">你的名字</label>
         <input
@@ -84,8 +92,8 @@
 </template>
 
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3'
-import { nextTick, ref } from 'vue'
+import { Head, router, useForm } from '@inertiajs/vue3'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import { islandTribeLabel } from '@/constants/island'
 
@@ -96,6 +104,21 @@ defineProps({
 
 const form = useForm({ name: '', tribe: '' })
 const nameInput = ref(null)
+const rateLimited = ref(false)
+
+const HTTP_TOO_MANY_REQUESTS = 429
+
+// 被限流時伺服器回的不是頁面資料，預設會跳出瀏覽器的錯誤視窗；這裡攔下來，改在表單上顯示說明
+let stopListeningInvalid = () => {}
+onMounted(() => {
+  stopListeningInvalid = router.on('invalid', (event) => {
+    if (event.detail.response.status === HTTP_TOO_MANY_REQUESTS) {
+      event.preventDefault()
+      rateLimited.value = true
+    }
+  })
+})
+onUnmounted(() => stopListeningInvalid())
 
 // 送出後有錯：把焦點移到第一個有錯的欄位（名字在前、部落在後）
 async function focusFirstError(errors) {
@@ -108,6 +131,7 @@ async function focusFirstError(errors) {
 }
 
 function submit() {
+  rateLimited.value = false
   form.post('/island/character', { onError: focusFirstError })
 }
 </script>

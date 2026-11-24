@@ -197,14 +197,79 @@ it('名字前後的空白（含全形）會被去掉，剛好 20 個字可以通
     expect(IslandCharacter::first()->name)->toBe($name);
 });
 
-it('沒登入的人一分鐘內第 6 次送出回 429，不建任何資料', function () {
+/** 模擬經過 Cloudflare 與主機轉送層進來的訪客：連線來源是內部位址，真正的訪客位址在 CF-Connecting-IP。 */
+function postIslandCharacterFrom(string $visitorAddress, array $data): TestResponse
+{
+    return test()
+        ->withServerVariables(['REMOTE_ADDR' => '10.0.1.6'])
+        ->withHeaders(['CF-Connecting-IP' => $visitorAddress])
+        ->post('/island/character', $data);
+}
+
+it('同一個訪客來源一分鐘內第 6 次送出回 429，不建任何資料', function () {
+    foreach (range(1, 5) as $ignored) {
+        postIslandCharacterFrom('203.0.113.5', ['name' => '', 'tribe' => 'yayo'])->assertRedirect();
+    }
+
+    postIslandCharacterFrom('203.0.113.5', ['name' => '阿海', 'tribe' => 'yayo'])->assertStatus(429);
+
+    expect(User::count())->toBe(0)->and(IslandCharacter::count())->toBe(0);
+});
+
+it('不同訪客來源各自計數：一個來源用完 5 次，另一個來源仍可建角', function () {
+    foreach (range(1, 5) as $ignored) {
+        postIslandCharacterFrom('203.0.113.5', ['name' => '', 'tribe' => 'yayo'])->assertRedirect();
+    }
+
+    postIslandCharacterFrom('203.0.113.6', ['name' => '阿海', 'tribe' => 'yayo'])->assertRedirect('/island');
+
+    expect(IslandCharacter::count())->toBe(1);
+});
+
+it('沒有 Cloudflare 的訪客位址時用連線來源計數', function () {
     foreach (range(1, 5) as $ignored) {
         postIslandCharacter(['name' => '', 'tribe' => 'yayo'])->assertRedirect();
     }
 
     postIslandCharacter(['name' => '阿海', 'tribe' => 'yayo'])->assertStatus(429);
+});
+
+it('連線不是來自內部位址時不採信 CF-Connecting-IP：換標頭也避不開限流', function () {
+    $direct = fn (string $claimed) => test()
+        ->withServerVariables(['REMOTE_ADDR' => '198.51.100.7'])
+        ->withHeaders(['CF-Connecting-IP' => $claimed])
+        ->post('/island/character', ['name' => '', 'tribe' => 'yayo']);
+
+    foreach (range(1, 5) as $n) {
+        $direct("203.0.113.{$n}")->assertRedirect();
+    }
+
+    $direct('203.0.113.99')->assertStatus(429);
+});
+
+it('沒登入的人全站合計一分鐘 60 次，第 61 次即使是新的來源也回 429', function () {
+    foreach (range(1, 12) as $visitor) {
+        foreach (range(1, 5) as $ignored) {
+            postIslandCharacterFrom("203.0.113.{$visitor}", ['name' => '', 'tribe' => 'yayo'])->assertRedirect();
+        }
+    }
+
+    postIslandCharacterFrom('203.0.113.200', ['name' => '阿海', 'tribe' => 'yayo'])->assertStatus(429);
 
     expect(User::count())->toBe(0)->and(IslandCharacter::count())->toBe(0);
+});
+
+it('全站合計上限只算沒登入的人：用完後已登入的帳號仍可建角', function () {
+    foreach (range(1, 12) as $visitor) {
+        foreach (range(1, 5) as $ignored) {
+            postIslandCharacterFrom("203.0.113.{$visitor}", ['name' => '', 'tribe' => 'yayo']);
+        }
+    }
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/island/character', ['name' => '阿海', 'tribe' => 'yayo'])
+        ->assertRedirect('/island');
 });
 
 it('已有角色的人第 6 次送出也是 429（限流先於導回）', function () {

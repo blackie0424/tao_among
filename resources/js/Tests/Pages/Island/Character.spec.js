@@ -4,11 +4,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const posted = []
 let lastPostOptions
 let lastForm
+const routerHandlers = {}
+const removedHandlers = []
 
 vi.mock('@inertiajs/vue3', async () => {
   const { reactive } = await import('vue')
   return {
     Head: { render: () => null },
+    router: {
+      on: (name, handler) => {
+        routerHandlers[name] = handler
+        return () => removedHandlers.push(name)
+      },
+    },
     useForm: (init) => {
       const form = reactive({ ...init, errors: {}, processing: false })
       lastForm = form
@@ -31,6 +39,7 @@ const mountPage = () =>
 
 beforeEach(() => {
   posted.length = 0
+  removedHandlers.length = 0
   document.body.innerHTML = ''
 })
 
@@ -85,5 +94,54 @@ describe('魚島角色設定頁', () => {
     await lastPostOptions.onError(lastForm.errors)
 
     expect(document.activeElement).toBe(wrapper.find('input[type="radio"][value="yayo"]').element)
+  })
+
+  const invalidResponse = (status) => {
+    const event = { detail: { response: { status } }, preventDefault: vi.fn() }
+    routerHandlers.invalid(event)
+    return event
+  }
+
+  it('被限流（429）時留在表單顯示說明、保留已填內容，不讓瀏覽器跳錯誤視窗', async () => {
+    const wrapper = mountPage()
+    await wrapper.find('#island-name').setValue('阿海')
+    await wrapper.find('input[type="radio"][value="yayo"]').setValue()
+    expect(wrapper.text()).not.toContain('送出太多次了，請等一下再試')
+
+    const event = invalidResponse(429)
+    await wrapper.vm.$nextTick()
+
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(wrapper.find('[role="alert"]').text()).toBe('送出太多次了，請等一下再試')
+    expect(wrapper.find('#island-name').element.value).toBe('阿海')
+    expect(wrapper.find('input[type="radio"][value="yayo"]').element.checked).toBe(true)
+  })
+
+  it('再送出一次時先收起限流的說明', async () => {
+    const wrapper = mountPage()
+    invalidResponse(429)
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.text()).not.toContain('送出太多次了，請等一下再試')
+  })
+
+  it('其他非預期的回應（例如 500）不攔截，維持原本的錯誤呈現', async () => {
+    const wrapper = mountPage()
+
+    const event = invalidResponse(500)
+    await wrapper.vm.$nextTick()
+
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    expect(wrapper.text()).not.toContain('送出太多次了，請等一下再試')
+  })
+
+  it('離開頁面時移除對錯誤回應的監聽', () => {
+    const wrapper = mountPage()
+
+    wrapper.unmount()
+
+    expect(removedHandlers).toEqual(['invalid'])
   })
 })

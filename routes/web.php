@@ -57,7 +57,7 @@ Route::middleware(['auth', 'browse'])->group(function () {
 // 魚島：不用登入的新前端（設計見 docs/design.md）
 Route::get('/island', [IslandController::class, 'home'])->name('island.home');
 Route::get('/island/character', [IslandController::class, 'character'])->name('island.character');
-Route::post('/island/character', [IslandController::class, 'storeCharacter'])->middleware('throttle:5,1')->name('island.character.store');
+Route::post('/island/character', [IslandController::class, 'storeCharacter'])->middleware('throttle:island-character')->name('island.character.store');
 
 // =====================================================
 // 需要登入的路由

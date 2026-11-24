@@ -18,11 +18,24 @@ use App\Services\LineUserService;
 use App\Services\CaptureSessionService;
 use App\Services\RichMenuService;
 use App\Services\S3StorageService;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\HttpFoundation\IpUtils;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /** 魚島建角：同一個帳號或同一個訪客來源每分鐘可送出的次數 */
+    private const ISLAND_CHARACTER_PER_MINUTE = 5;
+
+    /** 魚島建角：所有沒登入的人合計每分鐘可送出的次數（擋偽造來源位址的灌水） */
+    private const ISLAND_CHARACTER_GUESTS_PER_MINUTE = 60;
+
+    /** Cloudflare 放真正訪客位址的標頭 */
+    private const CLOUDFLARE_VISITOR_HEADER = 'CF-Connecting-IP';
+
     /**
      * Register any application services.
      */
@@ -68,5 +81,37 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        $this->configureIslandRateLimiting();
+    }
+
+    /**
+     * 魚島建角的限流：已登入以帳號計；沒登入以訪客來源位址計，另有全站合計上限。
+     * 只用在這一條路由，不改全站對來源位址的判斷。
+     */
+    private function configureIslandRateLimiting(): void
+    {
+        RateLimiter::for('island-character', function (Request $request) {
+            if ($request->user() !== null) {
+                return Limit::perMinute(self::ISLAND_CHARACTER_PER_MINUTE)->by('user:'.$request->user()->id);
+            }
+
+            return [
+                Limit::perMinute(self::ISLAND_CHARACTER_GUESTS_PER_MINUTE)->by('guests'),
+                Limit::perMinute(self::ISLAND_CHARACTER_PER_MINUTE)->by('visitor:'.$this->visitorAddress($request)),
+            ];
+        });
+    }
+
+    /**
+     * 訪客的來源位址。網站在 Cloudflare 與主機轉送層後面，連線來源永遠是同一個內部位址，
+     * 這時改取 Cloudflare 提供的訪客位址；連線不是來自內部位址（有人繞過 Cloudflare 直連）時不採信標頭。
+     */
+    private function visitorAddress(Request $request): string
+    {
+        $connection = (string) $request->server('REMOTE_ADDR');
+        $viaCloudflare = $request->headers->get(self::CLOUDFLARE_VISITOR_HEADER);
+
+        return IpUtils::isPrivateIp($connection) && filled($viaCloudflare) ? $viaCloudflare : $connection;
     }
 }
