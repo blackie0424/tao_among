@@ -22,10 +22,13 @@
            <h1 class="min-w-0 break-words font-serif text-elder-title font-bold text-elder-text tracking-tight">{{ fish.name }}</h1>
            
            <!-- Audio Player -->
-           <div v-if="hasAudioAccess && fish.audio_url" class="flex-shrink-0">
+           <div v-if="showSingleAudio" class="flex-shrink-0">
                <Volume :audioUrl="fish.audio_url" />
            </div>
          </div>
+
+         <!-- 多個拼字：每個有錄音的拼字一個播放鈕 -->
+         <SpellingPlayers v-if="spellingRecordings.length" :recordings="spellingRecordings" />
 
           <!-- 管理區 (新增錄音) - 空間不足時換行 -->
           <div v-if="hasAudioAccess" class="flex items-center gap-1 flex-shrink-0">
@@ -41,6 +44,8 @@
 
 <script setup>
 import Volume from '@/Components/UI/Volume.vue'
+import SpellingPlayers from '@/Components/FishDetail/SpellingPlayers.vue'
+import { pickSpellingRecordings, splitFishName } from '@/utils/fishSpellings'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import { usePage, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
@@ -54,6 +59,14 @@ const props = defineProps({
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
+
+// 多個拼字才依拼字播放；只有一個名稱，或所有拼字都對不到錄音（舊資料尚未對應）時沿用魚名旁的單一播放鈕
+const spellingRecordings = computed(() =>
+  hasAudioAccess.value && splitFishName(props.fish?.name).length > 1 ? pickSpellingRecordings(props.fish) : []
+)
+const showSingleAudio = computed(
+  () => hasAudioAccess.value && !!props.fish?.audio_url && spellingRecordings.value.length === 0
+)
 
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(

@@ -9,7 +9,7 @@ vi.mock('@inertiajs/vue3', () => ({
   usePage: () => mockUsePage(),
 }))
 
-vi.mock('@/Components/UI/Volume.vue', () => ({ default: { template: '<div />' } }))
+vi.mock('@/Components/UI/Volume.vue', () => ({ default: { props: ['audioUrl', 'audioId'], template: '<div data-testid="volume" :data-url="audioUrl" />' } }))
 vi.mock('@/Components/UI/LazyImage.vue', () => ({ default: { template: '<img />' } }))
 
 describe('FishDetailTop', () => {
@@ -72,5 +72,56 @@ describe('FishDetailTop 博物誌樣式（#132 AC 5）', () => {
 
     expect(wrapper.find('[data-testid="fish-detail-photo"]').exists()).toBe(true)
     expect(wrapper.get('h1').text()).toBe('飛魚')
+  })
+})
+
+describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
+  const editor = () => mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
+  afterEach(() => mockUsePage.mockReturnValue({ props: { auth: { user: null } } }))
+  const rec = (id, spoken_name) => ({ id, name: `f${id}.m4a`, url: `/f${id}.m4a`, spoken_name })
+  const mountTop = (fish) => mount(FishDetailTop, { props: { fish: { id: 1, image_url: '/a.jpg', audio_url: '/main.m4a', audio_filename: null, ...fish } } })
+
+  it('多個拼字：每個有錄音的拼字一個播放鈕，沒有錄音的拼字不顯示，魚名旁的單一播放鈕不再出現', () => {
+    editor()
+    const wrapper = mountTop({ name: 'Ivey、Ivay、Ivoy', audios: [rec(3, 'Ivey'), rec(5, 'Ivay')] })
+
+    const items = wrapper.get('[data-testid="spelling-players"]').findAll('li')
+    expect(items.map((li) => li.text())).toEqual(['Ivey', 'Ivay'])
+    expect(items.map((li) => li.get('[data-testid="volume"]').attributes('data-url'))).toEqual(['/f3.m4a', '/f5.m4a'])
+    expect(wrapper.findAll('[data-testid="volume"]')).toHaveLength(2)
+    expect(wrapper.get('h1').text()).toBe('Ivey、Ivay、Ivoy')
+  })
+
+  it('每個拼字播指定的那一段，沒有指定就播最早的一段', () => {
+    editor()
+    const wrapper = mountTop({ name: 'Ivey、Ivay', audio_filename: 'f7.m4a', audios: [rec(3, 'Ivey'), rec(7, 'Ivey'), rec(5, 'Ivay')] })
+
+    const urls = wrapper.findAll('[data-testid="spelling-players"] [data-testid="volume"]').map((v) => v.attributes('data-url'))
+    expect(urls).toEqual(['/f7.m4a', '/f5.m4a'])
+  })
+
+  it('所有拼字都對不到錄音（舊資料尚未對應）時，沿用魚名旁的單一播放鈕', () => {
+    editor()
+    const wrapper = mountTop({ name: 'Ivey、Ivay', audios: [{ ...rec(1, null) }] })
+
+    expect(wrapper.find('[data-testid="spelling-players"]').exists()).toBe(false)
+    const volumes = wrapper.findAll('[data-testid="volume"]')
+    expect(volumes).toHaveLength(1)
+    expect(volumes[0].attributes('data-url')).toBe('/main.m4a')
+  })
+
+  it('只有一個名稱：維持魚名旁的單一播放鈕', () => {
+    editor()
+    const wrapper = mountTop({ name: 'Ivey', audios: [rec(3, 'Ivey')] })
+
+    expect(wrapper.find('[data-testid="spelling-players"]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-testid="volume"]')).toHaveLength(1)
+  })
+
+  it('沒有播放權限的角色看不到任何播放鈕', () => {
+    const wrapper = mountTop({ name: 'Ivey、Ivay', audios: [rec(3, 'Ivey')] })
+
+    expect(wrapper.find('[data-testid="spelling-players"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="volume"]').exists()).toBe(false)
   })
 })
