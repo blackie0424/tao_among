@@ -8,12 +8,16 @@
     </div>
 
     <form class="space-y-3" @submit.prevent="submit">
+      <!-- 倒數每秒變動：給報讀軟體的是固定的一句（一開始的秒數），畫面上的倒數不重複報讀 -->
       <p
-        v-if="rateLimited"
+        v-if="waitSeconds > 0"
         role="alert"
         class="rounded-island bg-white p-4 text-elder-body font-bold text-red-700"
       >
-        送出太多次了，請等一下再試
+        <span class="sr-only">送出太多次了，請等 {{ initialWaitSeconds }} 秒再試</span>
+        <span aria-hidden="true" data-testid="rate-limit-message"
+          >送出太多次了，請等 {{ waitSeconds }} 秒再試</span
+        >
       </p>
 
       <div class="rounded-island bg-white p-4">
@@ -82,10 +86,10 @@
 
       <button
         type="submit"
-        :disabled="form.processing"
+        :disabled="form.processing || waitSeconds > 0"
         class="min-h-touch-primary w-full rounded-island bg-island-accent text-elder-body font-bold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40 disabled:opacity-50"
       >
-        {{ form.processing ? '進入中…' : '進入魚島' }}
+        {{ submitLabel }}
       </button>
     </form>
   </IslandLayout>
@@ -93,7 +97,7 @@
 
 <script setup>
 import { Head, router, useForm } from '@inertiajs/vue3'
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import { islandTribeLabel } from '@/constants/island'
 
@@ -104,21 +108,58 @@ defineProps({
 
 const form = useForm({ name: '', tribe: '' })
 const nameInput = ref(null)
-const rateLimited = ref(false)
+// 被限流後還要等幾秒才能再送出；0 代表沒有被限流
+const waitSeconds = ref(0)
+const initialWaitSeconds = ref(0)
 
 const HTTP_TOO_MANY_REQUESTS = 429
+// 伺服器沒回報要等多久時用的秒數（限流以一分鐘為單位）
+const DEFAULT_WAIT_SECONDS = 60
+const ONE_SECOND_MS = 1000
 
-// 被限流時伺服器回的不是頁面資料，預設會跳出瀏覽器的錯誤視窗；這裡攔下來，改在表單上顯示說明
+const submitLabel = computed(() => {
+  if (form.processing) return '進入中…'
+  return waitSeconds.value > 0 ? `${waitSeconds.value} 秒後可以再試` : '進入魚島'
+})
+
+let countdownTimer = null
+function stopCountdown() {
+  clearInterval(countdownTimer)
+  countdownTimer = null
+}
+
+function startCountdown(seconds) {
+  stopCountdown()
+  initialWaitSeconds.value = seconds
+  waitSeconds.value = seconds
+  countdownTimer = setInterval(() => {
+    waitSeconds.value -= 1
+    if (waitSeconds.value <= 0) {
+      stopCountdown()
+    }
+  }, ONE_SECOND_MS)
+}
+
+/** 429 回應的 Retry-After（秒）；沒有值或不是正整數時用預設值 */
+function retryAfterSeconds(response) {
+  const seconds = Number.parseInt(response.headers?.['retry-after'], 10)
+  return seconds > 0 ? seconds : DEFAULT_WAIT_SECONDS
+}
+
+// 被限流時伺服器回的不是頁面資料，預設會跳出瀏覽器的錯誤視窗；這裡攔下來，改在表單上顯示還要等多久
 let stopListeningInvalid = () => {}
 onMounted(() => {
   stopListeningInvalid = router.on('invalid', (event) => {
     if (event.detail.response.status === HTTP_TOO_MANY_REQUESTS) {
       event.preventDefault()
-      rateLimited.value = true
+      startCountdown(retryAfterSeconds(event.detail.response))
     }
   })
 })
-onUnmounted(() => stopListeningInvalid())
+onUnmounted(() => {
+  stopListeningInvalid()
+  stopCountdown()
+})
 
 // 送出後有錯：把焦點移到第一個有錯的欄位（名字在前、部落在後）
 async function focusFirstError(errors) {
@@ -131,7 +172,7 @@ async function focusFirstError(errors) {
 }
 
 function submit() {
-  rateLimited.value = false
+  if (waitSeconds.value > 0) return
   form.post('/island/character', { onError: focusFirstError })
 }
 </script>

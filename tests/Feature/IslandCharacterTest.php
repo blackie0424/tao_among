@@ -216,6 +216,18 @@ it('同一個訪客來源一分鐘內第 6 次送出回 429，不建任何資料
     expect(User::count())->toBe(0)->and(IslandCharacter::count())->toBe(0);
 });
 
+it('被限流的回應帶 Retry-After（還要等幾秒，1 到 60 之間），畫面用它倒數', function () {
+    $this->freezeTime();
+    foreach (range(1, 5) as $ignored) {
+        postIslandCharacterFrom('203.0.113.5', ['name' => '', 'tribe' => 'yayo']);
+    }
+
+    $this->travel(20)->seconds();
+    $response = postIslandCharacterFrom('203.0.113.5', ['name' => '阿海', 'tribe' => 'yayo'])->assertStatus(429);
+
+    expect((int) $response->headers->get('Retry-After'))->toBe(40);
+});
+
 it('不同訪客來源各自計數：一個來源用完 5 次，另一個來源仍可建角', function () {
     foreach (range(1, 5) as $ignored) {
         postIslandCharacterFrom('203.0.113.5', ['name' => '', 'tribe' => 'yayo'])->assertRedirect();
