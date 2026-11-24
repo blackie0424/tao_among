@@ -12,6 +12,7 @@ use App\Services\CaptureRecordBatchService;
 use App\Services\FishAudioRecordingService;
 use App\Services\FishNameSplitter;
 use App\Services\FishNoteService;
+use App\Services\Line\LineAudioFlowState;
 use App\Services\Line\LineCreateFishReplyBuilder;
 use App\Services\Line\LineFishKnowledgeMessageBuilder;
 use App\Services\Line\LineFishMessageBuilder;
@@ -38,6 +39,9 @@ use LINE\Webhook\Model\TextMessageContent;
 
 class LineBotController extends Controller
 {
+    /** LINE 快速回覆按鈕文字上限 */
+    private const LINE_QUICK_REPLY_LABEL_LIMIT = 20;
+
     protected LineMessagingClientInterface $lineMessagingClient;
 
     protected $apiFishController;
@@ -913,17 +917,25 @@ class LineBotController extends Controller
     }
 
     /** 新增發音前的檢查，有問題回傳要給使用者的訊息，沒問題回傳 null。 */
-    protected function audioPrecheckError(int $fishId, ?string $tribe): ?string
+    protected function audioPrecheckError(int $fishId, ?string $tribe, ?string $spokenName): ?string
     {
         if (! $tribe || ! in_array($tribe, config('fish_options.tribes', []), true)) {
             return '❌ 部落資料無效，請重新操作。';
         }
         $fish = Fish::find($fishId);
-        if ($fish && app(FishNameSplitter::class)->split($fish->name) === []) {
+        if (! $fish) {
+            return null;
+        }
+        $names = app(FishNameSplitter::class)->split($fish->name);
+        if ($names === []) {
             return '❌ 這隻魚還沒有名稱，請先到網站編輯名稱再新增發音。';
         }
+        if ($spokenName === null) {
+            // 單一名稱自動帶入；多名稱一定要先選過拼字
+            return count($names) > 1 ? LineAudioFlowState::MESSAGE_EXPIRED : null;
+        }
 
-        return null;
+        return in_array($spokenName, $names, true) ? null : LineAudioFlowState::MESSAGE_NAME_CHANGED;
     }
 
     /**
@@ -931,10 +943,9 @@ class LineBotController extends Controller
      */
     protected function saveFishAudio(string $userId, int $fishId, string $audioBlob, int $duration, string $replyToken): void
     {
-        try {
-            // 使用 LINE 專用的上傳服務
-            $lineUploadService = app(\App\Services\LineUploadService::class);
+        $flow = app(LineAudioFlowState::class);
 
+        try {
             Log::info('LINE Bot saving audio', [
                 'userId' => $userId,
                 'fishId' => $fishId,
@@ -942,110 +953,21 @@ class LineBotController extends Controller
                 'duration' => $duration,
             ]);
 
-            // 上傳前先檢查：部落要是可選的部落；魚名不能是空的（沒有名稱可對應）
+            // 上傳前先檢查：部落要是可選的部落；魚名不能是空的；所選拼字要還在魚名內
             $tribe = Cache::get("line_user_{$userId}_audio_tribe");
-            $precheckError = $this->audioPrecheckError($fishId, $tribe);
+            $spokenName = $flow->selectedName($userId);
+            $precheckError = $this->audioPrecheckError($fishId, $tribe, $spokenName);
             if ($precheckError) {
-                Cache::forget("line_user_{$userId}_adding_audio");
-                Cache::forget("line_user_{$userId}_audio_tribe");
-                $this->lineMessagingClient->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage(['type' => 'text', 'text' => $precheckError]),
-                ]);
+                $flow->clear($userId);
+                $this->replyPlainText($replyToken, $precheckError);
 
                 return;
             }
 
-            // 上傳音檔到 S3（LINE 專用流程）
-            try {
-                $filename = $lineUploadService->uploadLineAudio($audioBlob);
-            } catch (\Exception $e) {
-                // 清除使用者狀態
-                Cache::forget("line_user_{$userId}_adding_audio");
+            $filename = $this->uploadLineAudioFile($userId, $fishId, $audioBlob, $duration);
+            $this->persistLineAudio($userId, $fishId, $filename, $tribe, $spokenName, $duration);
 
-                Log::error('LINE Bot failed to upload audio to S3', [
-                    'userId' => $userId,
-                    'fishId' => $fishId,
-                    'blobSize' => strlen($audioBlob),
-                    'duration' => $duration,
-                    'error' => $e->getMessage(),
-                    'error_code' => $e->getCode(),
-                    'exception_class' => get_class($e),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-
-                throw new \Exception('Failed to upload audio to S3: '.$e->getMessage(), 0, $e);
-            }
-
-            // 更新 Fish 的 audio_filename
-            try {
-                $fish = Fish::find($fishId);
-
-                if (! $fish) {
-                    // 清除使用者狀態
-                    Cache::forget("line_user_{$userId}_adding_audio");
-
-                    Log::error('LINE Bot fish not found when saving audio', [
-                        'userId' => $userId,
-                        'fishId' => $fishId,
-                        'filename' => $filename,
-                    ]);
-
-                    // 嘗試刪除已上傳的音檔（避免孤兒檔案）
-                    try {
-                        $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
-                        Storage::disk('s3')->delete($audioFolder.'/'.$filename);
-                        Log::info('LINE Bot deleted orphaned audio file', [
-                            'filename' => $filename,
-                        ]);
-                    } catch (\Exception $deleteException) {
-                        Log::error('LINE Bot failed to delete orphaned audio file', [
-                            'filename' => $filename,
-                            'error' => $deleteException->getMessage(),
-                        ]);
-                    }
-
-                    throw new \Exception('Fish not found with ID: '.$fishId);
-                }
-
-                // 新增一筆錄音（不覆蓋舊的）；名稱：單一名稱的魚自動帶入，多名稱的魚先留空（選名稱流程見 #176）
-                $recordedBy = User::where('line_user_id', $userId)->value('id');
-                app(FishAudioRecordingService::class)->create($fish, null, $tribe, $filename, $duration, $recordedBy);
-
-            } catch (\Exception $e) {
-                // 清除使用者狀態
-                Cache::forget("line_user_{$userId}_adding_audio");
-
-                Log::error('LINE Bot failed to update database', [
-                    'userId' => $userId,
-                    'fishId' => $fishId,
-                    'filename' => $filename,
-                    'duration' => $duration,
-                    'error' => $e->getMessage(),
-                    'error_code' => $e->getCode(),
-                    'exception_class' => get_class($e),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-
-                // 嘗試刪除已上傳的音檔（避免孤兒檔案）
-                try {
-                    $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
-                    Storage::disk('s3')->delete($audioFolder.'/'.$filename);
-                    Log::info('LINE Bot deleted orphaned audio file after database failure', [
-                        'filename' => $filename,
-                    ]);
-                } catch (\Exception $deleteException) {
-                    Log::error('LINE Bot failed to delete orphaned audio file after database failure', [
-                        'filename' => $filename,
-                        'error' => $deleteException->getMessage(),
-                    ]);
-                }
-
-                throw new \Exception('Failed to update database: '.$e->getMessage(), 0, $e);
-            }
-
-            // 清除狀態（含部落選擇）
-            Cache::forget("line_user_{$userId}_adding_audio");
-            Cache::forget("line_user_{$userId}_audio_tribe");
+            $flow->clear($userId);
 
             Log::info('LINE Bot audio saved successfully', [
                 'userId' => $userId,
@@ -1054,14 +976,10 @@ class LineBotController extends Controller
                 'duration' => $duration,
             ]);
 
-            // 回覆成功訊息
-            $this->lineMessagingClient->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "✅ 發音檔已成功新增！\n💡 再錄一次會新增另一段，不會蓋掉舊的",
-                ]),
-            ]);
-
+            $this->replyPlainText(
+                $replyToken,
+                "✅ 發音檔已成功新增！\n💡 再錄一次會新增另一段，不會蓋掉舊的\n管理發音：".url("/fish/{$fishId}/audio-list")
+            );
         } catch (\Exception $e) {
             // 確保使用者狀態被清除
             Cache::forget("line_user_{$userId}_adding_audio");
@@ -1075,13 +993,247 @@ class LineBotController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            $this->lineMessagingClient->replyMessage($replyToken, [
-                new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => '❌ 儲存音檔時發生錯誤，請稍後再試',
-                ]),
+            // 寫入服務依重讀的魚名驗證：上傳後才發現名稱已變更
+            if ($e->getPrevious() instanceof \InvalidArgumentException) {
+                $flow->clear($userId);
+                $this->replyPlainText($replyToken, LineAudioFlowState::MESSAGE_NAME_CHANGED);
+
+                return;
+            }
+
+            $this->replyPlainText($replyToken, '❌ 儲存音檔時發生錯誤，請稍後再試');
+        }
+    }
+
+    /** 上傳音檔到 S3（LINE 專用流程），回傳檔名；失敗時清除錄音狀態並往上丟。 */
+    private function uploadLineAudioFile(string $userId, int $fishId, string $audioBlob, int $duration): string
+    {
+        try {
+            return app(\App\Services\LineUploadService::class)->uploadLineAudio($audioBlob);
+        } catch (\Exception $e) {
+            Cache::forget("line_user_{$userId}_adding_audio");
+
+            Log::error('LINE Bot failed to upload audio to S3', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'blobSize' => strlen($audioBlob),
+                'duration' => $duration,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'exception_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw new \Exception('Failed to upload audio to S3: '.$e->getMessage(), 0, $e);
+        }
+    }
+
+    /** 新增一筆錄音（不覆蓋舊的）；失敗時刪除剛上傳的音檔（避免孤兒檔案）並往上丟。 */
+    private function persistLineAudio(string $userId, int $fishId, string $filename, string $tribe, ?string $spokenName, int $duration): void
+    {
+        try {
+            $fish = Fish::find($fishId);
+            if (! $fish) {
+                Log::error('LINE Bot fish not found when saving audio', [
+                    'userId' => $userId,
+                    'fishId' => $fishId,
+                    'filename' => $filename,
+                ]);
+                throw new \Exception('Fish not found with ID: '.$fishId);
+            }
+
+            $recordedBy = User::where('line_user_id', $userId)->value('id');
+            app(FishAudioRecordingService::class)->create($fish, $spokenName, $tribe, $filename, $duration, $recordedBy);
+        } catch (\Exception $e) {
+            Cache::forget("line_user_{$userId}_adding_audio");
+
+            Log::error('LINE Bot failed to update database', [
+                'userId' => $userId,
+                'fishId' => $fishId,
+                'filename' => $filename,
+                'duration' => $duration,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'exception_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->deleteOrphanedAudio($filename);
+
+            throw new \Exception('Failed to update database: '.$e->getMessage(), 0, $e);
+        }
+    }
+
+    private function deleteOrphanedAudio(string $filename): void
+    {
+        try {
+            $audioFolder = app(\App\Contracts\StorageServiceInterface::class)->getAudioFolder();
+            Storage::disk('s3')->delete($audioFolder.'/'.$filename);
+            Log::info('LINE Bot deleted orphaned audio file after database failure', ['filename' => $filename]);
+        } catch (\Exception $deleteException) {
+            Log::error('LINE Bot failed to delete orphaned audio file after database failure', [
+                'filename' => $filename,
+                'error' => $deleteException->getMessage(),
             ]);
         }
+    }
+
+    /** 新增發音第一步：魚名有多個拼字先請使用者選，只有一個就直接選部落。 */
+    private function startAddAudio(string $userId, array $params, string $replyToken): void
+    {
+        $this->clearBatchCaptureState($userId);
+        $this->clearLineKnowledgeState($userId);
+
+        $fish = Fish::find((int) ($params['fish_id'] ?? 0));
+        if (! $fish) {
+            $this->replyPlainText($replyToken, '❌ 無法取得魚類資料，請重新操作。');
+
+            return;
+        }
+
+        $names = app(FishNameSplitter::class)->split($fish->name);
+        if ($names === []) {
+            $this->replyPlainText($replyToken, '❌ 這隻魚還沒有名稱，請先到網站編輯名稱再新增發音。');
+
+            return;
+        }
+        if (count($names) > LineAudioFlowState::MAX_CHOICES) {
+            $this->replyPlainText($replyToken, '❌ 這隻魚的名稱超過 '.LineAudioFlowState::MAX_CHOICES.' 個，LINE 無法列出，請到網站新增發音。');
+
+            return;
+        }
+
+        app(LineAudioFlowState::class)->begin($userId, $fish->id, $names);
+
+        if (count($names) > 1) {
+            $this->replyAudioNameChoices($replyToken, $fish->id, $names);
+
+            return;
+        }
+        $this->replyAudioTribeChoices($replyToken, $userId, $fish->id, "🎤 新增發音\n\n請先選擇你來自哪個部落：");
+    }
+
+    /** 列出各拼字（序號. 完整拼字）與選擇按鈕；按鈕文字超過 20 字截斷，靠序號分辨。 */
+    private function replyAudioNameChoices(string $replyToken, int $fishId, array $names): void
+    {
+        $lines = [];
+        $items = [];
+        foreach ($names as $index => $name) {
+            $number = $index + 1;
+            $lines[] = "{$number}. {$name}";
+            $items[] = [
+                'type' => 'action',
+                'action' => [
+                    'type' => 'postback',
+                    'label' => mb_substr("{$number}. {$name}", 0, self::LINE_QUICK_REPLY_LABEL_LIMIT),
+                    'data' => "action=select_name_for_audio&fish_id={$fishId}&idx={$index}",
+                    'displayText' => "選擇拼字：{$name}",
+                ],
+            ];
+        }
+
+        $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
+            'type' => 'text',
+            'text' => "🎤 新增發音\n\n這隻魚有多個拼字，要錄哪一個？\n".implode("\n", $lines),
+        ]);
+        $message->setQuickReply(['items' => $items]);
+        $this->lineMessagingClient->replyMessage($replyToken, [$message]);
+    }
+
+    /** 選部落的快速回覆；同時記下「等待選部落」的魚（按鈕的魚編號要與它一致）。 */
+    private function replyAudioTribeChoices(string $replyToken, string $userId, int $fishId, string $text): void
+    {
+        Cache::put("line_user_{$userId}_pending_audio_fish", $fishId, now()->addMinutes(5));
+
+        $tribeItems = array_map(fn ($tribe) => [
+            'type' => 'action',
+            'action' => [
+                'type' => 'postback',
+                'label' => ucfirst($tribe),
+                'data' => "action=select_tribe_for_audio&fish_id={$fishId}&tribe={$tribe}",
+                'displayText' => '選擇部落：'.ucfirst($tribe),
+            ],
+        ], config('fish_options.tribes', []));
+
+        $message = new \LINE\Clients\MessagingApi\Model\TextMessage(['type' => 'text', 'text' => $text]);
+        $message->setQuickReply(['items' => $tribeItems]);
+        $this->lineMessagingClient->replyMessage($replyToken, [$message]);
+    }
+
+    /** 新增發音（多名稱的魚）：記下所選拼字，接著選部落。 */
+    private function selectNameForAudio(string $userId, array $params, string $replyToken): void
+    {
+        $fishId = (int) ($params['fish_id'] ?? 0);
+        $fish = Fish::find($fishId);
+        $currentNames = $fish ? app(FishNameSplitter::class)->split($fish->name) : [];
+
+        try {
+            $name = app(LineAudioFlowState::class)->chooseName($userId, $fishId, (int) ($params['idx'] ?? -1), $currentNames);
+        } catch (\DomainException $e) {
+            $this->replyPlainText($replyToken, $e->getMessage());
+
+            return;
+        }
+
+        $this->replyAudioTribeChoices($replyToken, $userId, $fishId, "🎤 新增發音（{$name}）\n\n請先選擇你來自哪個部落：");
+    }
+
+    /** 新增發音：選好部落後進入錄音。流程不是這隻魚、或前面的步驟沒做（過期）一律拒絕。 */
+    private function selectTribeForAudio(string $userId, array $params, string $replyToken): void
+    {
+        $fishId = (int) ($params['fish_id'] ?? 0);
+        $tribe = $params['tribe'] ?? null;
+        $flow = app(LineAudioFlowState::class);
+
+        if (! $flow->owns($userId, $fishId) || (int) Cache::get("line_user_{$userId}_pending_audio_fish") !== $fishId) {
+            $this->replyPlainText($replyToken, LineAudioFlowState::MESSAGE_EXPIRED);
+
+            return;
+        }
+        if (! $tribe || ! in_array($tribe, config('fish_options.tribes', []), true)) {
+            $this->replyPlainText($replyToken, '❌ 部落資料無效，請重新操作。');
+
+            return;
+        }
+
+        // 儲存部落選擇與錄音狀態到 Cache（5 分鐘過期）
+        Cache::put("line_user_{$userId}_audio_tribe", $tribe, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
+        Cache::forget("line_user_{$userId}_pending_audio_fish");
+        $flow->touch($userId);
+
+        $name = $flow->selectedName($userId);
+        $this->replyPlainText(
+            $replyToken,
+            '✅ 已選擇部落：'.ucfirst($tribe).($name ? "\n拼字：{$name}" : '')."\n\n🎤 請錄製魚類發音（限 5 秒以內）\n💡 再錄一次會新增另一段，不會蓋掉舊的"
+        );
+    }
+
+    /** 重新錄製：沿用已選的拼字與部落；流程已過期就拒絕。 */
+    private function retryAudio(string $userId, array $params, string $replyToken): void
+    {
+        $fishId = (int) ($params['fish_id'] ?? 0);
+        $flow = app(LineAudioFlowState::class);
+
+        if (! $flow->canRecord($userId, $fishId)) {
+            $this->replyPlainText($replyToken, LineAudioFlowState::MESSAGE_EXPIRED);
+
+            return;
+        }
+
+        // 更新 Cache TTL，再給 5 分鐘
+        Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", Cache::get("line_user_{$userId}_audio_tribe"), now()->addMinutes(5));
+        $flow->touch($userId);
+
+        $this->replyPlainText($replyToken, "🎤 請重新錄製（限 5 秒以內）\n💡 再錄一次會新增另一段，不會蓋掉舊的");
+    }
+
+    private function replyPlainText(string $replyToken, string $text): void
+    {
+        $this->lineMessagingClient->replyMessage($replyToken, [
+            new \LINE\Clients\MessagingApi\Model\TextMessage(['type' => 'text', 'text' => $text]),
+        ]);
     }
 
     protected function browseProtectedActions(): array
@@ -1157,6 +1309,7 @@ class LineBotController extends Controller
                 'provide_clue',
                 'start_rename',
                 'start_add_audio',
+                'select_name_for_audio',
                 ...$this->knowledgeProtectedActions(),
                 ...$this->lineBatchCaptureFlowService->protectedActions(),
             ];
@@ -1602,112 +1755,27 @@ class LineBotController extends Controller
                 return;
             }
 
-            // 處理開始新增發音：第一步選部落
+            // 新增發音流程：（多名稱的魚）選拼字 → 選部落 → 錄音；狀態與驗證見 LineAudioFlowState
             if ($action === 'start_add_audio') {
-                $this->clearBatchCaptureState($userId);
-                $this->clearLineKnowledgeState($userId);
-                $fishId = $params['fish_id'] ?? null;
-
-                if (! $fishId) {
-                    $this->lineMessagingClient->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => '❌ 無法取得魚類資料，請重新操作。',
-                        ]),
-                    ]);
-
-                    return;
-                }
-
-                // 暫存 fishId 到 Cache 供後續步驟使用（5 分鐘過期）
-                Cache::put("line_user_{$userId}_pending_audio_fish", $fishId, now()->addMinutes(5));
-
-                // 從設定檔讀取六個部落，組成 Quick Reply 按鈕
-                $tribes = config('fish_options.tribes', []);
-                $tribeItems = array_map(fn ($tribe) => [
-                    'type' => 'action',
-                    'action' => [
-                        'type' => 'postback',
-                        'label' => ucfirst($tribe),
-                        'data' => "action=select_tribe_for_audio&fish_id={$fishId}&tribe={$tribe}",
-                        'displayText' => '選擇部落：'.ucfirst($tribe),
-                    ],
-                ], $tribes);
-
-                $message = new \LINE\Clients\MessagingApi\Model\TextMessage([
-                    'type' => 'text',
-                    'text' => "🎤 提供發音\n\n請先選擇你來自哪個部落：",
-                ]);
-                $message->setQuickReply(['items' => $tribeItems]);
-
-                $this->lineMessagingClient->replyMessage($replyToken, [$message]);
+                $this->startAddAudio($userId, $params, $replyToken);
 
                 return;
             }
 
-            // 處理部落選擇後進入錄音：第二步錄音
+            if ($action === 'select_name_for_audio') {
+                $this->selectNameForAudio($userId, $params, $replyToken);
+
+                return;
+            }
+
             if ($action === 'select_tribe_for_audio') {
-                $fishId = $params['fish_id'] ?? Cache::get("line_user_{$userId}_pending_audio_fish");
-                $tribe = $params['tribe'] ?? null;
-
-                // 驗證部落是否合法
-                $validTribes = config('fish_options.tribes', []);
-                if (! $fishId || ! $tribe || ! in_array($tribe, $validTribes)) {
-                    $this->lineMessagingClient->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => '❌ 部落資料無效，請重新操作。',
-                        ]),
-                    ]);
-
-                    return;
-                }
-
-                // 儲存部落選擇與錄音狀態到 Cache（5 分鐘過期）
-                Cache::put("line_user_{$userId}_audio_tribe", $tribe, now()->addMinutes(5));
-                Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
-                // 清除暫存的 pending fishId
-                Cache::forget("line_user_{$userId}_pending_audio_fish");
-
-                $this->lineMessagingClient->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => '✅ 已選擇部落：'.ucfirst($tribe)."\n\n🎤 請錄製魚類發音（限 5 秒以內）\n💡 再錄一次會新增另一段，不會蓋掉舊的",
-                    ]),
-                ]);
+                $this->selectTribeForAudio($userId, $params, $replyToken);
 
                 return;
             }
 
-            // 處理重新錄製（錄音失敗後的重試）
             if ($action === 'retry_audio') {
-                $fishId = $params['fish_id'] ?? null;
-
-                if (! $fishId) {
-                    $this->lineMessagingClient->replyMessage($replyToken, [
-                        new \LINE\Clients\MessagingApi\Model\TextMessage([
-                            'type' => 'text',
-                            'text' => '❌ 無法取得魚類資料，請重新操作。',
-                        ]),
-                    ]);
-
-                    return;
-                }
-
-                // 更新（或建立）Cache TTL，再給 5 分鐘
-                Cache::put("line_user_{$userId}_adding_audio", $fishId, now()->addMinutes(5));
-                // 若有部落選擇，也延長 TTL
-                $existingTribe = Cache::get("line_user_{$userId}_audio_tribe");
-                if ($existingTribe) {
-                    Cache::put("line_user_{$userId}_audio_tribe", $existingTribe, now()->addMinutes(5));
-                }
-
-                $this->lineMessagingClient->replyMessage($replyToken, [
-                    new \LINE\Clients\MessagingApi\Model\TextMessage([
-                        'type' => 'text',
-                        'text' => "🎤 請重新錄製（限 5 秒以內）\n💡 再錄一次會新增另一段，不會蓋掉舊的",
-                    ]),
-                ]);
+                $this->retryAudio($userId, $params, $replyToken);
 
                 return;
             }
