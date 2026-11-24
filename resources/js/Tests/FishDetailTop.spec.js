@@ -81,22 +81,37 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
   const rec = (id, spoken_name) => ({ id, name: `f${id}.m4a`, url: `/f${id}.m4a`, spoken_name })
   const mountTop = (fish) => mount(FishDetailTop, { props: { fish: { id: 1, image_url: '/a.jpg', audio_url: '/main.m4a', audio_filename: null, ...fish } } })
 
-  it('多個拼字：每個有錄音的拼字一個播放鈕，沒有錄音的拼字不顯示，魚名旁的單一播放鈕不再出現', () => {
+  // 魚名那一行依畫面順序列出拼字與播放鈕：['Ivey', '▶/f3.m4a', ...]
+  const nameRowSequence = (wrapper) =>
+    wrapper.get('h1').findAll('[data-testid="spelling"], [data-testid="volume"]').map((el) =>
+      el.attributes('data-testid') === 'volume' ? `▶${el.attributes('data-url')}` : el.text())
+
+  it('多個拼字：魚名那一行是「拼字 ▶ 拼字 ▶」，沒有錄音的拼字只顯示文字，魚名不另外重複一行', () => {
     editor()
     const wrapper = mountTop({ name: 'Ivey、Ivay、Ivoy', audios: [rec(3, 'Ivey'), rec(5, 'Ivay')] })
 
-    const items = wrapper.get('[data-testid="spelling-players"]').findAll('li')
-    expect(items.map((li) => li.text())).toEqual(['Ivey', 'Ivay'])
-    expect(items.map((li) => li.get('[data-testid="volume"]').attributes('data-url'))).toEqual(['/f3.m4a', '/f5.m4a'])
+    expect(nameRowSequence(wrapper)).toEqual(['Ivey', '▶/f3.m4a', 'Ivay', '▶/f5.m4a', 'Ivoy'])
     expect(wrapper.findAll('[data-testid="volume"]')).toHaveLength(2)
+    expect(wrapper.text().match(/Ivoy/g)).toHaveLength(1)
     expect(wrapper.get('h1').text()).toBe('Ivey、Ivay、Ivoy')
+  })
+
+  it('多個拼字：新增錄音按鈕與拼字在同一行，排在最右邊', () => {
+    editor()
+    const wrapper = mountTop({ name: 'Ivey、Ivay', audios: [rec(3, 'Ivey'), rec(5, 'Ivay')] })
+
+    const row = wrapper.get('[data-testid="fish-name-row"]')
+    expect(row.find('h1').exists()).toBe(true)
+    const micBox = row.element.lastElementChild
+    expect(micBox.querySelector('a[href="/fish/1/audio/create"]')).not.toBeNull()
+    expect(micBox.classList).toContain('ml-auto')
   })
 
   it('每個拼字播它的主要發音（is_primary），沒有指定就播最早的一段', () => {
     editor()
     const wrapper = mountTop({ name: 'Ivey、Ivay', audios: [rec(3, 'Ivey'), { ...rec(7, 'Ivey'), is_primary: true }, rec(5, 'Ivay')] })
 
-    const urls = wrapper.findAll('[data-testid="spelling-players"] [data-testid="volume"]').map((v) => v.attributes('data-url'))
+    const urls = wrapper.get('h1').findAll('[data-testid="volume"]').map((v) => v.attributes('data-url'))
     expect(urls).toEqual(['/f7.m4a', '/f5.m4a'])
   })
 
@@ -104,7 +119,7 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
     editor()
     const wrapper = mountTop({ name: 'Ivey、Ivay', audios: [{ ...rec(1, null) }] })
 
-    expect(wrapper.find('[data-testid="spelling-players"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="spelling"]').exists()).toBe(false)
     const volumes = wrapper.findAll('[data-testid="volume"]')
     expect(volumes).toHaveLength(1)
     expect(volumes[0].attributes('data-url')).toBe('/main.m4a')
@@ -114,7 +129,7 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
     editor()
     const wrapper = mountTop({ name: 'Ivey', audio_url: '/pointer.m4a', audios: [rec(3, 'Ivey'), { ...rec(7, 'Ivey'), is_primary: true }] })
 
-    expect(wrapper.find('[data-testid="spelling-players"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="spelling"]').exists()).toBe(false)
     const volumes = wrapper.findAll('[data-testid="volume"]')
     expect(volumes).toHaveLength(1)
     expect(volumes[0].attributes('data-url')).toBe('/f7.m4a')
@@ -137,7 +152,7 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
   it('沒有播放權限的角色看不到任何播放鈕', () => {
     const wrapper = mountTop({ name: 'Ivey、Ivay', audios: [rec(3, 'Ivey')] })
 
-    expect(wrapper.find('[data-testid="spelling-players"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="spelling"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="volume"]').exists()).toBe(false)
   })
 })
