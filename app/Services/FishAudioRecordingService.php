@@ -22,11 +22,13 @@ class FishAudioRecordingService
 
     /**
      * 新增一段錄音；同名稱同部落已有紀錄時也是新增一筆，不覆蓋。
+     * $spokenName 為 null（LINE 在選名稱流程上線前的過渡）：單一名稱的魚自動帶入該名稱，多名稱的魚留空（歸未對應名稱）。
+     * 網頁新增必填名稱，由呼叫端驗證後傳入。
      * 主要發音設定維持現狀：新增時指向新檔（是否改變見 #174）。
      */
-    public function create(Fish $fish, string $spokenName, string $tribe, string $filename, ?int $durationMs, ?int $recordedBy): FishAudio
+    public function create(Fish $fish, ?string $spokenName, string $tribe, string $filename, ?int $durationMs, ?int $recordedBy): FishAudio
     {
-        $this->assertNameBelongsToFish($fish, $spokenName);
+        $spokenName = $this->resolveSpokenName($fish, $spokenName);
         $this->assertTribe($tribe);
 
         return DB::transaction(function () use ($fish, $spokenName, $tribe, $filename, $durationMs, $recordedBy) {
@@ -44,7 +46,10 @@ class FishAudioRecordingService
         });
     }
 
-    /** 換音檔：成功後才刪舊檔；換的是主要發音檔時，指標同交易改為新檔名。 */
+    /**
+     * 換音檔：換的是主要發音檔時，指標同交易改為新檔名。
+     * 舊檔等最外層交易提交後才刪；外層回滾時資料仍指向舊檔，舊檔要還在。
+     */
     public function replaceFile(FishAudio $audio, string $newFilename, ?int $durationMs): FishAudio
     {
         $oldFilename = $audio->name;
@@ -57,7 +62,7 @@ class FishAudioRecordingService
         });
 
         if ($oldFilename !== $newFilename) {
-            $this->storage->delete($this->storage->getAudioFolder().'/'.$oldFilename);
+            DB::afterCommit(fn () => $this->storage->delete($this->storage->getAudioFolder().'/'.$oldFilename));
         }
 
         return $audio->fresh();
@@ -112,13 +117,27 @@ class FishAudioRecordingService
 
         $groups = [];
         foreach ($names as $name) {
-            $groups[$name] = $audios->where('spoken_name', $name)->values();
+            $groups[$name] = $audios->filter(fn (FishAudio $a) => $a->spoken_name === $name)->values();
         }
 
         return [
             'groups' => $groups,
             'unassigned' => $audios->filter(fn (FishAudio $a) => ! in_array($a->spoken_name, $names, true))->values(),
         ];
+    }
+
+    private function resolveSpokenName(Fish $fish, ?string $spokenName): ?string
+    {
+        $names = $this->splitter->split($fish->name);
+        if ($names === []) {
+            throw new InvalidArgumentException('這隻魚還沒有名稱');
+        }
+        if ($spokenName === null) {
+            return count($names) === 1 ? $names[0] : null;
+        }
+        $this->assertNameBelongsToFish($fish, $spokenName);
+
+        return $spokenName;
     }
 
     private function assertNameBelongsToFish(Fish $fish, string $spokenName): void

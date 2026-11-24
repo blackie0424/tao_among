@@ -6,6 +6,7 @@ use App\Models\FishAudio;
 use App\Services\FishAudioRecordingService;
 use App\Services\FishNameSplitter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Mockery as m;
 
 uses(Tests\TestCase::class, RefreshDatabase::class);
@@ -80,6 +81,26 @@ describe('create()', function () {
     });
 });
 
+describe('create() 過渡情境（LINE 選名稱流程上線前）', function () {
+    it('名稱為 null：單一名稱的魚自動帶入，多名稱的魚留空（歸未對應名稱）', function () {
+        $single = Fish::factory()->create(['name' => 'Angsa']);
+        $multi = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
+
+        $s = $this->service->create($single, null, 'yayo', 's.m4a', 3000, null);
+        $m = $this->service->create($multi, null, 'yayo', 'm.m4a', 3000, null);
+
+        expect($s->fresh()->spoken_name)->toBe('Angsa');
+        expect($m->fresh()->spoken_name)->toBeNull();
+        expect($this->service->groupByName($multi->fresh())['unassigned']->pluck('id')->all())->toBe([$m->id]);
+    });
+
+    it('名稱為 null 但魚名為空時仍被拒絕', function () {
+        $fish = Fish::factory()->create(['name' => '']);
+
+        expect(fn () => $this->service->create($fish, null, 'yayo', 'a.m4a', 3000, null))->toThrow(InvalidArgumentException::class);
+    });
+});
+
 describe('replaceFile()', function () {
     it('替換的是主要發音檔：指標同交易改為新檔名，舊檔被刪', function () {
         $fish = Fish::factory()->create(['name' => 'mivazlt', 'audio_filename' => 'old.m4a']);
@@ -99,6 +120,33 @@ describe('replaceFile()', function () {
         $this->service->replaceFile($audio, 'new.m4a', 4000);
 
         expect($fish->fresh()->audio_filename)->toBe('main.m4a');
+    });
+});
+
+describe('replaceFile() 與外層交易', function () {
+    it('外層交易回滾時舊檔不刪，資料仍指向舊檔', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt', 'audio_filename' => 'old.m4a']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'old.m4a', 'spoken_name' => 'mivazlt']);
+        $this->storage->shouldNotReceive('delete');
+
+        try {
+            DB::transaction(function () use ($audio) {
+                $this->service->replaceFile($audio, 'new.m4a', 4000);
+                throw new RuntimeException('外層後續步驟失敗');
+            });
+        } catch (RuntimeException) {
+        }
+
+        expect($audio->fresh()->name)->toBe('old.m4a');
+        expect($fish->fresh()->audio_filename)->toBe('old.m4a');
+    });
+
+    it('外層交易提交後才刪舊檔', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt', 'audio_filename' => 'old.m4a']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'old.m4a', 'spoken_name' => 'mivazlt']);
+        $this->storage->shouldReceive('delete')->once()->with('audios/old.m4a')->andReturn(true);
+
+        DB::transaction(fn () => $this->service->replaceFile($audio, 'new.m4a', 4000));
     });
 });
 
@@ -189,6 +237,17 @@ describe('groupByName()', function () {
         $fish->update(['name' => 'mivazlt、mivanivang']);
         $back = $this->service->groupByName($fish->fresh());
         expect($back['groups']['mivanivang']->pluck('id')->all())->toBe([$b->id]);
+    });
+
+    it('名稱比對為完全相同的字串：1 與 01 是不同名稱，錄音只在自己那組', function () {
+        $fish = Fish::factory()->create(['name' => '1、01']);
+        $one = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => '1']);
+        $zeroOne = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => '01']);
+
+        $grouped = $this->service->groupByName($fish->fresh());
+
+        expect($grouped['groups']['1']->pluck('id')->all())->toBe([$one->id]);
+        expect($grouped['groups']['01']->pluck('id')->all())->toBe([$zeroOne->id]);
     });
 
     it('沒有錄音的名稱也列出（空清單）；軟刪除的不算', function () {

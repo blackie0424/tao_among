@@ -108,6 +108,23 @@ describe('舊資料修正', function () {
         expect($legacy->fresh()->spoken_name)->toBe('mivazlt');
     });
 
+    it('讀取之後、寫入之前被人改過的舊資料不被覆蓋，列報並可重跑', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
+        $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
+
+        $edited = false;
+        DB::beforeExecuting(function ($query) use (&$edited, $a) {
+            if (! $edited && str_starts_with($query, 'update "fish_audios"')) {
+                $edited = true; // 修正指令要寫入的那一刻，人員剛好指派了名稱
+                DB::table('fish_audios')->where('id', $a->id)->update(['spoken_name' => 'mivanivang']);
+            }
+        });
+
+        $this->artisan('fish-audios:repair')->expectsOutputToContain("#{$a->id}")->assertSuccessful();
+
+        expect($a->fresh()->only(['locate', 'spoken_name']))->toBe(['locate' => 'supabase', 'spoken_name' => 'mivanivang']);
+    });
+
     it('備份失敗就不改任何資料', function () {
         $fish = Fish::factory()->create(['name' => 'mivazlt']);
         $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
@@ -171,14 +188,56 @@ describe('還原', function () {
         $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
         $this->artisan('fish-audios:repair')->assertSuccessful();
         $first = backupTables()[0];
-        // 第二份備份（修正後的狀態），名稱晚一秒
-        $second = 'fish_audios_backup_'.now()->addSecond()->format('YmdHis');
-        DB::statement("CREATE TABLE {$second} AS SELECT * FROM fish_audios");
+        $this->travel(2)->seconds();
+        $this->artisan('fish-audios:repair')->assertSuccessful(); // 第二份備份：此時已無可修正的紀錄
+        expect(backupTables())->toHaveCount(2);
 
         $this->artisan('fish-audios:repair', ['--restore' => $first])
             ->expectsConfirmation('確定要還原嗎？', 'yes')
             ->assertSuccessful();
 
         expect($a->fresh()->locate)->toBe('supabase');
+    });
+
+    it('不是本指令建立的備份表（缺修正後的值）時失敗', function () {
+        DB::statement('CREATE TABLE fish_audios_backup_20200101000000 AS SELECT * FROM fish_audios');
+
+        $this->artisan('fish-audios:repair', ['--restore' => 'fish_audios_backup_20200101000000'])->assertFailed();
+    });
+
+    it('備份後同一秒內的編輯也不會被還原覆蓋（不靠時間戳）', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
+        $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
+        $this->artisan('fish-audios:repair')->assertSuccessful();
+        $backup = backupTables()[0];
+
+        // 不 travel、不改時間：人員在修正後立刻（同一秒）指派並改部落
+        $a->update(['locate' => 'yayo', 'spoken_name' => 'mivanivang']);
+
+        $this->artisan('fish-audios:repair', ['--restore' => $backup])->assertSuccessful();
+
+        expect($a->fresh()->only(['locate', 'spoken_name']))->toBe(['locate' => 'yayo', 'spoken_name' => 'mivanivang']);
+    });
+
+    it('預覽之後、確認之前被改過的紀錄不會被還原覆蓋', function () {
+        $fish = Fish::factory()->create(['name' => 'Angsa']);
+        $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
+        $this->artisan('fish-audios:repair')->assertSuccessful();
+        $backup = backupTables()[0];
+
+        $edited = false;
+        DB::beforeExecuting(function ($query) use (&$edited, $a) {
+            if (! $edited && str_starts_with($query, 'update "fish_audios"')) {
+                $edited = true; // 還原要寫入的那一刻，人員剛好改了這筆
+                DB::table('fish_audios')->where('id', $a->id)->update(['locate' => 'iratay']);
+            }
+        });
+
+        $this->artisan('fish-audios:repair', ['--restore' => $backup])
+            ->expectsConfirmation('確定要還原嗎？', 'yes')
+            ->expectsOutputToContain("#{$a->id}")
+            ->assertSuccessful();
+
+        expect($a->fresh()->locate)->toBe('iratay');
     });
 });
