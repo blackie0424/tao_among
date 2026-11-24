@@ -212,9 +212,9 @@ describe('詳細頁導覽行為', () => {
     expect(tabs.every((tab) => tab.classes().includes('min-h-touch-secondary'))).toBe(true)
   })
 
-  it.each([null, ''])('沒有發音網址時以輔助文字色顯示尚無發音資料：%j', (audioUrl) => {
+  it.each([null, ''])('魚名為空且沒有發音網址時以輔助文字色顯示尚無發音資料：%j', (audioUrl) => {
     mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
-    const wrapper = mountFish({ fish: makeFish({ audio_url: audioUrl }) })
+    const wrapper = mountFish({ fish: makeFish({ name: '', audio_url: audioUrl }) })
     const audioTab = wrapper.findAll('button').find((button) => button.text() === '發音')
     return audioTab.trigger('click').then(() => {
       expect(wrapper.get('p').text()).toBe('尚無發音資料')
@@ -281,7 +281,7 @@ const expectedActions = [
       ['管理捕獲紀錄', '/fish/1/capture-records'],
     ],
   ],
-  ['audio', '發音', [['新增發音', '/fish/1/audio/create']]],
+  ['audio', '發音', [['管理發音', '/fish/1/audio-list']]],
 ]
 const readActions = (section) =>
   section
@@ -313,8 +313,6 @@ describe.each(['editor', 'admin'])('%s 分頁編輯入口', (role) => {
         _key === 'basic' ? 'basic-management-actions' : 'tab-edit-actions'
       )
       expect(readActions(actionContainer)).toEqual(expected)
-      if (_key === 'audio')
-        expect(section.get('a[href="/fish/1/audio-list"]').text()).toBe('管理所有發音')
       if (_key === 'capture')
         expect(section.get('a[href="/fish/1/capture-records/23/edit"]').text()).toBe('編輯')
     }
