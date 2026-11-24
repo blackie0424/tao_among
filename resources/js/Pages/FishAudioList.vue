@@ -38,7 +38,7 @@
           :tribes="tribes"
           :isCurrent="isCurrent(audio)"
         >
-          <template v-if="canSetCurrent(group, audio)" #extra>
+          <template v-if="canSetCurrent(audio)" #extra>
             <button
               type="button"
               class="min-h-touch-secondary text-elder-body text-brand underline"
@@ -62,6 +62,14 @@
         >
           <template #extra>
             <div class="flex items-center gap-2">
+              <button
+                v-if="canSetCurrent(audio)"
+                type="button"
+                class="min-h-touch-secondary text-elder-body text-brand underline"
+                @click="setCurrent(audio)"
+              >
+                設為魚頁使用
+              </button>
               <select
                 v-model="assignTo[audio.id]"
                 class="min-h-touch-secondary border border-rule-strong bg-paper-raised px-2 text-elder-body"
@@ -104,8 +112,8 @@ const assignTo = reactive({})
 // 魚頁目前使用的那一段（主要發音，維持現狀；是否調整見 #174）
 const isCurrent = (audio) => !!props.fish.audio_filename && audio.name === props.fish.audio_filename
 
-// 魚頁使用哪一段：以第一個名稱為主，只有它底下的錄音可以切換（其他名稱的細節見 #174）
-const canSetCurrent = (group, audio) => group === props.audioGroups[0] && !isCurrent(audio)
+// 魚頁使用哪一段：任何一段（含其他名稱底下的）都能指定；目前使用中的那段不用再指定（預設與細節見 #174）
+const canSetCurrent = (audio) => !isCurrent(audio)
 
 function setCurrent(audio) {
   router.put(`/fish/${props.fish.id}/audio/${audio.id}/set-base`)
