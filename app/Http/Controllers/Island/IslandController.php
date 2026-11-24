@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -21,12 +22,14 @@ class IslandController extends Controller
 {
     private const FORM_TOKEN_TTL_MINUTES = 30;
 
-    /** 還沒有人用這個表單代碼建過帳號 */
-    private const FORM_TOKEN_UNUSED = 'unused';
+    /**
+     * 表單代碼的鎖最長保留秒數：要比一個請求能活的時間長（PHP 預設最長執行 30 秒），
+     * 這樣鎖自己過期時，原本拿鎖的請求一定已經結束，不會有兩個請求同時建帳號。
+     */
+    private const FORM_TOKEN_LOCK_SECONDS = 60;
 
-    private const FORM_TOKEN_LOCK_SECONDS = 10;
-
-    private const FORM_TOKEN_WAIT_SECONDS = 5;
+    /** 等另一個用同一代碼的請求結束的最長秒數；超過就請使用者再送一次，不建任何資料 */
+    private const FORM_TOKEN_WAIT_SECONDS = 25;
 
     private const FORM_TOKEN_MESSAGE = '請再送出一次';
 
@@ -96,14 +99,15 @@ class IslandController extends Controller
     private function issueFormToken(): string
     {
         $token = Str::uuid()->toString();
-        Cache::put($this->formTokenKey($token), self::FORM_TOKEN_UNUSED, now()->addMinutes(self::FORM_TOKEN_TTL_MINUTES));
+        $expiresAt = now()->addMinutes(self::FORM_TOKEN_TTL_MINUTES);
+        Cache::put($this->formTokenKey($token), ['expires_at' => $expiresAt->getTimestamp(), 'user_id' => null], $expiresAt);
 
         return $token;
     }
 
     /**
      * 同一個表單代碼只建一個訪客帳號：第一次送出建立帳號與角色並記下帳號，
-     * 之後（含同時送出、等鎖的那一個）拿到同一個帳號。
+     * 之後（含同時送出、等鎖的那一個）拿到同一個帳號。代碼的到期時間從開表單起算，用過也不延長。
      *
      * @throws ValidationException 代碼不存在、已過期，或等不到鎖
      */
@@ -118,8 +122,8 @@ class IslandController extends Controller
                     if ($state === null) {
                         throw $this->formTokenError();
                     }
-                    if ($state !== self::FORM_TOKEN_UNUSED) {
-                        return User::findOrFail($state);
+                    if ($state['user_id'] !== null) {
+                        return User::findOrFail($state['user_id']);
                     }
 
                     $user = DB::transaction(function () use ($data) {
@@ -128,7 +132,7 @@ class IslandController extends Controller
 
                         return $user;
                     });
-                    Cache::put($key, $user->id, now()->addMinutes(self::FORM_TOKEN_TTL_MINUTES));
+                    Cache::put($key, [...$state, 'user_id' => $user->id], Carbon::createFromTimestamp($state['expires_at']));
 
                     return $user;
                 });

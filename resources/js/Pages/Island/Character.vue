@@ -69,6 +69,7 @@
 
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
+import { watch } from 'vue'
 
 const props = defineProps({
   tribes: { type: Array, required: true },
@@ -77,6 +78,14 @@ const props = defineProps({
 })
 
 const form = useForm({ name: '', tribe: '', form_token: props.form_token })
+
+// 送出失敗回到這一頁時元件不會重建，伺服器換發的新代碼要同步進表單，否則重送仍帶舊代碼
+watch(
+  () => props.form_token,
+  (token) => {
+    form.form_token = token
+  }
+)
 
 function submit() {
   form.post('/island/character')

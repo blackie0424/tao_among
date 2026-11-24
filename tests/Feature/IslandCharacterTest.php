@@ -5,6 +5,8 @@ use App\Models\IslandCharacter;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Sleep;
 use Illuminate\Testing\TestResponse;
 
 uses(RefreshDatabase::class);
@@ -32,6 +34,12 @@ function forgetIslandLogin(): void
 {
     Auth::forgetGuards();
     test()->flushSession();
+}
+
+/** 模擬另一個請求正拿著同一個表單代碼在建帳號：佔住那個代碼的鎖。 */
+function holdIslandFormTokenLock(string $token, int $seconds): void
+{
+    expect(Cache::lock("island_form_token:{$token}:lock", $seconds)->get())->toBeTrue();
 }
 
 function islandCharacterFor(User $user, string $name = '阿海', string $tribe = 'yayo'): IslandCharacter
@@ -118,6 +126,73 @@ it('表單代碼過期（30 分鐘）後不建任何資料', function () {
         ->assertSessionHasErrors(['form_token' => '請再送出一次']);
 
     expect(User::count())->toBe(0)->and(IslandCharacter::count())->toBe(0);
+});
+
+it('已用過的表單代碼不會延長效期：開表單 30 分鐘後一樣失效', function () {
+    $token = islandFormToken();
+    $data = ['name' => '阿海', 'tribe' => 'yayo', 'form_token' => $token];
+
+    $this->travel(29)->minutes();
+    postIslandCharacter($data)->assertRedirect('/island');
+    forgetIslandLogin();
+    $this->travel(2)->minutes();
+
+    $this->from('/island/character')
+        ->post('/island/character', $data)
+        ->assertRedirect('/island/character')
+        ->assertSessionHasErrors(['form_token' => '請再送出一次']);
+    expect(User::count())->toBe(1)->and(IslandCharacter::count())->toBe(1);
+    $this->assertGuest();
+});
+
+it('同一個代碼正被另一個請求使用時會等它結束，再登入成同一個帳號', function () {
+    $token = islandFormToken();
+    $data = ['name' => '阿海', 'tribe' => 'yayo', 'form_token' => $token];
+    postIslandCharacter($data)->assertRedirect('/island');
+    $firstUserId = Auth::id();
+    forgetIslandLogin();
+
+    $this->freezeTime();
+    Sleep::fake(syncWithCarbon: true);
+    // 另一個請求花了 20 秒才結束（遠超過正常的建帳號時間）
+    holdIslandFormTokenLock($token, seconds: 20);
+
+    postIslandCharacter($data)->assertRedirect('/island');
+
+    Sleep::assertSleptTimes(80);
+    expect(User::count())->toBe(1)
+        ->and(IslandCharacter::count())->toBe(1)
+        ->and(Auth::id())->toBe($firstUserId);
+});
+
+it('等另一個請求等到逾時，不建任何資料並請使用者再送出一次', function () {
+    $token = islandFormToken();
+    $this->freezeTime();
+    Sleep::fake(syncWithCarbon: true);
+    holdIslandFormTokenLock($token, seconds: 600);
+
+    $this->from('/island/character')
+        ->post('/island/character', ['name' => '阿海', 'tribe' => 'yayo', 'form_token' => $token])
+        ->assertRedirect('/island/character')
+        ->assertSessionHasErrors(['form_token' => '請再送出一次']);
+
+    expect(User::count())->toBe(0)->and(IslandCharacter::count())->toBe(0);
+    $this->assertGuest();
+});
+
+it('代碼過期送出失敗後，回到表單拿到新代碼，用新代碼重送成功', function () {
+    $oldToken = islandFormToken();
+    $this->travel(31)->minutes();
+    $this->from('/island/character')
+        ->post('/island/character', ['name' => '阿海', 'tribe' => 'yayo', 'form_token' => $oldToken])
+        ->assertRedirect('/island/character');
+
+    $newToken = islandFormToken();
+    expect($newToken)->not->toBe($oldToken);
+
+    postIslandCharacter(['name' => '阿海', 'tribe' => 'yayo', 'form_token' => $newToken])
+        ->assertRedirect('/island');
+    expect(User::count())->toBe(1)->and(IslandCharacter::count())->toBe(1);
 });
 
 // AC 3
