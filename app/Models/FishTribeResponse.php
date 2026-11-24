@@ -33,7 +33,7 @@ class FishTribeResponse extends Model
     public const EMPTY_RESPONSE_MESSAGE = '叫法、分類、錄音至少填一項';
 
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
-    private const UNNAMED_FISH_NAME = '我不知道';
+    public const UNNAMED_FISH_NAME = '我不知道';
 
     protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
 
@@ -243,6 +243,24 @@ class FishTribeResponse extends Model
     public static function responderCount(int $fishId): int
     {
         return self::where('fish_id', $fishId)->distinct()->count('user_id');
+    }
+
+    /**
+     * 一批魚在某個部落各有幾個不同使用者回答過（只答叫法、分類或錄音任一項都算）。
+     * 沒有人回答的魚不在結果裡。
+     *
+     * @param  list<int>  $fishIds
+     * @return array<int, int> fish_id => 人數
+     */
+    public static function responderCountsInTribe(array $fishIds, string $tribe): array
+    {
+        return self::whereIn('fish_id', $fishIds)
+            ->where('tribe', $tribe)
+            ->groupBy('fish_id')
+            ->selectRaw('fish_id, COUNT(DISTINCT user_id) AS responders')
+            ->pluck('responders', 'fish_id')
+            ->map(fn ($count) => (int) $count)
+            ->all();
     }
 
     /**
