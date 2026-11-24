@@ -26,7 +26,7 @@
             :href="`/fish/${fish.id}/audio/create?name=${encodeURIComponent(group.name)}`"
             class="inline-flex min-h-touch-secondary items-center bg-brand px-4 text-elder-body font-bold text-white hover:bg-brand-dark"
           >
-            ＋ 錄音
+            ＋ 新增發音
           </Link>
         </div>
         <p v-if="group.audios.length === 0" class="mt-3 text-elder-body text-elder-subtext">還沒有錄音</p>

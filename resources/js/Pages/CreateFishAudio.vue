@@ -3,8 +3,8 @@
 
   <FishAppLayout
     :pageTitle="title"
-    :mobileBackUrl="`/fish/${fish.id}/audio-list`"
-    mobileBackText="管理發音"
+    :mobileBackUrl="afterSaveUrl"
+    :mobileBackText="fromFishPage ? '回魚類資料' : '管理發音'"
   >
     <div class="mx-auto max-w-xl">
       <h1 class="font-serif text-elder-title text-elder-text">{{ title }}</h1>
@@ -58,6 +58,7 @@ const props = defineProps({
   fish: { type: Object, required: true },
   names: { type: Array, default: () => [] },
   spokenName: { type: String, default: null },
+  from: { type: String, default: null },
   tribes: { type: Array, default: () => [] },
   maxSeconds: { type: Number, default: 5 },
 })
@@ -66,6 +67,9 @@ const props = defineProps({
 const selectedName = ref(
   props.names.includes(props.spokenName) ? props.spokenName : props.names.length === 1 ? props.names[0] : null
 )
+// 從魚頁麥克風進來（from=fish）存檔後回魚頁；其他來源回管理發音頁
+const fromFishPage = props.from === 'fish'
+const afterSaveUrl = fromFishPage ? `/fish/${props.fish.id}` : `/fish/${props.fish.id}/audio-list`
 const title = computed(() => `${selectedName.value ?? props.fish.name}・新增發音`)
 const submitting = ref(false)
 const error = ref('')
@@ -84,7 +88,7 @@ async function save({ tribe, blob, ext, durationMs }) {
       throw new Error(Object.values(body.errors ?? {})[0]?.[0] || '儲存失敗，請重試')
     }
     markFishStale(props.fish.id)
-    router.visit(`/fish/${props.fish.id}/audio-list`)
+    router.visit(afterSaveUrl)
   } catch (e) {
     error.value = e.message || '音訊上傳失敗'
   } finally {

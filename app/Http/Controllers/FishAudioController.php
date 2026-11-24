@@ -21,6 +21,9 @@ class FishAudioController extends BaseController
 {
     use HasFishImageUrl;
 
+    /** 新增頁的來源：從魚頁麥克風進來，存檔後回魚頁（其他來源一律回管理發音頁）。 */
+    private const FROM_FISH_PAGE = 'fish';
+
     protected $fishService;
 
     protected $storageService;
@@ -48,6 +51,7 @@ class FishAudioController extends BaseController
             'fish' => $fishWithUrls,
             'names' => $this->splitter->split($fish->name),
             'spokenName' => $request->query('name'),
+            'from' => $request->query('from') === self::FROM_FISH_PAGE ? self::FROM_FISH_PAGE : null,
             'tribes' => config('fish_options.tribes', []),
             'maxSeconds' => FishAudio::MAX_DURATION_MS / 1000,
         ]);

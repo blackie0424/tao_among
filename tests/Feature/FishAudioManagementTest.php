@@ -686,3 +686,22 @@ describe('設為魚頁使用（每個拼字各自的主要發音）', function (
         expect($fish->fresh()->audio_filename)->toBe('b.m4a');
     });
 });
+
+describe('新增發音頁的來源（#176 AC 5）', function () {
+    it('帶 from=fish 時把來源傳給頁面，其他值或沒帶都視為沒有來源', function (?string $query, ?string $expected) {
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay']);
+
+        $this->actingAs(User::factory()->lineEditor()->create())
+            ->get("/fish/{$fish->id}/audio/create".$query)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('CreateFishAudio')
+                ->where('from', $expected));
+    })->with([
+        'from=fish' => ['?from=fish', 'fish'],
+        'from 與名稱一起' => ['?name=Ivay&from=fish', 'fish'],
+        '其他值' => ['?from=workspace', null],
+        '大小寫不同' => ['?from=Fish', null],
+        '沒帶' => ['', null],
+    ]);
+});
