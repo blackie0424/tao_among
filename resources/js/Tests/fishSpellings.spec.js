@@ -11,9 +11,17 @@ describe('splitFishName', () => {
     expect(splitFishName(null)).toEqual([])
   })
 
-  it('只差大小寫視為不同拼字；全形空白也會去掉', () => {
+  it('只差大小寫視為不同拼字', () => {
     expect(splitFishName('Angsa、angsa')).toEqual(['Angsa', 'angsa'])
-    expect(splitFishName('　Angsa　')).toEqual(['Angsa'])
+  })
+
+  // 與後端 tests/Unit/Services/FishAudioRecordingServiceTest.php 的「去頭尾空白的字元與前端 trim() 一致」同一組案例
+  it('去頭尾空白的字元與後端一致：全形空白、不換行空白、BOM 都要去掉', () => {
+    expect(splitFishName('\u3000Ivey\u3000、Ivay')).toEqual(['Ivey', 'Ivay'])
+    expect(splitFishName('\u00A0Ivey\u00A0、\uFEFFIvay\uFEFF')).toEqual(['Ivey', 'Ivay'])
+    expect(splitFishName('\u2003Ivey\u2009、Ivay\n')).toEqual(['Ivey', 'Ivay'])
+    expect(splitFishName('Iv\u3000ey')).toEqual(['Iv\u3000ey'])
+    expect(splitFishName('\u3000、\u3000')).toEqual([])
   })
 })
 
@@ -32,6 +40,11 @@ describe('pickSpellingRecordings', () => {
   it('指定的那一段屬於別的拼字時，不影響這個拼字（仍播它自己最早的一段）', () => {
     const fish = { name: 'Ivey、Ivay', audio_filename: 'f5.m4a', audios: [rec(3, 'Ivey'), rec(5, 'Ivay')] }
     expect(pickSpellingRecordings(fish).map((p) => p.audio.id)).toEqual([3, 5])
+  })
+
+  it('魚名含全形空白：後端記成「Ivey」「Ivay」的錄音，魚頁兩個拼字都顯示播放鈕，不會漏掉', () => {
+    const fish = { name: '\u3000Ivey\u3000、Ivay', audio_filename: null, audios: [rec(3, 'Ivey'), rec(5, 'Ivay')] }
+    expect(pickSpellingRecordings(fish).map((p) => [p.spelling, p.audio.id])).toEqual([['Ivey', 3], ['Ivay', 5]])
   })
 
   it('沒有錄音的拼字不回傳；未對應（沒有拼字）的錄音、沒有網址的錄音不算', () => {

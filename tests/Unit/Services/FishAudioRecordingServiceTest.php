@@ -30,8 +30,39 @@ describe('FishNameSplitter', function () {
         expect($splitter->split(null))->toBe([]);
     });
 
+    it('去頭尾空白的字元與前端 trim() 一致：全形空白、不換行空白、BOM 都要去掉（前端 fishSpellings.spec.js 用同一組案例）', function () {
+        $splitter = new FishNameSplitter;
+
+        expect($splitter->split("\u{3000}Ivey\u{3000}、Ivay"))->toBe(['Ivey', 'Ivay']);
+        expect($splitter->split("\u{00A0}Ivey\u{00A0}、\u{FEFF}Ivay\u{FEFF}"))->toBe(['Ivey', 'Ivay']);
+        expect($splitter->split("\u{2003}Ivey\u{2009}、Ivay\n"))->toBe(['Ivey', 'Ivay']);
+        expect($splitter->split("Iv\u{3000}ey"))->toBe(["Iv\u{3000}ey"]); // 中間的空白不動
+        expect($splitter->split("\u{3000}、\u{3000}"))->toBe([]);
+    });
+
     it('只差大小寫視為不同名稱', function () {
         expect((new FishNameSplitter)->split('Angsa、angsa'))->toBe(['Angsa', 'angsa']);
+    });
+});
+
+describe('魚名含全形空白：建立的名稱與魚頁（前端拆名）對得起來', function () {
+    it('以全形空白包住的拼字建立錄音，記下的名稱是去掉空白後的拼字，兩個拼字各自分組', function () {
+        $fish = Fish::factory()->create(['name' => "\u{3000}Ivey\u{3000}、Ivay"]);
+
+        $a = $this->service->create($fish, 'Ivey', 'yayo', 'a.m4a', 3000, null);
+        $b = $this->service->create($fish, 'Ivay', 'yayo', 'b.m4a', 3000, null);
+
+        expect($a->fresh()->spoken_name)->toBe('Ivey');
+        expect(array_keys($this->service->groupByName($fish->fresh())['groups']))->toBe(['Ivey', 'Ivay']);
+        expect($this->service->groupByName($fish->fresh())['unassigned'])->toHaveCount(0);
+        expect($b->fresh()->spoken_name)->toBe('Ivay');
+    });
+
+    it('帶著全形空白的名稱不被接受（名稱必須是拆分後的拼字，完全相同才算）', function () {
+        $fish = Fish::factory()->create(['name' => "\u{3000}Ivey\u{3000}、Ivay"]);
+
+        expect(fn () => $this->service->create($fish, "\u{3000}Ivey\u{3000}", 'yayo', 'a.m4a', 3000, null))
+            ->toThrow(InvalidArgumentException::class);
     });
 });
 
