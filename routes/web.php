@@ -13,6 +13,7 @@ use App\Http\Controllers\FishController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishReportController;
 use App\Http\Controllers\FishResponseController;
+use App\Http\Controllers\Island\IslandController;
 use App\Http\Controllers\LineLoginController;
 use App\Http\Controllers\LineUserController;
 use App\Http\Controllers\PlaceController;
@@ -52,6 +53,11 @@ Route::middleware(['auth', 'browse'])->group(function () {
     Route::get('/topics/{slug}', [TopicController::class, 'index'])->name('topics.index');
     Route::get('/topics/{slug}/{itemId}', [TopicController::class, 'show'])->name('topics.show');
 });
+
+// 魚島：不用登入的新前端（設計見 docs/design.md）
+Route::get('/island', [IslandController::class, 'home'])->name('island.home');
+Route::get('/island/character', [IslandController::class, 'character'])->name('island.character');
+Route::post('/island/character', [IslandController::class, 'storeCharacter'])->middleware('throttle:5,1')->name('island.character.store');
 
 // =====================================================
 // 需要登入的路由
