@@ -8,14 +8,6 @@
     </div>
 
     <form class="space-y-3" @submit.prevent="submit">
-      <p
-        v-if="form.errors.form_token"
-        role="alert"
-        class="rounded-island bg-white p-4 text-elder-body font-bold text-red-700"
-      >
-        {{ form.errors.form_token }}
-      </p>
-
       <div class="rounded-island bg-white p-4">
         <label for="island-name" class="block text-elder-body font-bold">你的名字</label>
         <input
@@ -85,7 +77,7 @@
         :disabled="form.processing"
         class="min-h-touch-primary w-full rounded-island bg-island-accent text-elder-body font-bold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40 disabled:opacity-50"
       >
-        進入魚島
+        {{ form.processing ? '進入中…' : '進入魚島' }}
       </button>
     </form>
   </IslandLayout>
@@ -93,26 +85,17 @@
 
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, ref } from 'vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import { islandTribeLabel } from '@/constants/island'
 
-const props = defineProps({
+defineProps({
   tribes: { type: Array, required: true },
   name_max_length: { type: Number, required: true },
-  form_token: { type: String, required: true },
 })
 
-const form = useForm({ name: '', tribe: '', form_token: props.form_token })
+const form = useForm({ name: '', tribe: '' })
 const nameInput = ref(null)
-
-// 送出失敗回到這一頁時元件不會重建，伺服器換發的新代碼要同步進表單，否則重送仍帶舊代碼
-watch(
-  () => props.form_token,
-  (token) => {
-    form.form_token = token
-  }
-)
 
 // 送出後有錯：把焦點移到第一個有錯的欄位（名字在前、部落在後）
 async function focusFirstError(errors) {
