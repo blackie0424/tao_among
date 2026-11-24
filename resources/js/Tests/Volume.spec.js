@@ -297,6 +297,28 @@ describe('Volume Component', () => {
   })
 })
 
+describe('Volume 播放中的效果（#159）', () => {
+  it('播放中顯示三條會跳動的聲音條，不是打勾', async () => {
+    mockPlaybackState.value = 'playing'
+    mockButtonClasses.value = PLAYING_CLASSES
+    const wrapper = mount(Volume, { props: { audioUrl: 'a.mp3' } })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.findAll('svg rect.vol-bar')).toHaveLength(3)
+    expect(wrapper.find('svg path').exists()).toBe(false) // 打勾圖示是 path
+  })
+
+  it('閒置時是播放三角形，沒有聲音條', async () => {
+    mockPlaybackState.value = 'idle'
+    mockButtonClasses.value = IDLE_CLASSES
+    const wrapper = mount(Volume, { props: { audioUrl: 'a.mp3' } })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('svg rect.vol-bar').exists()).toBe(false)
+    expect(wrapper.find('svg path').exists()).toBe(true)
+  })
+})
+
 describe('Volume 各狀態實際輸出的顏色（#132 AC 6）', () => {
   const BLUE_OR_GRAY = /(?:bg|text|border|ring)-(?:blue|gray)-\d/
 

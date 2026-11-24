@@ -358,6 +358,7 @@ class LineBotControllerTest extends TestCase
         $method->setAccessible(true);
 
         // 執行方法
+        \Illuminate\Support\Facades\Cache::put("line_user_test_user_id_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, 'test_user_id', $fish->id, $audioBlob, $duration, 'test_reply_token');
 
         // 重新載入 Fish 資料
@@ -366,10 +367,11 @@ class LineBotControllerTest extends TestCase
         // 驗證 fish 表更新
         $this->assertEquals($expectedFilename, $fish->audio_filename);
         
-        // 驗證 fish_audios 表創建了記錄（name 為檔名，locate 為部落，未設定 Cache 故為 unknown）
+        // 驗證 fish_audios 表創建了記錄（name 為檔名，locate 為使用者選的部落）
         $this->assertDatabaseHas('fish_audios', [
             'fish_id' => $fish->id,
             'name'    => $expectedFilename,
+            'locate'  => 'yayo',
             'duration' => $duration,
         ]);
     }
@@ -422,6 +424,7 @@ class LineBotControllerTest extends TestCase
         $method->setAccessible(true);
 
         // 執行方法（應該不會拋出例外，而是記錄錯誤並回覆使用者）
+        \Illuminate\Support\Facades\Cache::put("line_user_test_user_id_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, 'test_user_id', $nonExistentFishId, $audioBlob, $duration, 'test_reply_token');
 
         // 驗證 Cache 被清除（檢查方法內部行為）
@@ -488,6 +491,7 @@ class LineBotControllerTest extends TestCase
             $method->setAccessible(true);
 
             // 執行方法
+            \Illuminate\Support\Facades\Cache::put("line_user_test_user_id_audio_tribe", 'yayo', now()->addMinutes(5));
             $method->invoke($controller, 'test_user_id', $fish->id, $audioBlob, $duration, 'test_reply_token');
 
             // 重新載入 Fish 資料
@@ -501,10 +505,11 @@ class LineBotControllerTest extends TestCase
             );
             
             // 驗證 fish_audios 表創建了記錄並包含正確的 duration
-            // （name 為檔名，locate 為部落，未設定 Cache 故為 unknown）
+            // （name 為檔名，locate 為使用者選的部落）
             $this->assertDatabaseHas('fish_audios', [
                 'fish_id' => $fish->id,
                 'name'    => $expectedFilename,
+                'locate'  => 'yayo',
                 'duration' => $duration,
             ]);
         }
@@ -558,6 +563,7 @@ class LineBotControllerTest extends TestCase
         $method->setAccessible(true);
 
         // 執行方法（應該不會拋出例外，而是記錄錯誤並回覆使用者）
+        \Illuminate\Support\Facades\Cache::put("line_user_test_user_id_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, 'test_user_id', $fish->id, $audioBlob, $duration, 'test_reply_token');
 
         // 重新載入 Fish 資料

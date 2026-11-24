@@ -128,6 +128,7 @@ Route::middleware(['auth', 'browse'])->group(function () {
         Route::get('/fish/{id}/audio/create', [FishAudioController::class, 'create'])->name('fish.audio.create');
         Route::get('/fish/{id}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
         Route::put('/fish/{id}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
+        Route::put('/fish/{id}/audio/{audio}/name', [FishAudioController::class, 'assignName'])->name('fish.audio.assign-name');
         Route::put('/fish/{id}/audio/{audio}/set-base', [FishAudioController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
         Route::delete('/fish/{id}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
     });

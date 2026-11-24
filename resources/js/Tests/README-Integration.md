@@ -49,7 +49,7 @@
 
 #### 3. 與現有音頻功能的相容性測試
 
-- **Volume 組件應該與 FishAudioCard 組件共享播放狀態**
+- **Volume 組件應該與 測試用的簡化版播放卡共享播放狀態**
 
   - 測試不同組件類型間的狀態共享
   - 驗證統一的狀態管理
@@ -112,7 +112,7 @@
 
 ### Requirement 4.2
 
-- 視覺設計與 FishAudioCard 組件保持一致的設計語言
+- 視覺設計採用博物誌設計語言（design-spec.md）
 - 測試通過組件間狀態共享驗證
 
 ### Requirement 4.3
@@ -140,7 +140,7 @@ npx vitest run resources/js/Tests/Volume.spec.js resources/js/Tests/useAudioPlay
 
 1. ✅ AudioPlayerService 與 Volume 組件的正確整合
 2. ✅ 多個 Volume 組件的互斥播放行為
-3. ✅ 與現有音頻功能（FishAudioCard）的相容性
+3. ✅ 與現有音頻功能（測試用的簡化版播放卡；原 FishAudioCard 已由管理發音頁取代）的相容性
 4. ✅ 錯誤處理的正確傳播和獨立性
 5. ✅ 事件系統的正確運作
 6. ✅ 資源管理和清理機制
