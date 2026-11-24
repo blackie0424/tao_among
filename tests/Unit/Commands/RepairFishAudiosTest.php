@@ -114,7 +114,7 @@ describe('舊資料修正', function () {
 
         $edited = false;
         DB::beforeExecuting(function ($query) use (&$edited, $a) {
-            if (! $edited && str_starts_with($query, 'update "fish_audios"')) {
+            if (! $edited && preg_match('/^update [`"]fish_audios[`"] /', $query)) {
                 $edited = true; // 修正指令要寫入的那一刻，人員剛好指派了名稱
                 DB::table('fish_audios')->where('id', $a->id)->update(['spoken_name' => 'mivanivang']);
             }
@@ -227,7 +227,7 @@ describe('還原', function () {
 
         $edited = false;
         DB::beforeExecuting(function ($query) use (&$edited, $a) {
-            if (! $edited && str_starts_with($query, 'update "fish_audios"')) {
+            if (! $edited && preg_match('/^update [`"]fish_audios[`"] /', $query)) {
                 $edited = true; // 還原要寫入的那一刻，人員剛好改了這筆
                 DB::table('fish_audios')->where('id', $a->id)->update(['locate' => 'iratay']);
             }
