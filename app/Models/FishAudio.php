@@ -28,10 +28,10 @@ class FishAudio extends Model
     /** 暫存簽名網址的有效秒數 */
     public const UPLOAD_TTL_SECONDS = 300;
 
-    protected $fillable = ['fish_id', 'name', 'locate', 'spoken_name', 'recorded_by', 'duration'];
+    protected $fillable = ['fish_id', 'name', 'locate', 'spoken_name', 'recorded_by', 'upload_key', 'duration'];
 
     // 錄音者只在田調人員專用的管理頁明確回傳，一般序列化（API、Inertia props）不輸出
-    protected $hidden = ['recorded_by', 'revision'];
+    protected $hidden = ['recorded_by', 'revision', 'upload_key'];
 
     protected $appends = ['url'];
 

@@ -4,11 +4,12 @@ use App\Contracts\StorageServiceInterface;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use App\Models\User;
+use App\Services\AudioConfirmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-const PENDING_NAME = '11111111-2222-3333-4444-555555555555.m4a';
+const AUDIO_CONFIRM_PENDING_NAME = '11111111-2222-3333-4444-555555555555.m4a';
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -19,25 +20,25 @@ beforeEach(function () {
 
 function pendingExists($test, int $size = 40_000): void
 {
-    $test->storage->shouldReceive('fileSize')->with(FishAudio::pendingPath($test->user->id, PENDING_NAME))->andReturn($size);
+    $test->storage->shouldReceive('fileSize')->with(FishAudio::pendingPath($test->user->id, AUDIO_CONFIRM_PENDING_NAME))->andReturn($size);
 }
 
 function confirmBody(array $override = []): array
 {
-    return array_merge(['filename' => PENDING_NAME, 'spoken_name' => 'mivazlt', 'tribe' => 'yayo', 'duration_ms' => 4200], $override);
+    return array_merge(['filename' => AUDIO_CONFIRM_PENDING_NAME, 'spoken_name' => 'mivazlt', 'tribe' => 'yayo', 'duration_ms' => 4200], $override);
 }
 
 it('確認後複製到正式資料夾並新增一筆：檔名、部落、名稱、長度、錄音者都記下，主要發音照現況指向新檔', function () {
     $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang', 'audio_filename' => null]);
     pendingExists($this);
-    $this->storage->shouldReceive('copyObject')->once()->with(FishAudio::pendingPath($this->user->id, PENDING_NAME), 'audios/'.PENDING_NAME)->andReturn(true);
+    $this->storage->shouldReceive('copyObject')->once()->with(FishAudio::pendingPath($this->user->id, AUDIO_CONFIRM_PENDING_NAME), 'audios/'.AUDIO_CONFIRM_PENDING_NAME)->andReturn(true);
 
     $this->postJson("/prefix/api/fish/{$fish->id}/audio/confirm", confirmBody())->assertStatus(201);
 
     $audio = FishAudio::where('fish_id', $fish->id)->firstOrFail();
-    expect($audio->only(['name', 'locate', 'spoken_name', 'duration']))->toBe(['name' => PENDING_NAME, 'locate' => 'yayo', 'spoken_name' => 'mivazlt', 'duration' => 4200]);
+    expect($audio->only(['name', 'locate', 'spoken_name', 'duration']))->toBe(['name' => AUDIO_CONFIRM_PENDING_NAME, 'locate' => 'yayo', 'spoken_name' => 'mivazlt', 'duration' => 4200]);
     expect($audio->makeVisible('recorded_by')->recorded_by)->toBe($this->user->id);
-    expect($fish->fresh()->audio_filename)->toBe(PENDING_NAME);
+    expect($fish->fresh()->audio_filename)->toBe(AUDIO_CONFIRM_PENDING_NAME);
 });
 
 it('同名稱同部落再錄一段是新增一筆，舊錄音與舊檔都在', function () {
@@ -101,7 +102,7 @@ it('寫入資料庫失敗時回滾，並刪掉已複製到正式資料夾的檔'
     $fish = Fish::factory()->create(['name' => 'mivazlt', 'audio_filename' => 'main.m4a']);
     pendingExists($this);
     $this->storage->shouldReceive('copyObject')->andReturn(true);
-    $this->storage->shouldReceive('delete')->once()->with('audios/'.PENDING_NAME)->andReturn(true);
+    $this->storage->shouldReceive('delete')->once()->with('audios/'.AUDIO_CONFIRM_PENDING_NAME)->andReturn(true);
     FishAudio::creating(fn () => throw new RuntimeException('寫入失敗'));
 
     $this->postJson("/prefix/api/fish/{$fish->id}/audio/confirm", confirmBody())->assertStatus(500);
@@ -151,4 +152,54 @@ it('viewer 不能確認錄音', function () {
 
     $this->actingAs(User::factory()->lineViewer()->create())
         ->postJson("/prefix/api/fish/{$fish->id}/audio/confirm", confirmBody())->assertForbidden();
+});
+
+it('並發重送：兩個請求同時確認同一個暫存檔，只留一筆，搶輸的不會刪掉搶贏的正式檔', function () {
+    $fish = Fish::factory()->create(['name' => 'mivazlt']);
+    pendingExists($this);
+    $this->storage->shouldNotReceive('delete');
+
+    $raced = false;
+    $this->storage->shouldReceive('copyObject')->andReturnUsing(function () use ($fish, &$raced) {
+        // 第一個請求複製完、還沒寫資料庫時，第二個相同的確認先完成了
+        if (! $raced) {
+            $raced = true;
+            app(AudioConfirmService::class)->confirm($fish, $this->user->id, AUDIO_CONFIRM_PENDING_NAME, 'mivazlt', 'yayo', 4200);
+        }
+
+        return true;
+    });
+
+    $response = $this->postJson("/prefix/api/fish/{$fish->id}/audio/confirm", confirmBody());
+
+    $response->assertStatus(201);
+    expect(FishAudio::count())->toBe(1);
+    expect($response->json('id'))->toBe(FishAudio::first()->id);
+});
+
+it('同一個暫存檔不能確認到另一隻魚（不會兩筆紀錄共用同一個正式檔）', function () {
+    $fish = Fish::factory()->create(['name' => 'mivazlt']);
+    $other = Fish::factory()->create(['name' => 'Angsa']);
+    pendingExists($this);
+    $this->storage->shouldReceive('copyObject')->andReturn(true);
+    $this->postJson("/prefix/api/fish/{$fish->id}/audio/confirm", confirmBody())->assertStatus(201);
+    $this->storage->shouldNotReceive('delete');
+
+    $this->postJson("/prefix/api/fish/{$other->id}/audio/confirm", confirmBody(['spoken_name' => 'Angsa']))
+        ->assertStatus(422)->assertJsonValidationErrors(['recording']);
+
+    expect(FishAudio::count())->toBe(1);
+    expect(FishAudio::first()->fish_id)->toBe($fish->id);
+});
+
+it('已被刪除的紀錄用過的暫存檔不能再確認', function () {
+    $fish = Fish::factory()->create(['name' => 'mivazlt']);
+    pendingExists($this);
+    $this->storage->shouldReceive('copyObject')->andReturn(true);
+    $this->postJson("/prefix/api/fish/{$fish->id}/audio/confirm", confirmBody())->assertStatus(201);
+    FishAudio::first()->delete();
+
+    $this->postJson("/prefix/api/fish/{$fish->id}/audio/confirm", confirmBody())->assertStatus(422);
+
+    expect(FishAudio::count())->toBe(0);
 });

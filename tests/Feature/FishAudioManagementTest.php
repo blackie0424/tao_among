@@ -189,6 +189,34 @@ describe('Fish Audio Management', function () {
             expect($fish->fresh()->audio_filename)->toBe($newName);
         });
 
+        it('換音檔後續步驟失敗：整筆回滾、刪掉已複製的新檔，舊檔與資料原封不動', function () {
+            $user = User::factory()->create();
+            $newName = '11111111-2222-3333-4444-555555555555.m4a';
+            $fish = Fish::factory()->create(['audio_filename' => 'old.m4a']);
+            $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'old.m4a', 'locate' => 'yayo']);
+
+            $storage = $this->mock(StorageServiceInterface::class)->shouldIgnoreMissing();
+            $storage->shouldReceive('getAudioFolder')->andReturn('audios');
+            $storage->shouldReceive('fileSize')->andReturn(50_000);
+            $storage->shouldReceive('copyObject')->once()->andReturn(true);
+            $storage->shouldReceive('delete')->once()->with("audios/{$newName}")->andReturn(true); // 只補償新檔，不碰舊檔
+            $updates = 0;
+            FishAudio::updating(function () use (&$updates) {
+                if (++$updates === 2) { // 第 1 次是換檔，第 2 次是改部落
+                    throw new RuntimeException('改部落失敗');
+                }
+            });
+
+            $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
+                'tribe' => 'iratay',
+                'pending_filename' => $newName,
+                'duration_ms' => 4000,
+            ])->assertSessionHas('error');
+
+            expect($audio->fresh()->only(['name', 'locate']))->toBe(['name' => 'old.m4a', 'locate' => 'yayo']);
+            expect($fish->fresh()->audio_filename)->toBe('old.m4a');
+        });
+
         it('部落必填且須是可選的部落', function (mixed $tribe) {
             $user = User::factory()->create();
             $fish = Fish::factory()->create();

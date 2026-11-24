@@ -12,7 +12,6 @@ use App\Services\FishService;
 use App\Traits\HasFishImageUrl;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -132,12 +131,12 @@ class FishAudioController extends BaseController
                 'duration_ms' => ['required_with:pending_filename', 'nullable', 'integer', 'min:1', 'max:'.FishAudio::MAX_DURATION_MS],
             ]);
 
-            DB::transaction(function () use ($audio, $validated, $request) {
-                if (! empty($validated['pending_filename'])) {
-                    $audio = $this->confirmService->replace($audio, $request->user()->id, $validated['pending_filename'], $validated['duration_ms']);
-                }
+            if (! empty($validated['pending_filename'])) {
+                // 換音檔與改部落在同一個交易內完成（失敗時一起回滾並刪掉已複製的檔）
+                $this->confirmService->replace($audio, $request->user()->id, $validated['pending_filename'], $validated['duration_ms'], $validated['tribe']);
+            } else {
                 $this->recordings->updateTribe($audio, $validated['tribe']);
-            });
+            }
 
             $this->logOperation('Audio updated successfully', ['fish_id' => $fishId, 'audio_id' => $audioId]);
 
