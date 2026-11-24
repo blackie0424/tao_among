@@ -13,6 +13,8 @@ return new class extends Migration
             $table->string('spoken_name')->nullable()->after('locate');
             // 錄音者（users.id）；舊資料與 LINE 查無帳號時為空
             $table->unsignedBigInteger('recorded_by')->nullable()->after('spoken_name');
+            // 每次更新加 1，資料修正指令用它辨認備份後是否被編輯過
+            $table->unsignedInteger('revision')->default(0);
             $table->index(['fish_id', 'spoken_name']);
             // 未標部落以空值表示（原本 NOT NULL，舊資料修正要把非部落的值清成空）
             $table->string('locate')->nullable()->change();
@@ -23,7 +25,7 @@ return new class extends Migration
     {
         Schema::table('fish_audios', function (Blueprint $table) {
             $table->dropIndex(['fish_id', 'spoken_name']);
-            $table->dropColumn(['spoken_name', 'recorded_by']);
+            $table->dropColumn(['spoken_name', 'recorded_by', 'revision']);
             $table->string('locate')->nullable(false)->change();
         });
     }

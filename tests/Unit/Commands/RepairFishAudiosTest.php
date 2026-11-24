@@ -116,7 +116,7 @@ describe('舊資料修正', function () {
         DB::beforeExecuting(function ($query) use (&$edited, $a) {
             if (! $edited && preg_match('/^update [`"]fish_audios[`"] /', $query)) {
                 $edited = true; // 修正指令要寫入的那一刻，人員剛好指派了名稱
-                DB::table('fish_audios')->where('id', $a->id)->update(['spoken_name' => 'mivanivang']);
+                FishAudio::find($a->id)->update(['spoken_name' => 'mivanivang']);
             }
         });
 
@@ -205,18 +205,78 @@ describe('還原', function () {
         $this->artisan('fish-audios:repair', ['--restore' => 'fish_audios_backup_20200101000000'])->assertFailed();
     });
 
-    it('備份後同一秒內的編輯也不會被還原覆蓋（不靠時間戳）', function () {
+    it('修正後同一秒內的編輯不會被還原覆蓋（不靠時間戳）：改部落與指派', function () {
         $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
         $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
         $this->artisan('fish-audios:repair')->assertSuccessful();
         $backup = backupTables()[0];
 
-        // 不 travel、不改時間：人員在修正後立刻（同一秒）指派並改部落
         $a->update(['locate' => 'yayo', 'spoken_name' => 'mivanivang']);
 
         $this->artisan('fish-audios:repair', ['--restore' => $backup])->assertSuccessful();
 
         expect($a->fresh()->only(['locate', 'spoken_name']))->toBe(['locate' => 'yayo', 'spoken_name' => 'mivanivang']);
+    });
+
+    it('修正後只改了三個比對欄位以外的欄位（duration、recorded_by）也不還原該筆', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
+        $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
+        $this->artisan('fish-audios:repair')->assertSuccessful();
+        $backup = backupTables()[0];
+
+        $a->update(['duration' => 4200, 'recorded_by' => 9]);
+
+        $this->artisan('fish-audios:repair', ['--restore' => $backup])->assertSuccessful();
+
+        expect($a->fresh()->locate)->toBeNull();
+        expect($a->fresh()->duration)->toBe(4200);
+    });
+
+    it('修正後被軟刪除的紀錄不還原', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
+        $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
+        $this->artisan('fish-audios:repair')->assertSuccessful();
+        $backup = backupTables()[0];
+
+        $a->delete();
+
+        $this->artisan('fish-audios:repair', ['--restore' => $backup])->assertSuccessful();
+
+        expect(FishAudio::withTrashed()->find($a->id)->locate)->toBeNull();
+    });
+
+    it('修正後改過又改回修正後的值，仍視為被改過而不還原', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
+        $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
+        $this->artisan('fish-audios:repair')->assertSuccessful();
+        $backup = backupTables()[0];
+
+        $a->update(['locate' => 'yayo']);
+        $a->update(['locate' => null]);
+
+        $this->artisan('fish-audios:repair', ['--restore' => $backup])->assertSuccessful();
+
+        expect($a->fresh()->locate)->toBeNull();
+    });
+
+    it('備份之後、讀取舊資料之前被人改過的紀錄不被修正，也不會被還原成備份值', function () {
+        $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
+        $a = legacyAudio($fish, ['name' => 'a.m4a', 'locate' => 'supabase']);
+
+        $edited = false;
+        DB::beforeExecuting(function ($query) use (&$edited, $a) {
+            // 備份建好後，第一次從備份表讀資料之前，人員把部落改成 yayo
+            if (! $edited && preg_match('/^select .* from [`"]fish_audios_backup_/', $query)) {
+                $edited = true;
+                FishAudio::find($a->id)->update(['locate' => 'yayo']);
+            }
+        });
+
+        $this->artisan('fish-audios:repair')->expectsOutputToContain("#{$a->id}")->assertSuccessful();
+        $backup = backupTables()[0];
+        $this->artisan('fish-audios:repair', ['--restore' => $backup])->assertSuccessful();
+
+        expect($a->fresh()->locate)->toBe('yayo');
     });
 
     it('預覽之後、確認之前被改過的紀錄不會被還原覆蓋', function () {
@@ -229,7 +289,7 @@ describe('還原', function () {
         DB::beforeExecuting(function ($query) use (&$edited, $a) {
             if (! $edited && preg_match('/^update [`"]fish_audios[`"] /', $query)) {
                 $edited = true; // 還原要寫入的那一刻，人員剛好改了這筆
-                DB::table('fish_audios')->where('id', $a->id)->update(['locate' => 'iratay']);
+                FishAudio::find($a->id)->update(['locate' => 'iratay']);
             }
         });
 

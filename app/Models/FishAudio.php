@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\StorageServiceInterface;
+use App\Models\Builders\FishAudioBuilder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,7 @@ class FishAudio extends Model
     protected $fillable = ['fish_id', 'name', 'locate', 'spoken_name', 'recorded_by', 'duration'];
 
     // 錄音者只在田調人員專用的管理頁明確回傳，一般序列化（API、Inertia props）不輸出
-    protected $hidden = ['recorded_by'];
+    protected $hidden = ['recorded_by', 'revision'];
 
     protected $appends = ['url'];
 
@@ -33,6 +34,11 @@ class FishAudio extends Model
                 $storage->delete($audioFolder.'/'.$audio->name);
             }
         });
+    }
+
+    public function newEloquentBuilder($query): FishAudioBuilder
+    {
+        return new FishAudioBuilder($query);
     }
 
     // 多對一關聯：一筆筆記屬於一隻魚

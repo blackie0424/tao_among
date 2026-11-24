@@ -3,10 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\Fish;
-use App\Models\FishAudio;
 use App\Services\FishNameSplitter;
 use Illuminate\Console\Command;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
@@ -15,9 +15,11 @@ use Throwable;
  * 發音舊資料修正（#159）：locate 只留真正的部落、被改壞的 name 修回檔名、只有一個名稱的魚補名稱。
  * 執行前整張 fish_audios 備份成 fish_audios_backup_<時間>；--restore 從指定備份還原。
  *
- * 並發與還原：每筆寫入都以「目前的欄位值仍等於讀取時／修正後的值」為條件（compare-and-swap），
- * 條件不符（讀取後有人改過）就跳過並列報，不依賴時間戳。備份表另存修正後的值（after_*），
- * 還原只回復「目前值仍等於修正後的值」的紀錄。
+ * 並發與還原靠 fish_audios.revision（每次 Eloquent 更新加 1，見 FishAudioBuilder）：
+ * - 修正只處理備份表（同一份快照）內的舊資料，且只在該筆目前的 revision 仍等於快照的 revision 時才寫入，
+ *   所以備份之後、寫入之前被人改過（任何欄位、軟刪除、改了又改回）的紀錄一律跳過並列報。
+ * - 修正寫入後 revision 加 1，並把加 1 後的值記為備份表的 after_revision；
+ *   還原只回復目前 revision 仍等於 after_revision 的紀錄（修正後沒有人再動過）。
  */
 class RepairFishAudios extends Command
 {
@@ -28,9 +30,6 @@ class RepairFishAudios extends Command
     protected $description = '發音舊資料修正（先備份）；--restore 從備份還原。';
 
     private const BACKUP_PREFIX = 'fish_audios_backup_';
-
-    /** 受修正與還原影響的欄位 */
-    private const FIELDS = ['name', 'locate', 'spoken_name'];
 
     /** 「檔名格式」：不含空白，副檔名為下列之一 */
     private const FILENAME_PATTERN = '/^\S+\.(m4a|aac|mp3|webm|wav)$/i';
@@ -50,9 +49,7 @@ class RepairFishAudios extends Command
                 DB::statement("CREATE TABLE {$backup} AS SELECT * FROM fish_audios");
                 Schema::table($backup, function ($table) {
                     $table->boolean('repaired')->default(false);
-                    $table->string('after_name')->nullable();
-                    $table->string('after_locate')->nullable();
-                    $table->string('after_spoken_name')->nullable();
+                    $table->unsignedInteger('after_revision')->nullable();
                 });
             } catch (Throwable $e) {
                 $this->error('備份失敗，未修改任何資料：'.$e->getMessage());
@@ -66,13 +63,14 @@ class RepairFishAudios extends Command
         $unresolved = [];
         $conflicts = [];
 
-        // 舊資料＝名稱欄與錄音者欄皆為空；已有名稱或錄音者的紀錄一律不動
-        $legacy = FishAudio::withTrashed()->whereNull('spoken_name')->whereNull('recorded_by')->orderBy('id')->get();
+        // 舊資料＝名稱欄與錄音者欄皆為空；已有名稱或錄音者的紀錄一律不動。
+        // 正式執行時從備份表（同一份快照）讀，預覽則讀現況。
+        $legacy = DB::table($backup ?? 'fish_audios')->whereNull('spoken_name')->whereNull('recorded_by')->orderBy('id')->get();
 
-        foreach ($legacy as $audio) {
-            $changes = $this->plannedChanges($audio, $splitter, $unresolved, $stats);
-            if ($changes && ! $dryRun && ! $this->applyIfUnchanged($audio, $changes, $backup)) {
-                $conflicts[] = $audio->id;
+        foreach ($legacy as $row) {
+            $changes = $this->plannedChanges($row, $splitter, $unresolved, $stats);
+            if ($changes && ! $dryRun && ! $this->applyIfUnchangedSinceBackup($row, $changes, $backup)) {
+                $conflicts[] = $row->id;
             }
         }
 
@@ -82,26 +80,26 @@ class RepairFishAudios extends Command
             $stats['locate_cleared'], $stats['name_repaired'], $stats['spoken_name_filled'], count($unresolved)
         ));
         $this->reportIds('無法確定、保留原值請人工處理的紀錄', $unresolved);
-        $this->reportIds('讀取後被人改過而跳過（可重跑）的紀錄', $conflicts);
+        $this->reportIds('備份後被人改過而跳過（可重跑）的紀錄', $conflicts);
 
         return self::SUCCESS;
     }
 
     /** @return array<string, mixed> 要寫入的欄位（空陣列＝不需要改） */
-    private function plannedChanges(FishAudio $audio, FishNameSplitter $splitter, array &$unresolved, array &$stats): array
+    private function plannedChanges(object $row, FishNameSplitter $splitter, array &$unresolved, array &$stats): array
     {
         $changes = [];
-        $name = $audio->name;
-        $locate = $audio->locate;
+        $name = $row->name;
+        $locate = $row->locate;
 
         if (! $this->looksLikeFilename($name)) {
             if ($this->looksLikeFilename($locate)) {
-                $name = $changes['name'] = $locate;
+                $changes['name'] = $locate;
                 $locate = null;
                 $changes['locate'] = null;
                 $stats['name_repaired']++;
             } else {
-                $unresolved[] = $audio->id;
+                $unresolved[] = $row->id;
             }
         }
 
@@ -110,7 +108,7 @@ class RepairFishAudios extends Command
             $stats['locate_cleared']++;
         }
 
-        $fishNames = $splitter->split(Fish::withTrashed()->find($audio->fish_id)?->name);
+        $fishNames = $splitter->split(Fish::withTrashed()->find($row->fish_id)?->name);
         if (count($fishNames) === 1) {
             $changes['spoken_name'] = $fishNames[0];
             $stats['spoken_name_filled']++;
@@ -125,35 +123,29 @@ class RepairFishAudios extends Command
     }
 
     /**
-     * 只在這筆的目前值仍等於讀取時的值才寫入（讀取後被人改過就不動），並把修正後的值記進備份表。
+     * 只在這筆的 revision 仍等於備份快照的 revision 時寫入，並記下寫入後的 revision。
      * 用 query builder 寫入，不更新 updated_at（資料修正不算使用者編輯）。
      */
-    private function applyIfUnchanged(FishAudio $audio, array $changes, ?string $backup): bool
+    private function applyIfUnchangedSinceBackup(object $row, array $changes, string $backup): bool
     {
-        return DB::transaction(function () use ($audio, $changes, $backup) {
-            $query = DB::table('fish_audios')->where('id', $audio->id);
-            foreach ([...self::FIELDS, 'recorded_by'] as $field) {
-                $this->whereSame($query, $field, $audio->getRawOriginal($field));
-            }
-            if ($query->update($changes) === 0) {
+        return DB::transaction(function () use ($row, $changes, $backup) {
+            $updated = DB::table('fish_audios')
+                ->where('id', $row->id)
+                ->where('revision', $row->revision)
+                ->update($changes + ['revision' => $this->incrementedRevision()]);
+            if ($updated === 0) {
                 return false;
             }
 
-            $after = array_merge($audio->only(self::FIELDS), $changes);
-            DB::table($backup)->where('id', $audio->id)->update([
-                'repaired' => true,
-                'after_name' => $after['name'],
-                'after_locate' => $after['locate'],
-                'after_spoken_name' => $after['spoken_name'],
-            ]);
+            DB::table($backup)->where('id', $row->id)->update(['repaired' => true, 'after_revision' => $row->revision + 1]);
 
             return true;
         });
     }
 
-    private function whereSame(Builder $query, string $column, mixed $value): void
+    private function incrementedRevision(): Expression
     {
-        $value === null ? $query->whereNull($column) : $query->where($column, $value);
+        return DB::raw(DB::getQueryGrammar()->wrap('revision').' + 1');
     }
 
     private function reportIds(string $label, array $ids): void
@@ -165,13 +157,13 @@ class RepairFishAudios extends Command
 
     private function restore(string $backup): int
     {
-        if (! preg_match('/^'.self::BACKUP_PREFIX.'\d{14}$/', $backup) || ! Schema::hasTable($backup) || ! Schema::hasColumn($backup, 'repaired')) {
+        if (! preg_match('/^'.self::BACKUP_PREFIX.'\d{14}$/', $backup) || ! Schema::hasTable($backup) || ! Schema::hasColumn($backup, 'after_revision')) {
             $this->error("找不到本指令建立的備份表 {$backup}（格式應為 ".self::BACKUP_PREFIX.'YYYYMMDDHHMMSS）');
 
             return self::FAILURE;
         }
 
-        // 只考慮當時真的被修正過的紀錄；目前值仍等於修正後的值才還原
+        // 只考慮當時真的被修正過的紀錄；修正後沒有人再動過（revision 未變）才還原
         $repaired = DB::table($backup)->where('repaired', true)->orderBy('id')->get();
         $restorable = $repaired->filter(fn ($old) => $this->restoreQuery($old)->exists())->values();
         $skipped = $repaired->pluck('id')->diff($restorable->pluck('id'))->values()->all();
@@ -189,7 +181,12 @@ class RepairFishAudios extends Command
         DB::transaction(function () use ($restorable, &$restored, &$changedMeanwhile) {
             foreach ($restorable as $old) {
                 // 確認之後才寫入的這一刻再比對一次，預覽後被改過的不覆蓋
-                $count = $this->restoreQuery($old)->update(['name' => $old->name, 'locate' => $old->locate, 'spoken_name' => $old->spoken_name]);
+                $count = $this->restoreQuery($old)->update([
+                    'name' => $old->name,
+                    'locate' => $old->locate,
+                    'spoken_name' => $old->spoken_name,
+                    'revision' => $this->incrementedRevision(),
+                ]);
                 $count === 0 ? $changedMeanwhile[] = $old->id : $restored++;
             }
         });
@@ -201,11 +198,6 @@ class RepairFishAudios extends Command
 
     private function restoreQuery(object $old): Builder
     {
-        $query = DB::table('fish_audios')->where('id', $old->id);
-        foreach (self::FIELDS as $field) {
-            $this->whereSame($query, $field, $old->{'after_'.$field});
-        }
-
-        return $query;
+        return DB::table('fish_audios')->where('id', $old->id)->where('revision', $old->after_revision);
     }
 }
