@@ -76,14 +76,21 @@ class FishAudioRecordingService
         return $audio->fresh();
     }
 
-    /** 指派（或改派）到該魚目前存在的名稱。 */
+    /**
+     * 指派（或改派）到該魚目前存在的名稱。
+     * 會改變拼字或主要發音的路徑（這裡與 setPrimary）都先鎖住魚、鎖後重新讀取錄音與魚再驗證，
+     * 才不會用過期的拼字操作（並發的改派、刪除、改名）。
+     */
     public function assignName(FishAudio $audio, string $spokenName): FishAudio
     {
-        $this->assertNameBelongsToFish($audio->fish, $spokenName);
-        // 改派到別的拼字時，原本的主要發音標記一併清除（否則新拼字可能出現兩個主要發音）
-        $audio->update(['spoken_name' => $spokenName, 'is_primary' => $audio->spoken_name === $spokenName ? $audio->is_primary : false]);
+        return DB::transaction(function () use ($audio, $spokenName) {
+            [$fish, $audio] = $this->lockedFishAndAudio($audio);
+            $this->assertNameBelongsToFish($fish, $spokenName);
+            // 改派到別的拼字時，原本的主要發音標記一併清除（否則新拼字可能出現兩個主要發音）
+            $audio->update(['spoken_name' => $spokenName, 'is_primary' => $audio->spoken_name === $spokenName ? $audio->is_primary : false]);
 
-        return $audio->fresh();
+            return $audio->fresh();
+        });
     }
 
     /**
@@ -92,19 +99,35 @@ class FishAudioRecordingService
      */
     public function setPrimary(FishAudio $audio): FishAudio
     {
-        if ($audio->spoken_name === null || ! in_array($audio->spoken_name, $this->splitter->split($audio->fish->name), true)) {
-            throw new InvalidArgumentException('這段錄音還沒有對應的名稱，請先指派名稱');
-        }
+        return DB::transaction(function () use ($audio) {
+            [$fish, $audio] = $this->lockedFishAndAudio($audio);
+            if ($audio->spoken_name === null || ! in_array($audio->spoken_name, $this->splitter->split($fish->name), true)) {
+                throw new InvalidArgumentException('這段錄音還沒有對應的名稱，請先指派名稱');
+            }
 
-        DB::transaction(function () use ($audio) {
-            $fish = Fish::lockForUpdate()->findOrFail($audio->fish_id);
-            FishAudio::where('fish_id', $fish->id)->where('spoken_name', $audio->spoken_name)->where('is_primary', true)
-                ->where('id', '!=', $audio->id)->update(['is_primary' => false]);
+            // 同拼字要「完全相同的字串」才算：資料庫的字串比對可能不分大小寫（MySQL），所以在這裡比對，不用 where
+            $sameSpellingPrimaryIds = FishAudio::where('fish_id', $fish->id)->where('is_primary', true)->where('id', '!=', $audio->id)
+                ->get(['id', 'spoken_name'])
+                ->filter(fn (FishAudio $other) => $other->spoken_name === $audio->spoken_name)
+                ->pluck('id');
+            FishAudio::whereIn('id', $sameSpellingPrimaryIds)->update(['is_primary' => false]);
             $audio->update(['is_primary' => true]);
             $fish->update(['audio_filename' => $audio->name]);
-        });
 
-        return $audio->fresh();
+            return $audio->fresh();
+        });
+    }
+
+    /** 鎖住魚，鎖後重新讀取魚與這段錄音（已被刪除就拒絕），回傳最新的資料。 */
+    private function lockedFishAndAudio(FishAudio $audio): array
+    {
+        $fish = Fish::lockForUpdate()->findOrFail($audio->fish_id);
+        $fresh = FishAudio::lockForUpdate()->find($audio->id);
+        if (! $fresh) {
+            throw new InvalidArgumentException('找不到這段錄音（可能已被刪除）');
+        }
+
+        return [$fish, $fresh];
     }
 
     /**

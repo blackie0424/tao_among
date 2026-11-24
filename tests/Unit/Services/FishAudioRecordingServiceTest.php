@@ -294,6 +294,57 @@ describe('setPrimary()：每個拼字各自的主要發音', function () {
         expect($audio->fresh()->only(['spoken_name', 'is_primary']))->toBe(['spoken_name' => 'Ivay', 'is_primary' => false]);
     });
 
+    it('只差大小寫的兩個拼字各自指定：指定一個不會取消另一個（資料庫字串比對可能不分大小寫，要完全相同才算同拼字）', function () {
+        $fish = Fish::factory()->create(['name' => 'Angsa、angsa']);
+        $upper = [FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'u1.m4a', 'spoken_name' => 'Angsa']), FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'u2.m4a', 'spoken_name' => 'Angsa'])];
+        $lower = [FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'l1.m4a', 'spoken_name' => 'angsa']), FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'l2.m4a', 'spoken_name' => 'angsa'])];
+
+        $this->service->setPrimary($upper[1]); // 各拼字分別指定「不是最早」的一段
+        $this->service->setPrimary($lower[1]);
+
+        expect(array_map(fn ($a) => $a->fresh()->is_primary, [...$upper, ...$lower]))->toBe([false, true, false, true]);
+    });
+
+    it('並發：指定的請求拿著過期的錄音（已被改派到別的拼字）時，以最新的拼字為準，不會讓新拼字出現兩個主要發音', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey']);
+        $existing = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivay', 'is_primary' => true]);
+        $stale = FishAudio::find($audio->id);
+        FishAudio::find($audio->id)->update(['spoken_name' => 'Ivay']); // 另一個請求先把它改派到 Ivay
+
+        $this->service->setPrimary($stale);
+
+        $ivay = FishAudio::where('fish_id', $fish->id)->where('spoken_name', 'Ivay')->get();
+        expect($ivay->where('is_primary', true)->pluck('id')->all())->toBe([$audio->id]);
+        expect($existing->fresh()->is_primary)->toBeFalse();
+    });
+
+    it('並發：改派的請求拿著過期的錄音（其實已是主要發音）時，改派後主要發音標記仍會清除', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey']);
+        $stale = FishAudio::find($audio->id); // 這時還不是主要發音
+        $this->service->setPrimary(FishAudio::find($audio->id)); // 另一個請求先把它指定為主要發音
+
+        $this->service->assignName($stale, 'Ivay');
+
+        expect($audio->fresh()->only(['spoken_name', 'is_primary']))->toBe(['spoken_name' => 'Ivay', 'is_primary' => false]);
+    });
+
+    it('並發：錄音已被刪除或拼字已因魚改名消失，指定被拒絕且魚的目前發音檔不變', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay', 'audio_filename' => 'keep.m4a']);
+        $deleted = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey']);
+        $renamed = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivay']);
+        $staleDeleted = FishAudio::find($deleted->id);
+        $staleRenamed = FishAudio::find($renamed->id);
+        FishAudio::find($deleted->id)->delete();
+        $fish->update(['name' => 'Ivey']); // Ivay 已不在魚名裡
+
+        expect(fn () => $this->service->setPrimary($staleDeleted))->toThrow(InvalidArgumentException::class);
+        expect(fn () => $this->service->setPrimary($staleRenamed))->toThrow(InvalidArgumentException::class);
+        expect($fish->fresh()->audio_filename)->toBe('keep.m4a');
+        expect($renamed->fresh()->is_primary)->toBeFalse();
+    });
+
     it('新增、刪除錄音不會留下兩個主要發音：刪掉主要發音那段後該拼字回到最早一段（沒有標記）', function () {
         $fish = Fish::factory()->create(['name' => 'Ivey']);
         $first = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey']);
