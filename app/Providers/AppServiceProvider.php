@@ -2,20 +2,20 @@
 
 namespace App\Providers;
 
-use App\Contracts\FishStatisticsServiceInterface;
-use App\Contracts\FishServiceInterface;
+use App\Contracts\CaptureSessionServiceInterface;
 use App\Contracts\FishSearchServiceInterface;
+use App\Contracts\FishServiceInterface;
+use App\Contracts\FishStatisticsServiceInterface;
 use App\Contracts\LineMessagingClientInterface;
 use App\Contracts\LineUserServiceInterface;
-use App\Contracts\CaptureSessionServiceInterface;
 use App\Contracts\RichMenuServiceInterface;
 use App\Contracts\StorageServiceInterface;
-use App\Services\FishService;
+use App\Services\CaptureSessionService;
 use App\Services\FishSearchService;
+use App\Services\FishService;
 use App\Services\FishStatisticsService;
 use App\Services\Line\LineMessagingClient;
 use App\Services\LineUserService;
-use App\Services\CaptureSessionService;
 use App\Services\RichMenuService;
 use App\Services\S3StorageService;
 use Illuminate\Cache\RateLimiting\Limit;
