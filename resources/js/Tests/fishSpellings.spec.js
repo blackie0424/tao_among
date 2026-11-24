@@ -21,6 +21,9 @@ describe('splitFishName', () => {
     expect(splitFishName('\u00A0Ivey\u00A0、\uFEFFIvay\uFEFF')).toEqual(['Ivey', 'Ivay'])
     expect(splitFishName('\u2003Ivey\u2009、Ivay\n')).toEqual(['Ivey', 'Ivay'])
     expect(splitFishName('Iv\u3000ey')).toEqual(['Iv\u3000ey'])
+    // trim() 不會去掉、PHP 的 \s 會去掉的字元：兩邊都必須保留
+    expect(splitFishName('\u0085Ivey\u0085、Ivay')).toEqual(['\u0085Ivey\u0085', 'Ivay'])
+    expect(splitFishName('\u180EIvey、Ivay')).toEqual(['\u180EIvey', 'Ivay'])
     expect(splitFishName('\u3000、\u3000')).toEqual([])
   })
 })

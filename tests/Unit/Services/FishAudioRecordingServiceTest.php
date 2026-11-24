@@ -37,6 +37,9 @@ describe('FishNameSplitter', function () {
         expect($splitter->split("\u{00A0}Ivey\u{00A0}、\u{FEFF}Ivay\u{FEFF}"))->toBe(['Ivey', 'Ivay']);
         expect($splitter->split("\u{2003}Ivey\u{2009}、Ivay\n"))->toBe(['Ivey', 'Ivay']);
         expect($splitter->split("Iv\u{3000}ey"))->toBe(["Iv\u{3000}ey"]); // 中間的空白不動
+        // JavaScript trim() 不會去掉、PHP 的 \s 會去掉的字元：兩邊都必須保留
+        expect($splitter->split("\u{0085}Ivey\u{0085}、Ivay"))->toBe(["\u{0085}Ivey\u{0085}", 'Ivay']);
+        expect($splitter->split("\u{180E}Ivey、Ivay"))->toBe(["\u{180E}Ivey", 'Ivay']);
         expect($splitter->split("\u{3000}、\u{3000}"))->toBe([]);
     });
 

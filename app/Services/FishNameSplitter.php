@@ -12,8 +12,8 @@ class FishNameSplitter
 {
     public const SEPARATOR = '、';
 
-    /** JavaScript trim() 會去掉的字元：ASCII 空白、不換行空白、各種寬度空白、行／段分隔符、全形空白、BOM */
-    private const EDGE_WHITESPACE = '[\s\x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}]+';
+    /** JavaScript trim() 會去掉的字元，逐一列出（不用 \s：PHP 的 \s 會多去掉 U+0085，兩邊就不一致）：Tab、換行、垂直 Tab、換頁、Enter、空白、不換行空白、各種寬度空白、行／段分隔符、全形空白、BOM */
+    private const EDGE_WHITESPACE = '[\x{0009}-\x{000D}\x{0020}\x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}]+';
 
     /** @return list<string> */
     public function split(?string $fishName): array
