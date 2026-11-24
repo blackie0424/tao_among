@@ -80,7 +80,29 @@ class FishAudioRecordingService
     public function assignName(FishAudio $audio, string $spokenName): FishAudio
     {
         $this->assertNameBelongsToFish($audio->fish, $spokenName);
-        $audio->update(['spoken_name' => $spokenName]);
+        // 改派到別的拼字時，原本的主要發音標記一併清除（否則新拼字可能出現兩個主要發音）
+        $audio->update(['spoken_name' => $spokenName, 'is_primary' => $audio->spoken_name === $spokenName ? $audio->is_primary : false]);
+
+        return $audio->fresh();
+    }
+
+    /**
+     * 指定這段錄音為它所屬拼字的主要發音（同拼字其他段取消）；沒有拼字（未對應名稱）的錄音要先指派名稱。
+     * fish.audio_filename 一併指向它：LINE 播放與舊資料回退仍用這個欄位。
+     */
+    public function setPrimary(FishAudio $audio): FishAudio
+    {
+        if ($audio->spoken_name === null || ! in_array($audio->spoken_name, $this->splitter->split($audio->fish->name), true)) {
+            throw new InvalidArgumentException('這段錄音還沒有對應的名稱，請先指派名稱');
+        }
+
+        DB::transaction(function () use ($audio) {
+            $fish = Fish::lockForUpdate()->findOrFail($audio->fish_id);
+            FishAudio::where('fish_id', $fish->id)->where('spoken_name', $audio->spoken_name)->where('is_primary', true)
+                ->where('id', '!=', $audio->id)->update(['is_primary' => false]);
+            $audio->update(['is_primary' => true]);
+            $fish->update(['audio_filename' => $audio->name]);
+        });
 
         return $audio->fresh();
     }

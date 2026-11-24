@@ -641,7 +641,40 @@ describe('錄音者可見度', function () {
     });
 });
 
-describe('設為魚頁使用', function () {
+describe('設為魚頁使用（每個拼字各自的主要發音）', function () {
+    it('沒有拼字的錄音不能設為魚頁使用，回報錯誤且資料不變', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay', 'audio_filename' => 'keep.m4a']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => null]);
+
+        $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}/set-base")->assertSessionHasErrors(['audio']);
+
+        expect($audio->fresh()->is_primary)->toBeFalse();
+        expect($fish->fresh()->audio_filename)->toBe('keep.m4a');
+    });
+
+    it('指定一段只影響它所屬的拼字', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay']);
+        $e1 = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey', 'is_primary' => true]);
+        $e2 = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey']);
+        $a1 = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivay', 'is_primary' => true]);
+
+        $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$e2->id}/set-base")->assertRedirect("/fish/{$fish->id}/audio-list");
+
+        expect([$e1->fresh()->is_primary, $e2->fresh()->is_primary, $a1->fresh()->is_primary])->toBe([false, true, true]);
+    });
+
+    it('管理發音頁與魚頁資料回傳 is_primary', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create(['name' => 'Ivey']);
+        FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey', 'is_primary' => true]);
+
+        $this->actingAs($user)->get("/fish/{$fish->id}/audio-list")->assertInertia(
+            fn ($page) => $page->where('audioGroups.0.audios.0.is_primary', true)
+        );
+    });
+
     it('魚頁使用的主要發音指向被選的那一段，存檔後回管理發音頁', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create(['name' => 'mivazlt', 'audio_filename' => 'a.m4a']);

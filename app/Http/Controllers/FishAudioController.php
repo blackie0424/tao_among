@@ -202,29 +202,19 @@ class FishAudioController extends BaseController
     public function updateAudioFilename(Request $request, $fishId, $audioId)
     {
         try {
-            return $this->executeWithTransaction(function () use ($fishId, $audioId) {
-                // 取出 fish 與指定 audio
-                $fish = Fish::with('audios')->findOrFail($fishId);
-                $audio = $fish->audios()->where('id', $audioId)->firstOrFail();
+            $fish = Fish::findOrFail($fishId);
+            $audio = $fish->audios()->where('id', $audioId)->firstOrFail();
 
-                // 更新主檔案欄位
-                $fish->update([
-                    'audio_filename' => $audio->name,
-                ]);
+            try {
+                // 成為所屬拼字的主要發音（同拼字其他段取消），fish.audio_filename 一併指向它
+                $this->recordings->setPrimary($audio);
+            } catch (InvalidArgumentException $e) {
+                throw ValidationException::withMessages(['audio' => $e->getMessage()]);
+            }
 
-                // 使用 Trait 處理媒體 URL
-                $fish = $this->assignFishImage($fish);
+            $this->logOperation('Primary audio updated', ['fish_id' => $fishId, 'audio_id' => $audioId, 'audio_name' => $audio->name]);
 
-                $this->logOperation('Main audio filename updated', [
-                    'fish_id' => $fishId,
-                    'audio_id' => $audioId,
-                    'audio_name' => $audio->name,
-                ]);
-
-                // 重導回 MediaManager
-                return redirect("/fish/{$fishId}/audio-list")
-                    ->with('success', '魚類發音更新成功');
-            }, 'audio filename update');
+            return redirect("/fish/{$fishId}/audio-list")->with('success', '魚類發音更新成功');
         } catch (Exception $e) {
             return $this->handleControllerError($e, '更新魚類發音失敗');
         }

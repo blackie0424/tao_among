@@ -9,16 +9,20 @@ export function splitFishName(name) {
   return [...new Set(parts)]
 }
 
+/** 一個拼字底下的錄音，魚頁播哪一段：被指定為主要發音（is_primary）的，沒有就播最早（編號最小）的一段。 */
+export function chooseRecording(audios) {
+  const sorted = [...(audios ?? [])].sort((a, b) => a.id - b.id)
+  return sorted.find((audio) => audio.is_primary) ?? sorted[0] ?? null
+}
+
 /**
- * 每個拼字在魚頁上播哪一段：有被「設為魚頁使用」指定的就播它，否則播該拼字最早（編號最小）的一段。
- * 沒有錄音的拼字不回傳。
+ * 每個拼字在魚頁上播哪一段（見 chooseRecording）。沒有錄音的拼字不回傳。
  * @returns {{ spelling: string, audio: object }[]}
  */
 export function pickSpellingRecordings(fish) {
-  const audios = [...(fish?.audios ?? [])].sort((a, b) => a.id - b.id)
+  const audios = fish?.audios ?? []
   return splitFishName(fish?.name).flatMap((spelling) => {
-    const own = audios.filter((audio) => audio.spoken_name === spelling && audio.url)
-    const chosen = own.find((audio) => audio.name === fish.audio_filename) ?? own[0]
+    const chosen = chooseRecording(audios.filter((audio) => audio.spoken_name === spelling && audio.url))
     return chosen ? [{ spelling, audio: chosen }] : []
   })
 }

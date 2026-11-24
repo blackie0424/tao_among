@@ -36,9 +36,9 @@
           :audio="audio"
           :fishId="fish.id"
           :tribes="tribes"
-          :isCurrent="isCurrent(audio)"
+          :isCurrent="isCurrent(group, audio)"
         >
-          <template v-if="canSetCurrent(audio)" #extra>
+          <template v-if="canSetCurrent(group, audio)" #extra>
             <button
               type="button"
               class="min-h-touch-secondary text-elder-body text-brand underline"
@@ -58,18 +58,9 @@
           :audio="audio"
           :fishId="fish.id"
           :tribes="tribes"
-          :isCurrent="isCurrent(audio)"
         >
           <template #extra>
             <div class="flex items-center gap-2">
-              <button
-                v-if="canSetCurrent(audio)"
-                type="button"
-                class="min-h-touch-secondary text-elder-body text-brand underline"
-                @click="setCurrent(audio)"
-              >
-                設為魚頁使用
-              </button>
               <select
                 v-model="assignTo[audio.id]"
                 class="min-h-touch-secondary border border-rule-strong bg-paper-raised px-2 text-elder-body"
@@ -99,6 +90,7 @@ import { reactive } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 import AudioClipRow from '@/Components/FishAudio/AudioClipRow.vue'
+import { chooseRecording } from '@/utils/fishSpellings'
 
 const props = defineProps({
   fish: { type: Object, required: true },
@@ -110,10 +102,12 @@ const props = defineProps({
 const assignTo = reactive({})
 
 // 魚頁目前使用的那一段（主要發音，維持現狀；是否調整見 #174）
-const isCurrent = (audio) => !!props.fish.audio_filename && audio.name === props.fish.audio_filename
 
-// 魚頁使用哪一段：任何一段（含其他名稱底下的）都能指定；目前使用中的那段不用再指定（預設與細節見 #174）
-const canSetCurrent = (audio) => !isCurrent(audio)
+// 一個拼字有兩段以上錄音才需要指定魚頁用哪一段：標示指定的那段（沒指定就是最早的一段），其他段可以指定。
+// 只有一段錄音的拼字不顯示標示也不顯示按鈕；未對應名稱的錄音要先指派名稱。
+const needsChoice = (group) => group.audios.length >= 2
+const isCurrent = (group, audio) => needsChoice(group) && chooseRecording(group.audios)?.id === audio.id
+const canSetCurrent = (group, audio) => needsChoice(group) && !isCurrent(group, audio)
 
 function setCurrent(audio) {
   router.put(`/fish/${props.fish.id}/audio/${audio.id}/set-base`)

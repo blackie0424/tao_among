@@ -112,48 +112,75 @@ describe('管理發音頁', () => {
     expect(group.text()).toContain('＋ 錄音')
   })
 
-  it('魚頁目前使用的那一段有標示，其他沒有', () => {
-    mountList()
-    const clips = wrapper.findAll('[data-testid="audio-clip"]')
-    expect(clips[0].text()).toContain('魚頁目前使用')
-    expect(clips[1].text()).not.toContain('魚頁目前使用')
-  })
+  describe('每個拼字各自的主要發音（設為魚頁使用）', () => {
+    const clipsOf = (name) => wrapper.get(`[data-testid="name-group-${name}"]`).findAll('[data-testid="audio-clip"]')
+    const setButton = (clip) => clip.findAll('button').find((b) => b.text() === '設為魚頁使用')
 
-  it('沒有在用的錄音都有「設為魚頁使用」（含其他名稱底下的），按了切換主要發音；在用的那段不顯示按鈕', async () => {
-    mountList({
-      audioGroups: [
-        { name: 'mivazlt', audios: [audio()] }, // 目前使用中
-        { name: 'mivanivang', audios: [audio({ id: 3, name: 'a3.m4a' })] }, // 另一個名稱底下的錄音
-      ],
+    it('一個拼字只有一段錄音：不顯示「魚頁目前使用」也不顯示「設為魚頁使用」', () => {
+      mountList({
+        audioGroups: [
+          { name: 'Ivey', audios: [audio({ id: 1 })] },
+          { name: 'Ivay', audios: [audio({ id: 2, name: 'a2.m4a' })] },
+        ],
+      })
+      expect(wrapper.text()).not.toContain('魚頁目前使用')
+      expect(wrapper.text()).not.toContain('設為魚頁使用')
     })
-    const clips = wrapper.findAll('[data-testid="audio-clip"]')
-    expect(clips[0].text()).toContain('魚頁目前使用')
-    expect(clips[0].text()).not.toContain('設為魚頁使用')
-    const other = clips[1].findAll('button').find((b) => b.text() === '設為魚頁使用')
-    expect(other).toBeTruthy()
 
-    await other.trigger('click')
+    it('一個拼字有兩段以上：沒指定時最早的一段是魚頁使用，其他段有按鈕；按了指定那一段', async () => {
+      mountList({
+        audioGroups: [{ name: 'Ivey', audios: [audio({ id: 1 }), audio({ id: 4, name: 'a4.m4a' }), audio({ id: 6, name: 'a6.m4a' })] }],
+      })
+      const clips = clipsOf('Ivey')
+      expect(clips[0].text()).toContain('魚頁目前使用')
+      expect(setButton(clips[0])).toBeUndefined()
+      expect(clips[1].text()).not.toContain('魚頁目前使用')
 
-    expect(router.put).toHaveBeenCalledWith('/fish/4/audio/3/set-base')
-  })
+      await setButton(clips[2]).trigger('click')
 
-  it('指定過一次之後，原本在用的那段變成可以再被指定（不會只有第一次看得到）', () => {
-    mountList({
-      fish: { ...fish, audio_filename: 'a3.m4a' }, // 已經改指到另一段
-      audioGroups: [
-        { name: 'mivazlt', audios: [audio()] },
-        { name: 'mivanivang', audios: [audio({ id: 3, name: 'a3.m4a' })] },
-      ],
+      expect(router.put).toHaveBeenCalledWith('/fish/4/audio/6/set-base')
     })
-    const clips = wrapper.findAll('[data-testid="audio-clip"]')
-    expect(clips[0].text()).toContain('設為魚頁使用')
-    expect(clips[1].text()).toContain('魚頁目前使用')
-    expect(clips[1].text()).not.toContain('設為魚頁使用')
-  })
 
-  it('未對應名稱的錄音也能設為魚頁使用', () => {
-    mountList({ unassignedAudios: [audio({ id: 9, name: 'old.m4a' })] })
-    expect(wrapper.get('[data-testid="unassigned"]').text()).toContain('設為魚頁使用')
+    it('有指定的主要發音（is_primary）就標示它，原本最早的一段變成可以指定', () => {
+      mountList({
+        audioGroups: [{ name: 'Ivey', audios: [audio({ id: 1 }), audio({ id: 4, name: 'a4.m4a', is_primary: true })] }],
+      })
+      const clips = clipsOf('Ivey')
+      expect(clips[0].text()).not.toContain('魚頁目前使用')
+      expect(setButton(clips[0])).toBeTruthy()
+      expect(clips[1].text()).toContain('魚頁目前使用')
+      expect(setButton(clips[1])).toBeUndefined()
+    })
+
+    it('只有一個拼字有多段：只有那個拼字有指定功能，只有一段的拼字沒有', () => {
+      mountList({
+        audioGroups: [
+          { name: 'Ivey', audios: [audio({ id: 1 }), audio({ id: 4, name: 'a4.m4a' })] },
+          { name: 'Ivay', audios: [audio({ id: 2, name: 'a2.m4a' })] },
+        ],
+      })
+      expect(wrapper.get('[data-testid="name-group-Ivey"]').text()).toContain('設為魚頁使用')
+      expect(wrapper.get('[data-testid="name-group-Ivay"]').text()).not.toContain('設為魚頁使用')
+      expect(wrapper.get('[data-testid="name-group-Ivay"]').text()).not.toContain('魚頁目前使用')
+    })
+
+    it('好幾個拼字都有多段：各拼字各自判斷、各自標示一段', () => {
+      mountList({
+        audioGroups: [
+          { name: 'Ivey', audios: [audio({ id: 1 }), audio({ id: 4, name: 'a4.m4a', is_primary: true })] },
+          { name: 'Ivay', audios: [audio({ id: 2, name: 'a2.m4a' }), audio({ id: 5, name: 'a5.m4a' })] },
+        ],
+      })
+      expect(wrapper.findAll('[data-testid="audio-clip"]').filter((c) => c.text().includes('魚頁目前使用'))).toHaveLength(2)
+      expect(clipsOf('Ivey')[1].text()).toContain('魚頁目前使用') // 有指定的
+      expect(clipsOf('Ivay')[0].text()).toContain('魚頁目前使用') // 沒指定：最早的一段
+    })
+
+    it('未對應名稱的錄音不顯示「設為魚頁使用」（要先指派名稱）', () => {
+      mountList({ unassignedAudios: [audio({ id: 9, name: 'old.m4a' })] })
+      expect(wrapper.get('[data-testid="unassigned"]').text()).not.toContain('設為魚頁使用')
+      expect(wrapper.get('[data-testid="unassigned"]').text()).not.toContain('魚頁目前使用')
+    })
   })
 
   it('沒有未對應的錄音時不顯示「未對應名稱」區', () => {

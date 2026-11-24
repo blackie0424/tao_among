@@ -252,6 +252,60 @@ describe('assignName()', function () {
     });
 });
 
+describe('setPrimary()：每個拼字各自的主要發音', function () {
+    it('指定後同拼字其他段取消、其他拼字不受影響，fish.audio_filename 一併指向它', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay', 'audio_filename' => null]);
+        $e1 = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'e1.m4a', 'spoken_name' => 'Ivey', 'is_primary' => true]);
+        $e2 = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'e2.m4a', 'spoken_name' => 'Ivey']);
+        $a1 = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'a1.m4a', 'spoken_name' => 'Ivay', 'is_primary' => true]);
+
+        $this->service->setPrimary($e2);
+
+        expect($e1->fresh()->is_primary)->toBeFalse();
+        expect($e2->fresh()->is_primary)->toBeTrue();
+        expect($a1->fresh()->is_primary)->toBeTrue(); // 另一個拼字的主要發音不被蓋掉
+        expect($fish->fresh()->audio_filename)->toBe('e2.m4a');
+    });
+
+    it('沒有拼字的錄音（未對應名稱）不能指定，要先指派名稱', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay', 'audio_filename' => 'keep.m4a']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => null]);
+
+        expect(fn () => $this->service->setPrimary($audio))->toThrow(InvalidArgumentException::class);
+        expect($audio->fresh()->is_primary)->toBeFalse();
+        expect($fish->fresh()->audio_filename)->toBe('keep.m4a');
+    });
+
+    it('拼字已不在魚名裡（魚改名後）的錄音不能指定', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivay']);
+
+        expect(fn () => $this->service->setPrimary($audio))->toThrow(InvalidArgumentException::class);
+    });
+
+    it('改派到別的拼字時，原本的主要發音標記一併清除；改派到同一個拼字則保留', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey、Ivay']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey', 'is_primary' => true]);
+
+        $this->service->assignName($audio, 'Ivey');
+        expect($audio->fresh()->is_primary)->toBeTrue();
+
+        $this->service->assignName($audio->fresh(), 'Ivay');
+        expect($audio->fresh()->only(['spoken_name', 'is_primary']))->toBe(['spoken_name' => 'Ivay', 'is_primary' => false]);
+    });
+
+    it('新增、刪除錄音不會留下兩個主要發音：刪掉主要發音那段後該拼字回到最早一段（沒有標記）', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey']);
+        $first = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey']);
+        $primary = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey', 'is_primary' => true]);
+
+        $this->service->delete($primary);
+
+        expect(FishAudio::where('fish_id', $fish->id)->where('is_primary', true)->count())->toBe(0);
+        expect($first->fresh()->is_primary)->toBeFalse();
+    });
+});
+
 describe('groupByName()', function () {
     it('名稱空或不在目前名稱內的歸未對應；魚改名後改回同字串自動歸回', function () {
         $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);

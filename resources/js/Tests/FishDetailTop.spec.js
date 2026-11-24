@@ -92,9 +92,9 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
     expect(wrapper.get('h1').text()).toBe('Ivey、Ivay、Ivoy')
   })
 
-  it('每個拼字播指定的那一段，沒有指定就播最早的一段', () => {
+  it('每個拼字播它的主要發音（is_primary），沒有指定就播最早的一段', () => {
     editor()
-    const wrapper = mountTop({ name: 'Ivey、Ivay', audio_filename: 'f7.m4a', audios: [rec(3, 'Ivey'), rec(7, 'Ivey'), rec(5, 'Ivay')] })
+    const wrapper = mountTop({ name: 'Ivey、Ivay', audios: [rec(3, 'Ivey'), { ...rec(7, 'Ivey'), is_primary: true }, rec(5, 'Ivay')] })
 
     const urls = wrapper.findAll('[data-testid="spelling-players"] [data-testid="volume"]').map((v) => v.attributes('data-url'))
     expect(urls).toEqual(['/f7.m4a', '/f5.m4a'])
@@ -110,12 +110,28 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
     expect(volumes[0].attributes('data-url')).toBe('/main.m4a')
   })
 
-  it('只有一個名稱：維持魚名旁的單一播放鈕', () => {
+  it('只有一個名稱：魚名旁一個播放鈕，播該拼字的主要發音（不是魚的目前發音檔）', () => {
     editor()
-    const wrapper = mountTop({ name: 'Ivey', audios: [rec(3, 'Ivey')] })
+    const wrapper = mountTop({ name: 'Ivey', audio_url: '/pointer.m4a', audios: [rec(3, 'Ivey'), { ...rec(7, 'Ivey'), is_primary: true }] })
 
     expect(wrapper.find('[data-testid="spelling-players"]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-testid="volume"]')).toHaveLength(1)
+    const volumes = wrapper.findAll('[data-testid="volume"]')
+    expect(volumes).toHaveLength(1)
+    expect(volumes[0].attributes('data-url')).toBe('/f7.m4a')
+  })
+
+  it('只有一個名稱而沒有指定：播最早的一段', () => {
+    editor()
+    const wrapper = mountTop({ name: 'Ivey', audio_url: '/pointer.m4a', audios: [rec(8, 'Ivey'), rec(3, 'Ivey')] })
+
+    expect(wrapper.get('[data-testid="volume"]').attributes('data-url')).toBe('/f3.m4a')
+  })
+
+  it('只有一個名稱而錄音都沒有對應拼字（舊資料）：回退到魚的目前發音檔', () => {
+    editor()
+    const wrapper = mountTop({ name: 'Ivey', audio_url: '/pointer.m4a', audios: [rec(3, null)] })
+
+    expect(wrapper.get('[data-testid="volume"]').attributes('data-url')).toBe('/pointer.m4a')
   })
 
   it('沒有播放權限的角色看不到任何播放鈕', () => {

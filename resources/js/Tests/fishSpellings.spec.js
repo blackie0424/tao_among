@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pickSpellingRecordings, splitFishName } from '@/utils/fishSpellings'
+import { chooseRecording, pickSpellingRecordings, splitFishName } from '@/utils/fishSpellings'
 
 const rec = (id, spoken_name, over = {}) => ({ id, name: `f${id}.m4a`, url: `/f${id}.m4a`, spoken_name, ...over })
 
@@ -35,13 +35,21 @@ describe('pickSpellingRecordings', () => {
     expect(picked.map((p) => [p.spelling, p.audio.id])).toEqual([['Ivey', 3], ['Ivay', 5]])
   })
 
-  it('該拼字底下有「設為魚頁使用」指定的那一段就播它', () => {
-    const fish = { name: 'Ivey、Ivay', audio_filename: 'f7.m4a', audios: [rec(3, 'Ivey'), rec(7, 'Ivey'), rec(5, 'Ivay')] }
+  it('該拼字底下有指定的主要發音（is_primary）就播它', () => {
+    const fish = { name: 'Ivey、Ivay', audios: [rec(3, 'Ivey'), rec(7, 'Ivey', { is_primary: true }), rec(5, 'Ivay')] }
     expect(pickSpellingRecordings(fish).map((p) => p.audio.id)).toEqual([7, 5])
   })
 
-  it('指定的那一段屬於別的拼字時，不影響這個拼字（仍播它自己最早的一段）', () => {
-    const fish = { name: 'Ivey、Ivay', audio_filename: 'f5.m4a', audios: [rec(3, 'Ivey'), rec(5, 'Ivay')] }
+  it('各拼字各自判斷：一個拼字有指定、另一個沒有（播最早的一段），互不影響', () => {
+    const fish = {
+      name: 'Ivey、Ivay',
+      audios: [rec(3, 'Ivey'), rec(7, 'Ivey', { is_primary: true }), rec(5, 'Ivay'), rec(9, 'Ivay')],
+    }
+    expect(pickSpellingRecordings(fish).map((p) => [p.spelling, p.audio.id])).toEqual([['Ivey', 7], ['Ivay', 5]])
+  })
+
+  it('魚的目前發音檔（audio_filename）不影響各拼字的選擇', () => {
+    const fish = { name: 'Ivey、Ivay', audio_filename: 'f7.m4a', audios: [rec(3, 'Ivey'), rec(7, 'Ivey'), rec(5, 'Ivay')] }
     expect(pickSpellingRecordings(fish).map((p) => p.audio.id)).toEqual([3, 5])
   })
 
@@ -61,5 +69,14 @@ describe('pickSpellingRecordings', () => {
   it('完全沒有錄音或沒有 audios 時回空陣列', () => {
     expect(pickSpellingRecordings({ name: 'Ivey、Ivay', audios: [] })).toEqual([])
     expect(pickSpellingRecordings({ name: 'Ivey、Ivay' })).toEqual([])
+  })
+})
+
+describe('chooseRecording', () => {
+  it('有主要發音就選它，否則選編號最小的一段；沒有錄音回 null', () => {
+    expect(chooseRecording([rec(7, 'a'), rec(3, 'a')]).id).toBe(3)
+    expect(chooseRecording([rec(3, 'a'), rec(7, 'a', { is_primary: true })]).id).toBe(7)
+    expect(chooseRecording([])).toBeNull()
+    expect(chooseRecording(undefined)).toBeNull()
   })
 })

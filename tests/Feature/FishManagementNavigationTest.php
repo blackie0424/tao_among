@@ -63,8 +63,8 @@ it('delete-audio stays at its destination', function () {
 });
 
 it('primary audio stays on the audio list', function () {
-    Fish::factory()->create(['id' => 114]);
-    \App\Models\FishAudio::factory()->create(['id' => 8, 'fish_id' => 114]);
+    Fish::factory()->create(['id' => 114, 'name' => 'Angsa']);
+    \App\Models\FishAudio::factory()->create(['id' => 8, 'fish_id' => 114, 'spoken_name' => 'Angsa']);
     $this->actingAs(User::factory()->create())->put('/fish/114/audio/8/set-base')
         ->assertRedirect('/fish/114/audio-list')->assertSessionHas('success');
 });

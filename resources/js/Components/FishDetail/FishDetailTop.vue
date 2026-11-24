@@ -23,7 +23,7 @@
            
            <!-- Audio Player -->
            <div v-if="showSingleAudio" class="flex-shrink-0">
-               <Volume :audioUrl="fish.audio_url" />
+               <Volume :audioUrl="singleAudioUrl" />
            </div>
          </div>
 
@@ -60,13 +60,17 @@ const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const hasAudioAccess = computed(() => canAccessAudio(user.value?.role))
 
-// 多個拼字才依拼字播放；只有一個名稱，或所有拼字都對不到錄音（舊資料尚未對應）時沿用魚名旁的單一播放鈕
-const spellingRecordings = computed(() =>
-  hasAudioAccess.value && splitFishName(props.fish?.name).length > 1 ? pickSpellingRecordings(props.fish) : []
-)
-const showSingleAudio = computed(
-  () => hasAudioAccess.value && !!props.fish?.audio_url && spellingRecordings.value.length === 0
-)
+// 每個拼字播它的主要發音（沒有指定就是最早的一段）。多個拼字：魚名下方各一個鈕；
+// 只有一個名稱：魚名旁一個鈕。所有拼字都對不到錄音（舊資料尚未對應）時，回退到魚的目前發音檔。
+const allRecordings = computed(() => (hasAudioAccess.value ? pickSpellingRecordings(props.fish) : []))
+const isMultiSpelling = computed(() => splitFishName(props.fish?.name).length > 1)
+const spellingRecordings = computed(() => (isMultiSpelling.value ? allRecordings.value : []))
+const singleAudioUrl = computed(() => {
+  if (!hasAudioAccess.value) return null
+  if (isMultiSpelling.value && allRecordings.value.length > 0) return null // 已改成各拼字一個鈕
+  return allRecordings.value[0]?.audio.url ?? props.fish?.audio_url ?? null
+})
+const showSingleAudio = computed(() => !!singleAudioUrl.value)
 
 const displayImgStyle = computed(() =>
   buildImageDisplayStyle(
