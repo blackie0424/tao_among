@@ -330,6 +330,32 @@ describe('setPrimary()：每個拼字各自的主要發音', function () {
         expect($audio->fresh()->only(['spoken_name', 'is_primary']))->toBe(['spoken_name' => 'Ivay', 'is_primary' => false]);
     });
 
+    it('並發：刪除與指定交錯（刪除的請求拿著指定之前的過期資料）時，目前發音檔不會指向已刪的檔', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey', 'audio_filename' => 'other.m4a']);
+        $other = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'other.m4a', 'spoken_name' => 'Ivey']);
+        $target = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'target.m4a', 'spoken_name' => 'Ivey']);
+        $staleForDelete = FishAudio::with('fish')->find($target->id); // 刪除的請求先讀到：目前發音檔還是 other.m4a
+
+        $this->service->setPrimary(FishAudio::find($target->id)); // 指定的請求先完成：目前發音檔改指向 target.m4a
+        $this->service->delete($staleForDelete);
+
+        $pointer = $fish->fresh()->audio_filename;
+        expect($pointer)->toBe('other.m4a'); // 指到仍然存在的錄音
+        expect(FishAudio::where('fish_id', $fish->id)->pluck('name')->all())->toContain($pointer);
+        expect(FishAudio::find($target->id))->toBeNull();
+    });
+
+    it('刪除一段已經被刪掉的錄音不會出錯，也不會動目前發音檔', function () {
+        $fish = Fish::factory()->create(['name' => 'Ivey', 'audio_filename' => 'keep.m4a']);
+        $audio = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'gone.m4a', 'spoken_name' => 'Ivey']);
+        $stale = FishAudio::find($audio->id);
+        $this->service->delete(FishAudio::find($audio->id));
+
+        $this->service->delete($stale);
+
+        expect($fish->fresh()->audio_filename)->toBe('keep.m4a');
+    });
+
     it('並發：錄音已被刪除或拼字已因魚改名消失，指定被拒絕且魚的目前發音檔不變', function () {
         $fish = Fish::factory()->create(['name' => 'Ivey、Ivay', 'audio_filename' => 'keep.m4a']);
         $deleted = FishAudio::factory()->create(['fish_id' => $fish->id, 'spoken_name' => 'Ivey']);

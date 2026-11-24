@@ -137,10 +137,16 @@ class FishAudioRecordingService
     public function delete(FishAudio $audio): void
     {
         DB::transaction(function () use ($audio) {
-            $fish = $audio->fish;
-            $wasMain = $fish && $fish->audio_filename === $audio->name;
+            // 與指定、改派相同的鎖定順序（先魚、再錄音），鎖後重新讀取：是不是主要發音要看最新的狀態，
+            // 否則刪除可能和同時進行的指定交錯，讓魚的目前發音檔指向剛被刪掉的檔
+            $fish = Fish::lockForUpdate()->find($audio->fish_id);
+            $current = FishAudio::lockForUpdate()->find($audio->id);
+            if (! $current) {
+                return; // 已經被刪除了
+            }
+            $wasMain = $fish && $fish->audio_filename === $current->name;
 
-            $audio->delete();
+            $current->delete();
 
             if ($wasMain) {
                 $latest = FishAudio::where('fish_id', $fish->id)->orderByDesc('id')->first();
