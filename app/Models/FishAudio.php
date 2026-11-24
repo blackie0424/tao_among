@@ -15,7 +15,10 @@ class FishAudio extends Model
 
     protected $table = 'fish_audios';
 
-    protected $fillable = ['fish_id', 'name', 'locate', 'duration'];
+    protected $fillable = ['fish_id', 'name', 'locate', 'spoken_name', 'recorded_by', 'duration'];
+
+    // 錄音者只在田調人員專用的管理頁明確回傳，一般序列化（API、Inertia props）不輸出
+    protected $hidden = ['recorded_by'];
 
     protected $appends = ['url'];
 
