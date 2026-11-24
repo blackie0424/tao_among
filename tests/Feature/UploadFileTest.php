@@ -1,11 +1,10 @@
 <?php
 
-use Illuminate\Http\UploadedFile;
-
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Fish;
 use App\Models\FishAudio;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Mockery\MockInterface;
 
 uses(RefreshDatabase::class);
@@ -13,8 +12,6 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->actingAs(User::factory()->create());
 });
-
-
 
 it('fish image can be uploaded, check response is 201 and message is image uploaded successfully', function () {
     Storage::fake('public');
@@ -179,7 +176,7 @@ it('audio 檔案可以上傳，回應 201 並訊息為 audio uploaded successful
         ]);
 
     // 檢查檔案是否真的被儲存
-    $savedPath = 'audio/' . $audio->hashName();
+    $savedPath = 'audio/'.$audio->hashName();
     \Storage::disk('public')->assertExists($savedPath);
 });
 
@@ -271,16 +268,15 @@ it('取得 storage audio 檔案簽名上傳網址', function () {
     $storage->shouldReceive('createSignedUploadUrl')->andReturn($mockedUrl);
 
     $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
-        'filename' => 'test-audio.mp3'
+        'filename' => 'test-audio.mp3',
     ]);
 
     $response->assertStatus(200)
         ->assertJson(
-            fn ($json) =>
-            $json->where('url', $mockedUrl)
-                 ->where('path', fn ($path) => is_string($path) && !empty($path))
-                 ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
-                 ->etc()
+            fn ($json) => $json->where('url', $mockedUrl)
+                ->where('path', fn ($path) => is_string($path) && ! empty($path))
+                ->where('filename', fn ($filename) => is_string($filename) && ! empty($filename))
+                ->etc()
         );
 });
 
@@ -297,11 +293,10 @@ it('取得 storage image 檔案簽名上傳網址', function () {
 
     $response->assertStatus(200)
         ->assertJson(
-            fn ($json) =>
-            $json->where('url', $mockedUrl)
-                 ->where('path', fn ($path) => is_string($path) && !empty($path))
-                 ->where('filename', fn ($filename) => is_string($filename) && !empty($filename))
-                 ->etc()
+            fn ($json) => $json->where('url', $mockedUrl)
+                ->where('path', fn ($path) => is_string($path) && ! empty($path))
+                ->where('filename', fn ($filename) => is_string($filename) && ! empty($filename))
+                ->etc()
         );
 });
 
@@ -337,7 +332,7 @@ it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', f
 
     // 3. 執行請求 (Action)
     $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
-        'filename' => 'test-audio.mp3'
+        'filename' => 'test-audio.mp3',
     ]);
 
     // 4. 斷言狀態碼
@@ -345,7 +340,7 @@ it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', f
 });
 
 it('當聲音檔案上傳後，要將聲音檔案的資料寫入資料表發生錯誤時，應在 DB 交易失敗時，確保資料庫回滾且不新增任何紀錄', function () {
-    
+
     $fishId = 999;
 
     $fish = Fish::factory()->create([
@@ -361,21 +356,20 @@ it('當聲音檔案上傳後，要將聲音檔案的資料寫入資料表發生�
     $serviceSpy->shouldReceive('createSignedUploadUrl')
         ->andReturn('https://mocked-url-for-rollback');
 
-
     // // 3. 模擬失敗：強制 FishAudio::create 拋出例外
     $this->partialMock(FishAudio::class, function (MockInterface $mock) {
         // 🎯 這裡使用 $mock 變數來設定 shouldReceive
         $mock->shouldReceive('create')
-             ->once()
-             ->andThrow(new \Exception('Simulated rollback failure'));
+            ->once()
+            ->andThrow(new \Exception('Simulated rollback failure'));
     });
     // // 4. 執行請求與斷言狀態碼 (Action & Status Assertion)
     $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
-        'filename' => 'test-audio.mp3'
+        'filename' => 'test-audio.mp3',
     ]);
 
     $response->assertStatus(500); // 期望收到 500 錯誤
-    
+
     // 預期 JSON 訊息片段 (來自 Controller 的 catch 區塊)
     $response->assertJsonFragment([
         'message' => '儲存音訊 metadata 失敗',

@@ -25,8 +25,8 @@ class DashboardService
      */
     public function getTribes(): Collection
     {
-        $knownTribes       = collect(config('fish_options.tribes', []));
-        $tribesFromTribal  = TribalClassification::distinct()->whereNotNull('tribe')->pluck('tribe');
+        $knownTribes = collect(config('fish_options.tribes', []));
+        $tribesFromTribal = TribalClassification::distinct()->whereNotNull('tribe')->pluck('tribe');
         $tribesFromCapture = CaptureRecord::distinct()->whereNotNull('tribe')->pluck('tribe');
 
         return $knownTribes
@@ -39,30 +39,32 @@ class DashboardService
     /**
      * 取得魚類統計資料。
      *
-     * @param  string|null $tribe  部落名稱；null 表示全部模式
+     * @param  string|null  $tribe  部落名稱；null 表示全部模式
      * @return array{total: int, with_capture_record: int, with_audio: int, with_tribal_classification: int}
      */
     public function getFishStats(?string $tribe): array
     {
         if ($tribe) {
-            $total      = Fish::count();
-            $withAudio  = Fish::whereHas('audios', fn ($q) => $q->where('locate', $tribe))->count();
+            $total = Fish::count();
+            $withAudio = Fish::whereHas('audios', fn ($q) => $q->where('locate', $tribe))->count();
+
             return [
-                'total'                      => $total,
-                'with_capture_record'        => Fish::whereHas('captureRecords', fn ($q) => $q->where('tribe', $tribe))->count(),
-                'with_audio'                 => $withAudio,
-                'without_audio'              => $total - $withAudio,
+                'total' => $total,
+                'with_capture_record' => Fish::whereHas('captureRecords', fn ($q) => $q->where('tribe', $tribe))->count(),
+                'with_audio' => $withAudio,
+                'without_audio' => $total - $withAudio,
                 'with_tribal_classification' => Fish::whereHas('tribalClassifications', fn ($q) => $q->where('tribe', $tribe))->count(),
             ];
         }
 
-        $total     = Fish::count();
+        $total = Fish::count();
         $withAudio = Fish::has('audios')->count();
+
         return [
-            'total'                      => $total,
-            'with_capture_record'        => Fish::has('captureRecords')->count(),
-            'with_audio'                 => $withAudio,
-            'without_audio'              => $total - $withAudio,
+            'total' => $total,
+            'with_capture_record' => Fish::has('captureRecords')->count(),
+            'with_audio' => $withAudio,
+            'without_audio' => $total - $withAudio,
             'with_tribal_classification' => Fish::has('tribalClassifications')->count(),
         ];
     }
@@ -74,7 +76,6 @@ class DashboardService
      * 部落模式：breakdown 為食用分類（by_food_category）及處理方法（by_processing_method），
      *           計算單位為魚種數（因 unique(fish_id, tribe) 約束，一魚一部落僅一筆）。
      *
-     * @param  string|null $tribe
      * @return array{
      *   total: int,
      *   by_tribe: Collection,
@@ -97,11 +98,11 @@ class DashboardService
                 ->pluck('count', 'processing_method')
                 ->toArray();
 
-            $configFoodCategories    = array_filter(config('fish_options.food_categories', []), fn ($v) => $v !== '尚未紀錄');
+            $configFoodCategories = array_filter(config('fish_options.food_categories', []), fn ($v) => $v !== '尚未紀錄');
             $configProcessingMethods = array_filter(config('fish_options.processing_methods', []), fn ($v) => $v !== '尚未紀錄');
 
             // 合併 config 定義的選項與實際資料（config 順序優先，補入 0 筆）
-            $allFoodKeys    = array_unique(array_merge($configFoodCategories, array_keys($foodCategoryMap)));
+            $allFoodKeys = array_unique(array_merge($configFoodCategories, array_keys($foodCategoryMap)));
             $allProcessKeys = array_unique(array_merge($configProcessingMethods, array_keys($processingMethodMap)));
 
             $byFoodCategory = collect($allFoodKeys)->map(fn ($cat) => [
@@ -115,9 +116,9 @@ class DashboardService
             ])->values();
 
             return [
-                'total'                => TribalClassification::where('tribe', $tribe)->count(),
-                'by_tribe'             => collect(),
-                'by_food_category'     => $byFoodCategory,
+                'total' => TribalClassification::where('tribe', $tribe)->count(),
+                'by_tribe' => collect(),
+                'by_food_category' => $byFoodCategory,
                 'by_processing_method' => $byProcessingMethod,
             ];
         }
@@ -130,7 +131,7 @@ class DashboardService
                 ->get()
                 ->map(fn ($row) => ['tribe' => $row->tribe ?: '未分類', 'count' => $row->count])
                 ->values(),
-            'by_food_category'     => collect(),
+            'by_food_category' => collect(),
             'by_processing_method' => collect(),
         ];
     }
@@ -138,20 +139,19 @@ class DashboardService
     /**
      * 取得音檔統計資料。
      *
-     * @param  string|null $tribe
      * @return array{total: int, by_locate: Collection}
      */
     public function getAudioStats(?string $tribe): array
     {
         if ($tribe) {
             return [
-                'total'     => FishAudio::where('locate', $tribe)->count(),
+                'total' => FishAudio::where('locate', $tribe)->count(),
                 'by_locate' => collect(),
             ];
         }
 
         return [
-            'total'     => FishAudio::count(),
+            'total' => FishAudio::count(),
             'by_locate' => FishAudio::selectRaw('locate, COUNT(*) as count')
                 ->groupBy('locate')
                 ->orderByDesc('count')
@@ -164,7 +164,6 @@ class DashboardService
     /**
      * 取得地方知識統計資料。
      *
-     * @param  string|null $tribe
      * @return array{total: int, by_type: Collection}
      */
     public function getNoteStats(?string $tribe): array
@@ -174,7 +173,7 @@ class DashboardService
             : FishNote::query();
 
         return [
-            'total'   => $query->count(),
+            'total' => $query->count(),
             'by_type' => (clone $query)
                 ->selectRaw('note_type, COUNT(*) as count')
                 ->groupBy('note_type')
@@ -193,7 +192,7 @@ class DashboardService
     public function getUserStats(): array
     {
         return [
-            'total'   => User::where('source', 'line')->count(),
+            'total' => User::where('source', 'line')->count(),
             'by_role' => User::where('source', 'line')
                 ->selectRaw('role, COUNT(*) as count')
                 ->groupBy('role')

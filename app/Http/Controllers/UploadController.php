@@ -2,24 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Contracts\StorageServiceInterface;
-use App\Services\UploadService;
-use App\Http\Requests\UploadImageRequest;
-use App\Http\Requests\UploadAudioRequest;
 use App\Http\Requests\SignedUploadUrlRequest;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
-use App\Models\FishAudio;
+use App\Http\Requests\UploadAudioRequest;
+use App\Http\Requests\UploadImageRequest;
 use App\Models\Fish;
+use App\Models\FishAudio;
+use App\Services\UploadService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Services\AudioConfirmService;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class UploadController extends Controller
 {
-
     protected $storageService;
+
     protected $fishAudio;
 
     public function __construct(StorageServiceInterface $storageService, FishAudio $fishAudio)
@@ -30,68 +29,78 @@ class UploadController extends Controller
 
     /**
      * POST /prefix/api/upload/audio/sign
-    *
-    * @OA\Post(
-    *   path="/prefix/api/upload/audio/sign",
-    *   summary="取得音訊暫存簽名上傳網址（pending/audio/...）",
-    *   tags={"Upload"},
-    *   @OA\RequestBody(
-    *     required=true,
-    *     @OA\JsonContent(
-    *       required={"fish_id"},
-    *       @OA\Property(property="fish_id", type="integer", example=1, minimum=1),
-    *       @OA\Property(property="ext", type="string", example="m4a", enum={"m4a","mp3","wav","mp4","aac"})
-    *     )
-    *   ),
-    *   @OA\Response(
-    *     response=200,
-    *     description="簽名網址產生成功（uploadUrl 為儲存服務的絕對 https 網址）",
-    *     @OA\JsonContent(
-    *       required={"uploadUrl","filePath","expiresIn"},
-    *       @OA\Property(property="uploadUrl", type="string", format="uri", description="Supabase 絕對簽名網址", example="https://your-project-ref.supabase.co/storage/v1/object/upload/sign/your-bucket/pending/audio/2025/11/01/1-uuid.webm?token=eyJ..."),
-    *       @OA\Property(property="filePath", type="string", description="暫存路徑，供 confirm 使用", example="pending/audio/2025/11/01/1-uuid.webm"),
-    *       @OA\Property(property="expiresIn", type="integer", description="簽名有效秒數", example=300)
-    *     )
-    *   ),
-    *   @OA\Response(response=500, description="產生簽名失敗")
-    * )
+     *
+     * @OA\Post(
+     *   path="/prefix/api/upload/audio/sign",
+     *   summary="取得音訊暫存簽名上傳網址（pending/audio/...）",
+     *   tags={"Upload"},
+     *
+     *   @OA\RequestBody(
+     *     required=true,
+     *
+     *     @OA\JsonContent(
+     *       required={"fish_id"},
+     *
+     *       @OA\Property(property="fish_id", type="integer", example=1, minimum=1),
+     *       @OA\Property(property="ext", type="string", example="m4a", enum={"m4a","mp3","wav","mp4","aac"})
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="簽名網址產生成功（uploadUrl 為儲存服務的絕對 https 網址）",
+     *
+     *     @OA\JsonContent(
+     *       required={"uploadUrl","filePath","expiresIn"},
+     *
+     *       @OA\Property(property="uploadUrl", type="string", format="uri", description="Supabase 絕對簽名網址", example="https://your-project-ref.supabase.co/storage/v1/object/upload/sign/your-bucket/pending/audio/2025/11/01/1-uuid.webm?token=eyJ..."),
+     *       @OA\Property(property="filePath", type="string", description="暫存路徑，供 confirm 使用", example="pending/audio/2025/11/01/1-uuid.webm"),
+     *       @OA\Property(property="expiresIn", type="integer", description="簽名有效秒數", example=300)
+     *     )
+     *   ),
+     *
+     *   @OA\Response(response=500, description="產生簽名失敗")
+     * )
      */
     public function signPendingAudio(Request $request)
     {
         $validated = $request->validate([
             'fish_id' => 'required|integer|min:1',
-            'ext' => 'nullable|string|in:webm,mp3,wav,m4a'
+            'ext' => 'nullable|string|in:webm,mp3,wav,m4a',
         ]);
 
         $ext = $validated['ext'] ?? 'webm';
 
         $service = app(StorageServiceInterface::class);
-        $fishId = (int)$validated['fish_id'];
+        $fishId = (int) $validated['fish_id'];
         $signed = $service->createSignedUploadUrlForPendingAudio($fishId, $ext);
         Log::info('[audio.sign] generated', [
             'fish_id' => $fishId,
             'filePath' => $signed['filePath'] ?? null,
             'expiresIn' => $signed['expiresIn'] ?? null,
         ]);
-        if (!$signed) {
+        if (! $signed) {
             Log::error('[audio.sign] failed to create signed URL', [
                 'fish_id' => $fishId,
                 'ext' => $ext,
             ]);
+
             return response()->json(['message' => 'Failed to create signed upload URL'], 500);
         }
         // sanity: ensure absolute
-        if (!preg_match('/^https?:\/\//', (string)($signed['uploadUrl'] ?? ''))) {
+        if (! preg_match('/^https?:\/\//', (string) ($signed['uploadUrl'] ?? ''))) {
             Log::error('[audio.sign] misconfigured storage URL (not absolute)', [
                 'fish_id' => $fishId,
                 'uploadUrl' => $signed['uploadUrl'] ?? null,
             ]);
+
             return response()->json(['message' => 'Misconfigured storage URL'], 500);
         }
         Log::info('[audio.sign] success', [
             'fish_id' => $fishId,
             'filePath' => $signed['filePath'] ?? null,
         ]);
+
         return response()->json($signed, 200);
     }
 
@@ -102,12 +111,16 @@ class UploadController extends Controller
      *     path="/prefix/api/upload-audio",
      *     summary="上傳音訊檔案",
      *     tags={"Upload"},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
+     *
      *             @OA\Schema(
      *                 required={"audio"},
+     *
      *                 @OA\Property(
      *                     property="audio",
      *                     type="string",
@@ -117,18 +130,24 @@ class UploadController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="上傳成功",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="audio uploaded successfully"),
      *             @OA\Property(property="data", type="string", example="filename.mp3")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="驗證失敗",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="驗證失敗"),
      *             @OA\Property(
      *                 property="errors",
@@ -136,6 +155,7 @@ class UploadController extends Controller
      *                 @OA\Property(
      *                     property="audio",
      *                     type="array",
+     *
      *                     @OA\Items(
      *                         type="string",
      *                         example="音訊格式僅限 mp3, wav, ogg。|音訊大小不可超過 10MB。|音訊長度不可超過 6 秒。"
@@ -145,10 +165,13 @@ class UploadController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=500,
      *         description="音訊儲存失敗",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="音訊儲存失敗，請稍後再試。")
      *         )
      *     )
@@ -189,12 +212,16 @@ class UploadController extends Controller
      *     path="/prefix/api/upload",
      *     summary="上傳魚類圖片",
      *     tags={"Upload"},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
+     *
      *             @OA\Schema(
      *                 required={"image"},
+     *
      *                 @OA\Property(
      *                     property="image",
      *                     type="string",
@@ -204,18 +231,24 @@ class UploadController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="上傳成功",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="image uploaded successfully"),
      *             @OA\Property(property="data", type="string", example="filename.jpg")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="驗證失敗",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="驗證失敗"),
      *             @OA\Property(
      *                 property="errors",
@@ -223,6 +256,7 @@ class UploadController extends Controller
      *                 @OA\Property(
      *                     property="image",
      *                     type="array",
+     *
      *                     @OA\Items(
      *                         type="string",
      *                         example="只能上傳單一圖片檔案。"
@@ -265,10 +299,13 @@ class UploadController extends Controller
      *     path="/prefix/api/storage/signed-upload-url",
      *     summary="取得儲存服務簽名上傳 URL",
      *     tags={"Upload"},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"filename"},
+     *
      *             @OA\Property(
      *                 property="filename",
      *                 type="string",
@@ -276,19 +313,25 @@ class UploadController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="成功取得簽名上傳 URL",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="url", type="string", example="https://your-project-id.supabase.co/storage/v1/object/upload/sign/bucket/images/uuid.jpg"),
      *             @OA\Property(property="path", type="string", example="images/uuid.jpg"),
      *             @OA\Property(property="filename", type="string", example="uuid.jpg")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="驗證失敗",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="驗證失敗"),
      *             @OA\Property(
      *                 property="errors",
@@ -296,15 +339,19 @@ class UploadController extends Controller
      *                 @OA\Property(
      *                     property="filename",
      *                     type="array",
+     *
      *                     @OA\Items(type="string", example="檔名格式不正確。")
      *                 )
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=500,
      *         description="產生簽名上傳 URL 失敗",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Failed to create signed upload URL")
      *         )
      *     )
@@ -313,26 +360,26 @@ class UploadController extends Controller
     public function getSignedUploadUrl(SignedUploadUrlRequest $request)
     {
         $service = app(StorageServiceInterface::class);
-        
+
         // 使用 folder 參數,預設為 images
         $folder = $request->input('folder', 'images');
-        
+
         // 根據資料夾選擇路徑
         $path = match ($folder) {
             'topics' => 'topics',
             'topic-items' => 'topic-items',
             default => $service->getImageFolder(),
         };
-        
+
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
 
-        $uniqueName = Str::uuid()->toString() . ($ext ? '.' . $ext : '');
-        $filePath = $path . '/' . $uniqueName;
+        $uniqueName = Str::uuid()->toString().($ext ? '.'.$ext : '');
+        $filePath = $path.'/'.$uniqueName;
 
         $url = $service->createSignedUploadUrl($filePath);
 
-        if (!$url) {
+        if (! $url) {
             return response()->json(['message' => 'Failed to create signed upload URL'], 500);
         }
 
@@ -351,17 +398,22 @@ class UploadController extends Controller
      *     path="/prefix/api/fish/{id}/storage/signed-upload-audio-url",
      *     summary="取得音訊檔案簽名上傳 URL",
      *     tags={"Upload"},
+     *
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
      *         description="魚類 ID",
+     *
      *         @OA\Schema(type="integer", minimum=1)
      *     ),
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"filename"},
+     *
      *             @OA\Property(
      *                 property="filename",
      *                 type="string",
@@ -369,19 +421,25 @@ class UploadController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="成功取得簽名上傳 URL",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="url", type="string", example="https://your-project-id.supabase.co/storage/v1/object/upload/sign/bucket/audio/uuid.mp3"),
      *             @OA\Property(property="path", type="string", example="audio/uuid.mp3"),
      *             @OA\Property(property="filename", type="string", example="uuid.mp3")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=400,
      *         description="驗證失敗",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="驗證失敗"),
      *             @OA\Property(
      *                 property="errors",
@@ -389,15 +447,19 @@ class UploadController extends Controller
      *                 @OA\Property(
      *                     property="filename",
      *                     type="array",
+     *
      *                     @OA\Items(type="string", example="音訊檔案格式僅限 mp3, wav。")
      *                 )
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=500,
      *         description="產生簽名上傳 URL 失敗",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="Failed to create signed upload URL")
      *         )
      *     )
@@ -412,10 +474,10 @@ class UploadController extends Controller
                 'string',
                 function ($attribute, $value, $fail) {
                     $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
-                    if (!in_array($ext, ['mp3', 'wav', 'm4a', 'webm'])) {
+                    if (! in_array($ext, ['mp3', 'wav', 'm4a', 'webm'])) {
                         $fail('音訊檔案格式僅限 mp3, wav, m4a, webm。');
                     }
-                }
+                },
             ],
         ], [
             'filename.required' => '請提供音訊檔案名稱。',
@@ -425,13 +487,13 @@ class UploadController extends Controller
         $originalName = $request->input('filename');
         $ext = pathinfo($originalName, PATHINFO_EXTENSION);
 
-        $uniqueName = \Illuminate\Support\Str::uuid()->toString() . ($ext ? '.' . $ext : '');
-        $filePath = $path . '/' . $uniqueName;
+        $uniqueName = \Illuminate\Support\Str::uuid()->toString().($ext ? '.'.$ext : '');
+        $filePath = $path.'/'.$uniqueName;
 
         $url = $this->storageService->createSignedUploadUrl($filePath);
 
         // 確認簽名成功後才進行 DB 異動
-        if (!$url) {
+        if (! $url) {
             return response()->json(['message' => 'Failed to create signed upload URL'], 500);
         }
 
@@ -441,8 +503,9 @@ class UploadController extends Controller
             $fishId = $request->route('id');
             $fish = Fish::find($fishId);
 
-            if (!$fish) {
+            if (! $fish) {
                 DB::rollBack();
+
                 return response()->json(['message' => '魚類資料不存在'], 404);
             }
 
@@ -460,6 +523,7 @@ class UploadController extends Controller
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();
             }
+
             return response()->json(['message' => '儲存音訊 metadata 失敗'], 500);
         }
 
