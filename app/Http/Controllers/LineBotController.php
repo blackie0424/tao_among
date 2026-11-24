@@ -981,28 +981,33 @@ class LineBotController extends Controller
                 "✅ 發音檔已成功新增！\n💡 再錄一次會新增另一段，不會蓋掉舊的\n管理發音：".url("/fish/{$fishId}/audio-list")
             );
         } catch (\Exception $e) {
-            // 確保使用者狀態被清除
-            Cache::forget("line_user_{$userId}_adding_audio");
-
-            Log::error('LINE Bot save fish audio failed', [
-                'userId' => $userId,
-                'fishId' => $fishId,
-                'error' => $e->getMessage(),
-                'error_code' => $e->getCode(),
-                'exception_class' => get_class($e),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            // 寫入服務依重讀的魚名驗證：上傳後才發現名稱已變更
-            if ($e->getPrevious() instanceof \InvalidArgumentException) {
-                $flow->clear($userId);
-                $this->replyPlainText($replyToken, LineAudioFlowState::MESSAGE_NAME_CHANGED);
-
-                return;
-            }
-
-            $this->replyPlainText($replyToken, '❌ 儲存音檔時發生錯誤，請稍後再試');
+            $this->replyAudioSaveFailed($userId, $fishId, $replyToken, $e);
         }
+    }
+
+    /** 儲存失敗：清除錄音狀態、記錄錯誤，並回覆使用者。 */
+    private function replyAudioSaveFailed(string $userId, int $fishId, string $replyToken, \Exception $e): void
+    {
+        Cache::forget("line_user_{$userId}_adding_audio");
+
+        Log::error('LINE Bot save fish audio failed', [
+            'userId' => $userId,
+            'fishId' => $fishId,
+            'error' => $e->getMessage(),
+            'error_code' => $e->getCode(),
+            'exception_class' => get_class($e),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        // 寫入服務依重讀的魚名驗證：上傳後才發現名稱已變更
+        if ($e->getPrevious() instanceof \InvalidArgumentException) {
+            app(LineAudioFlowState::class)->clear($userId);
+            $this->replyPlainText($replyToken, LineAudioFlowState::MESSAGE_NAME_CHANGED);
+
+            return;
+        }
+
+        $this->replyPlainText($replyToken, '❌ 儲存音檔時發生錯誤，請稍後再試');
     }
 
     /** 上傳音檔到 S3（LINE 專用流程），回傳檔名；失敗時清除錄音狀態並往上丟。 */
