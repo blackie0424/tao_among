@@ -8,23 +8,22 @@ use App\Http\Requests\UploadAudioRequest;
 use App\Http\Requests\UploadImageRequest;
 use App\Models\Fish;
 use App\Models\FishAudio;
+use App\Services\AudioConfirmService;
 use App\Services\UploadService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class UploadController extends Controller
 {
     protected $storageService;
 
-    protected $fishAudio;
-
-    public function __construct(StorageServiceInterface $storageService, FishAudio $fishAudio)
+    public function __construct(StorageServiceInterface $storageService)
     {
         $this->storageService = $storageService;
-        $this->fishAudio = $fishAudio;
     }
 
     /**
@@ -483,55 +482,47 @@ class UploadController extends Controller
             'filename.required' => '請提供音訊檔案名稱。',
         ]);
 
-        $path = $this->storageService->getAudioFolder();
-        $originalName = $request->input('filename');
-        $ext = pathinfo($originalName, PATHINFO_EXTENSION);
+        // 只簽名，不寫任何資料表；音檔簽到登入者專屬的暫存資料夾，確認（confirmAudio）時才複製到正式資料夾並寫入
+        if (! Fish::find($request->route('id'))) {
+            return response()->json(['message' => '魚類資料不存在'], 404);
+        }
 
-        $uniqueName = \Illuminate\Support\Str::uuid()->toString().($ext ? '.'.$ext : '');
-        $filePath = $path.'/'.$uniqueName;
+        $ext = strtolower(pathinfo($request->input('filename'), PATHINFO_EXTENSION));
+        $uniqueName = Str::uuid()->toString().'.'.$ext;
+        $filePath = FishAudio::pendingPath($request->user()->id, $uniqueName);
 
-        $url = $this->storageService->createSignedUploadUrl($filePath);
-
-        // 確認簽名成功後才進行 DB 異動
+        $url = $this->storageService->createSignedUploadUrl($filePath, FishAudio::UPLOAD_TTL_SECONDS);
         if (! $url) {
             return response()->json(['message' => 'Failed to create signed upload URL'], 500);
         }
 
-        try {
-            DB::beginTransaction();
-
-            $fishId = $request->route('id');
-            $fish = Fish::find($fishId);
-
-            if (! $fish) {
-                DB::rollBack();
-
-                return response()->json(['message' => '魚類資料不存在'], 404);
-            }
-
-            $this->fishAudio->create([
-                'fish_id' => $fishId,
-                'name' => $uniqueName, // 檔案名稱（UUID.m4a）
-                'locate' => 'iraraley', // 地區名稱（預設 iraraley）
-            ]);
-
-            $fish->audio_filename = $uniqueName;
-            $fish->save();
-
-            DB::commit();
-        } catch (\Exception $e) {
-            if (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-
-            return response()->json(['message' => '儲存音訊 metadata 失敗'], 500);
-        }
-
-        // 回傳絕對 URL
         return response()->json([
             'url' => $url,
             'path' => $filePath,
             'filename' => $uniqueName,
         ]);
+    }
+
+    /**
+     * 確認網頁錄音：驗證暫存檔、複製到正式資料夾並寫入一筆新紀錄（同名稱同部落可並存多段）。
+     * POST /prefix/api/fish/{id}/audio/confirm
+     */
+    public function confirmAudio(Request $request, AudioConfirmService $confirmService, int $id)
+    {
+        $fish = Fish::findOrFail($id);
+        $data = $request->validate([
+            'filename' => ['required', 'string', 'regex:'.FishAudio::filenamePattern()],
+            'spoken_name' => ['required', 'string'],
+            'tribe' => ['required', Rule::in(config('fish_options.tribes', []))],
+            'duration_ms' => ['required', 'integer', 'min:1', 'max:'.FishAudio::MAX_DURATION_MS],
+        ]);
+
+        try {
+            $audio = $confirmService->confirm($fish, $request->user()->id, $data['filename'], $data['spoken_name'], $data['tribe'], $data['duration_ms']);
+        } catch (InvalidArgumentException $e) {
+            throw ValidationException::withMessages(['spoken_name' => $e->getMessage()]);
+        }
+
+        return response()->json(['id' => $audio->id, 'filename' => $audio->name, 'url' => $audio->url], 201);
     }
 }

@@ -86,4 +86,5 @@ Route::middleware(['auth:sanctum', 'editor'])->group(function () {
     Route::post('/upload/audio/sign', [UploadController::class, 'signPendingAudio']);
     Route::post('/storage/signed-upload-url', [UploadController::class, 'getSignedUploadUrl']);
     Route::post('/fish/{id}/storage/signed-upload-audio-url', [UploadController::class, 'getSignedUploadAudioUrl'])->whereNumber('id');
+    Route::post('/fish/{id}/audio/confirm', [UploadController::class, 'confirmAudio'])->whereNumber('id');
 });

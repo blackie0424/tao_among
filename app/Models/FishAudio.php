@@ -16,6 +16,18 @@ class FishAudio extends Model
 
     protected $table = 'fish_audios';
 
+    /** 錄音最長毫秒數（網頁與 LINE 共用，伺服器以送出的長度檢查） */
+    public const MAX_DURATION_MS = 5000;
+
+    /** 錄音檔大小上限（位元組）：2 MB */
+    public const MAX_BYTES = 2 * 1024 * 1024;
+
+    /** 網頁錄音檔可用的副檔名 */
+    public const EXTENSIONS = ['mp3', 'wav', 'm4a', 'webm'];
+
+    /** 暫存簽名網址的有效秒數 */
+    public const UPLOAD_TTL_SECONDS = 300;
+
     protected $fillable = ['fish_id', 'name', 'locate', 'spoken_name', 'recorded_by', 'duration'];
 
     // 錄音者只在田調人員專用的管理頁明確回傳，一般序列化（API、Inertia props）不輸出
@@ -36,9 +48,27 @@ class FishAudio extends Model
         });
     }
 
+    /** 登入者專屬的暫存路徑（bucket 的生命週期規則會自動清掉暫存檔，做法同 #157）。 */
+    public static function pendingPath(int $userId, string $filename): string
+    {
+        return config('storage.drivers.s3.folders.response_audio_pending').'/'.$userId.'/'.$filename;
+    }
+
+    /** 暫存檔名的格式：UUID 加白名單副檔名，不含任何路徑。 */
+    public static function filenamePattern(): string
+    {
+        return '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.('.implode('|', self::EXTENSIONS).')$/';
+    }
+
     public function newEloquentBuilder($query): FishAudioBuilder
     {
         return new FishAudioBuilder($query);
+    }
+
+    /** 錄音者（舊資料與 LINE 查無帳號時為空） */
+    public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 
     // 多對一關聯：一筆筆記屬於一隻魚

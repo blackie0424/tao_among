@@ -126,7 +126,8 @@ class FishAudioRecordingService
         ];
     }
 
-    private function resolveSpokenName(Fish $fish, ?string $spokenName): ?string
+    /** 名稱檢查與補齊（見 create 的說明）；不合法就丟 InvalidArgumentException。 */
+    public function resolveSpokenName(Fish $fish, ?string $spokenName): ?string
     {
         $names = $this->splitter->split($fish->name);
         if ($names === []) {

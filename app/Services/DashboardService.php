@@ -18,6 +18,9 @@ use Illuminate\Support\Collection;
  */
 class DashboardService
 {
+    /** 不屬於任何部落的錄音（空、supabase、unknown…）的統計名稱 */
+    private const UNLABELED_TRIBE = '未標部落';
+
     /**
      * 取得部落清單。
      * 以 config/fish_options.php 的 tribes 為主清單，
@@ -152,13 +155,26 @@ class DashboardService
 
         return [
             'total' => FishAudio::count(),
-            'by_locate' => FishAudio::selectRaw('locate, COUNT(*) as count')
-                ->groupBy('locate')
-                ->orderByDesc('count')
-                ->get()
-                ->map(fn ($row) => ['locate' => $row->locate ?: '未分類', 'count' => $row->count])
-                ->values(),
+            'by_locate' => $this->audioCountsByTribe(),
         ];
+    }
+
+    /**
+     * 各部落的錄音筆數；不在 config 部落清單內的值（空、supabase、unknown、未知字串）合併為「未標部落」。
+     *
+     * @return Collection<int, array{locate: string, count: int}>
+     */
+    private function audioCountsByTribe(): Collection
+    {
+        $tribes = config('fish_options.tribes', []);
+
+        return FishAudio::selectRaw('locate, COUNT(*) as count')
+            ->groupBy('locate')
+            ->get()
+            ->groupBy(fn ($row) => in_array($row->locate, $tribes, true) ? $row->locate : self::UNLABELED_TRIBE)
+            ->map(fn ($rows, $locate) => ['locate' => $locate, 'count' => $rows->sum('count')])
+            ->sortByDesc('count')
+            ->values();
     }
 
     /**

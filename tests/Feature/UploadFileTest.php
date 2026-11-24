@@ -5,7 +5,6 @@ use App\Models\FishAudio;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Mockery\MockInterface;
 
 uses(RefreshDatabase::class);
 
@@ -314,67 +313,27 @@ it('取得 storage image 檔案簽名上傳網址失敗，副檔名錯誤', func
         ]);
 });
 
-it('確認聲音或圖像的檔案上傳後，資料是否能寫入資料庫', function () {
-    $fishId = 999;
+it('取得音訊簽名上傳網址只簽名到登入者的暫存資料夾，不寫任何資料也不動主要發音', function () {
+    $user = auth()->user();
+    $fish = Fish::factory()->create(['audio_filename' => 'main.m4a']);
 
-    $fish = Fish::factory()->create([
-        'id' => $fishId,
-        'image' => 'test-image.jpg',
-        'audio_filename' => 'test-audio.mp3',
+    $storage = $this->mock(\App\Contracts\StorageServiceInterface::class)->shouldIgnoreMissing();
+    $storage->shouldReceive('createSignedUploadUrl')
+        ->once()
+        ->with(\Mockery::on(fn ($path) => str_starts_with($path, FishAudio::pendingPath($user->id, '')) && str_ends_with($path, '.m4a')), FishAudio::UPLOAD_TTL_SECONDS)
+        ->andReturn('https://mocked-url-for-pending');
+
+    $response = $this->postJson("/prefix/api/fish/{$fish->id}/storage/signed-upload-audio-url", [
+        'filename' => 'test-audio.m4a',
     ]);
 
-    // 1. 使用 spy() 綁定服務，並將實例儲存在 $serviceSpy 中
-    $serviceSpy = $this->spy(\App\Contracts\StorageServiceInterface::class);
-
-    // 2. 告訴 $serviceSpy，當它收到 'createSignedUploadUrl' 呼叫時，要回傳什麼？
-    $serviceSpy->shouldReceive('createSignedUploadUrl')
-        ->andReturn('https://mocked-url-for-db-test');
-
-    // 3. 執行請求 (Action)
-    $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
-        'filename' => 'test-audio.mp3',
-    ]);
-
-    // 4. 斷言狀態碼
-    $response->assertStatus(200);
+    $response->assertStatus(200)->assertJsonPath('url', 'https://mocked-url-for-pending');
+    expect($response->json('filename'))->toMatch(FishAudio::filenamePattern());
+    $this->assertDatabaseCount('fish_audios', 0);
+    expect($fish->fresh()->audio_filename)->toBe('main.m4a');
 });
 
-it('當聲音檔案上傳後，要將聲音檔案的資料寫入資料表發生錯誤時，應在 DB 交易失敗時，確保資料庫回滾且不新增任何紀錄', function () {
-
-    $fishId = 999;
-
-    $fish = Fish::factory()->create([
-        'id' => $fishId,
-        'image' => 'test-image.jpg',
-        'audio_filename' => 'test-audio.mp3',
-    ]);
-
-    // 1. 使用 spy() 綁定服務，並將實例儲存在 $serviceSpy 中
-    $serviceSpy = $this->spy(\App\Contracts\StorageServiceInterface::class);
-
-    // 2. 服務模擬：設定 spy (此處不影響測試，但保留以保持完整性)
-    $serviceSpy->shouldReceive('createSignedUploadUrl')
-        ->andReturn('https://mocked-url-for-rollback');
-
-    // // 3. 模擬失敗：強制 FishAudio::create 拋出例外
-    $this->partialMock(FishAudio::class, function (MockInterface $mock) {
-        // 🎯 這裡使用 $mock 變數來設定 shouldReceive
-        $mock->shouldReceive('create')
-            ->once()
-            ->andThrow(new \Exception('Simulated rollback failure'));
-    });
-    // // 4. 執行請求與斷言狀態碼 (Action & Status Assertion)
-    $response = $this->postJson("/prefix/api/fish/{$fishId}/storage/signed-upload-audio-url", [
-        'filename' => 'test-audio.mp3',
-    ]);
-
-    $response->assertStatus(500); // 期望收到 500 錯誤
-
-    // 預期 JSON 訊息片段 (來自 Controller 的 catch 區塊)
-    $response->assertJsonFragment([
-        'message' => '儲存音訊 metadata 失敗',
-    ]);
-    // 5. 確認資料庫中沒有新增任何 FishAudio 紀錄
-    $this->assertDatabaseCount('fish_audios', 0);
-
+it('取得音訊簽名上傳網址時魚不存在回 404', function () {
+    $this->postJson('/prefix/api/fish/9999/storage/signed-upload-audio-url', ['filename' => 'a.m4a'])
+        ->assertStatus(404);
 });
