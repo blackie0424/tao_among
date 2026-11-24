@@ -1,23 +1,31 @@
 <template>
   <Head title="魚島" />
 
-  <main class="mx-auto min-h-screen w-full max-w-md px-4 py-8">
-    <h1 class="text-elder-title font-bold">魚島</h1>
-    <dl class="mt-6 space-y-4 text-elder-body">
-      <div>
-        <dt class="text-elder-aux">你的名字</dt>
-        <dd class="text-elder-name font-bold">{{ character.name }}</dd>
-      </div>
-      <div>
-        <dt class="text-elder-aux">你的部落</dt>
-        <dd class="text-elder-name font-bold">{{ character.tribe }}</dd>
-      </div>
-    </dl>
-  </main>
+  <IslandLayout>
+    <template #header>
+      <h1 class="text-elder-name font-extrabold">魚島</h1>
+      <p class="rounded-island bg-white px-3 py-1.5 text-elder-aux">{{ character.name }}</p>
+    </template>
+
+    <section class="rounded-island bg-white p-4">
+      <dl class="space-y-4">
+        <div>
+          <dt class="text-elder-aux text-island-muted">你的名字</dt>
+          <dd class="text-elder-name font-extrabold">{{ character.name }}</dd>
+        </div>
+        <div>
+          <dt class="text-elder-aux text-island-muted">你的部落</dt>
+          <dd class="text-elder-name font-extrabold">{{ islandTribeLabel(character.tribe) }}</dd>
+        </div>
+      </dl>
+    </section>
+  </IslandLayout>
 </template>
 
 <script setup>
 import { Head } from '@inertiajs/vue3'
+import IslandLayout from '@/Layouts/IslandLayout.vue'
+import { islandTribeLabel } from '@/constants/island'
 
 defineProps({
   character: { type: Object, required: true },
