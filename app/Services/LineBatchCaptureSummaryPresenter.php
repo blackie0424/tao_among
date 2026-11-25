@@ -5,23 +5,23 @@ namespace App\Services;
 class LineBatchCaptureSummaryPresenter
 {
     /**
-     * @param string[] $images
-     * @param array{tribe?:?string,location?:?string,capture_method?:?string,capture_date?:?string,notes?:?string} $form
+     * @param  string[]  $images
+     * @param  array{tribe?:?string,location?:?string,capture_method?:?string,capture_date?:?string,notes?:?string}  $form
      * @return array{
      *   notice:?string,
      *   actions:array<int, array{label:string,data:string,display_text?:?string,style?:?string,color?:?string}>
      * }
      */
-    public function present(string $state, array $images, array $form): array
+    public function present(string $state, array $images, array $form, bool $allowSkipLocation = false): array
     {
         return [
             'notice' => $this->noticeFor($state, $images),
-            'actions' => $this->actionsFor($state, $images),
+            'actions' => $this->actionsFor($state, $images, $allowSkipLocation),
         ];
     }
 
     /**
-     * @param string[] $images
+     * @param  string[]  $images
      */
     private function noticeFor(string $state, array $images): ?string
     {
@@ -39,10 +39,10 @@ class LineBatchCaptureSummaryPresenter
     }
 
     /**
-     * @param string[] $images
+     * @param  string[]  $images
      * @return array<int, array{label:string,data:string,display_text?:?string,style?:?string,color?:?string}>
      */
-    private function actionsFor(string $state, array $images): array
+    private function actionsFor(string $state, array $images, bool $allowSkipLocation): array
     {
         return match ($state) {
             'waiting_images' => count($images) > 0 ? [
@@ -54,6 +54,7 @@ class LineBatchCaptureSummaryPresenter
             ],
             'awaiting_location_prompt', 'awaiting_location_input' => [
                 ['label' => '輸入捕獲地點', 'data' => 'action=prompt_batch_capture_location', 'display_text' => '輸入捕獲地點'],
+                ...($allowSkipLocation ? [['label' => '略過地點', 'data' => 'action=skip_batch_capture_location', 'display_text' => '略過地點', 'style' => 'secondary']] : []),
                 ['label' => '修改部落', 'data' => 'action=open_batch_capture_tribe_selector', 'display_text' => '修改捕獲部落', 'style' => 'secondary'],
                 ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄', 'style' => 'secondary'],
             ],

@@ -779,15 +779,42 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->assertSame([$existing->id, $existing->id], \App\Models\CaptureRecord::orderBy('id')->pluck('session_id')->all());
     }
 
-    public function test_confirm_manual_with_empty_location_creates_a_new_session_every_batch(): void
+    /** @param array<int, array<int, object>> $replies 每次回覆的訊息，由呼叫端的 mock 收集 */
+    private function walkManualFlowSkippingLocation(Fish $fish, array &$replies): void
+    {
+        $this->seedBatch($fish, 'waiting_tribe_selection', []);
+        $replies = [];
+
+        foreach ([
+            'action=select_batch_capture_tribe&tribe=ivalino',
+            'action=skip_batch_capture_location',
+            'action=open_batch_capture_method_selector',
+            'action=select_batch_capture_method&capture_method=mapazat',
+            'action=set_batch_capture_date&value=yesterday',
+            'action=skip_batch_capture_notes',
+        ] as $data) {
+            $this->invokeHandlePostback($this->makePostbackEvent($data));
+        }
+
+        // 選完部落的摘要有「略過地點」；略過後地點顯示未填寫
+        $this->assertContains('略過地點', $this->allButtonLabels($this->flexToArray($replies[0][0])['contents']));
+        $this->assertContains('地點：未填寫', $this->flattenTexts($this->flexToArray($replies[1][0])['contents']));
+        $this->assertSame('waiting_confirm', $this->batchState());
+
+        $this->invokeHandlePostback($this->makePostbackEvent('action=confirm_batch_capture_record'));
+    }
+
+    public function test_user_can_skip_location_in_the_manual_flow_and_each_batch_creates_a_new_session(): void
     {
         $fish = Fish::factory()->create();
-        $form = ['tribe' => 'ivalino', 'location' => '', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29'];
+        $replies = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->andReturnUsing(function ($token, $messages) use (&$replies) {
+                $replies[] = $messages;
+            });
 
-        $this->seedBatch($fish, 'waiting_confirm', $form);
-        $this->confirmAndCapture();
-        $this->seedBatch($fish, 'waiting_confirm', $form);
-        $this->confirmAndCapture();
+        $this->walkManualFlowSkippingLocation($fish, $replies);
+        $this->walkManualFlowSkippingLocation($fish, $replies);
 
         $this->assertSame(2, \App\Models\CaptureSession::count());
         $this->assertSame(0, \App\Models\Place::count());
@@ -798,6 +825,39 @@ class LineBatchCaptureFlowTest extends TestCase
             \App\Models\CaptureRecord::orderBy('id')->pluck('session_id')->all()
         );
         $this->assertNull(\App\Models\CaptureRecord::first()->location);
+    }
+
+    public function test_renaming_the_selected_sessions_place_before_confirm_asks_to_reconfirm(): void
+    {
+        $fish = Fish::factory()->create();
+        $places = app(\App\Services\PlaceService::class);
+        $place = $places->resolveName('Vanes', 'ivalino');
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29', 'place_id' => $place->id,
+        ]);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'session_id' => $session->id, 'tribe' => 'ivalino', 'location' => 'Vanes',
+            'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $places->update($place, ['name' => 'Vanes 新名', 'tribe' => 'ivalino']);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+        $this->assertStringContainsString('情境已更新，請重新確認', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertStringContainsString('Vanes 新名', json_encode($replied, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_create_fish_flow_keeps_location_required_without_skip_option(): void
+    {
+        $flow = new \App\Services\LineCreateFish\LineCreateFishFormFlowService(
+            $this->mockLineBotService,
+            app(\App\Services\CaptureRecordBatchService::class),
+            app(\App\Services\LineBatchCaptureMessageBuilder::class),
+        );
+
+        $this->assertFalse($flow->allowsEmptyLocation());
+        $this->assertTrue(app(\App\Services\LineBatchCaptureFlowService::class)->allowsEmptyLocation());
     }
 
     public function test_manual_confirm_still_rejects_an_invalid_date_when_location_is_empty(): void

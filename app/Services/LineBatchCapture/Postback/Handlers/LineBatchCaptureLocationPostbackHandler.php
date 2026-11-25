@@ -10,7 +10,7 @@ class LineBatchCaptureLocationPostbackHandler implements LineBatchCapturePostbac
 {
     public function actions(): array
     {
-        return ['prompt_batch_capture_location'];
+        return ['prompt_batch_capture_location', 'skip_batch_capture_location'];
     }
 
     public function protectedActions(): array
@@ -23,6 +23,17 @@ class LineBatchCaptureLocationPostbackHandler implements LineBatchCapturePostbac
         $form = $flow->getForm($context->userId());
         if (empty($form['tribe'])) {
             $flow->replySummary($context->replyToken(), $context->userId());
+
+            return;
+        }
+
+        if ($context->action() === 'skip_batch_capture_location') {
+            if ($flow->allowsEmptyLocation()) {
+                $flow->updateForm($context->userId(), ['location' => '']);
+                $flow->putState($context->userId(), 'awaiting_method_prompt');
+            }
+            $flow->replySummary($context->replyToken(), $context->userId());
+
             return;
         }
 

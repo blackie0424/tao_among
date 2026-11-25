@@ -262,7 +262,7 @@ class LineBatchCaptureFlowService
 
         $this->lineMessagingClient->replyMessage($replyToken, [
             ...$this->prefixMessages($prefix),
-            $this->lineBatchCaptureReplyBuilder()->buildSummaryMessage($fish, $images, $form, $state),
+            $this->lineBatchCaptureReplyBuilder()->buildSummaryMessage($fish, $images, $form, $state, $this->allowsEmptyLocation()),
         ]);
     }
 
@@ -316,6 +316,12 @@ class LineBatchCaptureFlowService
     /**
      * @return array<int, array{session_id:int,tribe:string,location:string,capture_method:string,capture_date:string}>
      */
+    /** 手動填寫時可以略過地點（情境允許沒有地點）；建立魚流程維持地點必填 */
+    public function allowsEmptyLocation(): bool
+    {
+        return true;
+    }
+
     protected function recentPickerSessions(): array
     {
         return array_map(fn (array $session) => [

@@ -108,6 +108,11 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
     /**
      * 建立魚流程維持舊的寫入（不掛情境、地點必填），情境卡沿用由舊紀錄湊出的最近捕獲資訊。
      */
+    public function allowsEmptyLocation(): bool
+    {
+        return false;
+    }
+
     protected function recentPickerSessions(): array
     {
         return array_slice($this->captureSessionService()->getRecentSessions(), 0, 3);

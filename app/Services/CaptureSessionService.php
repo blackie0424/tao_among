@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\CaptureSessionServiceInterface;
 use App\Models\CaptureRecord;
 use App\Models\CaptureSession;
+use App\Models\Place;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -132,11 +133,21 @@ class CaptureSessionService implements CaptureSessionServiceInterface
     public function findAttributes(int $sessionId, bool $lockForUpdate = false): ?array
     {
         $session = CaptureSession::query()
-            ->with('place')
             ->when($lockForUpdate, fn ($query) => $query->lockForUpdate())
             ->find($sessionId);
 
-        return $session ? $this->recordAttributes($session) : null;
+        if (! $session) {
+            return null;
+        }
+
+        // 情境的地點取自地名；鎖住地名列後才讀，改名不會在比對與寫入之間插進來
+        if ($lockForUpdate && $session->place_id) {
+            Place::query()->lockForUpdate()->find($session->place_id);
+        }
+
+        $session->load('place');
+
+        return $this->recordAttributes($session);
     }
 
     /** @param array{capture_date:string,tribe:string,capture_method:string,location?:?string}|null $legacyCombo */

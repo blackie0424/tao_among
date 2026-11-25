@@ -22,7 +22,7 @@ class LineBatchCaptureMessageBuilder
             '魚類：'.$fish->name,
             '照片數量：'.count($images).' 張',
             '部落：'.($form['tribe'] ?? '未選擇'),
-            '地點：'.($form['location'] ?? '未填寫'),
+            '地點：'.(filled($form['location'] ?? null) ? $form['location'] : '未填寫'),
             '捕獲方式：'.$captureMethodLabel,
             '日期：'.($form['capture_date'] ?? '未選擇'),
             '備註：'.($form['notes'] ?? '未填寫'),

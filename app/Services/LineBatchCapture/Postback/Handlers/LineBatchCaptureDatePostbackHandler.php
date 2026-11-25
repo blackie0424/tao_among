@@ -28,17 +28,20 @@ class LineBatchCaptureDatePostbackHandler implements LineBatchCapturePostbackHan
             $form = $flow->getForm($context->userId());
             if (empty($form['capture_method'])) {
                 $flow->replySummary($context->replyToken(), $context->userId());
+
                 return;
             }
 
             $flow->putState($context->userId(), 'waiting_date_selection');
             $flow->replyDateSelectionCard($context->replyToken());
+
             return;
         }
 
         if ($context->action() === 'request_manual_batch_capture_date') {
             $flow->putState($context->userId(), 'awaiting_date_manual_input');
             $flow->replyText($context->replyToken(), '請輸入捕獲日期，格式為 YYYY-MM-DD：');
+
             return;
         }
 
@@ -48,8 +51,9 @@ class LineBatchCaptureDatePostbackHandler implements LineBatchCapturePostbackHan
             default => null,
         };
 
-        if (!$captureDate) {
+        if (! $captureDate) {
             $flow->replyDateSelectionCard($context->replyToken(), '❌ 日期選項無效，請重新選擇。');
+
             return;
         }
 
