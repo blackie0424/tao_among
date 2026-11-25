@@ -35,7 +35,10 @@ class FishTribeResponse extends Model
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     public const UNNAMED_FISH_NAME = '我不知道';
 
-    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
+    /** 魚島一次送出一題時可以送的題目（欄位名），依作答順序 */
+    public const ISLAND_QUESTIONS = ['name', 'food_category', 'processing_method'];
+
+    protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'processing_method', 'respondent_tribe', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
 
     public function user(): BelongsTo
     {
@@ -118,7 +121,8 @@ class FishTribeResponse extends Model
 
                 return null;
             }
-            if ($row === null || (! $hasNewContent && $row->recording_filename === null)) {
+            // 魚島答的處理方式也算這一筆還有內容：among 魚頁看不到它，清空叫法與分類時不擋
+            if ($row === null || (! $hasNewContent && $row->recording_filename === null && $row->processing_method === null)) {
                 throw ValidationException::withMessages(['name' => self::EMPTY_RESPONSE_MESSAGE]);
             }
             $replaced = $recording === null ? null : $row->recording_filename;
@@ -129,8 +133,45 @@ class FishTribeResponse extends Model
     }
 
     /**
+     * 魚島一次送出一題：只改這一題的欄位，其餘題目與錄音維持原值；
+     * 每次都把回答者自己的部落更新成送出當下角色的部落。
+     *
+     * 新增與鎖定的做法同 submit（先 INSERT IGNORE，已存在才鎖住該列更新），
+     * 所以同一欄位是後取得鎖的生效，不同欄位（含 among 魚頁同時送出的叫法、分類）彼此保留。
+     * 叫法換成同一種寫法時保留原寫法與送出時間（同 submit）。
+     *
+     * @param  string  $question  ISLAND_QUESTIONS 之一（呼叫端已驗證）
+     */
+    public static function submitQuestion(array $keys, string $question, string $value, string $respondentTribe): void
+    {
+        $newRow = [
+            ...$keys,
+            $question => $value,
+            'name_submitted_at' => $question === 'name' ? self::submissionTime() : null,
+            'respondent_tribe' => $respondentTribe,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+        if (self::insertOrIgnore([$newRow]) === 1) {
+            return;
+        }
+
+        DB::transaction(function () use ($keys, $question, $value, $respondentTribe, $newRow) {
+            $row = self::where($keys)->lockForUpdate()->first();
+            // 先前的新增因為已存在而被略過，但那一筆在這之間被刪除：照鎖的先後，現在重新新增
+            if ($row === null) {
+                self::insert($newRow);
+
+                return;
+            }
+            $answer = $question === 'name' ? self::nameAttributes($row, $value) : [$question => $value];
+            $row->fill([...$answer, 'respondent_tribe' => $respondentTribe])->save();
+        }, attempts: self::DEADLOCK_RETRY_ATTEMPTS);
+    }
+
+    /**
      * 刪除作者自己在某部落的錄音。先刪檔案，成功才改資料表（失敗時資料表不變，可重試）；
-     * 刪後叫法、分類、錄音皆空就連整筆回答一起刪。
+     * 刪後叫法、分類、處理方式、錄音皆空就連整筆回答一起刪。
      *
      * @param  callable(string): bool  $deleteFile  刪除正式資料夾裡指定檔名的檔案
      * @return bool 檔案刪除失敗時為 false
@@ -145,7 +186,7 @@ class FishTribeResponse extends Model
             if (! $deleteFile($row->recording_filename)) {
                 return false;
             }
-            if ($row->name === null && $row->food_category === null) {
+            if ($row->name === null && $row->food_category === null && $row->processing_method === null) {
                 $row->delete();
             } else {
                 $row->update(['recording_filename' => null, 'recording_submitted_at' => null, 'recording_seconds' => null]);

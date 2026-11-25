@@ -33,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
     /** 魚島建角：所有沒登入的人合計每分鐘可送出的次數（擋偽造來源位址的灌水） */
     private const ISLAND_CHARACTER_GUESTS_PER_MINUTE = 60;
 
+    /** 魚島作答：同一個帳號每分鐘可送出的次數（作答一定已有角色、已登入） */
+    private const ISLAND_RESPONSE_PER_MINUTE = 30;
+
     /** Cloudflare 放真正訪客位址的標頭 */
     private const CLOUDFLARE_VISITOR_HEADER = 'CF-Connecting-IP';
 
@@ -88,6 +91,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * 魚島建角的限流：已登入以帳號計；沒登入以訪客來源位址計，另有全站合計上限。
      * 只用在這一條路由，不改全站對來源位址的判斷。
+     * 魚島作答的限流：一律以帳號計。
      */
     private function configureIslandRateLimiting(): void
     {
@@ -101,6 +105,11 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(self::ISLAND_CHARACTER_PER_MINUTE)->by('visitor:'.$this->visitorAddress($request)),
             ];
         });
+
+        // 限流在路由的角色檢查之前執行；沒登入的人不限流，接著會被導到角色設定頁
+        RateLimiter::for('island-response', fn (Request $request) => $request->user() === null
+            ? Limit::none()
+            : Limit::perMinute(self::ISLAND_RESPONSE_PER_MINUTE)->by('user:'.$request->user()->id));
     }
 
     /**
