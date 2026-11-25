@@ -201,3 +201,109 @@ it('有魚但頁碼超過最後一頁是「沒有更多了」', function () {
             ->where('empty_reason', 'no_more')
             ->where('has_more_pages', false));
 });
+
+// AC 3（規格修訂第 1 次）：叫法多數與回答者
+function islandNamedAnswers(Fish $fish, string $tribe, array $names): array
+{
+    return array_map(function (string $name) use ($fish, $tribe) {
+        $user = User::factory()->create();
+        islandAnswer($user, $fish, $tribe, ['name' => $name]);
+
+        return $user;
+    }, $names);
+}
+
+function tribeCard(string $tribe = 'yayo'): array
+{
+    $props = test()->get("/island/tribes/{$tribe}")->assertOk()->inertiaProps();
+
+    return $props['fish'][0];
+}
+
+it('填叫法 3 人都同一種寫法：大家叫它那個寫法（大小寫、前後空白算同一種，用最早送出的寫法）', function () {
+    $fish = Fish::factory()->create();
+    islandNamedAnswers($fish, 'yayo', ['Ilek', ' ilek ', 'ILEK']);
+    $this->actingAs(islandPlayer());
+
+    expect(tribeCard()['majority_name'])->toBe('Ilek');
+});
+
+it('填叫法不到 3 人：沒有多數', function () {
+    $fish = Fish::factory()->create();
+    islandNamedAnswers($fish, 'yayo', ['ilek', 'ilek']);
+    $this->actingAs(islandPlayer());
+
+    expect(tribeCard())->toMatchArray(['majority_name' => null, 'responder_count' => 2]);
+});
+
+it('第一名與第二名平手：沒有多數', function () {
+    $fish = Fish::factory()->create();
+    islandNamedAnswers($fish, 'yayo', ['ilek', 'ilek', 'savali', 'savali']);
+    $this->actingAs(islandPlayer());
+
+    expect(tribeCard()['majority_name'])->toBeNull();
+});
+
+it('2 對 1 且填叫法共 3 人：第一名是多數', function () {
+    $fish = Fish::factory()->create();
+    islandNamedAnswers($fish, 'yayo', ['savali', 'ilek', 'ilek']);
+    $this->actingAs(islandPlayer());
+
+    expect(tribeCard()['majority_name'])->toBe('ilek');
+});
+
+it('只答分類或只有錄音的人不算進叫法人數；別的部落的叫法不算', function () {
+    $fish = Fish::factory()->create();
+    islandNamedAnswers($fish, 'yayo', ['ilek', 'ilek']);
+    islandAnswer(User::factory()->create(), $fish, 'yayo', ['food_category' => 'oyod']);
+    islandAnswer(User::factory()->create(), $fish, 'yayo', ['recording_filename' => 'v.webm', 'recording_seconds' => 2]);
+    islandNamedAnswers($fish, 'iratay', ['ilek']);
+    $this->actingAs(islandPlayer());
+
+    expect(tribeCard())->toMatchArray(['majority_name' => null, 'responder_count' => 4]);
+});
+
+it('回答者列最早回答的前 2 位角色名；沒有魚島角色的回答者名字為空', function () {
+    $fish = Fish::factory()->create();
+    $first = islandPlayer('yayo', '阿海');
+    $amongUser = User::factory()->create(['name' => '帳號名不顯示']);
+    $third = islandPlayer('iratay', 'Siyapen');
+    islandAnswer($first, $fish, 'yayo', ['name' => 'ilek']);
+    islandAnswer($amongUser, $fish, 'yayo', ['food_category' => 'oyod']);
+    islandAnswer($third, $fish, 'yayo', ['name' => 'ilek']);
+    $this->actingAs(islandPlayer('yayo', '看的人'));
+
+    expect(tribeCard()['first_responders'])->toBe([['name' => '阿海'], ['name' => null]]);
+});
+
+it('沒人回答的魚：沒有多數、回答者清單為空', function () {
+    Fish::factory()->create();
+    $this->actingAs(islandPlayer());
+
+    expect(tribeCard())->toMatchArray(['responder_count' => 0, 'majority_name' => null, 'first_responders' => []]);
+});
+
+// AC 7：進度
+it('進度：這個部落有人說過的魚條數／未軟刪除的魚總數，不分頁、軟刪除的魚不算', function () {
+    $fishes = Fish::factory()->count(22)->create();
+    islandAnswer(User::factory()->create(), $fishes[0], 'yayo', ['name' => 'ilek']);
+    islandAnswer(User::factory()->create(), $fishes[0], 'yayo', ['food_category' => 'oyod']);
+    islandAnswer(User::factory()->create(), $fishes[21], 'yayo', ['recording_filename' => 'v.webm', 'recording_seconds' => 2]);
+    islandAnswer(User::factory()->create(), $fishes[5], 'iratay', ['name' => 'ilek']);
+    islandAnswer(User::factory()->create(), $fishes[6], 'yayo', ['name' => 'ilek']);
+    $fishes[6]->delete();
+    $this->actingAs(islandPlayer());
+
+    $this->get('/island/tribes/yayo')
+        ->assertInertia(fn ($page) => $page->where('progress', ['answered' => 2, 'total' => 21]));
+});
+
+it('進度：沒有人說過時是 0 / Y；沒有魚時 total 為 0', function () {
+    $this->actingAs(islandPlayer());
+    $this->get('/island/tribes/yayo')
+        ->assertInertia(fn ($page) => $page->where('progress', ['answered' => 0, 'total' => 0]));
+
+    Fish::factory()->count(3)->create();
+    $this->get('/island/tribes/yayo')
+        ->assertInertia(fn ($page) => $page->where('progress', ['answered' => 0, 'total' => 3]));
+});

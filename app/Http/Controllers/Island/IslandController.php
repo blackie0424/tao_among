@@ -19,6 +19,9 @@ class IslandController extends Controller
 {
     public const FISH_PER_PAGE = 20;
 
+    /** 這個部落還沒有人回答的魚卡 */
+    private const UNANSWERED_CARD = ['responder_count' => 0, 'majority_name' => null, 'first_responders' => []];
+
     /** session 裡記住的所在部落：['character_id' => 角色編號, 'tribe' => 部落代碼] */
     private const LOCATION_SESSION_KEY = 'island.location';
 
@@ -42,7 +45,7 @@ class IslandController extends Controller
         $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
 
         $page = Fish::with('displayCaptureRecord')->orderBy('id')->paginate(self::FISH_PER_PAGE);
-        $counts = FishTribeResponse::responderCountsInTribe($page->getCollection()->pluck('id')->all(), $tribe);
+        $cards = FishTribeResponse::islandCardsInTribe($page->getCollection()->pluck('id')->all(), $tribe);
 
         return Inertia::render('Island/Tribe', [
             'character' => $this->characterProps($character),
@@ -51,11 +54,15 @@ class IslandController extends Controller
                 'id' => $fish->id,
                 'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,
                 'image_url' => $fish->display_image_url,
-                'responder_count' => $counts[$fish->id] ?? 0,
+                ...($cards[$fish->id] ?? self::UNANSWERED_CARD),
             ])->values(),
             'page' => $page->currentPage(),
             'has_more_pages' => $page->hasMorePages(),
             'empty_reason' => $this->emptyReason($page),
+            'progress' => [
+                'answered' => FishTribeResponse::answeredFishCountInTribe($tribe),
+                'total' => $page->total(),
+            ],
         ]);
     }
 

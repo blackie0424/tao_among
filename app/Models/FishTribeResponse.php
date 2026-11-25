@@ -35,6 +35,12 @@ class FishTribeResponse extends Model
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     public const UNNAMED_FISH_NAME = '我不知道';
 
+    /** 叫法要有這麼多人填，才可能標「多數」 */
+    private const MAJORITY_MIN_RESPONDERS = 3;
+
+    /** 魚島魚卡上列出的回答者人數（其餘以「等 N 人」表示） */
+    private const ISLAND_CARD_RESPONDERS = 2;
+
     protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
 
     public function user(): BelongsTo
@@ -246,21 +252,37 @@ class FishTribeResponse extends Model
     }
 
     /**
-     * 一批魚在某個部落各有幾個不同使用者回答過（只答叫法、分類或錄音任一項都算）。
-     * 沒有人回答的魚不在結果裡。
+     * 魚島部落頁的魚卡彙總：一批魚在某個部落的回答人數（只答叫法、分類或錄音任一項都算）、叫法多數、
+     * 最早回答的前 ISLAND_CARD_RESPONDERS 位回答者（魚島角色名；沒有魚島角色為 null）。
+     * 同一人同魚同部落只有一筆（唯一鍵），所以列數＝人數。沒有人回答的魚不在結果裡。
      *
      * @param  list<int>  $fishIds
-     * @return array<int, int> fish_id => 人數
+     * @return array<int, array{responder_count: int, majority_name: string|null, first_responders: list<array{name: string|null}>}>
      */
-    public static function responderCountsInTribe(array $fishIds, string $tribe): array
+    public static function islandCardsInTribe(array $fishIds, string $tribe): array
     {
-        return self::whereIn('fish_id', $fishIds)
-            ->where('tribe', $tribe)
+        return self::whereIn('fish_tribe_responses.fish_id', $fishIds)
+            ->where('fish_tribe_responses.tribe', $tribe)
+            ->leftJoin('island_characters', 'island_characters.user_id', '=', 'fish_tribe_responses.user_id')
+            ->select('fish_tribe_responses.*', 'island_characters.name as character_name')
+            ->get()
             ->groupBy('fish_id')
-            ->selectRaw('fish_id, COUNT(DISTINCT user_id) AS responders')
-            ->pluck('responders', 'fish_id')
-            ->map(fn ($count) => (int) $count)
+            ->map(fn ($rows) => [
+                'responder_count' => $rows->count(),
+                'majority_name' => self::majorityName($rows->sortBy(fn (self $row) => [$row->name_submitted_at, $row->id])->values()),
+                'first_responders' => $rows->sortBy(fn (self $row) => [$row->created_at, $row->id])
+                    ->take(self::ISLAND_CARD_RESPONDERS)
+                    ->map(fn (self $row) => ['name' => $row->character_name])
+                    ->values()
+                    ->all(),
+            ])
             ->all();
+    }
+
+    /** 某個部落有人回答過的魚條數（只算未軟刪除的魚）。 */
+    public static function answeredFishCountInTribe(string $tribe): int
+    {
+        return self::where('tribe', $tribe)->whereHas('fish')->distinct()->count('fish_id');
     }
 
     /**
@@ -284,6 +306,23 @@ class FishTribeResponse extends Model
      */
     private static function groupNames($rows, ?int $viewerId): array
     {
+        return array_map(fn (array $group) => [
+            'name' => $group['name'],
+            'count' => $group['count'],
+            'recordings' => self::recordingClips(collect($group['rows'])->filter(
+                fn (self $row) => $row->recording_filename !== null && $row->user_id !== $viewerId
+            )),
+        ], self::spellingGroups($rows));
+    }
+
+    /**
+     * 依寫法分組（沒填叫法的不算）：每組的寫法取最先出現的那一筆，人多者在前、同數保留先出現的順序。
+     * $rows 需已依叫法送出時間排序。
+     *
+     * @return list<array{name: string, count: int, rows: list<self>}>
+     */
+    private static function spellingGroups($rows): array
+    {
         $groups = [];
         foreach ($rows as $row) {
             $name = trim((string) $row->name);
@@ -293,20 +332,31 @@ class FishTribeResponse extends Model
             $key = self::spellingKey($name);
             $groups[$key] ??= ['name' => $name, 'count' => 0, 'rows' => []];
             $groups[$key]['count']++;
-            if ($row->recording_filename !== null && $row->user_id !== $viewerId) {
-                $groups[$key]['rows'][] = $row;
-            }
+            $groups[$key]['rows'][] = $row;
         }
 
         // PHP 的 usort 是穩定排序，同人數時保留先出現（最早送出）的順序
         $groups = array_values($groups);
         usort($groups, fn ($a, $b) => $b['count'] <=> $a['count']);
 
-        return array_map(fn (array $group) => [
-            'name' => $group['name'],
-            'count' => $group['count'],
-            'recordings' => self::recordingClips(collect($group['rows'])),
-        ], $groups);
+        return $groups;
+    }
+
+    /**
+     * 叫法的多數：填叫法的人數達 MAJORITY_MIN_RESPONDERS，且第一名嚴格多於第二名；否則 null。
+     * $rows 是同一條魚、同一個部落的回答，需已依叫法送出時間排序。魚島部落頁與作答頁共用。
+     */
+    public static function majorityName($rows): ?string
+    {
+        $groups = self::spellingGroups($rows);
+        $answered = array_sum(array_column($groups, 'count'));
+        if ($answered < self::MAJORITY_MIN_RESPONDERS) {
+            return null;
+        }
+        $first = $groups[0]['count'];
+        $second = $groups[1]['count'] ?? 0;
+
+        return $first > $second ? $groups[0]['name'] : null;
     }
 
     /** @return list<array{recording_url: string, recording_seconds: int|null}> 依錄音送出時間（相同時依編號）由早到晚 */
