@@ -299,8 +299,10 @@ class FishTribeResponse extends Model
             'processing_method' => config('fish_options.response_processing_methods'),
         ];
 
-        return array_map(function (string $question) use ($rows, $responders, $mine, $fixedOptions, $tribe, $fishName) {
-            $result = self::islandResult($rows, $responders, $question, $fixedOptions[$question] ?? [], $tribe);
+        $formalName = $fishName === self::UNNAMED_FISH_NAME ? [] : [$fishName];
+
+        return array_map(function (string $question) use ($rows, $responders, $mine, $fixedOptions, $formalName, $tribe, $fishName) {
+            $result = self::islandResult($rows, $responders, $question, $fixedOptions[$question] ?? $formalName, $tribe);
             $options = $fixedOptions[$question] ?? self::islandNameOptions($fishName, array_column($result['choices'], 'value'));
 
             return ['key' => $question, 'options' => $options, 'my_answer' => $mine?->{$question}, 'result' => $result];
@@ -322,17 +324,20 @@ class FishTribeResponse extends Model
 
     /**
      * 一題的結果：選項人數（含訪客、別部落與沒有魚島角色的人）、其中本部落人數、多數與回答者清單。
-     * 固定選項的題目列出全部選項（0 人也列）；叫法只列有人答的寫法，人數多者在前。
+     * $options 先列出（0 人也列）：固定選項的題目是全部選項，叫法是正式魚名；叫法另列有人答的寫法，人數多者在前。
+     * 叫法「我不知道」不是一種寫法（among 魚頁可能送出），不列、不算人數。
      */
     private static function islandResult($rows, array $responders, string $question, array $options, string $tribe): array
     {
-        $answered = $rows->filter(fn (self $row) => trim((string) $row->{$question}) !== '');
+        $answered = $rows->filter(fn (self $row) => trim((string) $row->{$question}) !== ''
+            && ($question !== 'name' || ! self::sameSpelling($row->name, self::UNNAMED_FISH_NAME)));
+        $keyOf = fn (string $value) => $question === 'name' ? self::spellingKey($value) : $value;
         $groups = [];
         foreach ($options as $option) {
-            $groups[$option] = ['value' => $option, 'responders' => []];
+            $groups[$keyOf($option)] = ['value' => $option, 'responders' => []];
         }
         foreach ($answered as $row) {
-            $key = $question === 'name' ? self::spellingKey($row->name) : $row->{$question};
+            $key = $keyOf($row->{$question});
             $groups[$key] ??= ['value' => trim($row->{$question}), 'responders' => []];
             $groups[$key]['responders'][] = $responders[$row->id];
         }

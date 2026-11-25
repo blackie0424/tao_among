@@ -510,7 +510,7 @@ it('三題分開算：沒填那一題的人不算進該題人數', function () {
 });
 
 it('叫法的多數：同一種寫法合併計算，依人數多到少列出', function () {
-    $fish = Fish::factory()->create();
+    $fish = Fish::factory()->create(['name' => 'dalakan']);
     foreach (['arayo', 'ARAYO ', 'dalakan', 'arayo'] as $i => $name) {
         islandAnswerRow(answeringPlayer('yayo', "人{$i}"), $fish, 'yayo', ['name' => $name]);
     }
@@ -619,4 +619,26 @@ it('下一條魚＝編號比這條大、未軟刪除的魚裡最小的；最後�
 
     islandPage($player, $current, 'yayo')->assertInertia(fn ($page) => $page->where('next_fish_id', $next->id));
     islandPage($player, $next, 'yayo')->assertInertia(fn ($page) => $page->where('next_fish_id', null));
+});
+
+it('among 送出的叫法「我不知道」不列進魚島叫法選項、不算進叫法人數與多數', function () {
+    $fish = Fish::factory()->create(['name' => 'dalakan']);
+    foreach (['甲', '乙', '丙'] as $name) {
+        $user = answeringPlayer('yayo', $name);
+        test()->actingAs($user)->post("/fish/{$fish->id}/responses", ['tribe' => 'yayo', 'name' => ' 我不知道', 'food_category' => 'oyod'])->assertSessionHasNoErrors();
+    }
+
+    $question = islandQuestion(answeringPlayer(), $fish, 'yayo', 'name');
+    expect($question['options'])->toBe(['dalakan'])
+        ->and($question['result']['total'])->toBe(0)
+        ->and($question['result']['majority'])->toBeNull()
+        ->and(array_column($question['result']['choices'], 'value'))->not->toContain('我不知道');
+});
+
+it('叫法結果也列出正式魚名，沒人選時人數 0', function () {
+    $fish = Fish::factory()->create(['name' => 'dalakan']);
+    islandAnswerRow(answeringPlayer('yayo', '甲'), $fish, 'yayo', ['name' => 'arayo']);
+
+    $choices = islandQuestion(answeringPlayer(), $fish, 'yayo', 'name')['result']['choices'];
+    expect(array_map(fn ($c) => [$c['value'], $c['count']], $choices))->toBe([['arayo', 1], ['dalakan', 0]]);
 });
