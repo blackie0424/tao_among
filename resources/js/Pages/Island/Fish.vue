@@ -12,33 +12,43 @@
       <p class="rounded-island bg-white px-3 py-1.5 text-elder-aux">{{ character.name }}</p>
     </template>
 
-    <!-- 作答時照片最大；看結果或打補充時縮小，讓出空間 -->
-    <div
-      data-testid="fish-photo"
-      :data-size="photoLarge ? 'large' : 'small'"
-      class="island-photo relative overflow-hidden rounded-island bg-island-line"
-      :class="photoLarge ? 'aspect-[4/3]' : 'h-28'"
-    >
-      <img :src="fish.image_url" alt="" class="h-full w-full object-cover" />
+    <!-- 照片完整顯示不裁切；點照片或「放大」全螢幕看，可兩指放大 -->
+    <div data-testid="fish-photo" class="relative h-52 overflow-hidden rounded-island bg-white">
+      <button
+        type="button"
+        data-testid="photo-zoom"
+        class="block h-full w-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
+        @click="photoOpen = true"
+      >
+        <img :src="fish.image_url" alt="" class="h-full w-full object-contain" />
+        <span
+          class="absolute bottom-2 right-2 rounded-island bg-island-sea px-3 py-1 text-elder-aux font-bold"
+          >⤢ 放大</span
+        >
+      </button>
       <h1
-        class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8 text-elder-title font-extrabold text-white"
+        class="pointer-events-none absolute left-3 top-2 rounded-island bg-white/85 px-3 py-1 text-elder-heading font-extrabold"
       >
         {{ fish.name ?? '還沒有名字' }}
       </h1>
     </div>
 
-    <ol class="mt-3 flex gap-1.5" :aria-label="`第 ${index + 1} / ${questions.length} 題`">
-      <li
-        v-for="(q, i) in questions"
+    <div role="tablist" aria-label="題目" class="mt-3 flex gap-1 rounded-island bg-white p-1">
+      <button
+        v-for="q in questions"
         :key="q.key"
-        data-testid="progress-step"
-        :data-state="i <= index ? 'done' : 'todo'"
-        class="h-2 flex-1 rounded-full transition-colors duration-300 motion-reduce:transition-none"
-        :class="i <= index ? 'bg-island-accent' : 'bg-white'"
-      />
-    </ol>
+        type="button"
+        role="tab"
+        :aria-selected="q.key === activeKey ? 'true' : 'false'"
+        class="min-h-touch-primary flex-1 rounded-island text-elder-body font-extrabold transition-colors duration-200 motion-reduce:transition-none"
+        :class="q.key === activeKey ? 'bg-island-ink text-white' : 'text-island-ink'"
+        @click="openTab(q.key)"
+      >
+        {{ TAB_LABELS[q.key] }}{{ q.my_answer !== null ? ' ✓' : '' }}
+      </button>
+    </div>
 
-    <h2 class="mt-3 px-1 text-elder-title font-extrabold">{{ promptOf(current.key) }}</h2>
+    <h2 class="mt-3 px-1 text-elder-title font-extrabold">{{ promptOf(activeKey) }}</h2>
 
     <!-- 倒數每秒變動：給報讀軟體的是固定的一句（一開始的秒數），畫面上的倒數不重複報讀 -->
     <p
@@ -53,37 +63,17 @@
     </p>
 
     <Transition name="island-fade" mode="out-in">
-      <div v-if="showingResult" :key="`result-${current.key}`" class="mt-3">
+      <div v-if="mode === 'result'" :key="`result-${activeKey}`" class="mt-3">
         <div class="rounded-island bg-white p-4">
           <QuestionResult :result="current.result" :my-answer="current.my_answer" />
         </div>
-        <div class="mt-4 flex gap-2">
-          <button
-            v-if="current.my_answer !== null"
-            type="button"
-            :class="secondaryButton"
-            @click="edit"
-          >
-            改我的回答
-          </button>
-          <button v-if="!isLast" type="button" :class="[primaryButton, 'flex-1']" @click="next">
-            下一題 ›
-          </button>
-        </div>
-        <div v-if="isLast" class="mt-2 flex flex-col gap-2">
-          <Link
-            v-if="next_fish_id !== null"
-            :href="`/island/tribes/${tribe}/fish/${next_fish_id}`"
-            :class="primaryButton"
-          >
-            下一條魚 ›
-          </Link>
-          <Link :href="tribeUrl" :class="secondaryButton">回到 {{ islandTribeLabel(tribe) }}</Link>
-        </div>
+        <button type="button" :class="[primaryButton, 'mt-3 w-full']" @click="startAnswer">
+          {{ current.my_answer === null ? '我來回答' : '改我的回答' }}
+        </button>
       </div>
 
       <form
-        v-else-if="supplementing"
+        v-else-if="mode === 'supplement'"
         key="supplement"
         class="mt-3 space-y-2"
         @submit.prevent="send(supplement)"
@@ -114,7 +104,7 @@
             type="button"
             :disabled="form.processing"
             :class="secondaryButton"
-            @click="cancelSupplement"
+            @click="startAnswer"
           >
             取消
           </button>
@@ -124,7 +114,7 @@
         </div>
       </form>
 
-      <div v-else :key="`answer-${current.key}`" class="mt-3 flex flex-col gap-2">
+      <div v-else :key="`answer-${activeKey}`" class="mt-3 flex flex-col gap-2">
         <!-- 點選項就送出，沒有送出鈕；被限流時在選項上方放一個停用的鈕告訴使用者還要等多久 -->
         <button v-if="waitSeconds > 0" type="button" disabled :class="primaryButton">
           {{ submitLabel }}
@@ -144,7 +134,7 @@
           <span aria-hidden="true">›</span>
         </button>
         <button
-          v-if="current.key === 'name'"
+          v-if="activeKey === 'name'"
           type="button"
           data-testid="option"
           :disabled="locked"
@@ -161,18 +151,55 @@
           type="button"
           :disabled="form.processing"
           class="min-h-touch-primary rounded-island text-elder-body font-bold underline disabled:opacity-50"
-          @click="reveal(current.key)"
+          @click="showResult"
         >
-          不知道，跳過
+          先不答，看結果
         </button>
       </div>
     </Transition>
+
+    <div class="mt-6 flex gap-2">
+      <Link :href="tribeUrl" :class="secondaryButton">回到 {{ islandTribeLabel(tribe) }}</Link>
+      <Link
+        v-if="next_fish_id !== null"
+        :href="`/island/tribes/${tribe}/fish/${next_fish_id}`"
+        :class="[primaryButton, 'flex-1']"
+      >
+        下一條魚 ›
+      </Link>
+    </div>
+
+    <div
+      v-if="photoOpen"
+      role="dialog"
+      aria-modal="true"
+      aria-label="魚的照片"
+      class="fixed inset-0 z-50 flex flex-col bg-black/90"
+      @keydown.esc="photoOpen = false"
+    >
+      <div class="flex justify-end p-3">
+        <button
+          ref="closePhotoButton"
+          type="button"
+          class="min-h-touch-primary rounded-island bg-white px-4 text-elder-body font-bold"
+          @click="photoOpen = false"
+        >
+          關閉
+        </button>
+      </div>
+      <!-- 交給瀏覽器的兩指縮放（viewport 允許放大到 5 倍） -->
+      <img
+        :src="fish.image_url"
+        :alt="fish.name ?? '還沒有名字的魚'"
+        class="min-h-0 flex-1 touch-pinch-zoom object-contain"
+      />
+    </div>
   </IslandLayout>
 </template>
 
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import QuestionResult from '@/Components/Island/QuestionResult.vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import { useRateLimitCountdown } from '@/composables/useRateLimitCountdown'
@@ -187,6 +214,7 @@ const props = defineProps({
   next_fish_id: { type: Number, default: null },
 })
 
+const TAB_LABELS = { name: '叫法', food_category: '分類', processing_method: '處理' }
 const PROMPTS = {
   name: (tribe) => `${tribe}怎麼叫這條魚？`,
   food_category: (tribe) => `${tribe}把這條魚分在哪一類？`,
@@ -197,22 +225,17 @@ const primaryButton =
 const secondaryButton =
   'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold disabled:opacity-50'
 
-const index = ref(0)
-// 這次看過結果的題目（答了或跳過）；editing＝正在改已答過的題目；supplementing＝正在打補充的叫法
-const revealed = ref({})
-const editing = ref(false)
-const supplementing = ref(false)
+// mode：result 看結果（每個分頁一進來）、answer 選選項、supplement 打補充的叫法
+const activeKey = ref(props.questions[0].key)
+const mode = ref('result')
 const supplement = ref('')
+const photoOpen = ref(false)
+const closePhotoButton = ref(null)
 const form = useForm({ question: '', value: '' })
 const { waitSeconds, initialWaitSeconds } = useRateLimitCountdown()
 
-const current = computed(() => props.questions[index.value])
-const isLast = computed(() => index.value === props.questions.length - 1)
+const current = computed(() => props.questions.find((q) => q.key === activeKey.value))
 const tribeUrl = computed(() => `/island/tribes/${props.tribe}`)
-const showingResult = computed(
-  () => !editing.value && (revealed.value[current.value.key] || current.value.my_answer !== null)
-)
-const photoLarge = computed(() => !showingResult.value && !supplementing.value)
 // 送出途中或被限流時不能再送
 const locked = computed(() => form.processing || waitSeconds.value > 0)
 const errorMessage = computed(() => form.errors.value || form.errors.question || null)
@@ -223,51 +246,41 @@ const submitLabel = computed(() => {
 
 const promptOf = (key) => PROMPTS[key](islandTribeLabel(props.tribe))
 
-function resetAnswerState() {
-  supplementing.value = false
+// 打開全螢幕照片時把焦點移到「關閉」，Esc 才關得掉
+watch(photoOpen, async (open) => {
+  if (open) {
+    await nextTick()
+    closePhotoButton.value?.focus()
+  }
+})
+
+function setMode(next) {
+  mode.value = next
   supplement.value = ''
   form.clearErrors()
 }
 
-/** 顯示某一題的結果；送出的回應可能在換題後才到，所以一律指定題目，不用「目前這一題」 */
-function reveal(key) {
-  revealed.value = { ...revealed.value, [key]: true }
-  if (key === current.value.key) {
-    editing.value = false
-    supplementing.value = false
-  }
+function openTab(key) {
+  activeKey.value = key
+  setMode('result')
 }
 
-function edit() {
-  resetAnswerState()
-  editing.value = true
-}
+const startAnswer = () => setMode('answer')
+const startSupplement = () => setMode('supplement')
+const showResult = () => setMode('result')
 
-function next() {
-  if (form.processing) return
-  index.value += 1
-  resetAnswerState()
-}
-
-function startSupplement() {
-  form.clearErrors()
-  supplementing.value = true
-}
-
-function cancelSupplement() {
-  resetAnswerState()
-}
-
-/** 點選項（或送出補充）就送出這一題 */
+/** 點選項（或送出補充）就送出這一題；回應可能在換分頁後才到，只有還停在同一題時才切回結果 */
 function send(value) {
   if (locked.value) return
-  const key = current.value.key
+  const key = activeKey.value
   form.question = key
   form.value = value
   form.post(`/island/tribes/${props.tribe}/fish/${props.fish.id}/answers`, {
     preserveScroll: true,
     preserveState: true,
-    onSuccess: () => reveal(key),
+    onSuccess: () => {
+      if (activeKey.value === key) setMode('result')
+    },
   })
 }
 </script>
@@ -286,13 +299,9 @@ function send(value) {
 .island-fade-leave-to {
   opacity: 0;
 }
-.island-photo {
-  transition: height 0.3s ease;
-}
 @media (prefers-reduced-motion: reduce) {
   .island-fade-enter-active,
-  .island-fade-leave-active,
-  .island-photo {
+  .island-fade-leave-active {
     transition: none;
   }
 }

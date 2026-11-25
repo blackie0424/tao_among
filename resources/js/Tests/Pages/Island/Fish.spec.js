@@ -87,22 +87,17 @@ const option = (wrapper, label) =>
     .find((o) => o.text().replace(/[›✎]/g, '').trim() === label)
 const choiceRows = (wrapper) => wrapper.findAll('[data-testid="choice"]')
 const button = (wrapper, text) => wrapper.findAll('button').find((b) => b.text() === text)
+const tab = (wrapper, label) =>
+  wrapper.findAll('[role="tab"]').find((t) => t.text().replace('✓', '').trim() === label)
 const visibleLimitMessage = (wrapper) => wrapper.find('[data-testid="rate-limit-message"]')
-const photoSize = (wrapper) => wrapper.find('[data-testid="fish-photo"]').attributes('data-size')
+const showsResult = (wrapper) => wrapper.find('[data-testid="result"]').exists()
+
+async function startAnswer(wrapper) {
+  await button(wrapper, '我來回答').trigger('click')
+}
 
 async function chooseSupplement(wrapper) {
   await option(wrapper, '都不對，我來補充').trigger('click')
-}
-
-async function skip(wrapper) {
-  await button(wrapper, '不知道，跳過').trigger('click')
-}
-
-async function goToQuestion(wrapper, index) {
-  for (let i = 0; i < index; i++) {
-    await skip(wrapper)
-    await button(wrapper, '下一題 ›').trigger('click')
-  }
 }
 
 beforeEach(() => {
@@ -116,38 +111,120 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('魚島作答頁：一次一題（版面乙）', () => {
-  it('一開始只顯示第一題（叫法），題目寫出部落「族語（中文）」', () => {
+describe('魚島作答頁：照片', () => {
+  it('照片完整顯示不裁切，魚名疊在照片上', () => {
     const wrapper = mountPage()
 
-    expect(wrapper.find('h2').text()).toBe('iratay（漁人）怎麼叫這條魚？')
-    expect(wrapper.find('ol').attributes('aria-label')).toBe('第 1 / 3 題')
-    expect(wrapper.text()).not.toContain('怎麼處理這條魚')
-  })
-
-  it('作答時照片是大圖、魚名疊在照片上；三段進度條標出目前這題', () => {
-    const wrapper = mountPage()
-
-    expect(photoSize(wrapper)).toBe('large')
+    const img = wrapper.find('[data-testid="fish-photo"] img')
+    expect(img.classes()).toContain('object-contain')
+    expect(img.classes()).not.toContain('object-cover')
     expect(wrapper.find('[data-testid="fish-photo"] h1').text()).toBe('dalakan')
-    expect(
-      wrapper.findAll('[data-testid="progress-step"]').map((s) => s.attributes('data-state'))
-    ).toEqual(['done', 'todo', 'todo'])
-  })
-
-  it('叫法選項＝後端給的選項＋「都不對，我來補充」，下方有「不知道，跳過」', () => {
-    const wrapper = mountPage()
-
-    expect(optionLabels(wrapper)).toEqual(['dalakan', 'arayo', '都不對，我來補充'])
-    expect(button(wrapper, '不知道，跳過')).toBeDefined()
   })
 
   it('沒有正式名字的魚顯示「還沒有名字」', () => {
     expect(mountPage({ fish: { id: 5, name: null, image_url: '' } }).text()).toContain('還沒有名字')
   })
 
+  it('點「放大」全螢幕顯示整張照片，按「關閉」回來', async () => {
+    const wrapper = mountPage()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await wrapper.find('[data-testid="photo-zoom"]').trigger('click')
+
+    const dialog = wrapper.find('[role="dialog"]')
+    expect(dialog.attributes('aria-modal')).toBe('true')
+    expect(dialog.find('img').attributes('src')).toBe('https://example.test/5.webp')
+    expect(dialog.find('img').classes()).toContain('object-contain')
+
+    await button(wrapper, '關閉').trigger('click')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+  })
+
+  it('全螢幕時按 Esc 也會關閉', async () => {
+    const wrapper = mountPage()
+    await wrapper.find('[data-testid="photo-zoom"]').trigger('click')
+
+    await wrapper.find('[role="dialog"]').trigger('keydown', { key: 'Escape' })
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+  })
+})
+
+describe('魚島作答頁：分頁與先看結果', () => {
+  it('三個分頁「叫法／分類／處理」，一進來在「叫法」並先顯示結果與題目', () => {
+    const wrapper = mountPage()
+
+    expect(wrapper.findAll('[role="tab"]').map((t) => t.text())).toEqual(['叫法', '分類', '處理'])
+    expect(tab(wrapper, '叫法').attributes('aria-selected')).toBe('true')
+    expect(wrapper.find('h2').text()).toBe('iratay（漁人）怎麼叫這條魚？')
+    expect(showsResult(wrapper)).toBe(true)
+    expect(optionLabels(wrapper)).toEqual([])
+  })
+
+  it('可以直接切到任何一題，不必依序', async () => {
+    const wrapper = mountPage()
+
+    await tab(wrapper, '處理').trigger('click')
+
+    expect(tab(wrapper, '處理').attributes('aria-selected')).toBe('true')
+    expect(tab(wrapper, '叫法').attributes('aria-selected')).toBe('false')
+    expect(wrapper.find('h2').text()).toBe('iratay（漁人）怎麼處理這條魚？')
+    expect(showsResult(wrapper)).toBe(true)
+  })
+
+  it('答過的分頁標 ✓', () => {
+    const questions = defaultQuestions()
+    questions[1].my_answer = 'oyod'
+
+    expect(
+      mountPage({ questions })
+        .findAll('[role="tab"]')
+        .map((t) => t.text())
+    ).toEqual(['叫法', '分類 ✓', '處理'])
+  })
+
+  it('沒答過的題目有「我來回答」，答過的有「改我的回答」；沒有「跳過」', async () => {
+    const questions = defaultQuestions()
+    questions[1].my_answer = 'oyod'
+    const wrapper = mountPage({ questions })
+
+    expect(button(wrapper, '我來回答')).toBeDefined()
+    expect(wrapper.text()).not.toContain('跳過')
+    await tab(wrapper, '分類').trigger('click')
+    expect(button(wrapper, '改我的回答')).toBeDefined()
+    expect(button(wrapper, '我來回答')).toBeUndefined()
+  })
+
+  it('「下一條魚 ›」與「回到 {部落}」一進來就在最下方', () => {
+    const links = mountPage()
+      .findAll('a')
+      .map((a) => [a.text(), a.attributes('href')])
+
+    expect(links).toContainEqual(['下一條魚 ›', '/island/tribes/iratay/fish/6'])
+    expect(links).toContainEqual(['回到 iratay（漁人）', '/island/tribes/iratay'])
+  })
+
+  it('沒有下一條魚時不顯示「下一條魚 ›」', () => {
+    const wrapper = mountPage({ next_fish_id: null })
+
+    expect(wrapper.text()).not.toContain('下一條魚')
+    expect(wrapper.text()).toContain('回到 iratay（漁人）')
+  })
+})
+
+describe('魚島作答頁：回答', () => {
+  it('按「我來回答」出現選項：叫法＝後端給的選項＋「都不對，我來補充」', async () => {
+    const wrapper = mountPage()
+
+    await startAnswer(wrapper)
+
+    expect(optionLabels(wrapper)).toEqual(['dalakan', 'arayo', '都不對，我來補充'])
+    expect(showsResult(wrapper)).toBe(false)
+  })
+
   it('點一下選項就送出這一題，沒有另外的「送出」鈕', async () => {
     const wrapper = mountPage()
+    await startAnswer(wrapper)
     expect(button(wrapper, '送出')).toBeUndefined()
 
     await option(wrapper, 'arayo').trigger('click')
@@ -157,10 +234,54 @@ describe('魚島作答頁：一次一題（版面乙）', () => {
     ])
   })
 
+  it('送出成功後回到這一題的結果', async () => {
+    const wrapper = mountPage()
+    await startAnswer(wrapper)
+    await option(wrapper, 'arayo').trigger('click')
+
+    lastPostOptions.onSuccess()
+    await wrapper.vm.$nextTick()
+
+    expect(showsResult(wrapper)).toBe(true)
+    expect(optionLabels(wrapper)).toEqual([])
+  })
+
+  it('「先不答，看結果」回到結果，不送出', async () => {
+    const wrapper = mountPage()
+    await startAnswer(wrapper)
+
+    await button(wrapper, '先不答，看結果').trigger('click')
+
+    expect(showsResult(wrapper)).toBe(true)
+    expect(posted).toEqual([])
+  })
+
+  it('答到一半換分頁：新的分頁先顯示結果', async () => {
+    const wrapper = mountPage()
+    await startAnswer(wrapper)
+
+    await tab(wrapper, '分類').trigger('click')
+
+    expect(showsResult(wrapper)).toBe(true)
+  })
+
+  it('「改我的回答」出現選項並標出原本選的', async () => {
+    const questions = defaultQuestions()
+    questions[0].my_answer = 'arayo'
+    const wrapper = mountPage({ questions })
+    expect(choiceRows(wrapper)[0].text()).toContain('你選的')
+
+    await button(wrapper, '改我的回答').trigger('click')
+
+    expect(option(wrapper, 'arayo').attributes('aria-pressed')).toBe('true')
+    expect(option(wrapper, 'dalakan').attributes('aria-pressed')).toBe('false')
+  })
+
   it('既有寫法剛好是「__supplement__」也能直接點、送出這個寫法，不會進入補充', async () => {
     const questions = defaultQuestions()
     questions[0].options = ['dalakan', '__supplement__']
     const wrapper = mountPage({ questions })
+    await startAnswer(wrapper)
 
     await option(wrapper, '__supplement__').trigger('click')
 
@@ -170,12 +291,11 @@ describe('魚島作答頁：一次一題（版面乙）', () => {
     ])
   })
 
-  it('點「都不對，我來補充」：照片縮小、出現輸入框，送出打的字', async () => {
+  it('點「都不對，我來補充」出現輸入框，送出打的字', async () => {
     const wrapper = mountPage()
-    expect(wrapper.find('#island-supplement').exists()).toBe(false)
+    await startAnswer(wrapper)
 
     await chooseSupplement(wrapper)
-    expect(photoSize(wrapper)).toBe('small')
     expect(posted).toEqual([])
     await wrapper.find('#island-supplement').setValue('ararow')
     await wrapper.find('form').trigger('submit')
@@ -188,117 +308,61 @@ describe('魚島作答頁：一次一題（版面乙）', () => {
 
   it('補充時按「取消」回到選項，不送出', async () => {
     const wrapper = mountPage()
+    await startAnswer(wrapper)
     await chooseSupplement(wrapper)
 
     await button(wrapper, '取消').trigger('click')
 
     expect(optionLabels(wrapper)).toEqual(['dalakan', 'arayo', '都不對，我來補充'])
-    expect(photoSize(wrapper)).toBe('large')
     expect(posted).toEqual([])
   })
 
   it('送出被拒時在補充欄位下顯示錯誤，欄位標成有錯，留在補充', async () => {
     const wrapper = mountPage()
+    await startAnswer(wrapper)
     await chooseSupplement(wrapper)
     await wrapper.find('form').trigger('submit')
-    wrapper.vm.form.errors = { value: '請填叫法，或按跳過' }
+    wrapper.vm.form.errors = { value: '請填叫法，或按取消' }
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('#island-answer-error').text()).toBe('請填叫法，或按跳過')
+    expect(wrapper.find('#island-answer-error').text()).toBe('請填叫法，或按取消')
     expect(wrapper.find('#island-supplement').attributes('aria-invalid')).toBe('true')
-    expect(wrapper.find('[data-testid="result"]').exists()).toBe(false)
+    expect(showsResult(wrapper)).toBe(false)
   })
 
-  it('送出途中選項與跳過都停用；回應晚到時顯示的是送出那一題的結果', async () => {
+  it('送出途中選項停用', async () => {
     const wrapper = mountPage()
+    await startAnswer(wrapper)
     await option(wrapper, 'arayo').trigger('click')
     wrapper.vm.form.processing = true
     await wrapper.vm.$nextTick()
 
-    expect(button(wrapper, '不知道，跳過').attributes('disabled')).toBeDefined()
     expect(option(wrapper, 'dalakan').attributes('disabled')).toBeDefined()
-
-    wrapper.vm.form.processing = false
-    lastPostOptions.onSuccess()
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('h2').text()).toBe('iratay（漁人）怎麼叫這條魚？')
-    expect(wrapper.find('[data-testid="result"]').exists()).toBe(true)
-
-    await button(wrapper, '下一題 ›').trigger('click')
-    expect(wrapper.find('[data-testid="result"]').exists()).toBe(false)
   })
 
-  it('換題後才收到前一題的成功回應：不會把現在這一題當成已看結果', async () => {
+  it('換分頁後才收到前一題的成功回應：現在的分頁不受影響', async () => {
     const wrapper = mountPage()
-    await option(wrapper, 'arayo').trigger('click')
-    const firstSuccess = lastPostOptions.onSuccess
-    await skip(wrapper)
-    await button(wrapper, '下一題 ›').trigger('click')
+    await tab(wrapper, '分類').trigger('click')
+    await startAnswer(wrapper)
+    await option(wrapper, 'oyod').trigger('click')
+    const categorySuccess = lastPostOptions.onSuccess
+    await tab(wrapper, '處理').trigger('click')
+    await startAnswer(wrapper)
 
-    firstSuccess()
+    categorySuccess()
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('h2').text()).toBe('iratay（漁人）把這條魚分在哪一類？')
-    expect(wrapper.find('[data-testid="result"]').exists()).toBe(false)
-  })
-
-  it('送出成功後同一頁換成這一題的結果，照片縮小', async () => {
-    const wrapper = mountPage()
-    await option(wrapper, 'arayo').trigger('click')
-
-    lastPostOptions.onSuccess()
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.find('[data-testid="result"]').exists()).toBe(true)
-    expect(optionLabels(wrapper)).toEqual([])
-    expect(photoSize(wrapper)).toBe('small')
-  })
-
-  it('跳過不送出，一樣顯示這一題的結果', async () => {
-    const wrapper = mountPage()
-
-    await skip(wrapper)
-
-    expect(posted).toEqual([])
-    expect(wrapper.find('[data-testid="result"]').exists()).toBe(true)
-  })
-
-  it('結果下方「下一題 ›」換到下一題作答，進度條往前一格', async () => {
-    const wrapper = mountPage()
-
-    await goToQuestion(wrapper, 1)
-
-    expect(wrapper.find('h2').text()).toBe('iratay（漁人）把這條魚分在哪一類？')
-    expect(optionLabels(wrapper)).toEqual(['oyod', 'rahet'])
-    expect(
-      wrapper.findAll('[data-testid="progress-step"]').map((s) => s.attributes('data-state'))
-    ).toEqual(['done', 'done', 'todo'])
-  })
-
-  it('已答過的題目直接顯示結果、標出我選的，並有「改我的回答」回到作答並標出原本的選項', async () => {
-    const questions = defaultQuestions()
-    questions[0].my_answer = 'arayo'
-    const wrapper = mountPage({ questions })
-
-    expect(wrapper.find('[data-testid="result"]').exists()).toBe(true)
-    expect(choiceRows(wrapper)[0].text()).toContain('你選的')
-
-    await button(wrapper, '改我的回答').trigger('click')
-
-    expect(optionLabels(wrapper)).toEqual(['dalakan', 'arayo', '都不對，我來補充'])
-    expect(option(wrapper, 'arayo').attributes('aria-pressed')).toBe('true')
-    expect(option(wrapper, 'dalakan').attributes('aria-pressed')).toBe('false')
+    expect(tab(wrapper, '處理').attributes('aria-selected')).toBe('true')
+    expect(optionLabels(wrapper)).toEqual(['去魚鱗', '我不知道'])
   })
 })
 
 describe('魚島作答頁：結果', () => {
-  const showResult = async (resultOverrides, key = 'food_category') => {
+  const showResult = async (resultOverrides) => {
     const questions = defaultQuestions()
-    const index = questions.findIndex((q) => q.key === key)
-    questions[index].result = result(resultOverrides)
+    questions[1].result = result(resultOverrides)
     const wrapper = mountPage({ questions })
-    await goToQuestion(wrapper, index)
-    await skip(wrapper)
+    await tab(wrapper, '分類').trigger('click')
     return wrapper
   }
 
@@ -325,7 +389,6 @@ describe('魚島作答頁：結果', () => {
 
   it('叫法的正式魚名沒人選時顯示 0 人', async () => {
     const wrapper = mountPage()
-    await skip(wrapper)
 
     const dalakan = choiceRows(wrapper).find((r) => r.text().includes('dalakan'))
     expect(dalakan.find('[data-testid="choice-count"]').text()).toBe('0 人')
@@ -421,28 +484,6 @@ describe('魚島作答頁：結果', () => {
   })
 })
 
-describe('魚島作答頁：三題之後', () => {
-  it('第三題的結果下方有「下一條魚 ›」與「回到 {部落}」，沒有「下一題」', async () => {
-    const wrapper = mountPage()
-    await goToQuestion(wrapper, 2)
-    await skip(wrapper)
-
-    const links = wrapper.findAll('a').map((a) => [a.text(), a.attributes('href')])
-    expect(links).toContainEqual(['下一條魚 ›', '/island/tribes/iratay/fish/6'])
-    expect(links).toContainEqual(['回到 iratay（漁人）', '/island/tribes/iratay'])
-    expect(button(wrapper, '下一題 ›')).toBeUndefined()
-  })
-
-  it('沒有下一條魚時不顯示「下一條魚 ›」', async () => {
-    const wrapper = mountPage({ next_fish_id: null })
-    await goToQuestion(wrapper, 2)
-    await skip(wrapper)
-
-    expect(wrapper.text()).not.toContain('下一條魚')
-    expect(wrapper.text()).toContain('回到 iratay（漁人）')
-  })
-})
-
 describe('魚島作答頁：被限流', () => {
   const invalidResponse = (status, headers = {}) => {
     const event = { detail: { response: { status, headers } }, preventDefault: vi.fn() }
@@ -452,6 +493,7 @@ describe('魚島作答頁：被限流', () => {
 
   it('429 時顯示還要等幾秒並倒數，倒數期間選項停用、點了也不送出', async () => {
     const wrapper = mountPage()
+    await startAnswer(wrapper)
 
     const event = invalidResponse(429, { 'retry-after': '45' })
     await wrapper.vm.$nextTick()
@@ -470,6 +512,7 @@ describe('魚島作答頁：被限流', () => {
 
   it('倒數結束後「幾秒後可以再試」消失、選項恢復可點', async () => {
     const wrapper = mountPage()
+    await startAnswer(wrapper)
     invalidResponse(429, { 'retry-after': '2' })
     await wrapper.vm.$nextTick()
 
@@ -481,6 +524,7 @@ describe('魚島作答頁：被限流', () => {
 
   it('補充時被限流：送出鈕停用並顯示幾秒後可以再試', async () => {
     const wrapper = mountPage()
+    await startAnswer(wrapper)
     await chooseSupplement(wrapper)
 
     invalidResponse(429, { 'retry-after': '45' })

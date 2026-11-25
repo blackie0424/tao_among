@@ -16,9 +16,9 @@ use Inertia\Response;
 /** 魚島作答：一次送出一題，寫進 among 魚頁「大家怎麼說」的同一張表。 */
 class IslandResponseController extends Controller
 {
-    private const BLANK_NAME_MESSAGE = '請填叫法，或按跳過';
+    private const BLANK_NAME_MESSAGE = '請填叫法，或按取消';
 
-    private const UNKNOWN_NAME_MESSAGE = '不知道的話請按跳過';
+    private const UNKNOWN_NAME_MESSAGE = '不知道的話可以不用回答';
 
     /** 作答頁：三題的選項、我的回答與結果，以及三題答完後的下一條魚。 */
     public function show(Request $request, string $tribe, int $id): Response

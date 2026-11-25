@@ -300,17 +300,17 @@ it('補充的叫法去空白後是空的時拒絕，原本的回答不變', func
     islandSubmit($player, $fish, 'yayo', ['question' => 'name', 'value' => 'dalakan']);
 
     islandSubmit($player, $fish, 'yayo', ['question' => 'name', 'value' => $value])
-        ->assertSessionHasErrors(['value' => '請填叫法，或按跳過']);
+        ->assertSessionHasErrors(['value' => '請填叫法，或按取消']);
 
     expect(islandRow($player, $fish, 'yayo')->name)->toBe('dalakan');
 })->with(['', '   ', '　　']);
 
-it('補充的叫法是「我不知道」時拒絕，提示按跳過', function (string $value) {
+it('補充的叫法是「我不知道」時拒絕，提示可以不用回答', function (string $value) {
     $player = answeringPlayer();
     $fish = Fish::factory()->create();
 
     islandSubmit($player, $fish, 'yayo', ['question' => 'name', 'value' => $value])
-        ->assertSessionHasErrors(['value' => '不知道的話請按跳過']);
+        ->assertSessionHasErrors(['value' => '不知道的話可以不用回答']);
 
     expect(FishTribeResponse::count())->toBe(0);
 })->with(['我不知道', ' 我不知道　']);
