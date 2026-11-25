@@ -24,12 +24,12 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
             captureRecordBatchService: $captureRecordBatchService,
             lineBatchCaptureMessageBuilder: $lineBatchCaptureMessageBuilder,
             lineUploadService: $lineUploadService,
-            lineBatchCaptureStateStore: new LineCreateFishFormStateStore(),
+            lineBatchCaptureStateStore: new LineCreateFishFormStateStore,
         );
     }
 
     /**
-     * @param string[] $images
+     * @param  string[]  $images
      */
     public function startFormSession(string $userId, string $replyToken, int $fishId, array $images): void
     {
@@ -46,9 +46,10 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
         $store = $this->lineBatchCaptureStateStore();
         $fish = Fish::find($store->getFishId($userId));
 
-        if (!$fish) {
+        if (! $fish) {
             $store->clear($userId);
             $this->replyText($replyToken, '❌ 魚類資料已不存在，請重新操作。');
+
             return;
         }
 
@@ -59,7 +60,7 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
                 $store->getForm($userId),
             );
 
-            if (!empty($records) && !$fish->display_capture_record_id) {
+            if (! empty($records) && ! $fish->display_capture_record_id) {
                 $fish->update(['display_capture_record_id' => $records[0]->id]);
             }
 
@@ -76,6 +77,7 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
         if ($action === 'cancel_batch_capture_record') {
             $this->clearState($userId);
             $this->replyText($replyToken, '✅ 已取消新增魚類');
+
             return true;
         }
 
@@ -83,6 +85,7 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
             $this->putState($userId, 'waiting_tribe_selection');
             $this->putForm($userId, []);
             $this->replyTribeSelectionCard($replyToken, '重新填寫：請選擇部落');
+
             return true;
         }
 
@@ -100,6 +103,19 @@ class LineCreateFishFormFlowService extends LineBatchCaptureFlowService
                 $fish->forceDelete();
             }
         }
+    }
+
+    /**
+     * 建立魚流程維持舊的寫入（不掛情境、地點必填），情境卡沿用由舊紀錄湊出的最近捕獲資訊。
+     */
+    public function allowsEmptyLocation(): bool
+    {
+        return false;
+    }
+
+    protected function recentPickerSessions(): array
+    {
+        return array_slice($this->captureSessionService()->getRecentSessions(), 0, 3);
     }
 
     public function lineBatchCaptureStateStore(): LineBatchCaptureStateStore

@@ -95,15 +95,11 @@
           <section v-show="activeTab === 'capture'">
             <TabEditActions
               v-if="isEditor"
-              :items="[
-                { label: '新增捕獲紀錄', href: `/fish/${fish.id}/capture-records/batch-create` },
-                { label: '管理捕獲紀錄', href: `/fish/${fish.id}/capture-records` },
-              ]"
+              :items="[{ label: '管理捕獲紀錄', href: `/fish/${fish.id}/capture-records` }]"
             />
             <CaptureRecordSection
               :captureRecords="captureRecords"
               :fishId="fish.id"
-              :canEdit="isEditor"
               :fishName="fish.name"
               :user="user"
             />

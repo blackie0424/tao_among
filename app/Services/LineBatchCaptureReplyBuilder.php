@@ -11,16 +11,15 @@ class LineBatchCaptureReplyBuilder
     public function __construct(
         private readonly LineBatchCaptureMessageBuilder $lineBatchCaptureMessageBuilder,
         private readonly LineBatchCaptureSummaryPresenter $lineBatchCaptureSummaryPresenter,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param string[] $images
-     * @param array{tribe?:?string,location?:?string,capture_method?:?string,capture_date?:?string,notes?:?string} $form
+     * @param  string[]  $images
+     * @param  array{tribe?:?string,location?:?string,capture_method?:?string,capture_date?:?string,notes?:?string}  $form
      */
-    public function buildSummaryMessage(Fish $fish, array $images, array $form, string $state): FlexMessage
+    public function buildSummaryMessage(Fish $fish, array $images, array $form, string $state, bool $allowSkipLocation = false): FlexMessage
     {
-        $view = $this->lineBatchCaptureSummaryPresenter->present($state, $images, $form);
+        $view = $this->lineBatchCaptureSummaryPresenter->present($state, $images, $form, $allowSkipLocation);
 
         return $this->lineBatchCaptureMessageBuilder->buildSummaryCard(
             $fish,
@@ -42,7 +41,7 @@ class LineBatchCaptureReplyBuilder
 
         return $this->lineBatchCaptureMessageBuilder->buildOptionSelectorCard(
             '請選擇捕獲部落',
-            trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
+            trim(($prefix ? "{$prefix}\n" : '').'點選後會回到摘要卡片繼續填寫。'),
             $actions
         );
     }
@@ -61,7 +60,7 @@ class LineBatchCaptureReplyBuilder
 
         return $this->lineBatchCaptureMessageBuilder->buildOptionSelectorCard(
             '請選擇捕獲方式',
-            trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
+            trim(($prefix ? "{$prefix}\n" : '').'點選後會回到摘要卡片繼續填寫。'),
             $actions
         );
     }
@@ -70,7 +69,7 @@ class LineBatchCaptureReplyBuilder
     {
         return $this->lineBatchCaptureMessageBuilder->buildOptionSelectorCard(
             '請選擇捕獲日期',
-            trim(($prefix ? "{$prefix}\n" : '') . '點選後會回到摘要卡片繼續填寫。'),
+            trim(($prefix ? "{$prefix}\n" : '').'點選後會回到摘要卡片繼續填寫。'),
             [
                 ['label' => '今天', 'data' => 'action=set_batch_capture_date&value=today', 'display_text' => '今天'],
                 ['label' => '昨天', 'data' => 'action=set_batch_capture_date&value=yesterday', 'display_text' => '昨天', 'style' => 'secondary'],
@@ -80,7 +79,7 @@ class LineBatchCaptureReplyBuilder
     }
 
     /**
-     * @param array<int, array{tribe:string,location:string,capture_method:string,capture_date:string}> $sessions
+     * @param  array<int, array{tribe:string,location:string,capture_method:string,capture_date:string}>  $sessions
      */
     public function buildSessionPickerMessage(array $sessions): FlexMessage
     {

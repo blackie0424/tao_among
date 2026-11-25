@@ -36,6 +36,8 @@ use App\Services\LineBatchCapture\State\Text\LineBatchCaptureTextStateHandler;
 
 class LineBatchCaptureFlowService
 {
+    private const PICKER_SESSION_LIMIT = 3;
+
     /**
      * @var array<string, LineBatchCapturePostbackHandler>
      */
@@ -96,7 +98,7 @@ class LineBatchCaptureFlowService
 
         foreach ($this->postbackHandlers as $handler) {
             foreach ($handler->protectedActions() as $action) {
-                if (!in_array($action, $actions, true)) {
+                if (! in_array($action, $actions, true)) {
                     $actions[] = $action;
                 }
             }
@@ -134,45 +136,50 @@ class LineBatchCaptureFlowService
     public function handleTextMessage(string $userId, string $text, string $replyToken): bool
     {
         $state = $this->getState($userId);
-        if (!$state) {
+        if (! $state) {
             return false;
         }
 
         $handler = $this->textStateHandlers[$state] ?? null;
-        if (!$handler) {
+        if (! $handler) {
             $this->replySummary($replyToken, $userId);
+
             return true;
         }
 
         $handler->handle($this, new LineBatchCaptureTextContext($state, $userId, $replyToken, $text));
+
         return true;
     }
 
     public function handleImageMessage(string $userId, string $replyToken, string $messageId, ?LineImageSet $imageSet = null): bool
     {
         $state = $this->getState($userId);
-        if (!$state) {
+        if (! $state) {
             return false;
         }
 
         $handler = $this->imageStateHandlers[$state] ?? null;
-        if (!$handler) {
+        if (! $handler) {
             $this->replyText($replyToken, '目前已進入欄位填寫流程，請先完成部落、地點與捕獲方式等資料。');
+
             return true;
         }
 
         $handler->handle($this, new LineBatchCaptureImageContext($state, $userId, $replyToken, $messageId, $imageSet));
+
         return true;
     }
 
     public function handlePostback(string $userId, string $replyToken, string $action, array $params): bool
     {
         $handler = $this->postbackHandlers[$action] ?? null;
-        if (!$handler) {
+        if (! $handler) {
             return false;
         }
 
         $handler->handle($this, new LineBatchCapturePostbackContext($action, $userId, $replyToken, $params));
+
         return true;
     }
 
@@ -180,8 +187,9 @@ class LineBatchCaptureFlowService
     {
         $result = $this->startLineBatchCaptureAction()->execute($userId, $fishId);
 
-        if (!$result->successful()) {
+        if (! $result->successful()) {
             $this->replyText($replyToken, $result->message());
+
             return;
         }
 
@@ -191,6 +199,19 @@ class LineBatchCaptureFlowService
     public function confirmCapture(string $userId, string $replyToken): void
     {
         $result = $this->confirmLineBatchCaptureAction()->execute($userId);
+
+        if ($result->isSessionGone()) {
+            $this->replySessionPickerOrTribeCard($replyToken, $userId, $result->message());
+
+            return;
+        }
+
+        if ($result->isSessionChanged()) {
+            $this->replySummary($replyToken, $userId, null, $result->message());
+
+            return;
+        }
+
         $this->replyText($replyToken, $result->message());
     }
 
@@ -224,13 +245,14 @@ class LineBatchCaptureFlowService
         $this->lineBatchCaptureStateStore()->updateForm($userId, $values);
     }
 
-    public function replySummary(string $replyToken, string $userId, ?Fish $fish = null): void
+    public function replySummary(string $replyToken, string $userId, ?Fish $fish = null, ?string $prefix = null): void
     {
         $fish ??= Fish::find($this->lineBatchCaptureStateStore()->getFishId($userId));
 
-        if (!$fish) {
+        if (! $fish) {
             $this->clearState($userId);
             $this->replyText($replyToken, '❌ 魚類資料已不存在，請重新操作。');
+
             return;
         }
 
@@ -239,7 +261,8 @@ class LineBatchCaptureFlowService
         $form = $this->getForm($userId);
 
         $this->lineMessagingClient->replyMessage($replyToken, [
-            $this->lineBatchCaptureReplyBuilder()->buildSummaryMessage($fish, $images, $form, $state),
+            ...$this->prefixMessages($prefix),
+            $this->lineBatchCaptureReplyBuilder()->buildSummaryMessage($fish, $images, $form, $state, $this->allowsEmptyLocation()),
         ]);
     }
 
@@ -251,26 +274,69 @@ class LineBatchCaptureFlowService
     }
 
     /**
-     * @param array<int, array{tribe:string,location:string,capture_method:string,capture_date:string}> $sessions
+     * @param  array<int, array{session_id:int,tribe:string,location:string,capture_method:string,capture_date:string}>  $sessions
      */
-    public function replySessionPickerCard(string $replyToken, array $sessions): void
+    public function replySessionPickerCard(string $replyToken, array $sessions, ?string $prefix = null): void
     {
         $this->lineMessagingClient->replyMessage($replyToken, [
+            ...$this->prefixMessages($prefix),
             $this->lineBatchCaptureReplyBuilder()->buildSessionPickerMessage($sessions),
         ]);
     }
 
-    public function replySessionPickerOrTribeCard(string $replyToken, string $userId): void
+    public function replySessionPickerOrTribeCard(string $replyToken, string $userId, ?string $prefix = null): void
     {
-        $sessions = array_slice($this->captureSessionService()->getRecentSessions(), 0, 3);
+        $sessions = $this->recentPickerSessions();
 
-        if (!empty($sessions)) {
+        if (! empty($sessions)) {
             $this->putState($userId, 'waiting_session_selection');
-            $this->replySessionPickerCard($replyToken, $sessions);
+            $this->replySessionPickerCard($replyToken, $sessions, $prefix);
         } else {
             $this->putState($userId, 'waiting_tribe_selection');
-            $this->replyTribeSelectionCard($replyToken);
+            $this->replyTribeSelectionCard($replyToken, $prefix);
         }
+    }
+
+    /** 使用者在情境卡按下「使用此筆」：帶入該情境的欄位並進入確認 */
+    public function selectSession(string $userId, string $replyToken, int $sessionId): void
+    {
+        $attributes = $this->captureSessionService()->findAttributes($sessionId);
+
+        if ($attributes === null) {
+            $this->replySessionPickerOrTribeCard($replyToken, $userId, '這個情境已不存在，請重新選擇');
+
+            return;
+        }
+
+        $this->updateForm($userId, ['session_id' => $sessionId, ...$attributes]);
+        $this->putState($userId, 'waiting_confirm');
+        $this->replySummary($replyToken, $userId);
+    }
+
+    /**
+     * @return array<int, array{session_id:int,tribe:string,location:string,capture_method:string,capture_date:string}>
+     */
+    /** 手動填寫時可以略過地點（情境允許沒有地點）；建立魚流程維持地點必填 */
+    public function allowsEmptyLocation(): bool
+    {
+        return true;
+    }
+
+    protected function recentPickerSessions(): array
+    {
+        return array_map(fn (array $session) => [
+            'session_id' => $session['id'],
+            'tribe' => $session['tribe'],
+            'location' => $session['place_name'] ?: ($session['location_hint'] ?: '地點未標'),
+            'capture_method' => $session['capture_method'],
+            'capture_date' => $session['capture_date'],
+        ], array_slice($this->captureSessionService()->getSelectableSessions(), 0, self::PICKER_SESSION_LIMIT));
+    }
+
+    /** @return array<int, \LINE\Clients\MessagingApi\Model\TextMessage> */
+    private function prefixMessages(?string $prefix): array
+    {
+        return $prefix === null ? [] : [$this->lineBatchCaptureReplyBuilder()->buildTextMessage($prefix)];
     }
 
     public function replyMethodSelectionCard(string $replyToken, ?string $prefix = null): void
@@ -299,7 +365,7 @@ class LineBatchCaptureFlowService
         $imageBlob = $this->lineMessagingClient->getMessageContent($messageId);
         $filename = $this->lineUploadService()->uploadLineImage($imageBlob);
 
-        if (!$filename) {
+        if (! $filename) {
             throw new \RuntimeException('Failed to upload batch capture image');
         }
 
@@ -335,7 +401,7 @@ class LineBatchCaptureFlowService
     public function confirmLineBatchCaptureAction(): ConfirmLineBatchCaptureAction
     {
         return $this->confirmLineBatchCaptureAction
-            ?? new ConfirmLineBatchCaptureAction($this->lineBatchCaptureStateStore(), $this->captureRecordBatchService);
+            ?? new ConfirmLineBatchCaptureAction($this->lineBatchCaptureStateStore(), $this->captureRecordBatchService, $this->captureSessionService());
     }
 
     public function captureSessionService(): CaptureSessionServiceInterface
@@ -354,14 +420,14 @@ class LineBatchCaptureFlowService
     private function defaultPostbackHandlers(): array
     {
         return [
-            new LineBatchCaptureLifecyclePostbackHandler(),
-            new LineBatchCaptureUploadPostbackHandler(),
-            new LineBatchCaptureSessionPostbackHandler(),
-            new LineBatchCaptureTribePostbackHandler(),
-            new LineBatchCaptureLocationPostbackHandler(),
-            new LineBatchCaptureMethodPostbackHandler(),
-            new LineBatchCaptureDatePostbackHandler(),
-            new LineBatchCaptureNotesPostbackHandler(),
+            new LineBatchCaptureLifecyclePostbackHandler,
+            new LineBatchCaptureUploadPostbackHandler,
+            new LineBatchCaptureSessionPostbackHandler,
+            new LineBatchCaptureTribePostbackHandler,
+            new LineBatchCaptureLocationPostbackHandler,
+            new LineBatchCaptureMethodPostbackHandler,
+            new LineBatchCaptureDatePostbackHandler,
+            new LineBatchCaptureNotesPostbackHandler,
         ];
     }
 
@@ -371,14 +437,14 @@ class LineBatchCaptureFlowService
     private function defaultTextStateHandlers(): array
     {
         return [
-            new LineBatchCaptureSummaryTextStateHandler(),
-            new LineBatchCaptureSessionSelectorTextStateHandler(),
-            new LineBatchCaptureTribeSelectorTextStateHandler(),
-            new LineBatchCaptureLocationTextStateHandler(),
-            new LineBatchCaptureMethodSelectorTextStateHandler(),
-            new LineBatchCaptureDateSelectorTextStateHandler(),
-            new LineBatchCaptureDateTextStateHandler(),
-            new LineBatchCaptureNotesTextStateHandler(),
+            new LineBatchCaptureSummaryTextStateHandler,
+            new LineBatchCaptureSessionSelectorTextStateHandler,
+            new LineBatchCaptureTribeSelectorTextStateHandler,
+            new LineBatchCaptureLocationTextStateHandler,
+            new LineBatchCaptureMethodSelectorTextStateHandler,
+            new LineBatchCaptureDateSelectorTextStateHandler,
+            new LineBatchCaptureDateTextStateHandler,
+            new LineBatchCaptureNotesTextStateHandler,
         ];
     }
 
@@ -388,13 +454,13 @@ class LineBatchCaptureFlowService
     private function defaultImageStateHandlers(): array
     {
         return [
-            new LineBatchCaptureWaitingImagesImageStateHandler(),
-            new LineBatchCaptureLockedImageStateHandler(),
+            new LineBatchCaptureWaitingImagesImageStateHandler,
+            new LineBatchCaptureLockedImageStateHandler,
         ];
     }
 
     /**
-     * @param iterable<LineBatchCapturePostbackHandler> $handlers
+     * @param  iterable<LineBatchCapturePostbackHandler>  $handlers
      * @return array<string, LineBatchCapturePostbackHandler>
      */
     private function indexPostbackHandlers(iterable $handlers): array
@@ -411,7 +477,7 @@ class LineBatchCaptureFlowService
     }
 
     /**
-     * @param iterable<LineBatchCaptureTextStateHandler> $handlers
+     * @param  iterable<LineBatchCaptureTextStateHandler>  $handlers
      * @return array<string, LineBatchCaptureTextStateHandler>
      */
     private function indexTextStateHandlers(iterable $handlers): array
@@ -428,7 +494,7 @@ class LineBatchCaptureFlowService
     }
 
     /**
-     * @param iterable<LineBatchCaptureImageStateHandler> $handlers
+     * @param  iterable<LineBatchCaptureImageStateHandler>  $handlers
      * @return array<string, LineBatchCaptureImageStateHandler>
      */
     private function indexImageStateHandlers(iterable $handlers): array

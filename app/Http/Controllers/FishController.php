@@ -20,6 +20,9 @@ use Inertia\Inertia;
 
 class FishController extends Controller
 {
+    /** 與地名合併或改名同時操作而死鎖時，整個交易（含建立魚）重試的次數 */
+    private const BATCH_STORE_TRANSACTION_ATTEMPTS = 3;
+
     /** 公開清單每筆魚只開放的欄位 */
     private const PUBLIC_ITEM_FIELDS = [
         'id',
@@ -258,7 +261,7 @@ class FishController extends Controller
             $fish->update(['display_capture_record_id' => $records[0]->id]);
 
             return $fish;
-        });
+        }, self::BATCH_STORE_TRANSACTION_ATTEMPTS);
 
         return redirect("/fish/{$fish->id}")
             ->with('success', "魚類「{$fish->name}」批次新增成功！");
@@ -337,19 +340,25 @@ class FishController extends Controller
             'capture_record_id' => 'required|integer|exists:capture_records,id',
         ]);
 
-        $fish = Fish::findOrFail($id);
         $captureRecordId = $request->input('capture_record_id');
 
-        // 驗證捕獲紀錄是否屬於這條魚
-        $captureRecord = $fish->captureRecords()->where('id', $captureRecordId)->first();
+        // 與刪除捕獲紀錄鎖同一列魚，驗證與寫入之間該筆不會被刪除
+        $belongs = DB::transaction(function () use ($id, $captureRecordId) {
+            $fish = Fish::lockForUpdate()->findOrFail($id);
 
-        if (! $captureRecord) {
+            // 驗證捕獲紀錄是否屬於這條魚
+            if (! $fish->captureRecords()->where('id', $captureRecordId)->exists()) {
+                return false;
+            }
+
+            $fish->update(['display_capture_record_id' => $captureRecordId]);
+
+            return true;
+        });
+
+        if (! $belongs) {
             return back()->withErrors(['capture_record_id' => '捕獲紀錄不屬於此魚類']);
         }
-
-        $fish->update([
-            'display_capture_record_id' => $captureRecordId,
-        ]);
 
         return back()->with('success', '已設定為圖鑑主圖');
     }

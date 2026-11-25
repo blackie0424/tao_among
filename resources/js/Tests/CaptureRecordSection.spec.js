@@ -6,7 +6,7 @@ import CaptureRecordSection from '@/Components/CaptureRecord/CaptureRecordSectio
 vi.mock('@/Components/CaptureRecord/CaptureRecordDisplayCard.vue', () => ({
   default: {
     template: '<div data-testid="capture-record-display-card" />',
-    props: ['record', 'index', 'fishName', 'fishId', 'canEdit'],
+    props: ['record', 'index', 'fishName', 'fishId'],
   },
 }))
 
@@ -81,13 +81,10 @@ describe('卡片渲染', () => {
   })
 })
 
-it('把魚 id 與編輯權限傳給每張卡片', async () => {
-  const wrapper = mountSection({ captureRecords: makeRecords(2), fishId: 42, canEdit: true })
+it('把魚 id 傳給每張卡片', () => {
+  const wrapper = mountSection({ captureRecords: makeRecords(2), fishId: 42 })
   for (const card of wrapper.findAllComponents(CaptureRecordDisplayCard))
-    expect(card.props()).toMatchObject({ fishId: 42, canEdit: true })
-  await wrapper.setProps({ canEdit: false })
-  for (const card of wrapper.findAllComponents(CaptureRecordDisplayCard))
-    expect(card.props('canEdit')).toBe(false)
+    expect(card.props()).toMatchObject({ fishId: 42 })
 })
 
 describe('博物誌樣式（#132 AC 9）', () => {

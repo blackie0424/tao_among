@@ -23,7 +23,7 @@ function legacyLineForm(): array
     ];
 }
 
-it('keeps ConfirmLineBatchCaptureAction on legacy fields without a session id', function () {
+it('links LINE manual fields to a session when confirming (#160)', function () {
     $fish = Fish::factory()->create();
     $store = app(LineBatchCaptureStateStore::class);
     $store->startSession('line-confirm-user', $fish->id);
@@ -35,7 +35,7 @@ it('keeps ConfirmLineBatchCaptureAction on legacy fields without a session id', 
     $record = CaptureRecord::firstOrFail();
 
     expect($result->successful())->toBeTrue()
-        ->and($record->session_id)->toBeNull()
+        ->and($record->session_id)->not->toBeNull()
         ->and($record->tribe)->toBe('ivalino')
         ->and($record->location)->toBe('LINE 測試地點')
         ->and($record->capture_method)->toBe('mamasil');

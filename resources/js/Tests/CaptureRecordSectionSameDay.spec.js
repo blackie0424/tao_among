@@ -19,7 +19,7 @@ describe('同一天多筆捕獲紀錄（#132 AC 9）', () => {
 
   const mountSection = () =>
     mount(CaptureRecordSection, {
-      props: { captureRecords: records, fishName: '飛魚', fishId: 1, canEdit: false, user: null },
+      props: { captureRecords: records, fishName: '飛魚', fishId: 1, user: null },
     })
 
   it('同日兩筆的日期標題相同，各自顯示自己的地點；不同日的那筆標題不同', () => {

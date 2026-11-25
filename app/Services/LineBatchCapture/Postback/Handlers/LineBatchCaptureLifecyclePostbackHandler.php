@@ -51,6 +51,6 @@ class LineBatchCaptureLifecyclePostbackHandler implements LineBatchCapturePostba
     private function cancel(LineBatchCaptureFlowService $flow, LineBatchCapturePostbackContext $context): void
     {
         $flow->clearState($context->userId());
-        $flow->replyText($context->replyToken(), '✅ 已取消批次新增捕獲紀錄');
+        $flow->replyText($context->replyToken(), '✅ 已取消新增捕獲紀錄');
     }
 }

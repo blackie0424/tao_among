@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Cache;
 
 class LineBatchCaptureStateStore
 {
+    private const SESSION_FIELDS = ['tribe', 'location', 'capture_method', 'capture_date'];
+
     public function __construct(private readonly string $prefix = 'batch_capture') {}
 
     public function getState(string $userId): ?string
@@ -39,7 +41,7 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param string[] $images
+     * @param  string[]  $images
      */
     public function putImages(string $userId, array $images, int $minutes = 15): void
     {
@@ -55,7 +57,7 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param array<string, mixed> $form
+     * @param  array<string, mixed>  $form
      */
     public function putForm(string $userId, array $form, int $minutes = 15): void
     {
@@ -63,11 +65,18 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      */
     public function updateForm(string $userId, array $values, int $minutes = 15): void
     {
-        $this->putForm($userId, array_merge($this->getForm($userId), $values), $minutes);
+        $form = array_merge($this->getForm($userId), $values);
+
+        // 改了情境的欄位但沒指定情境，表示不再是原本選的那個情境
+        if (! array_key_exists('session_id', $values) && array_intersect_key($values, array_flip(self::SESSION_FIELDS))) {
+            unset($form['session_id']);
+        }
+
+        $this->putForm($userId, $form, $minutes);
     }
 
     public function startSession(string $userId, int $fishId, int $minutes = 15): void
@@ -92,15 +101,15 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param array{string, array<int, string>, int} $payload [setId, indexedImages, total]
+     * @param  array{string, array<int, string>, int}  $payload  [setId, indexedImages, total]
      */
     public function putIndexedImages(string $userId, array $payload, int $minutes = 15): void
     {
         [$setId, $indexed, $total] = $payload;
         Cache::put($this->key($userId, 'indexed_images'), [
-            'set_id'  => $setId,
+            'set_id' => $setId,
             'indexed' => $indexed,
-            'total'   => $total,
+            'total' => $total,
         ], now()->addMinutes($minutes));
     }
 

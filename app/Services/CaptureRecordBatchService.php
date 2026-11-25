@@ -9,6 +9,9 @@ use Illuminate\Validation\ValidationException;
 
 class CaptureRecordBatchService
 {
+    /** 與地名合併或改名同時操作而死鎖時，整個交易重試的次數 */
+    private const TRANSACTION_ATTEMPTS = 3;
+
     public function __construct(
         private readonly ?CaptureRecordFieldValidator $captureRecordFieldValidator = null,
         private readonly ?CaptureSessionService $captureSessionService = null,
@@ -72,7 +75,13 @@ class CaptureRecordBatchService
                 ...$attributes,
                 'notes' => $notes,
             ]), $filenames);
-        });
+        }, self::TRANSACTION_ATTEMPTS);
+    }
+
+    /** @throws ValidationException */
+    public function validateLineSessionData(array $sharedData): array
+    {
+        return $this->captureRecordFieldValidator()->validateLineSessionData($sharedData);
     }
 
     /** @throws ValidationException */

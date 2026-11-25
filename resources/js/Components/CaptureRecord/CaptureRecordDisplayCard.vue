@@ -118,30 +118,15 @@
         </div>
       </div>
     </div>
-
-    <!-- 編輯（僅編輯者）-->
-    <div
-      v-if="canEdit"
-      data-testid="capture-card-footer"
-      class="flex justify-end border-t border-rule px-4"
-    >
-      <Link
-        :href="`/fish/${fishId}/capture-records/${record.id}/edit`"
-        class="inline-flex items-center min-h-touch-secondary text-elder-body text-brand underline underline-offset-4 hover:text-brand-dark"
-        >編輯</Link
-      >
-    </div>
   </div>
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3'
 import LazyImage from '@/Components/UI/LazyImage.vue'
 import { formatDate } from '@/utils/formatDate'
 
 defineProps({
   fishId: { type: [Number, String], default: null },
-  canEdit: { type: Boolean, default: false },
   record: { type: Object, required: true },
   index: { type: Number, required: true },
   fishName: { type: String, default: '' },

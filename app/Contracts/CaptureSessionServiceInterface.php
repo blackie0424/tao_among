@@ -16,4 +16,7 @@ interface CaptureSessionServiceInterface
 
     /** @return array<int, array<string, mixed>> */
     public function getLegacyCombos(): array;
+
+    /** @return array{tribe: ?string, capture_method: string, capture_date: string, location: ?string}|null */
+    public function findAttributes(int $sessionId, bool $lockForUpdate = false): ?array;
 }

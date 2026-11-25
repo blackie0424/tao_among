@@ -26,17 +26,20 @@ class LineBatchCaptureTribePostbackHandler implements LineBatchCapturePostbackHa
         if ($context->action() === 'open_batch_capture_tribe_selector') {
             if ($flow->getImages($context->userId()) === []) {
                 $flow->replySummary($context->replyToken(), $context->userId());
+
                 return;
             }
 
             $flow->putState($context->userId(), 'waiting_tribe_selection');
             $flow->replyTribeSelectionCard($context->replyToken());
+
             return;
         }
 
         $tribe = $context->params()['tribe'] ?? null;
-        if (!$tribe || !in_array($tribe, config('fish_options.tribes', []), true)) {
+        if (! $tribe || ! in_array($tribe, config('fish_options.tribes', []), true)) {
             $flow->replyTribeSelectionCard($context->replyToken(), '❌ 部落資料無效，請重新選擇。');
+
             return;
         }
 

@@ -26,12 +26,14 @@ class LineBatchCaptureUploadPostbackHandler implements LineBatchCapturePostbackH
         if ($context->action() === 'continue_batch_capture_upload') {
             $flow->putState($context->userId(), 'waiting_images');
             $flow->replySummary($context->replyToken(), $context->userId());
+
             return;
         }
 
         if ($flow->getImages($context->userId()) === []) {
             $flow->putState($context->userId(), 'waiting_images');
             $flow->replySummary($context->replyToken(), $context->userId());
+
             return;
         }
 

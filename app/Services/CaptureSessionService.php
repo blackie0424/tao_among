@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\CaptureSessionServiceInterface;
 use App\Models\CaptureRecord;
 use App\Models\CaptureSession;
+use App\Models\Place;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -129,11 +130,43 @@ class CaptureSessionService implements CaptureSessionServiceInterface
         ];
     }
 
+    public function findAttributes(int $sessionId, bool $lockForUpdate = false): ?array
+    {
+        $session = $lockForUpdate
+            ? $this->lockSessionWithPlace($sessionId)
+            : CaptureSession::query()->with('place')->find($sessionId);
+
+        return $session ? $this->recordAttributes($session) : null;
+    }
+
+    /**
+     * 鎖定情境與它的地名，且地名取自鎖定讀取的結果（不再用一般查詢，避免 REPEATABLE READ 讀到舊快照）。
+     * 鎖定順序與 PlaceService::merge 相同：先地名、再情境，避免兩邊各持一把等對方。
+     * 必須在交易內呼叫。
+     */
+    private function lockSessionWithPlace(int $sessionId): ?CaptureSession
+    {
+        $peekedPlaceId = CaptureSession::query()->whereKey($sessionId)->value('place_id');
+        $place = $peekedPlaceId ? Place::query()->lockForUpdate()->find($peekedPlaceId) : null;
+
+        $session = CaptureSession::query()->lockForUpdate()->find($sessionId);
+        if (! $session) {
+            return null;
+        }
+
+        // 取得情境鎖後地名才被併走或換掉：補鎖新地名（極少見；死鎖時由呼叫端的交易重試）
+        if ($session->place_id !== $peekedPlaceId) {
+            $place = $session->place_id ? Place::query()->lockForUpdate()->find($session->place_id) : null;
+        }
+
+        return $session->setRelation('place', $place);
+    }
+
     /** @param array{capture_date:string,tribe:string,capture_method:string,location?:?string}|null $legacyCombo */
     public function resolveForCreate(?int $sessionId, ?array $legacyCombo): CaptureSession
     {
         if ($sessionId !== null) {
-            $session = CaptureSession::query()->lockForUpdate()->find($sessionId);
+            $session = $this->lockSessionWithPlace($sessionId);
             if (! $session) {
                 throw ValidationException::withMessages(['session_id' => '這個情境已不存在，請重新選擇']);
             }

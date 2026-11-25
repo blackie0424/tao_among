@@ -45,7 +45,7 @@ vi.mock('@/Components/UI/LazyImage.vue', () => ({
 }))
 
 describe('CaptureRecords page after management-page removal', () => {
-  it('only shows the batch capture-record create action', () => {
+  it('only shows the capture-record create link at the top (FAB removed)', () => {
     const wrapper = mount(CaptureRecords, {
       props: {
         fish: {
@@ -63,8 +63,8 @@ describe('CaptureRecords page after management-page removal', () => {
       },
     })
 
-    expect(wrapper.getComponent({ name: 'FabButton' }).props('to')).toBe('/fish/1/capture-records/batch-create')
+    expect(wrapper.findComponent({ name: 'FabButton' }).exists()).toBe(false)
+    expect(wrapper.get('a[href="/fish/1/capture-records/batch-create"]').text()).toBe('＋ 新增捕獲紀錄')
     expect(wrapper.find('a[href="/fish/1/capture-records/create"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('批次新增')
   })
 })

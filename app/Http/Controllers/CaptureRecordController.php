@@ -14,12 +14,15 @@ use App\Services\FishService;
 use App\Services\LocationVisibilityService;
 use App\Traits\HasFishImageUrl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CaptureRecordController extends Controller
 {
     use HasFishImageUrl;
+
+    private const FROM_WORKSPACE = 'workspace';
 
     protected $fishService;
 
@@ -92,7 +95,7 @@ class CaptureRecordController extends Controller
     /**
      * Show the batch create form for adding multiple capture records at once.
      */
-    public function batchCreate($fishId)
+    public function batchCreate(Request $request, $fishId)
     {
         abort_unless(request()->user()?->isEditor(), 403);
 
@@ -106,6 +109,7 @@ class CaptureRecordController extends Controller
             'upload_limits' => config('fish_options.batch_upload'),
             'selectable_sessions' => $this->captureSessionService->getSelectableSessions(),
             'legacy_combos' => $this->captureSessionService->getLegacyCombos(),
+            'from' => $request->query('from') === self::FROM_WORKSPACE ? self::FROM_WORKSPACE : null,
         ]);
     }
 
@@ -135,7 +139,7 @@ class CaptureRecordController extends Controller
             return response()->json(['success' => true], 201);
         }
 
-        return redirect("/fish/{$fishId}?tab=capture")->with('success', '捕獲紀錄新增成功');
+        return redirect("/fish/{$fishId}/capture-records")->with('success', '捕獲紀錄新增成功');
     }
 
     /**
@@ -207,7 +211,7 @@ class CaptureRecordController extends Controller
         $record->update($updateData);
 
         // 重新載入捕獲紀錄頁面
-        return redirect("/fish/{$fishId}?tab=capture")
+        return redirect("/fish/{$fishId}/capture-records")
             ->with('success', '資料更新成功！');
     }
 
@@ -222,8 +226,23 @@ class CaptureRecordController extends Controller
             ->where('id', $recordId)
             ->firstOrFail();
 
-        // 執行軟刪除
-        $record->delete();
+        // 與設定圖鑑主圖鎖同一列魚，檢查與刪除之間不會被改成主圖
+        $blocked = DB::transaction(function () use ($fishId, $record) {
+            $fish = Fish::whereKey($fishId)->lockForUpdate()->firstOrFail();
+
+            if ($fish->display_capture_record_id === $record->id) {
+                return true;
+            }
+
+            $record->delete();
+
+            return false;
+        });
+
+        if ($blocked) {
+            return redirect("/fish/{$fishId}/capture-records")
+                ->withErrors(['record' => '這是圖鑑主圖，請先把別張設為主圖才能刪除']);
+        }
 
         Log::info('Record deleted successfully, redirecting to capture records');
 

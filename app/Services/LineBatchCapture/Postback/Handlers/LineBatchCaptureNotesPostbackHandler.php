@@ -27,11 +27,13 @@ class LineBatchCaptureNotesPostbackHandler implements LineBatchCapturePostbackHa
             $form = $flow->getForm($context->userId());
             if (empty($form['capture_date'])) {
                 $flow->replySummary($context->replyToken(), $context->userId());
+
                 return;
             }
 
             $flow->putState($context->userId(), 'awaiting_notes_input');
             $flow->replyText($context->replyToken(), '請輸入備註，若沒有可直接輸入或點選略過。');
+
             return;
         }
 

@@ -418,7 +418,7 @@ class LineBotController extends Controller
             $this->lineMessagingClient->replyMessage($replyToken, [
                 new \LINE\Clients\MessagingApi\Model\TextMessage([
                     'type' => 'text',
-                    'text' => '目前不在圖片上傳流程中。如要新增魚類，請點選圖文選單「新增魚類 ➕」；如要批次新增捕獲紀錄，請先從魚卡點擊按鈕。',
+                    'text' => '目前不在圖片上傳流程中。如要新增魚類，請點選圖文選單「新增魚類 ➕」；如要新增捕獲紀錄，請先從魚卡點擊按鈕。',
                 ]),
             ]);
 

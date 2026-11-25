@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-2">
-    <label class="mb-1 block text-sm font-medium text-gray-700">地名（可留空）</label>
-    <input v-model="query" type="text" :disabled="!tribe" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" :placeholder="tribe ? '輸入地名搜尋' : '請先選擇部落'" @input="search" />
-    <div v-if="suggestions.length" class="divide-y rounded-lg border bg-white">
-      <button v-for="place in suggestions" :key="place.id" type="button" class="w-full px-3 py-2 text-left hover:bg-blue-50" @click="select(place)">
-        {{ place.name }}<span v-if="place.tao_name" class="text-gray-500">（{{ place.tao_name }}）</span>
-        <span v-if="place.tribe === null" class="ml-2 text-xs text-gray-500">未指定部落</span>
+    <label class="mb-1 block text-sm font-medium text-elder-text">地名（可留空）</label>
+    <input v-model="query" type="text" :disabled="!tribe" class="w-full border border-rule-strong px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand disabled:bg-paper" :placeholder="tribe ? '輸入地名搜尋' : '請先選擇部落'" @input="search" />
+    <div v-if="suggestions.length" class="divide-y border border-rule-strong bg-paper-raised">
+      <button v-for="place in suggestions" :key="place.id" type="button" class="w-full px-3 py-2 text-left hover:bg-paper-raised" @click="select(place)">
+        {{ place.name }}<span v-if="place.tao_name" class="text-elder-subtext">（{{ place.tao_name }}）</span>
+        <span v-if="place.tribe === null" class="ml-2 text-xs text-elder-subtext">未指定部落</span>
       </button>
     </div>
-    <p v-if="hasSelection" data-testid="selected-place" class="text-sm text-teal-700">已選：{{ selectedName }}</p>
+    <p v-if="hasSelection" data-testid="selected-place" class="text-sm text-brand">已選：{{ selectedName }}</p>
     <p v-else-if="query.trim()" data-testid="provisional-place-hint" class="text-sm text-amber-700">將建立待確認地名：{{ query.trim() }}（管理者之後確認）</p>
   </div>
 </template>

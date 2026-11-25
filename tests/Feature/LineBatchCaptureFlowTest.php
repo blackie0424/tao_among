@@ -18,10 +18,13 @@ class LineBatchCaptureFlowTest extends TestCase
     use RefreshDatabase;
 
     protected const USER_ID = 'batch_capture_user';
+
     protected const REPLY_TOKEN = 'batch_capture_reply_token';
 
     protected LineBotController $controller;
+
     protected \Mockery\MockInterface $mockLineBotService;
+
     protected \Mockery\MockInterface $mockLineUserService;
 
     protected function setUp(): void
@@ -53,7 +56,7 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
         $this->mockLineUserService
             ->shouldReceive('upsert')
-            ->andReturn(new \App\Models\User())
+            ->andReturn(new \App\Models\User)
             ->byDefault();
         $this->mockLineUserService
             ->shouldReceive('getRole')
@@ -72,34 +75,35 @@ class LineBatchCaptureFlowTest extends TestCase
 
     private function makePostbackEvent(string $data): object
     {
-        $source = new class(self::USER_ID) {
-            public function __construct(private string $userId)
-            {
-            }
+        $source = new class(self::USER_ID)
+        {
+            public function __construct(private string $userId) {}
+
             public function getUserId(): string
             {
                 return $this->userId;
             }
         };
 
-        $postback = new class($data) {
-            public function __construct(private string $data)
-            {
-            }
+        $postback = new class($data)
+        {
+            public function __construct(private string $data) {}
+
             public function getData(): string
             {
                 return $this->data;
             }
         };
 
-        return new class($source, $postback) {
-            public function __construct(private $source, private $postback)
-            {
-            }
+        return new class($source, $postback)
+        {
+            public function __construct(private $source, private $postback) {}
+
             public function getSource()
             {
                 return $this->source;
             }
+
             public function getPostback()
             {
                 return $this->postback;
@@ -247,8 +251,8 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_images', now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_images', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
 
         $this->mockLineBotService
             ->shouldReceive('getMessageContent')
@@ -268,8 +272,8 @@ class LineBatchCaptureFlowTest extends TestCase
             $this->invokeHandleImageMessage($this->makeImageMessageEvent('img-message-1'));
         });
 
-        $this->assertSame(['capture-1.jpg'], Cache::get('line_user_' . self::USER_ID . '_batch_capture_images'));
-        $this->assertSame('waiting_images', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame(['capture-1.jpg'], Cache::get('line_user_'.self::USER_ID.'_batch_capture_images'));
+        $this->assertSame('waiting_images', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
         $this->assertCount(1, $replied);
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
 
@@ -289,10 +293,10 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', [], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_form', [], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_images', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', [], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_form', [], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_images', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=continue_batch_capture_upload'));
@@ -313,9 +317,9 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create();
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_images', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_images', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=open_batch_capture_tribe_selector'));
@@ -336,15 +340,15 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create();
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_images', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_images', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=finish_batch_capture_upload'));
         });
 
-        $this->assertSame('waiting_tribe_selection', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('waiting_tribe_selection', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
 
         $json = $this->flexToArray($replied[0]);
@@ -358,17 +362,17 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_form', [], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_tribe_selection', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_form', [], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_tribe_selection', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=select_batch_capture_tribe&tribe=ivalino'));
         });
 
-        $this->assertSame('awaiting_location_prompt', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
-        $this->assertSame('ivalino', Cache::get('line_user_' . self::USER_ID . '_batch_capture_form')['tribe']);
+        $this->assertSame('awaiting_location_prompt', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
+        $this->assertSame('ivalino', Cache::get('line_user_'.self::USER_ID.'_batch_capture_form')['tribe']);
 
         $json = $this->flexToArray($replied[0]);
         $texts = $this->flattenTexts($json['contents']);
@@ -383,13 +387,13 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create();
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_form', [
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_form', [
             'tribe' => 'ivalino',
             'location' => 'Vanes',
         ], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'awaiting_method_prompt', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'awaiting_method_prompt', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=open_batch_capture_method_selector'));
@@ -410,10 +414,10 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => 'Test Fish 8288']);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'awaiting_location_input', now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg', 'capture-2.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_form', ['tribe' => 'ivalino'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'awaiting_location_input', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg', 'capture-2.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_form', ['tribe' => 'ivalino'], now()->addMinutes(15));
 
         $this->mockLineBotService
             ->shouldReceive('replyMessage')
@@ -421,19 +425,19 @@ class LineBatchCaptureFlowTest extends TestCase
             ->with(self::REPLY_TOKEN, \Mockery::type('array'));
 
         $this->invokeHandleTextMessage($this->makeTextMessageEvent('Vanes'));
-        $this->assertSame('awaiting_method_prompt', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('awaiting_method_prompt', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
 
         $this->invokeHandlePostback($this->makePostbackEvent('action=open_batch_capture_method_selector'));
         $this->invokeHandlePostback($this->makePostbackEvent('action=select_batch_capture_method&capture_method=mapazat'));
-        $this->assertSame('awaiting_date_prompt', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('awaiting_date_prompt', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
 
         $this->invokeHandlePostback($this->makePostbackEvent('action=open_batch_capture_date_selector'));
         $this->invokeHandlePostback($this->makePostbackEvent('action=set_batch_capture_date&value=yesterday'));
-        $this->assertSame('awaiting_notes_prompt', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('awaiting_notes_prompt', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
 
         $this->invokeHandlePostback($this->makePostbackEvent('action=prompt_batch_capture_notes'));
         $this->invokeHandleTextMessage($this->makeTextMessageEvent('金鰲跟魯凱'));
-        $this->assertSame('waiting_confirm', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('waiting_confirm', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
 
         $this->invokeHandlePostback($this->makePostbackEvent('action=confirm_batch_capture_record'));
 
@@ -467,10 +471,10 @@ class LineBatchCaptureFlowTest extends TestCase
             fn ($record) => $record->capture_date->format('Y-m-d')
         )->all());
 
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_batch_capture_fish'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_batch_capture_images'));
-        $this->assertNull(Cache::get('line_user_' . self::USER_ID . '_batch_capture_form'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_batch_capture_fish'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_batch_capture_images'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_batch_capture_form'));
     }
 
     // =====================================================
@@ -481,23 +485,22 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        \App\Models\CaptureRecord::factory()->create([
-            'fish_id'        => $fish->id,
-            'tribe'          => 'ivalino',
-            'location'       => '溪邊',
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino',
+            'location_hint' => '溪邊',
             'capture_method' => 'mamasil',
-            'capture_date'   => '2026-06-29',
+            'capture_date' => '2026-06-29',
         ]);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_images', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_images', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=finish_batch_capture_upload'));
         });
 
-        $this->assertSame('waiting_session_selection', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('waiting_session_selection', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\FlexMessage::class, $replied[0]);
 
         $json = $this->flexToArray($replied[0]);
@@ -510,21 +513,22 @@ class LineBatchCaptureFlowTest extends TestCase
         $allLabels = $this->allButtonLabels($json['contents']);
         $this->assertContains('使用此筆', $allLabels);
         $this->assertContains('手動填寫', $allLabels);
+        $this->assertStringContainsString("session_id={$session->id}", json_encode($json));
     }
 
     public function test_finishing_upload_without_sessions_still_shows_tribe_card(): void
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_images', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_images', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=finish_batch_capture_upload'));
         });
 
-        $this->assertSame('waiting_tribe_selection', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('waiting_tribe_selection', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
         $json = $this->flexToArray($replied[0]);
         $labels = $this->allButtonLabels($json['contents']);
         $this->assertContains('Ivalino', $labels);
@@ -534,30 +538,30 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_form', [], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_session_selection', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_form', [], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_session_selection', now()->addMinutes(15));
 
         $data = http_build_query([
-            'action'         => 'select_capture_session',
-            'tribe'          => 'ivalino',
-            'location'       => '溪邊',
+            'action' => 'select_capture_session',
+            'tribe' => 'ivalino',
+            'location' => '溪邊',
             'capture_method' => 'mamasil',
-            'capture_date'   => '2026-06-29',
+            'capture_date' => '2026-06-29',
         ]);
 
         $replied = $this->captureSingleReply(function () use ($data) {
             $this->invokeHandlePostback($this->makePostbackEvent($data));
         });
 
-        $form = Cache::get('line_user_' . self::USER_ID . '_batch_capture_form');
+        $form = Cache::get('line_user_'.self::USER_ID.'_batch_capture_form');
         $this->assertSame('ivalino', $form['tribe']);
         $this->assertSame('溪邊', $form['location']);
         $this->assertSame('mamasil', $form['capture_method']);
         $this->assertSame('2026-06-29', $form['capture_date']);
 
-        $this->assertSame('waiting_confirm', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('waiting_confirm', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
 
         $json = $this->flexToArray($replied[0]);
         $texts = $this->flattenTexts($json['contents']);
@@ -569,15 +573,15 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_session_selection', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_session_selection', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=skip_session_picker'));
         });
 
-        $this->assertSame('waiting_tribe_selection', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('waiting_tribe_selection', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
 
         $json = $this->flexToArray($replied[0]);
         $labels = $this->allButtonLabels($json['contents']);
@@ -588,23 +592,22 @@ class LineBatchCaptureFlowTest extends TestCase
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
 
-        \App\Models\CaptureRecord::factory()->create([
-            'fish_id'        => $fish->id,
-            'tribe'          => 'iranmeilek',
-            'location'       => '海邊',
+        \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'iranmeilek',
+            'location_hint' => '海邊',
             'capture_method' => 'mapazat',
-            'capture_date'   => '2026-06-28',
+            'capture_date' => '2026-06-28',
         ]);
 
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_session_selection', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['capture-1.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_session_selection', now()->addMinutes(15));
 
         $replied = $this->captureSingleReply(function () {
             $this->invokeHandleTextMessage($this->makeTextMessageEvent('隨便輸入'));
         });
 
-        $this->assertSame('waiting_session_selection', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('waiting_session_selection', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
         $json = $this->flexToArray($replied[0]);
         $this->assertSame('carousel', $json['contents']['type']);
 
@@ -616,10 +619,10 @@ class LineBatchCaptureFlowTest extends TestCase
     public function test_edit_notes_button_allows_notes_input_from_waiting_confirm(): void
     {
         $fish = Fish::factory()->create(['name' => '測試魚']);
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_fish', $fish->id, now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_images', ['cap.jpg'], now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_state', 'waiting_confirm', now()->addMinutes(15));
-        Cache::put('line_user_' . self::USER_ID . '_batch_capture_form', [
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_fish', $fish->id, now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_images', ['cap.jpg'], now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_state', 'waiting_confirm', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_batch_capture_form', [
             'tribe' => 'ivalino', 'location' => 'Vanes',
             'capture_method' => 'mapazat', 'capture_date' => '2026-05-16',
         ], now()->addMinutes(15));
@@ -628,13 +631,430 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->captureSingleReply(function () {
             $this->invokeHandlePostback($this->makePostbackEvent('action=prompt_batch_capture_notes'));
         });
-        $this->assertSame('awaiting_notes_input', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
+        $this->assertSame('awaiting_notes_input', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
 
         // 輸入備註後回到 waiting_confirm
         $this->captureSingleReply(function () {
             $this->invokeHandleTextMessage($this->makeTextMessageEvent('特殊備註'));
         });
-        $this->assertSame('waiting_confirm', Cache::get('line_user_' . self::USER_ID . '_batch_capture_state'));
-        $this->assertSame('特殊備註', Cache::get('line_user_' . self::USER_ID . '_batch_capture_form')['notes']);
+        $this->assertSame('waiting_confirm', Cache::get('line_user_'.self::USER_ID.'_batch_capture_state'));
+        $this->assertSame('特殊備註', Cache::get('line_user_'.self::USER_ID.'_batch_capture_form')['notes']);
+    }
+
+    // =====================================================
+    // 走情境（#160）
+    // =====================================================
+
+    private function seedBatch(Fish $fish, string $state, array $form): void
+    {
+        $prefix = 'line_user_'.self::USER_ID.'_batch_capture_';
+        Cache::put($prefix.'fish', $fish->id, now()->addMinutes(15));
+        Cache::put($prefix.'images', ['capture-1.jpg', 'capture-2.jpg'], now()->addMinutes(15));
+        Cache::put($prefix.'state', $state, now()->addMinutes(15));
+        Cache::put($prefix.'form', $form, now()->addMinutes(15));
+    }
+
+    private function batchState(): ?string
+    {
+        return Cache::get('line_user_'.self::USER_ID.'_batch_capture_state');
+    }
+
+    private function batchForm(): array
+    {
+        return Cache::get('line_user_'.self::USER_ID.'_batch_capture_form', []);
+    }
+
+    private function confirmAndCapture(): array
+    {
+        return $this->captureSingleReply(function () {
+            $this->invokeHandlePostback($this->makePostbackEvent('action=confirm_batch_capture_record'));
+        });
+    }
+
+    public function test_session_picker_lists_only_the_latest_three_sessions_with_place_or_missing_label(): void
+    {
+        $fish = Fish::factory()->create();
+        $place = app(\App\Services\PlaceService::class)->resolveName('Vanes', 'ivalino');
+        foreach (['2026-06-01', '2026-06-02', '2026-06-03'] as $date) {
+            \App\Models\CaptureSession::factory()->create(['capture_date' => $date, 'place_id' => $place->id, 'capture_method' => 'mamasil']);
+        }
+        \App\Models\CaptureSession::factory()->create(['capture_date' => '2026-06-04', 'capture_method' => 'mamasil']);
+        $this->seedBatch($fish, 'waiting_images', []);
+
+        $replied = $this->captureSingleReply(function () {
+            $this->invokeHandlePostback($this->makePostbackEvent('action=finish_batch_capture_upload'));
+        });
+
+        $texts = $this->flattenTexts($this->flexToArray($replied[0])['contents']);
+        $this->assertSame(['2026-06-04', '2026-06-03', '2026-06-02'], array_values(array_filter($texts, fn ($t) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $t))));
+        $this->assertContains('地點未標', $texts);
+        $this->assertContains('Vanes', $texts);
+    }
+
+    public function test_selecting_a_session_stores_its_id_and_values_and_editing_a_field_drops_the_id(): void
+    {
+        $fish = Fish::factory()->create();
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'location_hint' => '溪邊', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $this->seedBatch($fish, 'waiting_session_selection', []);
+
+        $this->captureSingleReply(function () use ($session) {
+            $this->invokeHandlePostback($this->makePostbackEvent("action=select_capture_session&session_id={$session->id}"));
+        });
+
+        $form = $this->batchForm();
+        $this->assertSame($session->id, $form['session_id']);
+        $this->assertSame('ivalino', $form['tribe']);
+        $this->assertSame('溪邊', $form['location']);
+        $this->assertSame('mamasil', $form['capture_method']);
+        $this->assertSame('2026-06-29', $form['capture_date']);
+        $this->assertSame('waiting_confirm', $this->batchState());
+
+        $this->captureSingleReply(function () {
+            $this->invokeHandlePostback($this->makePostbackEvent('action=set_batch_capture_date&value=yesterday'));
+        });
+        $this->assertArrayNotHasKey('session_id', $this->batchForm());
+    }
+
+    public function test_confirm_with_selected_session_reuses_it_and_links_every_record(): void
+    {
+        $fish = Fish::factory()->create();
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'location_hint' => '溪邊', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'session_id' => $session->id, 'tribe' => 'ivalino', 'location' => '溪邊',
+            'capture_method' => 'mamasil', 'capture_date' => '2026-06-29', 'notes' => '備註',
+        ]);
+
+        $this->confirmAndCapture();
+
+        $this->assertSame(1, \App\Models\CaptureSession::count());
+        $records = \App\Models\CaptureRecord::where('fish_id', $fish->id)->get();
+        $this->assertCount(2, $records);
+        foreach ($records as $record) {
+            $this->assertSame($session->id, $record->session_id);
+            $this->assertSame('溪邊', $record->location);
+            $this->assertSame('mamasil', $record->capture_method);
+            $this->assertSame('2026-06-29', $record->capture_date->format('Y-m-d'));
+        }
+
+        // 驗收 15：網頁編輯頁把它視為有情境的紀錄
+        $this->actingAs(\App\Models\User::factory()->create())
+            ->get("/fish/{$fish->id}/capture-records/{$records[0]->id}/edit")
+            ->assertInertia(fn ($page) => $page->where('record.session_id', $session->id));
+    }
+
+    public function test_confirm_manual_brand_new_combination_creates_one_session_with_provisional_place(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'tribe' => 'ivalino', 'location' => 'Vanes', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29',
+        ]);
+
+        $this->confirmAndCapture();
+
+        $this->assertSame(1, \App\Models\CaptureSession::count());
+        $session = \App\Models\CaptureSession::with('place')->first();
+        $this->assertSame('Vanes', $session->place->name);
+        $this->assertTrue((bool) $session->place->is_provisional);
+        $this->assertSame([$session->id, $session->id], \App\Models\CaptureRecord::orderBy('id')->pluck('session_id')->all());
+    }
+
+    public function test_confirm_manual_equivalent_combination_reuses_existing_session(): void
+    {
+        $fish = Fish::factory()->create();
+        $place = app(\App\Services\PlaceService::class)->resolveName('Vanes', 'ivalino');
+        $existing = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29', 'place_id' => $place->id,
+        ]);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'tribe' => 'ivalino', 'location' => 'Vanes', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29',
+        ]);
+
+        $this->confirmAndCapture();
+
+        $this->assertSame(1, \App\Models\CaptureSession::count());
+        $this->assertSame([$existing->id, $existing->id], \App\Models\CaptureRecord::orderBy('id')->pluck('session_id')->all());
+    }
+
+    /** @param array<int, array<int, object>> $replies 每次回覆的訊息，由呼叫端的 mock 收集 */
+    private function walkManualFlowSkippingLocation(Fish $fish, array &$replies): void
+    {
+        $this->seedBatch($fish, 'waiting_tribe_selection', []);
+        $replies = [];
+
+        foreach ([
+            'action=select_batch_capture_tribe&tribe=ivalino',
+            'action=skip_batch_capture_location',
+            'action=open_batch_capture_method_selector',
+            'action=select_batch_capture_method&capture_method=mapazat',
+            'action=set_batch_capture_date&value=yesterday',
+            'action=skip_batch_capture_notes',
+        ] as $data) {
+            $this->invokeHandlePostback($this->makePostbackEvent($data));
+        }
+
+        // 選完部落的摘要有「略過地點」；略過後地點顯示未填寫
+        $this->assertContains('略過地點', $this->allButtonLabels($this->flexToArray($replies[0][0])['contents']));
+        $this->assertContains('地點：未填寫', $this->flattenTexts($this->flexToArray($replies[1][0])['contents']));
+        $this->assertSame('waiting_confirm', $this->batchState());
+
+        $this->invokeHandlePostback($this->makePostbackEvent('action=confirm_batch_capture_record'));
+    }
+
+    public function test_summary_card_lists_fields_in_web_order_with_unified_wording(): void
+    {
+        $fish = Fish::factory()->create(['name' => '測試魚']);
+
+        $summary = app(\App\Services\LineBatchCaptureMessageBuilder::class)->buildSummaryCard(
+            $fish,
+            ['a.jpg'],
+            ['tribe' => 'ivalino', 'location' => 'Vanes', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29', 'notes' => '備註'],
+            [],
+        );
+        $texts = $this->flattenTexts($this->flexToArray($summary)['contents']);
+
+        $this->assertSame('請確認捕獲紀錄', $texts[0]);
+        $this->assertSame(
+            ['魚類：測試魚', '照片數量：1 張', '日期：2026-06-29', '部落：ivalino', '地點：Vanes', '捕獲方式：mapazat 網魚', '備註：備註'],
+            array_slice($texts, 1)
+        );
+    }
+
+    public function test_confirm_reply_says_added_and_links_to_the_manage_page(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'tribe' => 'ivalino', 'location' => 'Vanes', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29',
+        ]);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(
+            "✅ 已新增 2 筆捕獲紀錄\n管理捕獲紀錄：".url("/fish/{$fish->id}/capture-records"),
+            $this->flexToArray($replied[0])['text']
+        );
+    }
+
+    public function test_image_outside_any_flow_gets_guidance_with_unified_wording(): void
+    {
+        $replied = $this->captureSingleReply(function () {
+            $this->invokeHandleImageMessage($this->makeImageMessageEvent('stray-image'));
+        });
+
+        $text = $this->flexToArray($replied[0])['text'];
+        $this->assertStringContainsString('如要新增捕獲紀錄，請先從魚卡點擊按鈕', $text);
+        $this->assertStringNotContainsString('批次', $text);
+    }
+
+    public function test_cancel_reply_uses_unified_wording(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', []);
+
+        $replied = $this->captureSingleReply(function () {
+            $this->invokeHandlePostback($this->makePostbackEvent('action=cancel_batch_capture_record'));
+        });
+
+        $this->assertSame('✅ 已取消新增捕獲紀錄', $this->flexToArray($replied[0])['text']);
+    }
+
+    public function test_user_can_skip_location_in_the_manual_flow_and_each_batch_creates_a_new_session(): void
+    {
+        $fish = Fish::factory()->create();
+        $replies = [];
+        $this->mockLineBotService->shouldReceive('replyMessage')
+            ->andReturnUsing(function ($token, $messages) use (&$replies) {
+                $replies[] = $messages;
+            });
+
+        $this->walkManualFlowSkippingLocation($fish, $replies);
+        $this->walkManualFlowSkippingLocation($fish, $replies);
+
+        $this->assertSame(2, \App\Models\CaptureSession::count());
+        $this->assertSame(0, \App\Models\Place::count());
+        $sessions = \App\Models\CaptureSession::orderBy('id')->get();
+        $this->assertNull($sessions[0]->place_id);
+        $this->assertSame(
+            [$sessions[0]->id, $sessions[0]->id, $sessions[1]->id, $sessions[1]->id],
+            \App\Models\CaptureRecord::orderBy('id')->pluck('session_id')->all()
+        );
+        $this->assertNull(\App\Models\CaptureRecord::first()->location);
+    }
+
+    public function test_renaming_the_selected_sessions_place_before_confirm_asks_to_reconfirm(): void
+    {
+        $fish = Fish::factory()->create();
+        $places = app(\App\Services\PlaceService::class);
+        $place = $places->resolveName('Vanes', 'ivalino');
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29', 'place_id' => $place->id,
+        ]);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'session_id' => $session->id, 'tribe' => 'ivalino', 'location' => 'Vanes',
+            'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $places->update($place, ['name' => 'Vanes 新名', 'tribe' => 'ivalino']);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+        $this->assertStringContainsString('情境已更新，請重新確認', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertStringContainsString('Vanes 新名', json_encode($replied, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_merging_the_selected_sessions_place_before_confirm_asks_to_reconfirm(): void
+    {
+        $fish = Fish::factory()->create();
+        $places = app(\App\Services\PlaceService::class);
+        $source = $places->resolveName('Vanes', 'ivalino');
+        $target = $places->resolveName('Vanes 正式名', 'ivalino');
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29', 'place_id' => $source->id,
+        ]);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'session_id' => $session->id, 'tribe' => 'ivalino', 'location' => 'Vanes',
+            'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $places->merge($source, $target);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+        $this->assertStringContainsString('情境已更新，請重新確認', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertStringContainsString('Vanes 正式名', json_encode($replied, JSON_UNESCAPED_UNICODE));
+
+        $this->confirmAndCapture();
+        $this->assertSame(
+            ['Vanes 正式名', 'Vanes 正式名'],
+            \App\Models\CaptureRecord::orderBy('id')->pluck('location')->all()
+        );
+    }
+
+    public function test_create_fish_flow_keeps_location_required_without_skip_option(): void
+    {
+        $flow = new \App\Services\LineCreateFish\LineCreateFishFormFlowService(
+            $this->mockLineBotService,
+            app(\App\Services\CaptureRecordBatchService::class),
+            app(\App\Services\LineBatchCaptureMessageBuilder::class),
+        );
+
+        $this->assertFalse($flow->allowsEmptyLocation());
+        $this->assertTrue(app(\App\Services\LineBatchCaptureFlowService::class)->allowsEmptyLocation());
+    }
+
+    public function test_manual_confirm_still_rejects_an_invalid_date_when_location_is_empty(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'tribe' => 'ivalino', 'location' => '', 'capture_method' => 'mapazat', 'capture_date' => now()->addDays(3)->toDateString(),
+        ]);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertStringContainsString('捕獲日期不能是未來日期', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertSame(0, \App\Models\CaptureSession::count());
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+    }
+
+    public function test_confirm_with_selected_session_that_has_no_place_keeps_location_empty(): void
+    {
+        $fish = Fish::factory()->create();
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $this->seedBatch($fish, 'waiting_session_selection', []);
+
+        $this->captureSingleReply(function () use ($session) {
+            $this->invokeHandlePostback($this->makePostbackEvent("action=select_capture_session&session_id={$session->id}"));
+        });
+        $this->confirmAndCapture();
+
+        $this->assertSame(1, \App\Models\CaptureSession::count());
+        $records = \App\Models\CaptureRecord::orderBy('id')->get();
+        $this->assertSame([$session->id, $session->id], $records->pluck('session_id')->all());
+        $this->assertNull($records[0]->location);
+    }
+
+    public function test_old_session_card_postback_with_four_fields_still_reaches_confirm_and_gets_a_session(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_session_selection', []);
+        $data = http_build_query([
+            'action' => 'select_capture_session', 'tribe' => 'ivalino', 'location' => '溪邊',
+            'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+
+        $this->captureSingleReply(fn () => $this->invokeHandlePostback($this->makePostbackEvent($data)));
+        $this->assertSame('waiting_confirm', $this->batchState());
+        $this->assertArrayNotHasKey('session_id', $this->batchForm());
+
+        $this->confirmAndCapture();
+
+        $this->assertSame(2, \App\Models\CaptureRecord::whereNotNull('session_id')->count());
+        $this->assertSame(1, \App\Models\CaptureSession::count());
+    }
+
+    public function test_manual_confirm_with_invalid_data_creates_neither_session_nor_records(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'tribe' => 'not-a-tribe', 'location' => 'Vanes', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29',
+        ]);
+
+        $this->confirmAndCapture();
+
+        $this->assertSame(0, \App\Models\CaptureSession::count());
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+        $this->assertSame(0, \App\Models\Place::count());
+    }
+
+    public function test_selected_session_deleted_before_confirm_returns_to_picker_and_keeps_photos_and_notes(): void
+    {
+        $fish = Fish::factory()->create();
+        $session = \App\Models\CaptureSession::factory()->create(['capture_method' => 'mamasil', 'location_hint' => '溪邊']);
+        $other = \App\Models\CaptureSession::factory()->create(['capture_method' => 'mamasil', 'location_hint' => '海邊']);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'session_id' => $session->id, 'tribe' => $session->tribe, 'location' => '溪邊',
+            'capture_method' => 'mamasil', 'capture_date' => $session->capture_date->format('Y-m-d'), 'notes' => '保留備註',
+        ]);
+        $session->delete();
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+        $this->assertSame('waiting_session_selection', $this->batchState());
+        $this->assertSame(['capture-1.jpg', 'capture-2.jpg'], Cache::get('line_user_'.self::USER_ID.'_batch_capture_images'));
+        $this->assertSame('保留備註', $this->batchForm()['notes']);
+        $this->assertArrayNotHasKey('session_id', $this->batchForm());
+        $this->assertStringContainsString('這個情境已不存在，請重新選擇', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertStringContainsString("session_id={$other->id}", json_encode($replied, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_selected_session_changed_before_confirm_asks_to_reconfirm_then_saves_current_values(): void
+    {
+        $fish = Fish::factory()->create();
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29', 'location_hint' => '溪邊',
+        ]);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'session_id' => $session->id, 'tribe' => 'ivalino', 'location' => '溪邊',
+            'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $session->update(['capture_date' => '2026-06-30']);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+        $this->assertSame('waiting_confirm', $this->batchState());
+        $this->assertSame('2026-06-30', $this->batchForm()['capture_date']);
+        $this->assertStringContainsString('情境已更新，請重新確認', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertStringContainsString('2026-06-30', json_encode($replied, JSON_UNESCAPED_UNICODE));
+
+        $this->confirmAndCapture();
+
+        $this->assertSame(['2026-06-30', '2026-06-30'], \App\Models\CaptureRecord::orderBy('id')->get()->map(fn ($r) => $r->capture_date->format('Y-m-d'))->all());
     }
 }

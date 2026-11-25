@@ -104,7 +104,7 @@ describe('Capture Record Inertia Endpoints', function () {
             'notes' => 'Test capture notes',
         ]);
 
-        $response->assertRedirect("/fish/{$fish->id}?tab=capture")
+        $response->assertRedirect("/fish/{$fish->id}/capture-records")
             ->assertSessionHas('success', '捕獲紀錄新增成功');
 
         $this->assertDatabaseHas('capture_records', [
@@ -204,7 +204,7 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}?tab=capture");
+        $response->assertRedirect("/fish/{$fish->id}/capture-records");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,
@@ -238,7 +238,7 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}?tab=capture");
+        $response->assertRedirect("/fish/{$fish->id}/capture-records");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,
@@ -283,6 +283,74 @@ describe('Capture Record Inertia Endpoints', function () {
         ]);
     });
 
+    it('refuses to delete the fish display image record and keeps it', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create();
+        $display = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
+        $other = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
+        $fish->update(['display_capture_record_id' => $display->id]);
+
+        $response = $this->actingAs($user)->delete("/fish/{$fish->id}/capture-records/{$display->id}");
+
+        $response->assertRedirect("/fish/{$fish->id}/capture-records")
+            ->assertSessionHasErrors(['record' => '這是圖鑑主圖，請先把別張設為主圖才能刪除']);
+        $this->assertNotSoftDeleted('capture_records', ['id' => $display->id]);
+
+        $this->actingAs($user)->delete("/fish/{$fish->id}/capture-records/{$other->id}")
+            ->assertSessionHas('success', '捕獲紀錄刪除成功');
+        $this->assertSoftDeleted('capture_records', ['id' => $other->id]);
+    });
+
+    it('shows the refusal message on the manage page after a rejected delete', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create();
+        $display = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
+        $fish->update(['display_capture_record_id' => $display->id]);
+
+        $this->actingAs($user)->from("/fish/{$fish->id}/capture-records/{$display->id}/edit")
+            ->delete("/fish/{$fish->id}/capture-records/{$display->id}")
+            ->assertRedirect("/fish/{$fish->id}/capture-records");
+
+        $this->actingAs($user)->get("/fish/{$fish->id}/capture-records")
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('CaptureRecords')
+                ->where('errors.record.0', '這是圖鑑主圖，請先把別張設為主圖才能刪除'));
+    });
+
+    it('keeps the display image invariant in both orders of set and delete', function () {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create();
+        $target = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
+
+        // 先刪除，再設為主圖：被拒絕，主圖不指向已刪除的紀錄
+        $this->actingAs($user)->delete("/fish/{$fish->id}/capture-records/{$target->id}");
+        $this->actingAs($user)->put("/fish/{$fish->id}/display-image", ['capture_record_id' => $target->id])
+            ->assertSessionHasErrors('capture_record_id');
+        expect($fish->fresh()->display_capture_record_id)->toBeNull();
+
+        // 先設為主圖，再刪除：被拒絕，紀錄仍在
+        $kept = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
+        $this->actingAs($user)->put("/fish/{$fish->id}/display-image", ['capture_record_id' => $kept->id]);
+        $this->actingAs($user)->delete("/fish/{$fish->id}/capture-records/{$kept->id}")
+            ->assertSessionHasErrors('record');
+        expect($fish->fresh()->display_capture_record_id)->toBe($kept->id);
+        $this->assertNotSoftDeleted('capture_records', ['id' => $kept->id]);
+    });
+
+    it('passes only the whitelisted from value to the batch create page', function ($query, $expected) {
+        $user = User::factory()->create();
+        $fish = Fish::factory()->create();
+
+        $this->actingAs($user)->get("/fish/{$fish->id}/capture-records/batch-create{$query}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('BatchCreateCaptureRecord')
+                ->where('from', $expected));
+    })->with([
+        'workspace' => ['?from=workspace', 'workspace'],
+        'other value' => ['?from=fish', null],
+        'missing' => ['', null],
+    ]);
+
     it('returns 404 when deleting non-existent capture record', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create();
@@ -325,7 +393,7 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
 
-        $response->assertRedirect("/fish/{$fish->id}?tab=capture");
+        $response->assertRedirect("/fish/{$fish->id}/capture-records");
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,

@@ -1,11 +1,11 @@
 <?php
 
+use App\Models\CaptureRecord;
 use App\Models\Fish;
 use App\Services\CaptureRecordBatchService;
 use App\Services\LineBatchCapture\Actions\ConfirmLineBatchCaptureAction;
 use App\Services\LineBatchCapture\LineBatchCaptureStateStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Validation\ValidationException;
 
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
@@ -15,8 +15,7 @@ beforeEach(function () {
 
 it('confirms batch capture and clears state on success', function () {
     $fish = Fish::factory()->create();
-    $captureRecordBatchService = Mockery::mock(CaptureRecordBatchService::class);
-    $action = new ConfirmLineBatchCaptureAction($this->stateStore, $captureRecordBatchService);
+    $action = new ConfirmLineBatchCaptureAction($this->stateStore, app(CaptureRecordBatchService::class));
 
     $this->stateStore->startSession('user-1', $fish->id);
     $this->stateStore->putImages('user-1', ['capture-1.jpg', 'capture-2.jpg']);
@@ -28,22 +27,13 @@ it('confirms batch capture and clears state on success', function () {
         'notes' => '測試備註',
     ]);
 
-    $captureRecordBatchService
-        ->shouldReceive('createForFish')
-        ->once()
-        ->withArgs(function ($passedFish, $images, $form) use ($fish) {
-            return $passedFish->is($fish)
-                && $images === ['capture-1.jpg', 'capture-2.jpg']
-                && $form['tribe'] === 'ivalino';
-        })
-        ->andReturn([new stdClass(), new stdClass()]);
-
     $result = $action->execute('user-1');
 
     expect($result->successful())->toBeTrue()
         ->and($result->recordsCount())->toBe(2)
-        ->and($result->message())->toBe('✅ 已成功新增 2 筆捕獲紀錄')
-        ->and($this->stateStore->getState('user-1'))->toBeNull();
+        ->and($result->message())->toBe("✅ 已新增 2 筆捕獲紀錄\n管理捕獲紀錄：".url("/fish/{$fish->id}/capture-records"))
+        ->and($this->stateStore->getState('user-1'))->toBeNull()
+        ->and(CaptureRecord::where('fish_id', $fish->id)->whereNotNull('session_id')->count())->toBe(2);
 });
 
 it('returns failure and clears state when fish is missing during confirm', function () {
@@ -61,8 +51,7 @@ it('returns failure and clears state when fish is missing during confirm', funct
 
 it('returns validation failure without clearing state', function () {
     $fish = Fish::factory()->create();
-    $captureRecordBatchService = Mockery::mock(CaptureRecordBatchService::class);
-    $action = new ConfirmLineBatchCaptureAction($this->stateStore, $captureRecordBatchService);
+    $action = new ConfirmLineBatchCaptureAction($this->stateStore, app(CaptureRecordBatchService::class));
 
     $this->stateStore->startSession('user-1', $fish->id);
     $this->stateStore->putImages('user-1', ['capture-1.jpg']);
@@ -70,19 +59,13 @@ it('returns validation failure without clearing state', function () {
         'tribe' => 'ivalino',
         'location' => 'Vanes',
         'capture_method' => 'mapazat',
-        'capture_date' => '2026-05-16',
+        'capture_date' => now()->addDays(3)->toDateString(),
     ]);
-
-    $captureRecordBatchService
-        ->shouldReceive('createForFish')
-        ->once()
-        ->andThrow(ValidationException::withMessages([
-            'capture_date' => '捕獲日期不能是未來日期',
-        ]));
 
     $result = $action->execute('user-1');
 
     expect($result->successful())->toBeFalse()
         ->and($result->message())->toBe('捕獲日期不能是未來日期')
-        ->and($this->stateStore->getState('user-1'))->toBe('waiting_images');
+        ->and($this->stateStore->getState('user-1'))->toBe('waiting_images')
+        ->and(CaptureRecord::count())->toBe(0);
 });

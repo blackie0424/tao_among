@@ -50,7 +50,10 @@ it('工作區保留新增魚類入口', () => {
   expect(wrapper.get('a[href="/fish/batch-create"]').text()).toBe('新增魚種')
 })
 
-it('待補照片連到捕獲紀錄 tab', () => {
+it('待補照片直接連到新增捕獲紀錄頁並標記來自工作區', () => {
   const wrapper = mount(EditorHome, { props: { ...baseProps, needPhoto: [{ id: 4, name: '測試魚' }] } })
-  expect(wrapper.get('a[href="/fish/4?tab=capture"]').text()).toContain('測試魚')
+  const link = wrapper.get('a[href="/fish/4/capture-records/batch-create?from=workspace"]')
+  expect(link.text()).toContain('測試魚')
+  expect(link.text()).toContain('＋ 新增照片')
+  expect(wrapper.find('a[href="/fish/4?tab=capture"]').exists()).toBe(false)
 })
