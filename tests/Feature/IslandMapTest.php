@@ -317,3 +317,50 @@ it('#183 排序跨頁成立，每頁 20 條', function () {
         ->and($first['fish'][1]['id'])->toBe($fishes[0]->id)
         ->and(array_column($second['fish'], 'id'))->toBe([$fishes[19]->id, $fishes[20]->id]);
 });
+
+// #183 第 1 步審查：清單外的值必須精確排除（MySQL 預設不分大小寫、尾端空白視為相同）
+it('#183 大小寫不同或帶尾端空白的選項、部落不算：不算有結果、不算進度、不出現在結果', function () {
+    [$badCategory, $badMethod, $badTribe] = Fish::factory()->count(3)->create();
+    islandResults($badCategory, 'yayo', [['OYOD', '剝皮'], ['oyod ', '剝皮']]);
+    islandResults($badMethod, 'yayo', [['oyod', '剝皮 '], ['oyod', '去魚鱗 ']]);
+    islandResults($badTribe, 'YAYO', [['oyod', '剝皮']]);
+    islandResults($badTribe, 'yayo ', [['oyod', '剝皮']]);
+    $this->actingAs(islandPlayer());
+
+    $props = tribePageProps($this);
+
+    expect(array_column($props['fish'], 'results'))->toBe([null, null, null])
+        ->and($props['progress'])->toBe(['with_result' => 0, 'total' => 3]);
+});
+
+it('#183 大小寫不同的值不影響清單內值的計數', function () {
+    $fish = Fish::factory()->create();
+    islandResults($fish, 'yayo', [['oyod', '剝皮'], ['OYOD', '剝皮']]);
+    $this->actingAs(islandPlayer());
+
+    expect(tribePageProps($this)['fish'][0]['results'])->toBe([
+        'food_category' => ['yayo' => [['value' => 'oyod', 'count' => 1]]],
+        'processing_method' => ['yayo' => [['value' => '剝皮', 'count' => 2]]],
+    ]);
+});
+
+// #183 第 1 步審查：「我不知道」以設定為單一來源
+it('#183 食用方式的「我不知道」取自設定：判定有結果與傳給畫面的是同一個值', function () {
+    config([
+        'fish_options.response_processing_methods' => ['去魚鱗', '說不上來'],
+        'fish_options.response_unknown_processing_method' => '說不上來',
+    ]);
+    $fish = Fish::factory()->create();
+    islandResults($fish, 'yayo', [['oyod', '說不上來']]);
+    $this->actingAs(islandPlayer());
+
+    $props = tribePageProps($this);
+
+    expect($props['unknown_processing_method'])->toBe('說不上來')
+        ->and($props['fish'][0]['results'])->toBeNull();
+});
+
+it('#183 設定裡的「我不知道」是回答選項之一', function () {
+    expect(config('fish_options.response_processing_methods'))
+        ->toContain(config('fish_options.response_unknown_processing_method'));
+});

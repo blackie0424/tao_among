@@ -44,9 +44,6 @@ class FishTribeResponse extends Model
     /** 魚卡結果（#183）的兩題：飲食分類、食用方式（處理方式） */
     public const ISLAND_RESULT_QUESTIONS = ['food_category', 'processing_method'];
 
-    /** 食用方式的「我不知道」：不算有結果、不畫進魚卡（必須是 response_processing_methods 的一個選項） */
-    public const UNKNOWN_PROCESSING_METHOD = '我不知道';
-
     protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'processing_method', 'respondent_tribe', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
 
     public function user(): BelongsTo
@@ -409,12 +406,12 @@ class FishTribeResponse extends Model
     public static function islandHasResultSql(string $tribe, string $fishIdColumn): array
     {
         $options = self::islandResultOptions();
-        $knownMethods = array_values(array_diff($options['processing_method'], [self::UNKNOWN_PROCESSING_METHOD]));
-        $exists = fn (string $column, array $values) => self::query()->toBase()
-            ->selectRaw('1')
-            ->whereColumn('fish_tribe_responses.fish_id', $fishIdColumn)
-            ->where('tribe', $tribe)
-            ->whereIn($column, $values);
+        $knownMethods = array_values(array_diff($options['processing_method'], [self::unknownProcessingMethod()]));
+        $exists = fn (string $column, array $values) => self::whereExactlyIn(
+            self::whereExactlyIn(self::query()->toBase()->selectRaw('1')->whereColumn('fish_tribe_responses.fish_id', $fishIdColumn), 'tribe', [$tribe]),
+            $column,
+            $values,
+        );
         $category = $exists('food_category', $options['food_category']);
         $method = $exists('processing_method', $knownMethods);
 
@@ -436,10 +433,8 @@ class FishTribeResponse extends Model
         $tribes = config('fish_options.tribes');
         $results = [];
         foreach (self::islandResultOptions() as $question => $options) {
-            $rows = self::query()
-                ->whereIn('fish_id', $fishIds)
-                ->whereIn('tribe', $tribes)
-                ->whereIn($question, $options)
+            $query = self::query()->whereIn('fish_id', $fishIds);
+            $rows = self::whereExactlyIn(self::whereExactlyIn($query, 'tribe', $tribes), $question, $options)
                 ->groupBy('fish_id', 'tribe', $question)
                 ->selectRaw("fish_id, tribe, {$question} as value, count(*) as count")
                 ->get();
@@ -452,6 +447,32 @@ class FishTribeResponse extends Model
             'food_category' => $questions['food_category'] ?? [],
             'processing_method' => $questions['processing_method'] ?? [],
         ], $results);
+    }
+
+    /** 食用方式的「我不知道」：不算有結果、不畫進魚卡。 */
+    public static function unknownProcessingMethod(): string
+    {
+        return config('fish_options.response_unknown_processing_method');
+    }
+
+    /**
+     * 欄位值與清單「逐位元組相同」才算：MySQL 預設 collation 不分大小寫、尾端空白視為相同，
+     * 所以 MySQL 先轉成二進位再比；SQLite 預設就是逐位元組比對。
+     *
+     * @template T of \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder
+     *
+     * @param  T  $query
+     * @return T
+     */
+    private static function whereExactlyIn($query, string $column, array $values)
+    {
+        if ($query->getConnection()->getDriverName() !== 'mysql') {
+            return $query->whereIn($column, $values);
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($values), 'cast(? as binary)'));
+
+        return $query->whereRaw("cast({$query->getGrammar()->wrap($column)} as binary) in ({$placeholders})", $values);
     }
 
     /** @return array<string, list<array{value: string, count: int}>> 依部落清單順序；部落內依選項順序 */

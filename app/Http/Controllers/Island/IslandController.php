@@ -58,7 +58,7 @@ class IslandController extends Controller
             'tribe' => $tribe,
             'tribes' => config('fish_options.tribes'),
             'result_options' => FishTribeResponse::islandResultOptions(),
-            'unknown_processing_method' => FishTribeResponse::UNKNOWN_PROCESSING_METHOD,
+            'unknown_processing_method' => FishTribeResponse::unknownProcessingMethod(),
             'fish' => $page->getCollection()->map(fn (Fish $fish) => [
                 'id' => $fish->id,
                 'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,

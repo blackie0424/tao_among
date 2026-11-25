@@ -1,5 +1,8 @@
 <?php
 
+// 食用方式回答的「我不知道」：同時是回答選項之一，也是魚卡結果要排除的值
+$unknownProcessingMethod = '我不知道';
+
 return [
     'capture_timezone' => 'Asia/Taipei',
 
@@ -61,6 +64,7 @@ return [
     |
     | 只給使用者回答用，與下面部落正式的處理方式分開（不含「?」「尚未紀錄」佔位值）。
     | 「我不知道」與其他選項同樣計算，可以是多數。
+    | 魚卡結果（#183）的「我不知道」不算有結果、不畫進魚卡，以下面 response_unknown_processing_method 為準。
     |
     */
     'response_processing_methods' => [
@@ -68,8 +72,10 @@ return [
         '不去魚鱗',
         '剝皮',
         '不食用',
-        '我不知道',
+        $unknownProcessingMethod,
     ],
+
+    'response_unknown_processing_method' => $unknownProcessingMethod,
 
     /*
     |--------------------------------------------------------------------------
