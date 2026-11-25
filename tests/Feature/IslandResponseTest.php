@@ -362,3 +362,261 @@ it('限流以帳號計：別人送出不受我的次數影響', function () {
 
     islandSubmit($other, $fish, 'yayo', ['question' => 'food_category', 'value' => 'oyod'])->assertRedirect();
 });
+
+/** 手建一筆回答（直接寫表，時間固定），回答者部落預設是角色的部落 */
+function islandAnswerRow(User $user, Fish $fish, string $tribe, array $answer, string $createdAt = '2026-11-25 10:00:00'): FishTribeResponse
+{
+    $row = new FishTribeResponse(['user_id' => $user->id, 'fish_id' => $fish->id, 'tribe' => $tribe, ...$answer]);
+    $row->created_at = $createdAt;
+    $row->save();
+
+    return $row;
+}
+
+function islandPage(User $user, Fish $fish, string $tribe)
+{
+    return test()->actingAs($user)->get("/island/tribes/{$tribe}/fish/{$fish->id}");
+}
+
+/** 作答頁某一題的資料 */
+function islandQuestion(User $user, Fish $fish, string $tribe, string $key): array
+{
+    $questions = islandPage($user, $fish, $tribe)->assertOk()->viewData('page')['props']['questions'];
+
+    return collect($questions)->firstWhere('key', $key);
+}
+
+function choiceOf(array $question, string $value): ?array
+{
+    return collect($question['result']['choices'])->firstWhere('value', $value);
+}
+
+// AC 1：作答頁
+it('有角色的人開作答頁：三題依序是叫法、飲食分類、處理方式，帶選項與我的回答', function () {
+    $player = answeringPlayer();
+    $fish = Fish::factory()->create(['name' => 'dalakan']);
+    islandAnswerRow($player, $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'yayo']);
+
+    islandPage($player, $fish, 'yayo')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Island/Fish')
+            ->where('tribe', 'yayo')
+            ->where('fish.id', $fish->id)
+            ->where('fish.name', 'dalakan')
+            ->where('character.name', '阿海')
+            ->where('name_max_length', 60)
+            ->where('questions.0.key', 'name')
+            ->where('questions.0.my_answer', null)
+            ->where('questions.1.key', 'food_category')
+            ->where('questions.1.options', ['oyod', 'rahet', '不分類', '不食用', 'kakanen no rarakeh'])
+            ->where('questions.1.my_answer', 'oyod')
+            ->where('questions.2.key', 'processing_method')
+            ->where('questions.2.options', ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '我不知道'])
+            ->where('questions.2.my_answer', null));
+});
+
+it('叫法選項＝正式魚名＋這個部落已有的寫法（同一種寫法只列一次），不含別部落的寫法', function () {
+    $player = answeringPlayer();
+    $fish = Fish::factory()->create(['name' => 'dalakan']);
+    islandAnswerRow(answeringPlayer('yayo', '甲'), $fish, 'yayo', ['name' => 'Dalakan ']);
+    islandAnswerRow(answeringPlayer('yayo', '乙'), $fish, 'yayo', ['name' => 'arayo']);
+    islandAnswerRow(answeringPlayer('yayo', '丙'), $fish, 'yayo', ['name' => 'ARAYO']);
+    islandAnswerRow(answeringPlayer('yayo', '丁'), $fish, 'iratay', ['name' => 'ilek']);
+
+    expect(islandQuestion($player, $fish, 'yayo', 'name')['options'])->toBe(['dalakan', 'arayo']);
+});
+
+it('正式魚名是「我不知道」時不列進叫法選項，魚名回傳 null', function () {
+    $player = answeringPlayer();
+    $fish = Fish::factory()->create(['name' => '我不知道']);
+    islandAnswerRow(answeringPlayer('yayo', '甲'), $fish, 'yayo', ['name' => 'arayo']);
+
+    islandPage($player, $fish, 'yayo')->assertInertia(fn ($page) => $page
+        ->where('fish.name', null)
+        ->where('questions.0.options', ['arayo']));
+});
+
+it('作答頁：魚不存在、已軟刪除或部落不合法回 404；沒有角色導到角色設定頁', function () {
+    $player = answeringPlayer();
+    $deleted = Fish::factory()->create();
+    $deleted->delete();
+    $fish = Fish::factory()->create();
+
+    test()->actingAs($player)->get('/island/tribes/yayo/fish/999999')->assertNotFound();
+    islandPage($player, $deleted, 'yayo')->assertNotFound();
+    islandPage($player, $fish, 'nope')->assertNotFound();
+    islandPage(User::factory()->create(), $fish, 'yayo')->assertRedirect('/island/character');
+    test()->get("/island/tribes/yayo/fish/{$fish->id}")->assertRedirect('/island/character');
+});
+
+// AC 4：多數
+it('回答人數 ≥3 且第一名嚴格多於第二名：第一名是多數', function () {
+    $fish = Fish::factory()->create();
+    foreach (['oyod', 'oyod', 'rahet'] as $i => $category) {
+        islandAnswerRow(answeringPlayer('yayo', "人{$i}"), $fish, 'yayo', ['food_category' => $category]);
+    }
+
+    $result = islandQuestion(answeringPlayer(), $fish, 'yayo', 'food_category')['result'];
+    expect($result['total'])->toBe(3)
+        ->and($result['majority'])->toBe('oyod')
+        ->and(choiceOf(['result' => $result], 'oyod')['count'])->toBe(2)
+        ->and(choiceOf(['result' => $result], 'rahet')['count'])->toBe(1)
+        ->and(choiceOf(['result' => $result], '不分類')['count'])->toBe(0);
+});
+
+it('第一名與第二名同票、或三方同票：沒有多數', function (array $categories) {
+    $fish = Fish::factory()->create();
+    foreach ($categories as $i => $category) {
+        islandAnswerRow(answeringPlayer('yayo', "人{$i}"), $fish, 'yayo', ['food_category' => $category]);
+    }
+
+    expect(islandQuestion(answeringPlayer(), $fish, 'yayo', 'food_category')['result']['majority'])->toBeNull();
+})->with([
+    '2 比 2' => [['oyod', 'oyod', 'rahet', 'rahet']],
+    '1 比 1 比 1' => [['oyod', 'rahet', '不分類']],
+]);
+
+it('回答人數不到 3：沒有多數，人數照算；0 人時人數 0', function () {
+    $fish = Fish::factory()->create();
+    islandAnswerRow(answeringPlayer('yayo', '甲'), $fish, 'yayo', ['food_category' => 'oyod']);
+    islandAnswerRow(answeringPlayer('yayo', '乙'), $fish, 'yayo', ['food_category' => 'oyod']);
+    $viewer = answeringPlayer();
+
+    $category = islandQuestion($viewer, $fish, 'yayo', 'food_category')['result'];
+    $processing = islandQuestion($viewer, $fish, 'yayo', 'processing_method')['result'];
+    expect($category['total'])->toBe(2)->and($category['majority'])->toBeNull()
+        ->and($processing['total'])->toBe(0)->and($processing['majority'])->toBeNull();
+});
+
+it('「我不知道」可以是處理方式的多數', function () {
+    $fish = Fish::factory()->create();
+    foreach (['去魚鱗', '我不知道', '我不知道', '我不知道'] as $i => $method) {
+        islandAnswerRow(answeringPlayer('yayo', "人{$i}"), $fish, 'yayo', ['processing_method' => $method]);
+    }
+
+    expect(islandQuestion(answeringPlayer(), $fish, 'yayo', 'processing_method')['result']['majority'])->toBe('我不知道');
+});
+
+it('三題分開算：沒填那一題的人不算進該題人數', function () {
+    $fish = Fish::factory()->create();
+    islandAnswerRow(answeringPlayer('yayo', '甲'), $fish, 'yayo', ['name' => 'arayo', 'food_category' => 'oyod']);
+    islandAnswerRow(answeringPlayer('yayo', '乙'), $fish, 'yayo', ['processing_method' => '剝皮']);
+    $viewer = answeringPlayer();
+
+    expect(islandQuestion($viewer, $fish, 'yayo', 'name')['result']['total'])->toBe(1)
+        ->and(islandQuestion($viewer, $fish, 'yayo', 'food_category')['result']['total'])->toBe(1)
+        ->and(islandQuestion($viewer, $fish, 'yayo', 'processing_method')['result']['total'])->toBe(1);
+});
+
+it('叫法的多數：同一種寫法合併計算，依人數多到少列出', function () {
+    $fish = Fish::factory()->create();
+    foreach (['arayo', 'ARAYO ', 'dalakan', 'arayo'] as $i => $name) {
+        islandAnswerRow(answeringPlayer('yayo', "人{$i}"), $fish, 'yayo', ['name' => $name]);
+    }
+
+    $result = islandQuestion(answeringPlayer(), $fish, 'yayo', 'name')['result'];
+    expect($result['majority'])->toBe('arayo')
+        ->and(array_column($result['choices'], 'count'))->toBe([3, 1])
+        ->and(array_column($result['choices'], 'value'))->toBe(['arayo', 'dalakan']);
+});
+
+it('只算這個部落、這條魚', function () {
+    $fish = Fish::factory()->create();
+    $otherFish = Fish::factory()->create();
+    islandAnswerRow(answeringPlayer('yayo', '甲'), $fish, 'yayo', ['food_category' => 'oyod']);
+    islandAnswerRow(answeringPlayer('yayo', '乙'), $fish, 'iratay', ['food_category' => 'oyod']);
+    islandAnswerRow(answeringPlayer('yayo', '丙'), $otherFish, 'yayo', ['food_category' => 'oyod']);
+
+    expect(islandQuestion(answeringPlayer(), $fish, 'yayo', 'food_category')['result']['total'])->toBe(1);
+});
+
+// AC 5：其中本部落 N 人
+it('其中本部落 N 人：只算回答者自己的部落是這個部落的；別部落、訪客、沒有魚島角色的照樣算進選項人數', function () {
+    $fish = Fish::factory()->create();
+    islandAnswerRow(answeringPlayer('yayo', '本部落'), $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'yayo']);
+    islandAnswerRow(answeringPlayer('iratay', '外部落'), $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'iratay']);
+    $guest = IslandCharacter::createGuest('訪客甲', 'yayo');
+    islandAnswerRow($guest, $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'yayo']);
+    islandAnswerRow(User::factory()->create(['role' => 'viewer']), $fish, 'yayo', ['food_category' => 'oyod']);
+
+    $result = islandQuestion(answeringPlayer(), $fish, 'yayo', 'food_category')['result'];
+    expect(choiceOf(['result' => $result], 'oyod')['count'])->toBe(4)
+        ->and($result['own_tribe_count'])->toBe(2);
+});
+
+it('其中本部落為 0 時照樣回傳 0', function () {
+    $fish = Fish::factory()->create();
+    islandAnswerRow(answeringPlayer('iratay', '外部落'), $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'iratay']);
+
+    expect(islandQuestion(answeringPlayer(), $fish, 'yayo', 'food_category')['result']['own_tribe_count'])->toBe(0);
+});
+
+// AC 6：看是誰答的
+it('回答者清單：角色名＋回答時記下的部落、訪客標記，依第一次回答時間排序，行數等於人數', function () {
+    $fish = Fish::factory()->create();
+    $late = answeringPlayer('iratay', '晚到');
+    $early = answeringPlayer('yayo', '早到');
+    $guest = IslandCharacter::createGuest('訪客甲', 'imowrod');
+    islandAnswerRow($late, $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'iratay'], '2026-11-25 12:00:00');
+    islandAnswerRow($early, $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'yayo'], '2026-11-25 09:00:00');
+    islandAnswerRow($guest, $fish, 'yayo', ['food_category' => 'oyod', 'respondent_tribe' => 'imowrod'], '2026-11-25 10:00:00');
+
+    $oyod = choiceOf(islandQuestion(answeringPlayer(), $fish, 'yayo', 'food_category'), 'oyod');
+    expect($oyod['responders'])->toBe([
+        ['name' => '早到', 'tribe' => 'yayo', 'is_guest' => false],
+        ['name' => '訪客甲', 'tribe' => 'imowrod', 'is_guest' => true],
+        ['name' => '晚到', 'tribe' => 'iratay', 'is_guest' => false],
+    ])->and(count($oyod['responders']))->toBe($oyod['count']);
+});
+
+it('沒有魚島角色的回答者：不給名字、不給部落（畫面顯示「部落未填」），不帶 users.name', function () {
+    $fish = Fish::factory()->create();
+    islandAnswerRow(User::factory()->create(['role' => 'viewer', 'name' => '王小明']), $fish, 'yayo', ['food_category' => 'oyod']);
+
+    $page = islandPage(answeringPlayer(), $fish, 'yayo');
+    $oyod = choiceOf(collect($page->viewData('page')['props']['questions'])->firstWhere('key', 'food_category'), 'oyod');
+    expect($oyod['responders'])->toBe([['name' => null, 'tribe' => null, 'is_guest' => false]])
+        ->and($page->getContent())->not->toContain('王小明');
+});
+
+it('在 among 答過、之後才建角色的人：給角色名、部落為空，直到在魚島送出才補上', function () {
+    $fish = Fish::factory()->create();
+    $user = User::factory()->create(['role' => 'viewer']);
+    islandAnswerRow($user, $fish, 'yayo', ['food_category' => 'oyod']);
+    IslandCharacter::create(['user_id' => $user->id, 'name' => '後來的', 'tribe' => 'iratay']);
+    $viewer = answeringPlayer();
+
+    expect(choiceOf(islandQuestion($viewer, $fish, 'yayo', 'food_category'), 'oyod')['responders'])
+        ->toBe([['name' => '後來的', 'tribe' => null, 'is_guest' => false]]);
+
+    islandSubmit($user, $fish, 'yayo', ['question' => 'processing_method', 'value' => '剝皮']);
+
+    expect(choiceOf(islandQuestion($viewer, $fish, 'yayo', 'food_category'), 'oyod')['responders'])
+        ->toBe([['name' => '後來的', 'tribe' => 'iratay', 'is_guest' => false]]);
+});
+
+it('改答不改變在清單裡的位置', function () {
+    $fish = Fish::factory()->create();
+    $first = answeringPlayer('yayo', '先答');
+    $second = answeringPlayer('yayo', '後答');
+    islandAnswerRow($first, $fish, 'yayo', ['food_category' => 'rahet'], '2026-11-25 09:00:00');
+    islandAnswerRow($second, $fish, 'yayo', ['food_category' => 'oyod'], '2026-11-25 10:00:00');
+
+    islandSubmit($first, $fish, 'yayo', ['question' => 'food_category', 'value' => 'oyod']);
+
+    expect(array_column(choiceOf(islandQuestion(answeringPlayer(), $fish, 'yayo', 'food_category'), 'oyod')['responders'], 'name'))
+        ->toBe(['先答', '後答']);
+});
+
+// AC 9：下一條魚
+it('下一條魚＝編號比這條大、未軟刪除的魚裡最小的；最後一條沒有下一條', function () {
+    $player = answeringPlayer();
+    $current = Fish::factory()->create();
+    $skipped = Fish::factory()->create();
+    $skipped->delete();
+    $next = Fish::factory()->create();
+
+    islandPage($player, $current, 'yayo')->assertInertia(fn ($page) => $page->where('next_fish_id', $next->id));
+    islandPage($player, $next, 'yayo')->assertInertia(fn ($page) => $page->where('next_fish_id', null));
+});

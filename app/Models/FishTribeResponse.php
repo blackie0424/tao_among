@@ -35,6 +35,9 @@ class FishTribeResponse extends Model
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
     public const UNNAMED_FISH_NAME = '我不知道';
 
+    /** 魚島作答：一題至少要有這麼多人回答才可能標出多數 */
+    public const ISLAND_MAJORITY_MIN_RESPONSES = 3;
+
     /** 魚島一次送出一題時可以送的題目（欄位名），依作答順序 */
     public const ISLAND_QUESTIONS = ['name', 'food_category', 'processing_method'];
 
@@ -278,6 +281,103 @@ class FishTribeResponse extends Model
                 ], $categories),
             ];
         }, config('fish_options.tribes'));
+    }
+
+    /**
+     * 魚島作答頁：某部落、某條魚三題各自的選項、我的回答與結果（依 ISLAND_QUESTIONS 的順序）。
+     * 叫法選項＝正式魚名（未命名時不列）＋這個部落已有的寫法（同一種寫法只列一次）。
+     *
+     * @return list<array{key: string, options: list<string>, my_answer: string|null, result: array}>
+     */
+    public static function islandQuestions(int $fishId, string $tribe, string $fishName, int $viewerId): array
+    {
+        $rows = self::where(['fish_id' => $fishId, 'tribe' => $tribe])->orderBy('created_at')->orderBy('id')->get();
+        $responders = self::islandResponders($rows);
+        $mine = $rows->firstWhere('user_id', $viewerId);
+        $fixedOptions = [
+            'food_category' => self::selectableFoodCategories(),
+            'processing_method' => config('fish_options.response_processing_methods'),
+        ];
+
+        return array_map(function (string $question) use ($rows, $responders, $mine, $fixedOptions, $tribe, $fishName) {
+            $result = self::islandResult($rows, $responders, $question, $fixedOptions[$question] ?? [], $tribe);
+            $options = $fixedOptions[$question] ?? self::islandNameOptions($fishName, array_column($result['choices'], 'value'));
+
+            return ['key' => $question, 'options' => $options, 'my_answer' => $mine?->{$question}, 'result' => $result];
+        }, self::ISLAND_QUESTIONS);
+    }
+
+    /** @return list<string> 正式魚名在前，接著這個部落已有的寫法；同一種寫法只列一次 */
+    private static function islandNameOptions(string $fishName, array $spellings): array
+    {
+        $options = $fishName === self::UNNAMED_FISH_NAME ? [] : [$fishName];
+        foreach ($spellings as $spelling) {
+            if (! collect($options)->contains(fn (string $option) => self::sameSpelling($option, $spelling))) {
+                $options[] = $spelling;
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * 一題的結果：選項人數（含訪客、別部落與沒有魚島角色的人）、其中本部落人數、多數與回答者清單。
+     * 固定選項的題目列出全部選項（0 人也列）；叫法只列有人答的寫法，人數多者在前。
+     */
+    private static function islandResult($rows, array $responders, string $question, array $options, string $tribe): array
+    {
+        $answered = $rows->filter(fn (self $row) => trim((string) $row->{$question}) !== '');
+        $groups = [];
+        foreach ($options as $option) {
+            $groups[$option] = ['value' => $option, 'responders' => []];
+        }
+        foreach ($answered as $row) {
+            $key = $question === 'name' ? self::spellingKey($row->name) : $row->{$question};
+            $groups[$key] ??= ['value' => trim($row->{$question}), 'responders' => []];
+            $groups[$key]['responders'][] = $responders[$row->id];
+        }
+        $choices = array_map(fn (array $group) => [...$group, 'count' => count($group['responders'])], array_values($groups));
+        if ($question === 'name') {
+            // usort 是穩定排序，同人數時保留先出現（最早回答）的順序
+            usort($choices, fn ($a, $b) => $b['count'] <=> $a['count']);
+        }
+
+        return [
+            'total' => $answered->count(),
+            'own_tribe_count' => $answered->where('respondent_tribe', $tribe)->count(),
+            'majority' => self::majorityOf($choices, $answered->count()),
+            'choices' => $choices,
+        ];
+    }
+
+    /** 回答人數 ≥ ISLAND_MAJORITY_MIN_RESPONSES 且第一名嚴格多於第二名才有多數。 */
+    private static function majorityOf(array $choices, int $total): ?string
+    {
+        if ($total < self::ISLAND_MAJORITY_MIN_RESPONSES) {
+            return null;
+        }
+        $ranked = collect($choices)->sortByDesc('count')->values();
+
+        return $ranked[0]['count'] > ($ranked[1]['count'] ?? 0) ? $ranked[0]['value'] : null;
+    }
+
+    /**
+     * 每一筆回答的回答者：名字取目前的魚島角色（沒有角色為 null，不用 users.name），
+     * 部落取這一筆送出時記下的回答者部落（沒有為 null）。
+     *
+     * @return array<int, array{name: string|null, tribe: string|null, is_guest: bool}> 以回答編號為鍵
+     */
+    private static function islandResponders($rows): array
+    {
+        $userIds = $rows->pluck('user_id')->unique();
+        $characters = IslandCharacter::whereIn('user_id', $userIds)->pluck('name', 'user_id');
+        $guests = User::whereIn('id', $userIds)->where('source', IslandCharacter::GUEST_SOURCE)->pluck('id')->flip();
+
+        return $rows->mapWithKeys(fn (self $row) => [$row->id => [
+            'name' => $characters[$row->user_id] ?? null,
+            'tribe' => $row->respondent_tribe,
+            'is_guest' => isset($guests[$row->user_id]),
+        ]])->all();
     }
 
     /** 回答過這條魚的不同使用者人數（不分部落，同一人答多個部落只算 1 人）。 */

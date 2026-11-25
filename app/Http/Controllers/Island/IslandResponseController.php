@@ -10,6 +10,8 @@ use App\Models\IslandCharacter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /** 魚島作答：一次送出一題，寫進 among 魚頁「大家怎麼說」的同一張表。 */
 class IslandResponseController extends Controller
@@ -17,6 +19,28 @@ class IslandResponseController extends Controller
     private const BLANK_NAME_MESSAGE = '請填叫法，或按跳過';
 
     private const UNKNOWN_NAME_MESSAGE = '不知道的話請按跳過';
+
+    /** 作答頁：三題的選項、我的回答與結果，以及三題答完後的下一條魚。 */
+    public function show(Request $request, string $tribe, int $id): Response
+    {
+        abort_unless(in_array($tribe, config('fish_options.tribes'), true), 404);
+        $fish = Fish::with('displayCaptureRecord')->findOrFail($id);
+        /** @var IslandCharacter $character */
+        $character = $request->attributes->get(EnsureIslandCharacter::ATTRIBUTE);
+
+        return Inertia::render('Island/Fish', [
+            'character' => ['name' => $character->name, 'tribe' => $character->tribe],
+            'tribe' => $tribe,
+            'fish' => [
+                'id' => $fish->id,
+                'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,
+                'image_url' => $fish->display_image_url,
+            ],
+            'questions' => FishTribeResponse::islandQuestions($fish->id, $tribe, $fish->name, $character->user_id),
+            'name_max_length' => FishTribeResponse::NAME_MAX_LENGTH,
+            'next_fish_id' => Fish::where('id', '>', $fish->id)->orderBy('id')->value('id'),
+        ]);
+    }
 
     /** 回答的部落一律取網址上的部落，不由表單傳。 */
     public function store(Request $request, string $tribe, int $id): RedirectResponse
