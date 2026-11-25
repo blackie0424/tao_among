@@ -804,6 +804,52 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->invokeHandlePostback($this->makePostbackEvent('action=confirm_batch_capture_record'));
     }
 
+    public function test_summary_card_lists_fields_in_web_order_with_unified_wording(): void
+    {
+        $fish = Fish::factory()->create(['name' => '測試魚']);
+
+        $summary = app(\App\Services\LineBatchCaptureMessageBuilder::class)->buildSummaryCard(
+            $fish,
+            ['a.jpg'],
+            ['tribe' => 'ivalino', 'location' => 'Vanes', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29', 'notes' => '備註'],
+            [],
+        );
+        $texts = $this->flattenTexts($this->flexToArray($summary)['contents']);
+
+        $this->assertSame('請確認捕獲紀錄', $texts[0]);
+        $this->assertSame(
+            ['魚類：測試魚', '照片數量：1 張', '日期：2026-06-29', '部落：ivalino', '地點：Vanes', '捕獲方式：mapazat 網魚', '備註：備註'],
+            array_slice($texts, 1)
+        );
+    }
+
+    public function test_confirm_reply_says_added_and_links_to_the_manage_page(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'tribe' => 'ivalino', 'location' => 'Vanes', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29',
+        ]);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(
+            "✅ 已新增 2 筆捕獲紀錄\n管理捕獲紀錄：".url("/fish/{$fish->id}/capture-records"),
+            $this->flexToArray($replied[0])['text']
+        );
+    }
+
+    public function test_cancel_reply_uses_unified_wording(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', []);
+
+        $replied = $this->captureSingleReply(function () {
+            $this->invokeHandlePostback($this->makePostbackEvent('action=cancel_batch_capture_record'));
+        });
+
+        $this->assertSame('✅ 已取消新增捕獲紀錄', $this->flexToArray($replied[0])['text']);
+    }
+
     public function test_user_can_skip_location_in_the_manual_flow_and_each_batch_creates_a_new_session(): void
     {
         $fish = Fish::factory()->create();

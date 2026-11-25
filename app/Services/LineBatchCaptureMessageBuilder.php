@@ -21,16 +21,16 @@ class LineBatchCaptureMessageBuilder
         $rows = [
             '魚類：'.$fish->name,
             '照片數量：'.count($images).' 張',
+            '日期：'.($form['capture_date'] ?? '未選擇'),
             '部落：'.($form['tribe'] ?? '未選擇'),
             '地點：'.(filled($form['location'] ?? null) ? $form['location'] : '未填寫'),
             '捕獲方式：'.$captureMethodLabel,
-            '日期：'.($form['capture_date'] ?? '未選擇'),
             '備註：'.($form['notes'] ?? '未填寫'),
         ];
 
         return new FlexMessage([
             'type' => 'flex',
-            'altText' => '批次捕獲紀錄摘要',
+            'altText' => '捕獲紀錄摘要',
             'contents' => [
                 'type' => 'bubble',
                 'body' => [
@@ -39,7 +39,7 @@ class LineBatchCaptureMessageBuilder
                     'contents' => array_merge([
                         [
                             'type' => 'text',
-                            'text' => '請確認批次捕獲紀錄',
+                            'text' => '請確認捕獲紀錄',
                             'weight' => 'bold',
                             'size' => 'lg',
                         ],

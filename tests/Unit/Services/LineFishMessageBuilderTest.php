@@ -35,8 +35,13 @@ class LineFishMessageBuilderTest extends TestCase
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
         $this->assertContains('🎤 新增發音', $footerLabels);
-        $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
+        $this->assertContains('⚡ 新增捕獲紀錄', $footerLabels);
         $this->assertContains('🧠 新增進階知識', $footerLabels);
+        $this->assertStringContainsString(
+            '"displayText":"新增捕獲紀錄"',
+            json_encode($json, JSON_UNESCAPED_UNICODE)
+        );
+        $this->assertStringNotContainsString('批次', json_encode($json, JSON_UNESCAPED_UNICODE));
     }
 
     public function test_build_fish_card_without_audio_has_no_audio_buttons_in_body(): void

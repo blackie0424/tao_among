@@ -47,7 +47,7 @@ class ConfirmLineBatchCaptureAction
 
             $this->lineBatchCaptureStateStore->clear($userId);
 
-            return ConfirmLineBatchCaptureResult::success(count($outcome));
+            return ConfirmLineBatchCaptureResult::success(count($outcome), $fish->id);
         } catch (ValidationException $e) {
             $message = collect($e->errors())->flatten()->first() ?? '❌ 捕獲紀錄資料有誤，請重新確認。';
 

@@ -15,9 +15,11 @@ class ConfirmLineBatchCaptureResult
         private readonly ?string $reason = null,
     ) {}
 
-    public static function success(int $recordsCount): self
+    public static function success(int $recordsCount, int $fishId): self
     {
-        return new self(true, $recordsCount, '✅ 已成功新增 '.$recordsCount.' 筆捕獲紀錄');
+        $manageUrl = url("/fish/{$fishId}/capture-records");
+
+        return new self(true, $recordsCount, "✅ 已新增 {$recordsCount} 筆捕獲紀錄\n管理捕獲紀錄：{$manageUrl}");
     }
 
     public static function failure(string $message): self

@@ -13,7 +13,7 @@ it('presents waiting images state with upload guidance and cancel only when empt
 
     expect($view['notice'])->toBe('請先上傳至少 1 張捕獲照片，全部上傳完成後再進入下一步。')
         ->and($view['actions'])->toBe([
-            ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消批次新增捕獲紀錄'],
+            ['label' => '❌ 取消', 'data' => 'action=cancel_batch_capture_record', 'display_text' => '取消新增捕獲紀錄'],
         ]);
 });
 

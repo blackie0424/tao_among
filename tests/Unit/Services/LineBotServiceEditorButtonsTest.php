@@ -15,24 +15,26 @@ use Tests\TestCase;
 class LineFishMessageBuilderEditorButtonsTest extends TestCase
 {
     private array $baseFish;
+
     private LineFishMessageBuilder $fishMessageBuilder;
+
     private LineMenuMessageBuilder $menuMessageBuilder;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->fishMessageBuilder = new LineFishMessageBuilder();
-        $this->menuMessageBuilder = new LineMenuMessageBuilder();
+        $this->fishMessageBuilder = new LineFishMessageBuilder;
+        $this->menuMessageBuilder = new LineMenuMessageBuilder;
 
         $this->baseFish = [
-            'id'                      => 1,
-            'name'                    => '測試魚',
-            'image_url'               => 'https://example.com/image.jpg',
-            'display_image_url'       => 'https://example.com/display.jpg',
-            'audio_url'               => null,
-            'capture_records_count'   => 0,
-            'tribal_classifications'  => [],
+            'id' => 1,
+            'name' => '測試魚',
+            'image_url' => 'https://example.com/image.jpg',
+            'display_image_url' => 'https://example.com/display.jpg',
+            'audio_url' => null,
+            'capture_records_count' => 0,
+            'tribal_classifications' => [],
         ];
     }
 
@@ -67,7 +69,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     }
 
     /**
-     * editor 看圖卡時，footer 應包含「批次捕獲紀錄」按鈕
+     * editor 看圖卡時，footer 應包含「新增捕獲紀錄」按鈕
      */
     public function test_build_fish_card_editor_sees_batch_capture_button_in_footer(): void
     {
@@ -76,7 +78,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
 
-        $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels, 'editor 應能在 footer 看到「批次捕獲紀錄」按鈕');
+        $this->assertContains('⚡ 新增捕獲紀錄', $footerLabels, 'editor 應能在 footer 看到「新增捕獲紀錄」按鈕');
     }
 
     /**
@@ -106,7 +108,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     }
 
     /**
-     * viewer 看圖卡時，footer 不應包含「批次捕獲紀錄」按鈕
+     * viewer 看圖卡時，footer 不應包含「新增捕獲紀錄」按鈕
      */
     public function test_build_fish_card_viewer_does_not_see_batch_capture_button(): void
     {
@@ -115,7 +117,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
 
-        $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels, 'viewer 不應看到「批次捕獲紀錄」按鈕');
+        $this->assertNotContains('⚡ 新增捕獲紀錄', $footerLabels, 'viewer 不應看到「新增捕獲紀錄」按鈕');
     }
 
     /**
@@ -130,7 +132,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
 
         $this->assertNotContains('✏️ 修改名稱', $footerLabels);
         $this->assertNotContains('🎤 新增發音', $footerLabels);
-        $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels);
+        $this->assertNotContains('⚡ 新增捕獲紀錄', $footerLabels);
     }
 
     /**
@@ -145,8 +147,8 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $footerActions = $this->extractFooterButtonActions($json);
 
         $renameAction = $this->findActionByLabel($footerActions, '✏️ 修改名稱');
-        $audioAction  = $this->findActionByLabel($footerActions, '🎤 新增發音');
-        $batchCaptureAction = $this->findActionByLabel($footerActions, '⚡ 批次捕獲紀錄');
+        $audioAction = $this->findActionByLabel($footerActions, '🎤 新增發音');
+        $batchCaptureAction = $this->findActionByLabel($footerActions, '⚡ 新增捕獲紀錄');
 
         $this->assertNotNull($renameAction, '應找到修改名稱 action');
         $this->assertStringContainsString('fish_id=42', $renameAction['data'] ?? '', 'postback data 應含 fish_id=42');
@@ -154,7 +156,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $this->assertNotNull($audioAction, '應找到新增發音 action');
         $this->assertStringContainsString('fish_id=42', $audioAction['data'] ?? '', 'postback data 應含 fish_id=42');
 
-        $this->assertNotNull($batchCaptureAction, '應找到批次捕獲紀錄 action');
+        $this->assertNotNull($batchCaptureAction, '應找到新增捕獲紀錄 action');
         $this->assertSame('postback', $batchCaptureAction['type'] ?? null);
         $this->assertStringContainsString('action=start_batch_capture_record', $batchCaptureAction['data'] ?? '');
         $this->assertStringContainsString('fish_id=42', $batchCaptureAction['data'] ?? '');
@@ -173,7 +175,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
         $this->assertContains('🎤 新增發音', $footerLabels);
-        $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
+        $this->assertContains('⚡ 新增捕獲紀錄', $footerLabels);
         // 捕獲紀錄按鈕也應保留
         $captureButton = array_filter($footerLabels, fn ($l) => str_contains($l, '查看捕獲紀錄'));
         $this->assertNotEmpty($captureButton, '有捕獲紀錄時應顯示查看捕獲紀錄按鈕');
@@ -218,7 +220,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
 
         $this->assertNotContains('✏️ 修改名稱', $qrLabels);
         $this->assertNotContains('🎤 新增發音', $qrLabels);
-        $this->assertNotContains('⚡ 批次捕獲紀錄', $qrLabels);
+        $this->assertNotContains('⚡ 新增捕獲紀錄', $qrLabels);
     }
 
     /**
@@ -276,7 +278,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertContains('✏️ 修改名稱', $footerLabels, "第 {$i} 張卡片應有修改名稱");
             $this->assertContains('🎤 新增發音', $footerLabels, "第 {$i} 張卡片應有新增發音");
-            $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels, "第 {$i} 張卡片應有批次捕獲紀錄");
+            $this->assertContains('⚡ 新增捕獲紀錄', $footerLabels, "第 {$i} 張卡片應有批次捕獲紀錄");
         }
     }
 
@@ -303,7 +305,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertNotContains('✏️ 修改名稱', $footerLabels, "第 {$i} 張卡片不應有修改名稱");
             $this->assertNotContains('🎤 新增發音', $footerLabels, "第 {$i} 張卡片不應有新增發音");
-            $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels, "第 {$i} 張卡片不應有批次捕獲紀錄");
+            $this->assertNotContains('⚡ 新增捕獲紀錄', $footerLabels, "第 {$i} 張卡片不應有批次捕獲紀錄");
         }
     }
 
@@ -382,7 +384,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
         $this->assertContains('🎤 新增發音', $footerLabels);
-        $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
+        $this->assertContains('⚡ 新增捕獲紀錄', $footerLabels);
     }
 
     /**
@@ -398,7 +400,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
 
         $this->assertNotContains('✏️ 修改名稱', $footerLabels);
         $this->assertNotContains('🎤 新增發音', $footerLabels);
-        $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels);
+        $this->assertNotContains('⚡ 新增捕獲紀錄', $footerLabels);
     }
 
     /**
@@ -421,7 +423,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         foreach ($bubbles as $i => $bubble) {
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertContains('✏️ 修改名稱', $footerLabels, "Carousel 第 {$i} 張應有修改名稱");
-            $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels, "Carousel 第 {$i} 張應有批次捕獲紀錄");
+            $this->assertContains('⚡ 新增捕獲紀錄', $footerLabels, "Carousel 第 {$i} 張應有批次捕獲紀錄");
         }
     }
 
@@ -443,6 +445,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     private function extractFooterButtonLabels(array $bubbleJson): array
     {
         $bubble = $bubbleJson['contents'] ?? $bubbleJson;
+
         return $this->extractFooterButtonLabelsFromBubble($bubble);
     }
 
@@ -452,6 +455,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     private function extractFooterButtonLabelsFromBubble(array $bubble): array
     {
         $footerContents = $bubble['footer']['contents'] ?? [];
+
         return array_map(fn ($item) => $item['action']['label'] ?? '', $footerContents);
     }
 
@@ -462,6 +466,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     {
         $bubble = $bubbleJson['contents'] ?? $bubbleJson;
         $footerContents = $bubble['footer']['contents'] ?? [];
+
         return array_map(fn ($item) => $item['action'] ?? [], $footerContents);
     }
 
@@ -475,6 +480,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
                 return $action;
             }
         }
+
         return null;
     }
 
@@ -485,6 +491,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     {
         $json = json_decode(json_encode($message->jsonSerialize()), true);
         $items = $json['quickReply']['items'] ?? [];
+
         return array_map(fn ($item) => $item['action']['label'] ?? '', $items);
     }
 
@@ -501,6 +508,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
                 $labels[] = $item['action']['label'];
             }
         }
+
         return $labels;
     }
 

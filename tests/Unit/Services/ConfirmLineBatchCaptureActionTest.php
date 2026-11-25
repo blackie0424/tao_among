@@ -31,7 +31,7 @@ it('confirms batch capture and clears state on success', function () {
 
     expect($result->successful())->toBeTrue()
         ->and($result->recordsCount())->toBe(2)
-        ->and($result->message())->toBe('✅ 已成功新增 2 筆捕獲紀錄')
+        ->and($result->message())->toBe("✅ 已新增 2 筆捕獲紀錄\n管理捕獲紀錄：".url("/fish/{$fish->id}/capture-records"))
         ->and($this->stateStore->getState('user-1'))->toBeNull()
         ->and(CaptureRecord::where('fish_id', $fish->id)->whereNotNull('session_id')->count())->toBe(2);
 });
