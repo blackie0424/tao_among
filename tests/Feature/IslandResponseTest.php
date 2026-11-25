@@ -340,6 +340,17 @@ it('同一帳號每分鐘最多送出 30 次，超過回 429 且資料不變', f
     expect(islandRow($player, $fish, 'yayo')->food_category)->toBe('oyod');
 });
 
+it('已登入但沒有角色的帳號送出超過 30 次，仍導到角色設定頁、不寫入', function () {
+    $noCharacter = User::factory()->create();
+    $fish = Fish::factory()->create();
+
+    for ($i = 0; $i < 31; $i++) {
+        islandSubmit($noCharacter, $fish, 'yayo', ['question' => 'food_category', 'value' => 'oyod'])->assertRedirect('/island/character');
+    }
+
+    expect(FishTribeResponse::count())->toBe(0);
+});
+
 it('限流以帳號計：別人送出不受我的次數影響', function () {
     $player = answeringPlayer();
     $other = answeringPlayer('yayo', '阿浪');

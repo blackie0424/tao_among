@@ -10,6 +10,7 @@ use App\Contracts\LineMessagingClientInterface;
 use App\Contracts\LineUserServiceInterface;
 use App\Contracts\RichMenuServiceInterface;
 use App\Contracts\StorageServiceInterface;
+use App\Models\IslandCharacter;
 use App\Services\CaptureSessionService;
 use App\Services\FishSearchService;
 use App\Services\FishService;
@@ -106,8 +107,8 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
-        // 限流在路由的角色檢查之前執行；沒登入的人不限流，接著會被導到角色設定頁
-        RateLimiter::for('island-response', fn (Request $request) => $request->user() === null
+        // 限流在路由的角色檢查之前執行；沒有角色（含沒登入）的人不限流，接著會被導到角色設定頁
+        RateLimiter::for('island-response', fn (Request $request) => IslandCharacter::of($request->user()) === null
             ? Limit::none()
             : Limit::perMinute(self::ISLAND_RESPONSE_PER_MINUTE)->by('user:'.$request->user()->id));
     }
