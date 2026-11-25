@@ -1,91 +1,60 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md overflow-visible relative">
+  <div class="border border-rule-strong bg-paper">
     <!-- 捕獲照片 -->
-    <div class="aspect-w-16 aspect-h-12 bg-gray-100 relative overflow-hidden rounded-t-lg">
+    <div class="relative overflow-hidden bg-paper-raised">
       <LazyImage
         :src="recordImageUrl"
         :alt="`${record.tribe} 捕獲紀錄`"
-        wrapperClass="w-full h-48 bg-gray-100"
+        wrapperClass="w-full h-48 bg-paper-raised"
         imgClass="w-full h-full object-cover"
         :imgStyle="recordImgStyle"
       />
-
-      <!-- 當前主圖標記 -->
-      <div
+      <span
         v-if="isDisplayImage"
-        class="absolute top-2 left-2 bg-yellow-500 text-white px-3 py-1 rounded-full flex items-center gap-1 text-lg font-bold shadow-lg"
+        data-testid="display-image-badge"
+        class="absolute left-2 top-2 bg-brand px-3 py-1 text-elder-aux font-bold text-white"
+        >圖鑑主圖</span
       >
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-          />
-        </svg>
-        <span>圖鑑主圖</span>
-      </div>
     </div>
 
     <!-- 紀錄資訊 -->
-    <div class="p-4">
-      <!-- 部落標籤和選單 -->
-      <div class="flex items-center mb-1">
-        <div class="flex items-center space-x-2 flex-1 min-w-0">
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-base md:text-lg font-medium bg-green-100 text-green-800 truncate"
-          >
-            {{ record.capture_method }}
-          </span>
-        </div>
+    <div class="flex flex-col gap-1 p-4 text-elder-body text-elder-text">
+      <div class="font-serif font-bold">{{ record.capture_method }}</div>
+      <div>{{ displayLabel }}</div>
+      <div v-if="record.notes" class="break-words">備註：{{ record.notes }}</div>
+      <div v-if="record.session_notes" class="break-words">
+        情境備註：{{ record.session_notes }}
+      </div>
+    </div>
 
-        <!-- 三點選單：靠右 -->
-        <div class="ml-2 flex-shrink-0 flex items-center gap-3">
-          <!-- 旋轉圖片（僅 editor/admin） -->
-          <button
-            v-if="isEditor && record.image_url"
-            type="button"
-            class="text-gray-400 hover:text-blue-500 p-1 rounded transition-colors"
-            title="旋轉圖片"
-            @click="rotateModalOpen = true"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-          <OverflowMenu
-            :apiUrl="`/fish/${fishId}/capture-records/${record.id}`"
-            :fishId="fishId.toString()"
-            :editUrl="`/fish/${fishId}/capture-records/${record.id}/edit`"
-            :enableSetAsDisplayImage="true"
-            :isDisplayImage="isDisplayImage"
-            @deleted="$emit('deleted')"
-            @set-as-display-image="setAsDisplayImage"
-          />
-        </div>
-      </div>
-      <div class="mb-1">
-        <span
-          class="inline-flex items-center px-3 py-1 rounded-full text-base md:text-lg font-medium bg-blue-100 text-blue-800 truncate"
-        >
-          {{ displayLabel }}
-        </span>
-      </div>
-
-      <!-- 備註 -->
-      <div v-if="record.notes" class="mb-1">
-        <span class="text-lg md:text-xl font-medium text-gray-800 break-words"
-          >備註：{{ record.notes }}</span
-        >
-      </div>
-      <div v-if="record.session_notes" class="mb-1">
-        <span class="text-lg md:text-xl font-medium text-gray-800 break-words">情境備註：{{ record.session_notes }}</span>
-      </div>
+    <!-- 操作：文字連結 -->
+    <div class="flex flex-wrap gap-x-6 border-t border-rule px-4">
+      <Link :href="`/fish/${fishId}/capture-records/${record.id}/edit`" :class="actionClass"
+        >編輯</Link
+      >
+      <button
+        v-if="record.image_url"
+        type="button"
+        :class="actionClass"
+        @click="rotateModalOpen = true"
+      >
+        旋轉照片
+      </button>
+      <button
+        v-if="!isDisplayImage"
+        type="button"
+        :class="actionClass"
+        :disabled="isUpdating"
+        @click="setAsDisplayImage"
+      >
+        設為圖鑑主圖
+      </button>
     </div>
   </div>
 
-
   <!-- 旋轉 Modal -->
   <ImageRotateModal
-    v-if="isEditor && record.image_url"
+    v-if="record.image_url"
     :open="rotateModalOpen"
     :imageUrl="recordImageUrl"
     :fishId="fishId"
@@ -97,22 +66,23 @@
 
 <script setup>
 import LazyImage from '@/Components/UI/LazyImage.vue'
-import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
+import { Link } from '@inertiajs/vue3'
 import ImageRotateModal from '@/Components/UI/ImageRotateModal.vue'
 import { computed, ref } from 'vue'
 import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
-import { formatDate, formatDateTime } from '@/utils/formatDate'
 
 const props = defineProps({
   record: Object,
   fishId: Number,
   displayCaptureRecordId: Number,
-  isEditor: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['updated', 'deleted'])
+const emit = defineEmits(['updated'])
+
+const actionClass =
+  'inline-flex items-center min-h-touch-secondary text-elder-body text-brand underline underline-offset-4 hover:text-brand-dark disabled:opacity-50'
 
 const isUpdating = ref(false)
 const rotateModalOpen = ref(false)

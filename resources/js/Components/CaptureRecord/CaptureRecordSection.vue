@@ -23,7 +23,6 @@
         :index="index"
         :fishName="fishName"
         :fishId="fishId"
-        :canEdit="canEdit"
       />
     </div>
   </section>
@@ -34,7 +33,6 @@ import CaptureRecordDisplayCard from '@/Components/CaptureRecord/CaptureRecordDi
 
 defineProps({
   fishId: { type: [Number, String], default: null },
-  canEdit: { type: Boolean, default: false },
   captureRecords: { type: Array, default: () => [] },
   fishName: { type: String, default: '' },
   user: { type: Object, default: null },

@@ -81,7 +81,7 @@ describe('單一樣式、無交替色（#132 AC 9）', () => {
   })
 
   it('沒有 Tailwind 預設色與陰影，欄位字級 18px', () => {
-    const wrapper = mountCard({ record: makeRecord({ session_notes: '情境' }), canEdit: true, fishId: 1 })
+    const wrapper = mountCard({ record: makeRecord({ session_notes: '情境' }), fishId: 1 })
 
     expect(wrapper.html()).not.toMatch(/(?:bg|text|border)-(?:blue|gray|green|teal|slate|emerald|amber)-\d|shadow|bg-white/)
     expect(wrapper.html()).not.toMatch(/text-(?:xs|sm|base)\b/)
@@ -189,28 +189,11 @@ describe('情境備註', () => {
   })
 })
 
-describe('紀錄編輯連結', () => {
-  it.each([null, 17])('canEdit 為真時不論情境 %j 都顯示編輯與正確目的地', (capture_session_id) => {
-    const wrapper = mountCard({
-      record: makeRecord({ id: 23, capture_session_id }),
-      fishId: 42,
-      canEdit: true,
-    })
-    expect(wrapper.get('a').text()).toBe('編輯')
-    expect(wrapper.get('a').attributes('href')).toBe('/fish/42/capture-records/23/edit')
-  })
-  it('編輯連結在卡片底部右側，主色底線，至少 48px 高', () => {
-    const link = mountCard({ fishId: 42, canEdit: true }).get('[data-testid="capture-card-footer"] a')
-
-    expect(link.text()).toBe('編輯')
-    expect(link.classes()).toEqual(
-      expect.arrayContaining(['text-brand', 'underline', 'min-h-touch-secondary', 'text-elder-body'])
-    )
-  })
-  it('canEdit 為假時不渲染編輯', () => {
-    expect(mountCard({ fishId: 42, canEdit: false }).find('a').exists()).toBe(false)
-  })
-  it('未傳 canEdit 時不渲染編輯', () => {
-    expect(mountCard({ fishId: 42 }).find('a').exists()).toBe(false)
+describe('魚頁捕獲卡不放編輯入口', () => {
+  it.each([null, 17])('情境 %j 的卡片沒有任何連結與編輯字樣', (capture_session_id) => {
+    const wrapper = mountCard({ record: makeRecord({ id: 23, capture_session_id }), fishId: 42, canEdit: true })
+    expect(wrapper.find('a').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="capture-card-footer"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('編輯')
   })
 })

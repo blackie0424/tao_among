@@ -277,7 +277,6 @@ const expectedActions = [
     'capture',
     '捕獲紀錄',
     [
-      ['新增捕獲紀錄', '/fish/1/capture-records/batch-create'],
       ['管理捕獲紀錄', '/fish/1/capture-records'],
     ],
   ],
@@ -313,8 +312,11 @@ describe.each(['editor', 'admin'])('%s 分頁編輯入口', (role) => {
         _key === 'basic' ? 'basic-management-actions' : 'tab-edit-actions'
       )
       expect(readActions(actionContainer)).toEqual(expected)
-      if (_key === 'capture')
-        expect(section.get('a[href="/fish/1/capture-records/23/edit"]').text()).toBe('編輯')
+      if (_key === 'capture') {
+        expect(section.find('a[href="/fish/1/capture-records/23/edit"]').exists()).toBe(false)
+        expect(section.find('a[href="/fish/1/capture-records/batch-create"]').exists()).toBe(false)
+        expect(section.text()).not.toContain('新增捕獲紀錄')
+      }
     }
   )
 })
@@ -333,10 +335,7 @@ describe('分頁入口權限與空狀態', () => {
         '地方知識',
         '捕獲紀錄',
       ])
-      expect(wrapper.getComponent(CaptureRecordSection).props()).toMatchObject({
-        fishId: 1,
-        canEdit: false,
-      })
+      expect(wrapper.getComponent(CaptureRecordSection).props()).toMatchObject({ fishId: 1 })
       await wrapper
         .findAll('button')
         .find((b) => b.text() === '捕獲紀錄')
@@ -349,7 +348,7 @@ describe('分頁入口權限與空狀態', () => {
     mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
     const wrapper = mountFish()
     await nextTick()
-    expect(wrapper.get('a[href="/fish/1/capture-records/batch-create"]').isVisible()).toBe(true)
+    expect(wrapper.get('a[href="/fish/1/capture-records"]').isVisible()).toBe(true)
     for (const [_key, label, expected] of expectedActions.slice(1)) {
       await wrapper
         .findAll('button')
@@ -360,10 +359,7 @@ describe('分頁入口權限與空狀態', () => {
         .find((s) => s.isVisible() && s.find('[data-testid="tab-edit-actions"]').exists())
       expect(readActions(section)).toEqual(expected)
     }
-    expect(wrapper.getComponent(CaptureRecordSection).props()).toMatchObject({
-      fishId: 1,
-      canEdit: true,
-    })
+    expect(wrapper.getComponent(CaptureRecordSection).props()).toMatchObject({ fishId: 1 })
   })
   it('魚頁沒有集中式編輯入口', () => {
     mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
