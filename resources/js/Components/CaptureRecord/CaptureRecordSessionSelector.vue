@@ -1,13 +1,13 @@
 <template>
   <div class="mb-4" data-testid="capture-session-selector">
-    <p class="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">選擇這次記錄的情境</p>
-    <p class="mb-3 text-sm text-gray-500">日期、地名、部落與方式會由情境帶入。</p>
+    <p class="mb-1 text-elder-body font-bold text-elder-text">選擇這次記錄的情境</p>
+    <p class="mb-3 text-elder-aux text-elder-subtext">日期、地名、部落與方式會由情境帶入。</p>
 
-    <button type="button" data-testid="open-inline-session-form" class="mb-3 rounded-lg border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50" @click="openInlineForm">
+    <button type="button" data-testid="open-inline-session-form" class="mb-3 min-h-touch-secondary border border-brand px-4 text-elder-body font-bold text-brand hover:bg-paper-raised" @click="openInlineForm">
       ＋新增情境
     </button>
 
-    <form v-if="isInlineFormOpen" data-testid="inline-session-form" class="mb-4 space-y-4 rounded-lg border border-teal-200 bg-teal-50 p-4" @submit.prevent="createSession">
+    <form v-if="isInlineFormOpen" data-testid="inline-session-form" class="mb-4 space-y-4 border border-rule-strong bg-paper-raised p-4" @submit.prevent="createSession">
       <SessionFields
         :form="inlineForm"
         :errors="formErrors"
@@ -17,10 +17,10 @@
       />
       <p v-if="firstError" role="alert" class="text-sm text-red-600">{{ firstError }}</p>
       <div class="flex gap-2">
-        <button type="submit" data-testid="submit-inline-session" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-60" :disabled="processing">
+        <button type="submit" data-testid="submit-inline-session" class="min-h-touch-secondary bg-brand px-4 text-elder-body font-bold text-white hover:bg-brand-dark disabled:opacity-60" :disabled="processing">
           {{ processing ? '建立中…' : '建立情境' }}
         </button>
-        <button type="button" class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700" :disabled="processing" @click="isInlineFormOpen = false">取消</button>
+        <button type="button" class="min-h-touch-secondary border border-rule-strong px-4 text-elder-body text-elder-text" :disabled="processing" @click="isInlineFormOpen = false">取消</button>
       </div>
     </form>
 
@@ -35,7 +35,7 @@
         </button>
       </div>
       <div v-if="legacyCombos.length">
-        <p class="mb-2 text-sm font-medium text-gray-600">由舊資料建立情境</p>
+        <p class="mb-2 text-elder-body font-bold text-elder-subtext">由舊資料建立情境</p>
         <div class="flex flex-col gap-2">
           <button v-for="combo in legacyCombos" :key="legacyKey(combo)" data-testid="legacy-combo-option" type="button" :class="optionClass(selectionKey === 'legacy-' + legacyKey(combo))" @click="selectLegacy(combo)">
             <span class="inline-flex flex-wrap items-baseline gap-x-1">
@@ -47,8 +47,8 @@
         </div>
       </div>
     </div>
-    <p v-if="reusedMessage" data-testid="session-reused-message" role="status" class="mb-3 text-sm text-teal-700">{{ reusedMessage }}</p>
-    <div v-if="!hasOptions" data-testid="session-empty-state" class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+    <p v-if="reusedMessage" data-testid="session-reused-message" role="status" class="mb-3 text-elder-aux text-brand">{{ reusedMessage }}</p>
+    <div v-if="!hasOptions" data-testid="session-empty-state" class="border border-rule-strong bg-paper-raised p-4 text-elder-aux text-elder-subtext">
       <p class="font-medium">還沒有情境</p>
       <p class="mt-1">可直接新增情境後繼續記錄。</p>
     </div>
@@ -90,8 +90,8 @@ const firstError = computed(() => firstValidationError(formErrors.value))
 
 function optionClass(selected) {
   return [
-    'w-full rounded-lg border px-4 py-2 text-left text-sm',
-    selected ? 'border-blue-600 bg-blue-100 text-blue-900' : 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100',
+    'w-full border px-4 py-2 text-left text-elder-body',
+    selected ? 'border-brand bg-brand text-white' : 'border-rule-strong bg-paper-raised text-elder-text hover:border-brand',
   ]
 }
 

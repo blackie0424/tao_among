@@ -3,12 +3,12 @@
     <!-- 上傳區域 -->
     <div
       data-testid="upload-area"
-      class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors"
+      class="border-2 border-dashed border-rule-strong p-6 text-center hover:border-brand transition-colors"
       @dragover.prevent
       @drop.prevent="onDrop"
     >
       <div class="flex flex-col items-center gap-3">
-        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-12 h-12 text-elder-subtext" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -16,16 +16,16 @@
             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
           />
         </svg>
-        <div class="text-gray-600 text-sm">
+        <div class="text-elder-subtext text-elder-body">
           <label
             :for="inputId"
-            class="cursor-pointer text-blue-600 hover:text-blue-700 font-medium"
+            class="cursor-pointer text-brand underline underline-offset-4 hover:text-brand-dark font-bold"
           >
             點選選取照片
           </label>
           <span v-if="!isLineApp" class="hidden md:inline">，或拖曳到此</span>
         </div>
-        <p class="text-xs text-gray-400">PNG、JPG、WEBP、HEIC，最多 {{ maxFiles }} 張</p>
+        <p class="text-elder-aux text-elder-subtext">PNG、JPG、WEBP、HEIC，最多 {{ maxFiles }} 張</p>
       </div>
 
       <input
@@ -41,9 +41,9 @@
     </div>
 
     <!-- 已選數量 -->
-    <div class="flex items-center justify-between text-sm text-gray-500">
+    <div class="flex items-center justify-between text-elder-aux text-elder-subtext">
       <span>
-        已選 <span class="font-semibold text-gray-800">{{ items.length }}</span> / {{ maxFiles }} 張
+        已選 <span class="font-bold text-elder-text">{{ items.length }}</span> / {{ maxFiles }} 張
       </span>
       <button
         v-if="items.length > 0"
@@ -59,7 +59,7 @@
     <p
       v-if="items.length === 0"
       data-testid="empty-hint"
-      class="text-center text-gray-400 text-sm py-4"
+      class="text-center text-elder-subtext text-elder-aux py-4"
     >
       尚未選擇任何照片
     </p>
@@ -70,7 +70,7 @@
         v-for="(item, index) in items"
         :key="item.id"
         data-testid="thumbnail-item"
-        class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
+        class="relative aspect-square overflow-hidden bg-paper-raised border border-rule-strong"
       >
         <!-- 縮圖 -->
         <img
@@ -79,7 +79,7 @@
           :alt="`照片 ${index + 1}`"
           class="w-full h-full object-cover"
         />
-        <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
+        <div v-else class="w-full h-full flex items-center justify-center text-elder-subtext">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -138,7 +138,7 @@
         <!-- 成功標記 -->
         <div
           v-if="item.status === 'done'"
-          class="absolute top-1 left-1 bg-green-500 rounded-full p-0.5"
+          class="absolute top-1 left-1 bg-brand p-0.5"
         >
           <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -153,7 +153,7 @@
         <!-- 錯誤標記 -->
         <div
           v-if="item.status === 'error'"
-          class="absolute top-1 left-1 bg-red-500 rounded-full p-0.5"
+          class="absolute top-1 left-1 bg-red-700 p-0.5"
           :title="item.error"
         >
           <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,7 +169,7 @@
         <!-- HEIC 標籤 -->
         <div
           v-if="item.isHeic && item.status === 'pending'"
-          class="absolute bottom-1 left-1 bg-orange-500/80 text-white text-xs px-1 rounded leading-tight"
+          class="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1 leading-tight"
         >
           HEIC
         </div>
@@ -182,7 +182,7 @@
           <button
             type="button"
             :data-testid="`rotate-ccw-${index}`"
-            class="bg-black/50 hover:bg-black/70 rounded p-0.5 transition-colors"
+            class="bg-black/50 hover:bg-black/70 p-0.5 transition-colors"
             title="逆時針 90°"
             @click="rotateItem(index, -90)"
           >
@@ -194,7 +194,7 @@
           <button
             type="button"
             :data-testid="`rotate-180-${index}`"
-            class="bg-black/50 hover:bg-black/70 rounded p-0.5 transition-colors"
+            class="bg-black/50 hover:bg-black/70 p-0.5 transition-colors"
             title="180°"
             @click="rotateItem(index, 180)"
           >
@@ -206,7 +206,7 @@
           <button
             type="button"
             :data-testid="`rotate-cw-${index}`"
-            class="bg-black/50 hover:bg-black/70 rounded p-0.5 transition-colors"
+            class="bg-black/50 hover:bg-black/70 p-0.5 transition-colors"
             title="順時針 90°"
             @click="rotateItem(index, 90)"
           >
@@ -222,7 +222,7 @@
           v-if="item.status !== 'uploading' && item.status !== 'converting'"
           data-testid="remove-btn"
           type="button"
-          class="absolute top-1 right-1 bg-gray-800/70 hover:bg-red-600 rounded-full p-0.5 transition-colors"
+          class="absolute top-1 right-1 bg-black/60 hover:bg-red-700 p-0.5 transition-colors"
           @click="removeItem(index)"
         >
           <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,7 +242,7 @@
       v-if="items.length > 0 && items.length < maxFiles"
       data-testid="add-more-btn"
       type="button"
-      class="w-full py-2 border border-dashed border-blue-300 rounded-lg text-blue-600 text-sm hover:bg-blue-50 transition-colors"
+      class="w-full min-h-touch-secondary border border-dashed border-brand text-brand text-elder-body hover:bg-paper-raised transition-colors"
       @click="triggerFilePicker"
     >
       + 繼續加入照片（還可加 {{ maxFiles - items.length }} 張）
@@ -252,7 +252,7 @@
     <div
       v-if="isUploading"
       data-testid="uploading-indicator"
-      class="flex items-center gap-2 text-blue-600 text-sm"
+      class="flex items-center gap-2 text-brand text-elder-aux"
     >
       <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />

@@ -337,19 +337,25 @@ class FishController extends Controller
             'capture_record_id' => 'required|integer|exists:capture_records,id',
         ]);
 
-        $fish = Fish::findOrFail($id);
         $captureRecordId = $request->input('capture_record_id');
 
-        // 驗證捕獲紀錄是否屬於這條魚
-        $captureRecord = $fish->captureRecords()->where('id', $captureRecordId)->first();
+        // 與刪除捕獲紀錄鎖同一列魚，驗證與寫入之間該筆不會被刪除
+        $belongs = DB::transaction(function () use ($id, $captureRecordId) {
+            $fish = Fish::lockForUpdate()->findOrFail($id);
 
-        if (! $captureRecord) {
+            // 驗證捕獲紀錄是否屬於這條魚
+            if (! $fish->captureRecords()->where('id', $captureRecordId)->exists()) {
+                return false;
+            }
+
+            $fish->update(['display_capture_record_id' => $captureRecordId]);
+
+            return true;
+        });
+
+        if (! $belongs) {
             return back()->withErrors(['capture_record_id' => '捕獲紀錄不屬於此魚類']);
         }
-
-        $fish->update([
-            'display_capture_record_id' => $captureRecordId,
-        ]);
 
         return back()->with('success', '已設定為圖鑑主圖');
     }

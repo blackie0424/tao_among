@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CaptureRecords from '@/Pages/CaptureRecords.vue'
 
+const { pageProps } = vi.hoisted(() => ({ pageProps: { errors: {} } }))
 vi.mock('@inertiajs/vue3', () => ({
+  usePage: () => ({ props: pageProps }),
   Head: { template: '<div />' },
   Link: { props: ['href'], template: '<a :href="href"><slot /></a>' },
   router: { reload: vi.fn() },
@@ -56,5 +58,13 @@ describe('CaptureRecords 管理頁', () => {
     expect(mountPage([]).html()).not.toMatch(
       /(?:bg|text|border)-(?:blue|gray|green|teal|slate)-\d|shadow|bg-white/
     )
+  })
+
+  it('刪除被拒絕後顯示指定訊息；沒有錯誤時不顯示', () => {
+    pageProps.errors = { record: ['這是圖鑑主圖，請先把別張設為主圖才能刪除'] }
+    const alert = mountPage([{ id: 5 }]).get('[role="alert"]')
+    expect(alert.text()).toBe('這是圖鑑主圖，請先把別張設為主圖才能刪除')
+    pageProps.errors = {}
+    expect(mountPage([{ id: 5 }]).find('[role="alert"]').exists()).toBe(false)
   })
 })
