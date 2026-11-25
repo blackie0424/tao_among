@@ -5,7 +5,7 @@
     <div :class="isEditMode ? '' : (step === 1 ? 'space-y-4 md:space-y-6' : 'hidden')">
       <!-- Edit mode：顯示現有圖片 -->
       <div v-if="isEditMode && record.image_url && !imagePreview" class="mb-4">
-        <p class="text-sm text-gray-600 mb-2">當前照片：</p>
+        <p class="text-sm text-elder-subtext mb-2">當前照片：</p>
         <LazyImage
           :src="record.image_url"
           alt="當前捕獲照片"
@@ -16,13 +16,13 @@
 
       <!-- 上傳區 -->
       <div
-        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
+        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-rule-strong border-dashed hover:border-brand transition-colors"
       >
         <div class="space-y-3 md:space-y-4 text-center">
           <div v-if="!imagePreview">
             <div
               v-if="!isEditMode"
-              class="mx-auto w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 text-gray-400"
+              class="mx-auto w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 text-elder-subtext"
             >
               <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 48 48" aria-hidden="true">
                 <path
@@ -35,7 +35,7 @@
             </div>
             <svg
               v-else
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-elder-subtext"
               stroke="currentColor"
               fill="none"
               viewBox="0 0 48 48"
@@ -47,10 +47,10 @@
                 stroke-linejoin="round"
               />
             </svg>
-            <div class="flex text-base text-gray-600 justify-center mt-2">
+            <div class="flex text-base text-elder-subtext justify-center mt-2">
               <label
                 for="image"
-                class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                class="relative cursor-pointer font-medium text-brand underline underline-offset-4 hover:text-brand-dark focus-within:outline-none focus-within:ring-2 focus-within:ring-brand"
               >
                 <span>{{ record?.image_url ? '更換照片' : '上傳照片' }}</span>
                 <input
@@ -64,7 +64,7 @@
                 />
               </label>
             </div>
-            <p class="text-sm text-gray-500">PNG, JPG, WEBP 最大 10MB</p>
+            <p class="text-sm text-elder-subtext">PNG, JPG, WEBP 最大 10MB</p>
           </div>
 
           <!-- 預覽（edit mode 有刪除按鈕） -->
@@ -72,28 +72,28 @@
             <img
               :src="imagePreview"
               alt="預覽"
-              :class="isEditMode ? 'mx-auto h-32 w-auto rounded-lg' : 'h-full w-full object-cover rounded-lg shadow-sm'"
+              :class="isEditMode ? 'mx-auto h-32 w-auto' : 'h-full w-full object-cover'"
             />
             <button
               v-if="isEditMode"
               type="button"
               @click="onRemoveImage"
-              class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+              class="absolute -top-2 -right-2 bg-red-700 text-white w-6 h-6 flex items-center justify-center text-xs hover:bg-red-800"
               :disabled="uploading"
             >×</button>
-            <p v-if="isEditMode && selectedFileName" class="mt-2 text-sm text-gray-600">{{ selectedFileName }}</p>
-            <div v-if="uploading" class="mt-2 text-sm text-blue-600 flex items-center justify-center">
-              <svg class="animate-spin mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <p v-if="isEditMode && selectedFileName" class="mt-2 text-sm text-elder-subtext">{{ selectedFileName }}</p>
+            <div v-if="uploading" class="mt-2 text-sm text-brand flex items-center justify-center">
+              <svg class="animate-spin mr-2 h-4 w-4 text-brand" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
               </svg>
               正在上傳圖片...
             </div>
-            <div v-else-if="isEditMode && uploadedFilename" class="mt-2 text-sm text-green-600">✓ 圖片上傳成功</div>
+            <div v-else-if="isEditMode && uploadedFilename" class="mt-2 text-sm text-brand">✓ 圖片上傳成功</div>
           </div>
         </div>
       </div>
-      <div v-if="errors.image" class="text-red-500 text-base mt-1">{{ errors.image }}</div>
+      <div v-if="errors.image" class="text-red-700 text-base mt-1">{{ errors.image }}</div>
     </div>
 
     <!-- ── Step 2 / Edit mode：部落、地點、日期 ── -->
@@ -104,59 +104,59 @@
         :legacy-combos="legacy_combos"
         @select="onSessionSelect"
       />
-      <div v-if="!isEditMode && errors.session_id" class="text-red-500 text-base mt-1">{{ errors.session_id }}</div>
-      <div v-if="!isEditMode && errors.legacy_combo" class="text-red-500 text-base mt-1">{{ errors.legacy_combo }}</div>
-      <div v-if="isEditMode && linkedToSession" data-testid="linked-session-fields" class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-base">
+      <div v-if="!isEditMode && errors.session_id" class="text-red-700 text-base mt-1">{{ errors.session_id }}</div>
+      <div v-if="!isEditMode && errors.legacy_combo" class="text-red-700 text-base mt-1">{{ errors.legacy_combo }}</div>
+      <div v-if="isEditMode && linkedToSession" data-testid="linked-session-fields" class="border border-rule-strong bg-paper-raised p-4 text-base">
         <dl class="space-y-2">
           <div><dt class="font-medium">部落</dt><dd>{{ form.tribe }}</dd></div>
           <div><dt class="font-medium">地點</dt><dd>{{ form.location || '未標地點' }}</dd></div>
           <div><dt class="font-medium">日期</dt><dd>{{ form.capture_date }}</dd></div>
           <div><dt class="font-medium">方式</dt><dd>{{ form.capture_method }}</dd></div>
         </dl>
-        <a :href="'/capture-sessions/' + record.session_id + '/edit'" class="mt-3 inline-block text-blue-700 underline">到情境修改</a>
+        <a :href="'/capture-sessions/' + record.session_id + '/edit'" class="mt-3 inline-block text-brand underline underline-offset-4">到情境修改</a>
       </div>
       <template v-if="isEditMode && !linkedToSession">
         <div>
-          <label for="tribe" class="block text-xl font-medium text-gray-700 mb-2">
-            捕獲部落 <span class="text-red-500">*</span>
+          <label for="tribe" class="block text-xl font-medium text-elder-text mb-2">
+            捕獲部落 <span class="text-red-700">*</span>
           </label>
           <select
             id="tribe"
             v-model="form.tribe"
-            class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 text-xl border border-rule-strong bg-paper-raised text-elder-text focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">請選擇部落</option>
             <option v-for="tribe in tribes" :key="tribe" :value="tribe">{{ tribe }}</option>
           </select>
-          <div v-if="errors.tribe" class="text-red-500 text-base mt-1">{{ errors.tribe }}</div>
+          <div v-if="errors.tribe" class="text-red-700 text-base mt-1">{{ errors.tribe }}</div>
         </div>
 
         <div>
-          <label for="location" class="block text-xl font-medium text-gray-700 mb-2">
-            捕獲地點 <span class="text-red-500">*</span>
+          <label for="location" class="block text-xl font-medium text-elder-text mb-2">
+            捕獲地點 <span class="text-red-700">*</span>
           </label>
           <input
             id="location"
             v-model="form.location"
             type="text"
-            class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 text-xl border border-rule-strong bg-paper-raised text-elder-text focus:outline-none focus:ring-2 focus:ring-brand"
             placeholder="請輸入捕獲地點"
           />
-          <div v-if="errors.location" class="text-red-500 text-base mt-1">{{ errors.location }}</div>
+          <div v-if="errors.location" class="text-red-700 text-base mt-1">{{ errors.location }}</div>
         </div>
 
         <div>
-          <label for="capture_date" class="block text-xl font-medium text-gray-700 mb-2">
-            捕獲日期 <span class="text-red-500">*</span>
+          <label for="capture_date" class="block text-xl font-medium text-elder-text mb-2">
+            捕獲日期 <span class="text-red-700">*</span>
           </label>
           <input
             id="capture_date"
             v-model="form.capture_date"
             type="date"
             :max="today"
-            class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 text-xl border border-rule-strong bg-paper-raised text-elder-text focus:outline-none focus:ring-2 focus:ring-brand"
           />
-          <div v-if="errors.capture_date" class="text-red-500 text-base mt-1">{{ errors.capture_date }}</div>
+          <div v-if="errors.capture_date" class="text-red-700 text-base mt-1">{{ errors.capture_date }}</div>
         </div>
       </template>
     </template>
@@ -164,43 +164,43 @@
     <!-- ── Step 3 / Edit mode：捕獲方式、備註 ── -->
     <template v-if="isEditMode || step === 3">
       <div v-if="isEditMode && !linkedToSession">
-        <label for="capture_method" class="block text-xl font-medium text-gray-700 mb-2">
-          捕獲方式 <span class="text-red-500">*</span>
+        <label for="capture_method" class="block text-xl font-medium text-elder-text mb-2">
+          捕獲方式 <span class="text-red-700">*</span>
         </label>
         <select
           id="capture_method"
           v-model="form.capture_method"
-          class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 text-xl border border-rule-strong bg-paper-raised text-elder-text focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">請選擇捕獲方式</option>
           <option v-for="(label, value) in capture_methods" :key="value" :value="value">{{ label }}</option>
         </select>
-        <div v-if="errors.capture_method" class="text-red-500 text-base mt-1">{{ errors.capture_method }}</div>
+        <div v-if="errors.capture_method" class="text-red-700 text-base mt-1">{{ errors.capture_method }}</div>
       </div>
 
       <div>
-        <label for="notes" class="block text-xl font-medium text-gray-700 mb-2">備註</label>
+        <label for="notes" class="block text-xl font-medium text-elder-text mb-2">備註</label>
         <textarea
           id="notes"
           v-model="form.notes"
           rows="3"
-          class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 text-xl border border-rule-strong bg-paper-raised text-elder-text focus:outline-none focus:ring-2 focus:ring-brand"
           placeholder="請輸入相關備註資訊"
         ></textarea>
-        <div v-if="errors.notes" class="text-red-500 text-base mt-1">{{ errors.notes }}</div>
+        <div v-if="errors.notes" class="text-red-700 text-base mt-1">{{ errors.notes }}</div>
       </div>
 
       <!-- ── 圖片顯示調整（僅 edit mode） ── -->
       <template v-if="isEditMode">
-        <div class="border-t border-gray-200 pt-6 space-y-6">
-          <h3 class="text-xl font-semibold text-gray-700">圖片顯示調整</h3>
+        <div class="border-t border-rule pt-6 space-y-6">
+          <h3 class="text-xl font-semibold text-elder-text">圖片顯示調整</h3>
 
           <div>
-            <label for="image_position" class="block text-xl font-medium text-gray-700 mb-2">顯示位置</label>
+            <label for="image_position" class="block text-xl font-medium text-elder-text mb-2">顯示位置</label>
             <select
               id="image_position"
               v-model="form.image_position"
-              class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 text-xl border border-rule-strong bg-paper-raised text-elder-text focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="center">置中</option>
               <option value="top">靠上</option>
@@ -211,7 +211,7 @@
           </div>
 
           <div>
-            <label for="image_scale" class="block text-xl font-medium text-gray-700 mb-2">
+            <label for="image_scale" class="block text-xl font-medium text-elder-text mb-2">
               縮放比例：{{ Number(form.image_scale).toFixed(1) }}x
             </label>
             <input
@@ -223,7 +223,7 @@
               step="0.1"
               class="w-full"
             />
-            <div class="flex justify-between text-sm text-gray-500 mt-1">
+            <div class="flex justify-between text-sm text-elder-subtext mt-1">
               <span>0.8x</span>
               <span>1.4x</span>
               <span>2.0x</span>

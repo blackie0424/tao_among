@@ -20,7 +20,7 @@ it('resolves a legacy combo only within its tribe', function (bool $hasLocalPlac
 
     $this->actingAs(User::factory()->lineEditor()->create())->post("/fish/{$fish->id}/capture-records", [
         'image_filename' => 'tribe-test.jpg', 'legacy_combo' => $combo,
-    ])->assertSessionDoesntHaveErrors()->assertRedirect("/fish/{$fish->id}?tab=capture");
+    ])->assertSessionDoesntHaveErrors()->assertRedirect("/fish/{$fish->id}/capture-records");
 
     $session = CaptureSession::sole();
     expect($session->tribe)->toBe('yayo')

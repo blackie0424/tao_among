@@ -29,10 +29,9 @@ it('CreateNote 取消回 advanced tab', async () => {
  expect(router.visit).toHaveBeenCalledWith('/fish/4?tab=advanced')
 })
 
-it('EditCapture 取消回 capture tab', async () => {
- const page = mount(EditCapture, options)
- await page.get('button[aria-label="關閉"]').trigger('click')
- expect(router.visit).toHaveBeenCalledWith('/fish/4?tab=capture')
+it('EditCapture 返回管理捕獲紀錄頁', async () => {
+ const page = mount(EditCapture, { ...options, global: { stubs: { ...options.global.stubs, FishAppLayout: { props: ['mobileBackUrl'], template: '<main><a :href="mobileBackUrl">返回</a><slot /></main>' } } } })
+ expect(page.get('a[href="/fish/4/capture-records"]').text()).toBe('返回')
 })
 
 it('編輯進階知識提供回進階 tab 的取消鍵', async () => {

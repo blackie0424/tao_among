@@ -98,7 +98,7 @@
           <Link
             v-for="fish in needPhoto"
             :key="fish.id"
-            :href="`/fish/${fish.id}?tab=capture`"
+            :href="`/fish/${fish.id}/capture-records/batch-create?from=workspace`"
             class="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition"
           >
             <div class="w-10 h-10 bg-gray-100 rounded-lg shrink-0 flex items-center justify-center">
@@ -108,6 +108,7 @@
               </svg>
             </div>
             <span class="text-sm text-gray-800 flex-1 truncate">{{ fish.name }}</span>
+            <span class="text-xs text-blue-600 shrink-0">＋ 新增照片</span>
             <svg class="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>

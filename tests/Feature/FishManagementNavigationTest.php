@@ -41,7 +41,7 @@ it('edit-audio returns to the audio list', function () {
 it('edit-capture stays at its destination', function () {
     Fish::factory()->create(['id' => 114]);
     \App\Models\CaptureRecord::factory()->create(['id' => 8, 'fish_id' => 114, 'session_id' => \App\Models\CaptureSession::factory()->create()->id]);
-    $this->actingAs(User::factory()->create())->put('/fish/114/capture-records/8', ['notes' => 'Changed'])->assertRedirect('/fish/114?tab=capture')->assertSessionHas('success');
+    $this->actingAs(User::factory()->create())->put('/fish/114/capture-records/8', ['notes' => 'Changed'])->assertRedirect('/fish/114/capture-records')->assertSessionHas('success');
 });
 
 it('delete-capture stays at its destination', function () {

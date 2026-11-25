@@ -71,7 +71,7 @@ describe('CaptureRecordCard 文字連結操作', () => {
 
   it('非主圖：顯示「設為圖鑑主圖」，按下送出這筆紀錄', async () => {
     const wrapper = mountCard({ displayCaptureRecordId: 99 })
-    expect(wrapper.text()).not.toContain('圖鑑主圖標記')
+    expect(wrapper.find('[data-testid="display-image-badge"]').exists()).toBe(false)
     await buttonByText(wrapper, '設為圖鑑主圖').trigger('click')
     expect(router.put).toHaveBeenCalledWith(
       '/fish/1/display-image',
