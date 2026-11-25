@@ -20,6 +20,9 @@ use Inertia\Inertia;
 
 class FishController extends Controller
 {
+    /** 與地名合併或改名同時操作而死鎖時，整個交易（含建立魚）重試的次數 */
+    private const BATCH_STORE_TRANSACTION_ATTEMPTS = 3;
+
     /** 公開清單每筆魚只開放的欄位 */
     private const PUBLIC_ITEM_FIELDS = [
         'id',
@@ -258,7 +261,7 @@ class FishController extends Controller
             $fish->update(['display_capture_record_id' => $records[0]->id]);
 
             return $fish;
-        });
+        }, self::BATCH_STORE_TRANSACTION_ATTEMPTS);
 
         return redirect("/fish/{$fish->id}")
             ->with('success', "魚類「{$fish->name}」批次新增成功！");
