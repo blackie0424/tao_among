@@ -41,6 +41,12 @@ class FishTribeResponse extends Model
     /** 魚島一次送出一題時可以送的題目（欄位名），依作答順序 */
     public const ISLAND_QUESTIONS = ['name', 'food_category', 'processing_method'];
 
+    /** 魚卡結果（#183）的兩題：飲食分類、食用方式（處理方式） */
+    public const ISLAND_RESULT_QUESTIONS = ['food_category', 'processing_method'];
+
+    /** 食用方式的「我不知道」：不算有結果、不畫進魚卡（必須是 response_processing_methods 的一個選項） */
+    public const UNKNOWN_PROCESSING_METHOD = '我不知道';
+
     protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'processing_method', 'respondent_tribe', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
 
     public function user(): BelongsTo
@@ -383,6 +389,87 @@ class FishTribeResponse extends Model
             'tribe' => $row->respondent_tribe,
             'is_guest' => isset($guests[$row->user_id]),
         ]])->all();
+    }
+
+    /** @return array{food_category: list<string>, processing_method: list<string>} 魚卡結果兩題各自計算的選項（依設定順序） */
+    public static function islandResultOptions(): array
+    {
+        return [
+            'food_category' => self::selectableFoodCategories(),
+            'processing_method' => config('fish_options.response_processing_methods'),
+        ];
+    }
+
+    /**
+     * 「這條魚在這個部落有結果」的條件（套在魚的查詢上）：
+     * 該部落分類至少 1 筆，而且食用方式至少 1 筆不是「我不知道」；只算選項清單內的值。
+     *
+     * @return array{0: string, 1: list<mixed>} SQL 布林運算式與綁定值
+     */
+    public static function islandHasResultSql(string $tribe, string $fishIdColumn): array
+    {
+        $options = self::islandResultOptions();
+        $knownMethods = array_values(array_diff($options['processing_method'], [self::UNKNOWN_PROCESSING_METHOD]));
+        $exists = fn (string $column, array $values) => self::query()->toBase()
+            ->selectRaw('1')
+            ->whereColumn('fish_tribe_responses.fish_id', $fishIdColumn)
+            ->where('tribe', $tribe)
+            ->whereIn($column, $values);
+        $category = $exists('food_category', $options['food_category']);
+        $method = $exists('processing_method', $knownMethods);
+
+        return [
+            "(exists ({$category->toSql()}) and exists ({$method->toSql()}))",
+            [...$category->getBindings(), ...$method->getBindings()],
+        ];
+    }
+
+    /**
+     * 魚卡結果：每條魚、每題、每個部落各選項的回答筆數（一筆＝一人替一個部落答一條魚）。
+     * 只算選項清單內的值與部落清單內的部落；選項依設定順序，0 筆的選項與部落不列。
+     *
+     * @param  list<int>  $fishIds
+     * @return array<int, array{food_category: array<string, list<array{value: string, count: int}>>, processing_method: array<string, list<array{value: string, count: int}>>}>
+     */
+    public static function islandResultCounts(array $fishIds): array
+    {
+        $tribes = config('fish_options.tribes');
+        $results = [];
+        foreach (self::islandResultOptions() as $question => $options) {
+            $rows = self::query()
+                ->whereIn('fish_id', $fishIds)
+                ->whereIn('tribe', $tribes)
+                ->whereIn($question, $options)
+                ->groupBy('fish_id', 'tribe', $question)
+                ->selectRaw("fish_id, tribe, {$question} as value, count(*) as count")
+                ->get();
+            foreach ($rows->groupBy('fish_id') as $fishId => $fishRows) {
+                $results[$fishId][$question] = self::countsByTribe($fishRows, $tribes, $options);
+            }
+        }
+
+        return array_map(fn (array $questions) => [
+            'food_category' => $questions['food_category'] ?? [],
+            'processing_method' => $questions['processing_method'] ?? [],
+        ], $results);
+    }
+
+    /** @return array<string, list<array{value: string, count: int}>> 依部落清單順序；部落內依選項順序 */
+    private static function countsByTribe($rows, array $tribes, array $options): array
+    {
+        $byTribe = [];
+        foreach ($tribes as $tribe) {
+            $counts = $rows->where('tribe', $tribe)->pluck('count', 'value');
+            $choices = array_values(array_filter(array_map(
+                fn (string $option) => isset($counts[$option]) ? ['value' => $option, 'count' => (int) $counts[$option]] : null,
+                $options,
+            )));
+            if ($choices !== []) {
+                $byTribe[$tribe] = $choices;
+            }
+        }
+
+        return $byTribe;
     }
 
     /** 回答過這條魚的不同使用者人數（不分部落，同一人答多個部落只算 1 人）。 */

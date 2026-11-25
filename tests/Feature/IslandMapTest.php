@@ -172,14 +172,148 @@ it('有魚但頁碼超過最後一頁是「沒有更多了」', function () {
 });
 
 // AC 3（規格修訂第 3 次）：魚卡不帶回答資料，排序只看編號
-it('魚卡只帶編號、魚名、照片網址；有人回答過也照編號排', function () {
-    $fishes = Fish::factory()->count(3)->create();
-    islandAnswer(User::factory()->create(), $fishes[2], 'yayo', ['name' => 'ilek', 'food_category' => 'oyod']);
+/** #183：某部落、某條魚的結果。$people＝[分類, 食用] 的清單，每一項由不同的人回答（null＝不答這題）。 */
+function islandResults(Fish $fish, string $tribe, array $people): void
+{
+    foreach ($people as [$category, $method]) {
+        islandAnswer(User::factory()->create(), $fish, $tribe, ['food_category' => $category, 'processing_method' => $method]);
+    }
+}
+
+function tribePageProps($test, string $tribe = 'yayo', int $page = 1): array
+{
+    return $test->get("/island/tribes/{$tribe}?page={$page}")->assertOk()->inertiaProps();
+}
+
+// #183 AC 1：計算規則
+it('#183 有結果的魚卡帶各部落、兩題各選項的回答筆數，部落與選項依設定的順序、0 筆不列', function () {
+    $fish = Fish::factory()->create();
+    islandResults($fish, 'yayo', [['rahet', '剝皮'], ['oyod', '去魚鱗'], ['oyod', '去魚鱗'], ['oyod', '我不知道']]);
+    islandResults($fish, 'iratay', [['kakanen no rarakeh', null]]);
     $this->actingAs(islandPlayer());
 
-    $props = $this->get('/island/tribes/yayo')->assertOk()->inertiaProps();
+    $results = tribePageProps($this)['fish'][0]['results'];
 
-    expect(array_column($props['fish'], 'id'))->toBe($fishes->pluck('id')->all())
-        ->and(array_keys($props['fish'][2]))->toBe(['id', 'name', 'image_url'])
-        ->and($props)->not->toHaveKey('progress');
+    expect($results['food_category'])->toBe([
+        'iratay' => [['value' => 'kakanen no rarakeh', 'count' => 1]],
+        'yayo' => [['value' => 'oyod', 'count' => 3], ['value' => 'rahet', 'count' => 1]],
+    ])->and($results['processing_method'])->toBe([
+        'yayo' => [['value' => '去魚鱗', 'count' => 2], ['value' => '剝皮', 'count' => 1], ['value' => '我不知道', 'count' => 1]],
+    ]);
+});
+
+it('#183 人數是回答筆數：同一人替兩個部落作答各算 1；別部落與沒有魚島角色的人也算', function () {
+    $fish = Fish::factory()->create();
+    $someone = islandPlayer('iratay', '外地人');
+    islandAnswer($someone, $fish, 'yayo', ['food_category' => 'oyod', 'processing_method' => '去魚鱗', 'respondent_tribe' => 'iratay']);
+    islandAnswer($someone, $fish, 'imowrod', ['food_category' => 'oyod', 'processing_method' => '去魚鱗', 'respondent_tribe' => 'iratay']);
+    islandAnswer(User::factory()->create(), $fish, 'yayo', ['food_category' => 'oyod']);
+    $this->actingAs(islandPlayer());
+
+    $results = tribePageProps($this)['fish'][0]['results'];
+
+    expect($results['food_category']['yayo'])->toBe([['value' => 'oyod', 'count' => 2]])
+        ->and($results['food_category']['imowrod'])->toBe([['value' => 'oyod', 'count' => 1]])
+        ->and($results['processing_method']['yayo'])->toBe([['value' => '去魚鱗', 'count' => 1]]);
+});
+
+it('#183 空值、空字串、清單外的值與清單外的部落不算', function () {
+    $fish = Fish::factory()->create();
+    islandResults($fish, 'yayo', [['oyod', '去魚鱗'], ['', ''], [null, null], ['?', '尚未紀錄']]);
+    islandResults($fish, 'unknown-tribe', [['oyod', '去魚鱗']]);
+    $this->actingAs(islandPlayer());
+
+    $results = tribePageProps($this)['fish'][0]['results'];
+
+    expect($results)->toBe([
+        'food_category' => ['yayo' => [['value' => 'oyod', 'count' => 1]]],
+        'processing_method' => ['yayo' => [['value' => '去魚鱗', 'count' => 1]]],
+    ]);
+});
+
+it('#183 部落頁帶選項清單、部落清單與「我不知道」，給畫面配色與排序', function () {
+    Fish::factory()->create();
+    $this->actingAs(islandPlayer());
+
+    $props = tribePageProps($this);
+
+    expect($props['result_options'])->toBe([
+        'food_category' => config('fish_options.response_food_categories'),
+        'processing_method' => config('fish_options.response_processing_methods'),
+    ])->and($props['tribes'])->toBe(ISLAND_TRIBES)
+        ->and($props['unknown_processing_method'])->toBe('我不知道')
+        ->and(config('fish_options.response_processing_methods'))->toContain($props['unknown_processing_method']);
+});
+
+// #183 AC 2：有結果與進度（以所在部落計）
+it('#183 分類與非「我不知道」的食用都有才算有結果；只有一題、或食用只有「我不知道」不算', function () {
+    [$both, $categoryOnly, $methodOnly, $unknownOnly] = Fish::factory()->count(4)->create();
+    islandResults($both, 'yayo', [['oyod', null], [null, '剝皮']]);
+    islandResults($categoryOnly, 'yayo', [['oyod', null]]);
+    islandResults($methodOnly, 'yayo', [[null, '剝皮']]);
+    islandResults($unknownOnly, 'yayo', [['oyod', '我不知道']]);
+    $this->actingAs(islandPlayer());
+
+    $fish = collect(tribePageProps($this)['fish'])->keyBy('id');
+
+    expect($fish[$both->id]['results'])->not->toBeNull()
+        ->and($fish[$categoryOnly->id]['results'])->toBeNull()
+        ->and($fish[$methodOnly->id]['results'])->toBeNull()
+        ->and($fish[$unknownOnly->id]['results'])->toBeNull();
+});
+
+it('#183 同一條魚只有別的部落答過：在那個部落頁有結果，在本部落頁沒有', function () {
+    $fish = Fish::factory()->create();
+    islandResults($fish, 'iratay', [['oyod', '剝皮']]);
+    $this->actingAs(islandPlayer());
+
+    expect(tribePageProps($this, 'yayo')['fish'][0]['results'])->toBeNull()
+        ->and(tribePageProps($this, 'iratay')['fish'][0]['results']['food_category'])->toBe(['iratay' => [['value' => 'oyod', 'count' => 1]]]);
+});
+
+it('#183 進度＝這個部落有結果的魚條數／全部未軟刪除的魚條數，各部落不同', function () {
+    $fishes = Fish::factory()->count(4)->create();
+    islandResults($fishes[0], 'yayo', [['oyod', '剝皮']]);
+    islandResults($fishes[1], 'yayo', [['rahet', '去魚鱗']]);
+    islandResults($fishes[2], 'iratay', [['oyod', '剝皮']]);
+    $deleted = Fish::factory()->create();
+    islandResults($deleted, 'yayo', [['oyod', '剝皮']]);
+    $deleted->delete();
+    $this->actingAs(islandPlayer());
+
+    expect(tribePageProps($this, 'yayo')['progress'])->toBe(['with_result' => 2, 'total' => 4])
+        ->and(tribePageProps($this, 'iratay')['progress'])->toBe(['with_result' => 1, 'total' => 4])
+        ->and(tribePageProps($this, 'imowrod')['progress'])->toBe(['with_result' => 0, 'total' => 4]);
+});
+
+it('#183 沒有魚時沒有進度', function () {
+    $this->actingAs(islandPlayer());
+
+    expect(tribePageProps($this)['progress'])->toBeNull();
+});
+
+// #183 AC 3：排序（以所在部落計）
+it('#183 這個部落有結果的魚排前面，各自依編號；只有別的部落答過的算沒有結果', function () {
+    $fishes = Fish::factory()->count(4)->create();
+    islandResults($fishes[3], 'yayo', [['oyod', '剝皮']]);
+    islandResults($fishes[1], 'yayo', [['rahet', '去魚鱗']]);
+    islandResults($fishes[0], 'iratay', [['oyod', '剝皮']]);
+    $this->actingAs(islandPlayer());
+
+    expect(array_column(tribePageProps($this)['fish'], 'id'))
+        ->toBe([$fishes[1]->id, $fishes[3]->id, $fishes[0]->id, $fishes[2]->id]);
+});
+
+it('#183 排序跨頁成立，每頁 20 條', function () {
+    $fishes = Fish::factory()->count(22)->create();
+    islandResults($fishes[21], 'yayo', [['oyod', '剝皮']]);
+    $this->actingAs(islandPlayer());
+
+    $first = tribePageProps($this, 'yayo', 1);
+    $second = tribePageProps($this, 'yayo', 2);
+
+    expect($first['fish'])->toHaveCount(20)
+        ->and($first['fish'][0]['id'])->toBe($fishes[21]->id)
+        ->and($first['fish'][1]['id'])->toBe($fishes[0]->id)
+        ->and(array_column($second['fish'], 'id'))->toBe([$fishes[19]->id, $fishes[20]->id]);
 });
