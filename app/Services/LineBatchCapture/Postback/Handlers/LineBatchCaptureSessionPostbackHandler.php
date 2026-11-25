@@ -31,6 +31,14 @@ class LineBatchCaptureSessionPostbackHandler implements LineBatchCapturePostback
         }
 
         $params = $context->params();
+
+        // 新卡片只帶 session_id；部署前已發出的舊卡片帶四欄，走手動填寫的路徑
+        if (isset($params['session_id'])) {
+            $flow->selectSession($context->userId(), $context->replyToken(), (int) $params['session_id']);
+
+            return;
+        }
+
         $tribe = $params['tribe'] ?? null;
         $location = $params['location'] ?? null;
         $captureMethod = $params['capture_method'] ?? null;

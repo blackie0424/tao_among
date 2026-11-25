@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Cache;
 
 class LineBatchCaptureStateStore
 {
+    private const SESSION_FIELDS = ['tribe', 'location', 'capture_method', 'capture_date'];
+
     public function __construct(private readonly string $prefix = 'batch_capture') {}
 
     public function getState(string $userId): ?string
@@ -67,7 +69,14 @@ class LineBatchCaptureStateStore
      */
     public function updateForm(string $userId, array $values, int $minutes = 15): void
     {
-        $this->putForm($userId, array_merge($this->getForm($userId), $values), $minutes);
+        $form = array_merge($this->getForm($userId), $values);
+
+        // 改了情境的欄位但沒指定情境，表示不再是原本選的那個情境
+        if (! array_key_exists('session_id', $values) && array_intersect_key($values, array_flip(self::SESSION_FIELDS))) {
+            unset($form['session_id']);
+        }
+
+        $this->putForm($userId, $form, $minutes);
     }
 
     public function startSession(string $userId, int $fishId, int $minutes = 15): void

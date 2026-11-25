@@ -129,6 +129,13 @@ class CaptureSessionService implements CaptureSessionServiceInterface
         ];
     }
 
+    public function findAttributes(int $sessionId): ?array
+    {
+        $session = CaptureSession::query()->with('place')->find($sessionId);
+
+        return $session ? $this->recordAttributes($session) : null;
+    }
+
     /** @param array{capture_date:string,tribe:string,capture_method:string,location?:?string}|null $legacyCombo */
     public function resolveForCreate(?int $sessionId, ?array $legacyCombo): CaptureSession
     {
