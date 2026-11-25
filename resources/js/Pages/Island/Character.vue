@@ -96,9 +96,10 @@
 </template>
 
 <script setup>
-import { Head, router, useForm } from '@inertiajs/vue3'
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { Head, useForm } from '@inertiajs/vue3'
+import { computed, nextTick, ref } from 'vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
+import { useRateLimitCountdown } from '@/composables/useRateLimitCountdown'
 import { islandTribeLabel } from '@/constants/island'
 
 defineProps({
@@ -108,60 +109,11 @@ defineProps({
 
 const form = useForm({ name: '', tribe: '' })
 const nameInput = ref(null)
-// 被限流後還要等幾秒才能再送出；0 代表沒有被限流
-const waitSeconds = ref(0)
-const initialWaitSeconds = ref(0)
-
-const HTTP_TOO_MANY_REQUESTS = 429
-// 伺服器沒回報要等多久時用的秒數（限流以一分鐘為單位）
-const DEFAULT_WAIT_SECONDS = 60
-const ONE_SECOND_MS = 1000
+const { waitSeconds, initialWaitSeconds } = useRateLimitCountdown()
 
 const submitLabel = computed(() => {
   if (form.processing) return '進入中…'
   return waitSeconds.value > 0 ? `${waitSeconds.value} 秒後可以再試` : '進入魚島'
-})
-
-let countdownTimer = null
-function stopCountdown() {
-  clearInterval(countdownTimer)
-  countdownTimer = null
-}
-
-function startCountdown(seconds) {
-  stopCountdown()
-  initialWaitSeconds.value = seconds
-  waitSeconds.value = seconds
-  countdownTimer = setInterval(() => {
-    waitSeconds.value -= 1
-    if (waitSeconds.value <= 0) {
-      stopCountdown()
-    }
-  }, ONE_SECOND_MS)
-}
-
-// Retry-After 只接受正整數的秒數（例如 "45"）；"1.5"、"45abc"、"0" 都不算
-const POSITIVE_INTEGER = /^[1-9]\d*$/
-
-/** 429 回應的 Retry-After（秒）；沒有值或不是正整數時用預設值 */
-function retryAfterSeconds(response) {
-  const value = String(response.headers?.['retry-after'] ?? '').trim()
-  return POSITIVE_INTEGER.test(value) ? Number(value) : DEFAULT_WAIT_SECONDS
-}
-
-// 被限流時伺服器回的不是頁面資料，預設會跳出瀏覽器的錯誤視窗；這裡攔下來，改在表單上顯示還要等多久
-let stopListeningInvalid = () => {}
-onMounted(() => {
-  stopListeningInvalid = router.on('invalid', (event) => {
-    if (event.detail.response.status === HTTP_TOO_MANY_REQUESTS) {
-      event.preventDefault()
-      startCountdown(retryAfterSeconds(event.detail.response))
-    }
-  })
-})
-onUnmounted(() => {
-  stopListeningInvalid()
-  stopCountdown()
 })
 
 // 送出後有錯：把焦點移到第一個有錯的欄位（名字在前、部落在後）
