@@ -838,6 +838,17 @@ class LineBatchCaptureFlowTest extends TestCase
         );
     }
 
+    public function test_image_outside_any_flow_gets_guidance_with_unified_wording(): void
+    {
+        $replied = $this->captureSingleReply(function () {
+            $this->invokeHandleImageMessage($this->makeImageMessageEvent('stray-image'));
+        });
+
+        $text = $this->flexToArray($replied[0])['text'];
+        $this->assertStringContainsString('如要新增捕獲紀錄，請先從魚卡點擊按鈕', $text);
+        $this->assertStringNotContainsString('批次', $text);
+    }
+
     public function test_cancel_reply_uses_unified_wording(): void
     {
         $fish = Fish::factory()->create();
