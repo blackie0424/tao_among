@@ -58,13 +58,25 @@ describe('FishDetailTop 博物誌樣式（#132 AC 5）', () => {
     expect(h1.text()).toBe('Pseudocheilinus_hexataenia_extraordinarily_long_name')
   })
 
-  it('新增錄音的純圖示連結有名稱，圖示標為裝飾', () => {
+  it('麥克風的純圖示連結名稱為「新增發音」、帶 from=fish，圖示標為裝飾（#176 AC 4）', () => {
     mockUsePage.mockReturnValue({ props: { auth: { user: { role: 'editor' } } } })
     const wrapper = mountTop()
-    const link = wrapper.get('a[href="/fish/1/audio/create"]')
+    const link = wrapper.get('a[href="/fish/1/audio/create?from=fish"]')
 
-    expect(link.attributes('aria-label')).toBe('新增錄音')
+    expect(link.attributes('aria-label')).toBe('新增發音')
+    expect(link.attributes('title')).toBe('新增發音')
     expect(link.get('svg').attributes('aria-hidden')).toBe('true')
+  })
+
+  it.each([
+    ['魚名為空', { id: 1, name: '' }, 'editor'],
+    ['魚名只有分隔符與空白', { id: 1, name: '、 、' }, 'admin'],
+    ['沒有播放權限（viewer）', { id: 1, name: '飛魚' }, 'viewer'],
+    ['未登入', { id: 1, name: '飛魚' }, null],
+  ])('麥克風不顯示：%s', (_label, fish, role) => {
+    mockUsePage.mockReturnValue({ props: { auth: { user: role ? { role } : null } } })
+
+    expect(mountTop(fish).find('a[href^="/fish/1/audio/create"]').exists()).toBe(false)
   })
 
   it('沒有照片網址時仍渲染照片區，魚名照常顯示', () => {
@@ -103,7 +115,7 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
     const row = wrapper.get('[data-testid="fish-name-row"]')
     expect(row.find('h1').exists()).toBe(true)
     const micBox = row.element.lastElementChild
-    expect(micBox.querySelector('a[href="/fish/1/audio/create"]')).not.toBeNull()
+    expect(micBox.querySelector('a[href="/fish/1/audio/create?from=fish"]')).not.toBeNull()
     expect(micBox.classList).toContain('ml-auto')
   })
 

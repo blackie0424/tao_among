@@ -34,7 +34,7 @@ class LineFishMessageBuilderTest extends TestCase
         $footerLabels = $this->extractFooterButtonLabels($json);
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
-        $this->assertContains('🎤 提供發音', $footerLabels);
+        $this->assertContains('🎤 新增發音', $footerLabels);
         $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
         $this->assertContains('🧠 新增進階知識', $footerLabels);
     }

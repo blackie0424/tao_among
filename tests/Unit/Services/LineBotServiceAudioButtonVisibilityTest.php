@@ -11,7 +11,7 @@ use Tests\TestCase;
  * 需求：
  * - 有音檔且為 editor/admin → body 顯示「🔊 播放發音」按鈕
  * - 無音檔 → body 不顯示任何發音相關按鈕
- *   （editor 透過 footer 的「🎤 提供發音」按鈕新增錄音）
+ *   （editor 透過 footer 的「🎤 新增發音」按鈕新增錄音）
  */
 class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
 {
@@ -108,7 +108,7 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
         $this->assertEmpty($audioButtons, '無音檔時 viewer 不應看到任何發音按鈕');
     }
 
-    /** 無音檔時，editor 的 body 也不應顯示發音按鈕（改用 footer 的「提供發音」） */
+    /** 無音檔時，editor 的 body 也不應顯示發音按鈕（改用 footer 的「新增發音」） */
     public function test_without_audio_no_button_for_editor(): void
     {
         $message = $this->service->buildFishCard($this->baseFish, null, true); // editor
@@ -124,7 +124,7 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
         $this->assertEmpty($audioButtons, '無音檔時 body 不應顯示發音相關按鈕');
     }
 
-    /** 無音檔 + editor：footer 仍保有「🎤 提供發音」按鈕 */
+    /** 無音檔 + editor：footer 仍保有「🎤 新增發音」按鈕 */
     public function test_without_audio_editor_footer_has_provide_audio_button(): void
     {
         $message = $this->service->buildFishCard($this->baseFish, null, true); // editor
@@ -133,10 +133,10 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
         $footerContents = ($json['contents'] ?? $json)['footer']['contents'] ?? [];
         $footerLabels = array_map(fn ($i) => $i['action']['label'] ?? '', $footerContents);
 
-        $this->assertContains('🎤 提供發音', $footerLabels, '無音檔時 editor footer 應有「提供發音」');
+        $this->assertContains('🎤 新增發音', $footerLabels, '無音檔時 editor footer 應有「新增發音」');
     }
 
-    /** 有音檔 + editor：body 有播放按鈕，footer 仍有「提供發音」（可覆蓋錄音） */
+    /** 有音檔 + editor：body 有播放按鈕，footer 仍有「新增發音」（可覆蓋錄音） */
     public function test_with_audio_editor_can_still_provide_new_audio(): void
     {
         $fish = array_merge($this->baseFish, ['audio_url' => 'https://s3.example.com/audio.m4a']);
@@ -148,7 +148,7 @@ class LineFishMessageBuilderAudioButtonVisibilityTest extends TestCase
         $footerLabels = array_map(fn ($i) => $i['action']['label'] ?? '', $footerContents);
 
         $this->assertContains('🔊 播放發音', $bodyLabels);
-        $this->assertContains('🎤 提供發音', $footerLabels, '有音檔時 editor 仍可覆蓋提供新錄音');
+        $this->assertContains('🎤 新增發音', $footerLabels, '有音檔時 editor 仍可覆蓋提供新錄音');
     }
 
     // ------------------------------------------------------------------

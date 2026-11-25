@@ -16,7 +16,7 @@ use Tests\TestCase;
  * TDD 安全性測試：後端 postback 權限把關
  *
  * 問題背景：
- *   UI 層透過 isEditor 控制是否顯示「修改名稱」與「提供發音」按鈕。
+ *   UI 層透過 isEditor 控制是否顯示「修改名稱」與「新增發音」按鈕。
  *   但若使用者之前已看到舊訊息（角色為 editor 時的圖卡），
  *   在降為 viewer 後仍可點選舊按鈕觸發 postback，後端若無驗證則會直接執行。
  *
@@ -329,7 +329,7 @@ class LineBotPostbackPermissionTest extends TestCase
         // editor 可以進入流程（收到選擇部落的提示）
         $this->assertCount(1, $replied);
         $this->assertInstanceOf(\LINE\Clients\MessagingApi\Model\TextMessage::class, $replied[0]);
-        $this->assertStringContainsString('提供發音', $replied[0]->getText());
+        $this->assertStringContainsString('新增發音', $replied[0]->getText());
     }
 
     public function test_admin_can_start_add_audio(): void
@@ -350,7 +350,7 @@ class LineBotPostbackPermissionTest extends TestCase
             $this->makePostbackEvent("action=start_add_audio&fish_id={$fish->id}")
         );
 
-        $this->assertStringContainsString('提供發音', $replied[0]->getText());
+        $this->assertStringContainsString('新增發音', $replied[0]->getText());
     }
 
     public function test_viewer_cannot_start_batch_capture_record(): void

@@ -242,9 +242,9 @@ class LineFishMessageBuilder
                 'height' => 'sm',
                 'action' => [
                     'type' => 'postback',
-                    'label' => '🎤 提供發音',
+                    'label' => '🎤 新增發音',
                     'data' => "action=start_add_audio&fish_id={$fish['id']}",
-                    'displayText' => '提供發音',
+                    'displayText' => '新增發音',
                 ],
             ];
         }

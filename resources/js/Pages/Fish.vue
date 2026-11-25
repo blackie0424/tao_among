@@ -113,23 +113,9 @@
           <section v-if="hasAudioAccess" v-show="activeTab === 'audio'">
             <TabEditActions
               v-if="isEditor"
-              :items="[{ label: '新增發音', href: `/fish/${fish.id}/audio/create` }]"
+              :items="[{ label: '管理發音', href: `/fish/${fish.id}/audio-list` }]"
             />
-            <div class="bg-paper-raised border border-rule-strong p-6 space-y-4">
-              <h2 class="text-elder-name font-bold text-elder-text">發音</h2>
-              <div v-if="fish.audio_url" class="flex items-center gap-4 p-4 border border-rule">
-                <Volume :audioUrl="fish.audio_url" />
-                <span class="text-elder-body text-elder-text">目前發音檔</span>
-              </div>
-              <p v-else class="text-elder-body text-elder-subtext">尚無發音資料</p>
-              <Link
-                v-if="isEditor"
-                :href="`/fish/${fish.id}/audio-list`"
-                class="inline-flex items-center gap-2 min-h-touch-secondary text-elder-body text-brand hover:text-brand-dark underline underline-offset-4"
-              >
-                管理所有發音
-              </Link>
-            </div>
+            <FishAudioSection :fish="fish" />
           </section>
         </div>
       </div>
@@ -149,7 +135,7 @@ import FishAdvancedKnowledgeSection from '@/Components/FishKnowledge/FishAdvance
 import ReferenceKnowledgeSection from '@/Components/ReferenceKnowledge/ReferenceKnowledgeSection.vue'
 import FishResponses from '@/Components/FishResponses/FishResponses.vue'
 import TabEditActions from '@/Components/Global/TabEditActions.vue'
-import Volume from '@/Components/UI/Volume.vue'
+import FishAudioSection from '@/Components/FishDetail/FishAudioSection.vue'
 import { canAccessAudio } from '@/constants/roles'
 
 const props = defineProps({

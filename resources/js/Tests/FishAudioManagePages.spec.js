@@ -97,19 +97,21 @@ describe('管理發音頁', () => {
     expect(wrapper.get('[data-testid="back"]').text()).toBe('魚類資料')
   })
 
-  it('依名稱分組：每個名稱有「＋ 錄音」連結帶名稱，同名稱的各段列在下面', () => {
+  it('依名稱分組：每個名稱有「＋ 新增發音」連結帶名稱（不帶 from），同名稱的各段列在下面', () => {
     mountList()
     const group = wrapper.get('[data-testid="name-group-mivazlt"]')
     expect(group.get('a[href^="/fish/4/audio/create?name="]').attributes('href')).toBe('/fish/4/audio/create?name=mivazlt')
+    expect(group.get('a[href^="/fish/4/audio/create?name="]').text()).toBe('＋ 新增發音')
     expect(group.findAll('[data-testid="audio-clip"]')).toHaveLength(2)
     expect(group.text()).toContain('錄音者：乙')
   })
 
-  it('沒有錄音的名稱顯示「還沒有錄音」並仍有「＋ 錄音」', () => {
+  it('沒有錄音的名稱顯示「還沒有錄音」並仍有「＋ 新增發音」', () => {
     mountList()
     const group = wrapper.get('[data-testid="name-group-mivanivang"]')
     expect(group.text()).toContain('還沒有錄音')
-    expect(group.text()).toContain('＋ 錄音')
+    expect(group.text()).toContain('＋ 新增發音')
+    expect(group.text()).not.toContain('＋ 錄音')
   })
 
   describe('每個拼字各自的主要發音（設為魚頁使用）', () => {

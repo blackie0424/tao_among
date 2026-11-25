@@ -35,10 +35,10 @@
            </div>
          </div>
 
-          <!-- 管理區 (新增錄音) - 同一行最右邊，空間不足時換行 -->
-          <div v-if="hasAudioAccess" class="ml-auto flex items-center gap-1 flex-shrink-0">
-             <!-- Add Audio Button (保留供田調快速操作) -->
-             <Link :href="`/fish/${fish.id}/audio/create`" class="inline-flex items-center justify-center min-w-touch-secondary min-h-touch-secondary rounded-full text-brand hover:text-brand-dark hover:bg-paper-raised transition" title="新增錄音" aria-label="新增錄音">
+          <!-- 麥克風（新增發音）- 同一行最右邊，空間不足時換行；魚名沒有任何拼字時無法新增，不顯示 -->
+          <div v-if="hasAudioAccess && spellings.length" class="ml-auto flex items-center gap-1 flex-shrink-0">
+             <!-- 錄音入口：存檔後回魚頁（from=fish），多拼字在新增頁先選拼字 -->
+             <Link :href="`/fish/${fish.id}/audio/create?from=fish`" class="inline-flex items-center justify-center min-w-touch-secondary min-h-touch-secondary rounded-full text-brand hover:text-brand-dark hover:bg-paper-raised transition" title="新增發音" aria-label="新增發音">
                 <svg class="w-6 h-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
              </Link>
           </div>

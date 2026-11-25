@@ -16,7 +16,7 @@ uses(RefreshDatabase::class);
 const LINE_AUDIO_BLOB_PREFIX = "\x00\x00\x00\x00ftypM4A ";
 
 /** 以 saveFishAudio 儲存一段 LINE 錄音；回傳 LINE 回覆的文字。 */
-function saveLineAudio(string $lineUserId, Fish $fish, ?string $tribe, string $filename = 'line-new.m4a', int $duration = 3000): ?string
+function saveLineAudio(string $lineUserId, Fish $fish, ?string $tribe, string $filename = 'line-new.m4a', int $duration = 3000, ?string $spokenName = null): ?string
 {
     $blob = LINE_AUDIO_BLOB_PREFIX.str_repeat("\x00", 100);
     $upload = Mockery::mock(LineUploadService::class);
@@ -25,6 +25,9 @@ function saveLineAudio(string $lineUserId, Fish $fish, ?string $tribe, string $f
 
     if ($tribe) {
         Cache::put("line_user_{$lineUserId}_audio_tribe", $tribe, now()->addMinutes(5));
+    }
+    if ($spokenName) {
+        Cache::put("line_user_{$lineUserId}_audio_name", $spokenName, now()->addMinutes(5));
     }
     Cache::put("line_user_{$lineUserId}_adding_audio", $fish->id, now()->addMinutes(5));
 
@@ -61,13 +64,13 @@ it('LINE 新增發音：單一名稱的魚自動帶入名稱，部落與錄音�
     expect($audio->makeVisible('recorded_by')->recorded_by)->toBe($user->id);
 });
 
-it('LINE 新增發音：多名稱的魚在選名稱流程上線前名稱留空（歸未對應名稱）；查無帳號時錄音者為空', function () {
+it('LINE 新增發音：多名稱的魚存入所選拼字；查無帳號時錄音者為空', function () {
     $fish = Fish::factory()->create(['name' => 'mivazlt、mivanivang']);
 
-    saveLineAudio('U_unknown_user', $fish, 'yayo');
+    saveLineAudio('U_unknown_user', $fish, 'yayo', spokenName: 'mivanivang');
 
     $audio = FishAudio::where('fish_id', $fish->id)->firstOrFail();
-    expect($audio->spoken_name)->toBeNull();
+    expect($audio->spoken_name)->toBe('mivanivang');
     expect($audio->makeVisible('recorded_by')->recorded_by)->toBeNull();
 });
 

@@ -146,6 +146,45 @@ describe('新增發音頁', () => {
     expect(router.visit).not.toHaveBeenCalled()
   })
 
+  describe('從魚頁麥克風進來（from=fish，#176 AC 5）', () => {
+    it('返回鈕回魚頁、文字「回魚類資料」', () => {
+      mountPage({ from: 'fish' })
+      expect(wrapper.get('[data-testid="back"]').attributes('href')).toBe('/fish/4')
+      expect(wrapper.get('[data-testid="back"]').text()).toBe('回魚類資料')
+    })
+
+    it('存檔成功回魚頁（不帶 tab），不是管理發音頁', async () => {
+      fetch.mockResolvedValueOnce(signedOk()).mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 9 }) })
+      mountPage({ from: 'fish' })
+
+      await recordAndSave()
+
+      expect(router.visit).toHaveBeenCalledTimes(1)
+      expect(router.visit).toHaveBeenCalledWith('/fish/4')
+    })
+
+    it('多個拼字沒帶名稱時仍先選拼字，選完存檔回魚頁', async () => {
+      fetch.mockResolvedValueOnce(signedOk()).mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 9 }) })
+      mountPage({ from: 'fish', spokenName: null })
+      expect(wrapper.find('form').exists()).toBe(false)
+
+      await wrapper.findAll('button').find((b) => b.text() === 'mivanivang').trigger('click')
+      await recordAndSave()
+
+      expect(JSON.parse(fetch.mock.calls[2][1].body).spoken_name).toBe('mivanivang')
+      expect(router.visit).toHaveBeenCalledWith('/fish/4')
+    })
+
+    it('上傳失敗時留在頁面，不導向魚頁', async () => {
+      fetch.mockResolvedValueOnce(signedOk()).mockResolvedValueOnce({ ok: false })
+      mountPage({ from: 'fish' })
+
+      await recordAndSave()
+
+      expect(router.visit).not.toHaveBeenCalled()
+    })
+  })
+
   it('沒帶名稱而魚有多個名稱時先請使用者選名稱', async () => {
     mountPage({ spokenName: null })
     expect(wrapper.find('form').exists()).toBe(false)
