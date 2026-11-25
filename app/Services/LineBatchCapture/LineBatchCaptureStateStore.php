@@ -39,7 +39,7 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param string[] $images
+     * @param  string[]  $images
      */
     public function putImages(string $userId, array $images, int $minutes = 15): void
     {
@@ -55,7 +55,7 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param array<string, mixed> $form
+     * @param  array<string, mixed>  $form
      */
     public function putForm(string $userId, array $form, int $minutes = 15): void
     {
@@ -63,7 +63,7 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      */
     public function updateForm(string $userId, array $values, int $minutes = 15): void
     {
@@ -92,15 +92,15 @@ class LineBatchCaptureStateStore
     }
 
     /**
-     * @param array{string, array<int, string>, int} $payload [setId, indexedImages, total]
+     * @param  array{string, array<int, string>, int}  $payload  [setId, indexedImages, total]
      */
     public function putIndexedImages(string $userId, array $payload, int $minutes = 15): void
     {
         [$setId, $indexed, $total] = $payload;
         Cache::put($this->key($userId, 'indexed_images'), [
-            'set_id'  => $setId,
+            'set_id' => $setId,
             'indexed' => $indexed,
-            'total'   => $total,
+            'total' => $total,
         ], now()->addMinutes($minutes));
     }
 

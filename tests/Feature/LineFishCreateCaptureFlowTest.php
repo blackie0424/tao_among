@@ -1,15 +1,15 @@
 <?php
 
-use App\Http\Controllers\LineBotController;
-use App\Http\Controllers\ApiFishController;
-use App\Contracts\LineMessagingClientInterface;
-use App\Services\UploadService;
-use App\Contracts\StorageServiceInterface;
-use App\Contracts\LineUserServiceInterface;
 use App\Contracts\FishServiceInterface;
-use App\Services\FishService;
-use App\Models\Fish;
+use App\Contracts\LineMessagingClientInterface;
+use App\Contracts\LineUserServiceInterface;
+use App\Contracts\StorageServiceInterface;
+use App\Http\Controllers\ApiFishController;
+use App\Http\Controllers\LineBotController;
 use App\Models\CaptureRecord;
+use App\Models\Fish;
+use App\Services\FishService;
+use App\Services\UploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -24,9 +24,11 @@ class LineFishCreateCaptureFlowTest extends TestCase
     use RefreshDatabase;
 
     protected const USER_ID = 'test_user_capture_flow';
+
     protected const REPLY_TOKEN = 'test_reply_token_capture';
 
     protected LineBotController $controller;
+
     protected \Mockery\MockInterface $mockLineBotService;
 
     protected function setUp(): void
@@ -37,9 +39,9 @@ class LineFishCreateCaptureFlowTest extends TestCase
         config(['line.channel_access_token' => 'test_access_token']);
         config(['fish_options.tribes' => ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley']]);
         config(['fish_options.capture_methods' => [
-            'mapazat'  => 'mapazat 網魚',
-            'mamasil'  => 'mamasil 白天釣魚',
-            'mamacik'  => 'mamacik 夜間釣魚',
+            'mapazat' => 'mapazat 網魚',
+            'mamasil' => 'mamasil 白天釣魚',
+            'mamacik' => 'mamacik 夜間釣魚',
             'mitokzos' => 'mitokzos',
             'mipaltog' => 'mipaltog',
         ]]);
@@ -56,7 +58,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
             ->byDefault();
 
         $mockLineUserService = \Mockery::mock(LineUserServiceInterface::class);
-        $mockLineUserService->shouldReceive('upsert')->andReturn(new \App\Models\User())->byDefault();
+        $mockLineUserService->shouldReceive('upsert')->andReturn(new \App\Models\User)->byDefault();
         $mockLineUserService->shouldReceive('getRole')->andReturn('editor')->byDefault();
 
         $this->controller = new LineBotController(
@@ -76,8 +78,8 @@ class LineFishCreateCaptureFlowTest extends TestCase
     /** @test */
     public function test_default_name_creates_fish_and_starts_form_session(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->once();
 
@@ -90,18 +92,18 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $this->assertEquals('我不知道', Fish::first()->name);
 
         // old create_fish cache cleared
-        $this->assertNull(Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
-        $this->assertNull(Cache::get("line_user_" . self::USER_ID . "_create_fish_images"));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_create_fish_state'));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_create_fish_images'));
 
         // form session started in LineCreateFishFormStateStore
-        $this->assertEquals('waiting_tribe_selection', Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+        $this->assertEquals('waiting_tribe_selection', Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state'));
     }
 
     /** @test */
     public function test_custom_name_creates_fish_with_given_name_and_starts_form_session(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_custom_name', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_custom_name', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->once();
 
@@ -112,20 +114,21 @@ class LineFishCreateCaptureFlowTest extends TestCase
 
         $this->assertDatabaseCount('fish', 1);
         $this->assertEquals('黑鰭燕魟', Fish::first()->name);
-        $this->assertEquals('waiting_tribe_selection', Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+        $this->assertEquals('waiting_tribe_selection', Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state'));
     }
 
     /** @test */
     public function test_name_selection_sends_tribe_selection_flex_card(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $capturedMessages = [];
         $this->mockLineBotService->shouldReceive('replyMessage')
             ->once()
             ->withArgs(function ($token, $messages) use (&$capturedMessages) {
                 $capturedMessages = $messages;
+
                 return true;
             });
 
@@ -144,8 +147,8 @@ class LineFishCreateCaptureFlowTest extends TestCase
     {
         // Regression: image upload auto-completion used to send action=input_custom_fish_name
         // which had no handler, causing the button to be silently ignored.
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->once();
 
@@ -154,7 +157,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $this->assertEquals('waiting_custom_name', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+        $this->assertEquals('waiting_custom_name', Cache::get('line_user_'.self::USER_ID.'_create_fish_state'));
         $this->assertDatabaseCount('fish', 0);
     }
 
@@ -166,8 +169,8 @@ class LineFishCreateCaptureFlowTest extends TestCase
     public function test_cancel_create_fish_during_form_deletes_orphaned_fish(): void
     {
         // start a form session (fish created, no capture records)
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->twice();
 
@@ -185,14 +188,14 @@ class LineFishCreateCaptureFlowTest extends TestCase
         );
 
         $this->assertDatabaseCount('fish', 0);
-        $this->assertNull(Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state'));
     }
 
     /** @test */
     public function test_cancel_batch_capture_during_create_fish_form_deletes_orphaned_fish(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->twice();
 
@@ -211,7 +214,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
         );
 
         $this->assertDatabaseCount('fish', 0);
-        $this->assertNull(Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state'));
     }
 
     // =====================================================
@@ -222,8 +225,8 @@ class LineFishCreateCaptureFlowTest extends TestCase
     public function test_full_create_fish_flow_creates_capture_records_and_sets_display_record(): void
     {
         // Step 1: start with images and name choice state
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg', 'img2.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg', 'img2.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->byDefault();
 
@@ -244,10 +247,10 @@ class LineFishCreateCaptureFlowTest extends TestCase
         );
 
         // Step 4: input location
-        $formState = Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state");
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_form_state", 'awaiting_location_input', now()->addMinutes(15));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_form_form", array_merge(
-            Cache::get("line_user_" . self::USER_ID . "_create_fish_form_form", []),
+        $formState = Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state');
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_form_state', 'awaiting_location_input', now()->addMinutes(15));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_form_form', array_merge(
+            Cache::get('line_user_'.self::USER_ID.'_create_fish_form_form', []),
             ['tribe' => 'ivalino']
         ), now()->addMinutes(15));
 
@@ -289,7 +292,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $this->assertNotNull($fish->display_capture_record_id);
 
         // form state cleared
-        $this->assertNull(Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state'));
     }
 
     // =====================================================
@@ -299,8 +302,8 @@ class LineFishCreateCaptureFlowTest extends TestCase
     /** @test */
     public function test_cancel_during_capture_flow_clears_all_new_cache_keys(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->byDefault();
 
@@ -316,11 +319,11 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $createFishPrefix = "line_user_" . self::USER_ID . "_create_fish_";
+        $createFishPrefix = 'line_user_'.self::USER_ID.'_create_fish_';
         $this->assertNull(Cache::get("{$createFishPrefix}state"));
         $this->assertNull(Cache::get("{$createFishPrefix}images"));
 
-        $formPrefix = "line_user_" . self::USER_ID . "_create_fish_form_";
+        $formPrefix = 'line_user_'.self::USER_ID.'_create_fish_form_';
         $this->assertNull(Cache::get("{$formPrefix}state"));
         $this->assertNull(Cache::get("{$formPrefix}fish"));
         $this->assertNull(Cache::get("{$formPrefix}images"));
@@ -337,11 +340,11 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $service = $this->app->make(FishService::class);
 
         $captureData = [
-            'tribe'          => 'ivalino',
-            'location'       => '小蘭嶼南側礁石',
+            'tribe' => 'ivalino',
+            'location' => '小蘭嶼南側礁石',
             'capture_method' => 'mapazat',
-            'capture_date'   => '2026-05-20',
-            'notes'          => '體型較大',
+            'capture_date' => '2026-05-20',
+            'notes' => '體型較大',
         ];
 
         $fish = $service->createFishFromLine('黑鰭燕魟', ['img1.jpg', 'img2.jpg'], $captureData);
@@ -367,11 +370,11 @@ class LineFishCreateCaptureFlowTest extends TestCase
         $service = $this->app->make(FishService::class);
 
         $captureData = [
-            'tribe'          => 'iraraley',
-            'location'       => '海灣',
+            'tribe' => 'iraraley',
+            'location' => '海灣',
             'capture_method' => 'mamasil',
-            'capture_date'   => '2026-06-01',
-            'notes'          => null,
+            'capture_date' => '2026-06-01',
+            'notes' => null,
         ];
 
         $service->createFishFromLine('測試魚', ['img1.jpg', 'img2.jpg', 'img3.jpg'], $captureData);
@@ -404,7 +407,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
     /** @test */
     public function test_imageset_partial_upload_shows_progress_and_stays_in_waiting_state(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_image', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_image', now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob1');
         $mockUploadService = \Mockery::mock(\App\Services\LineUploadService::class);
@@ -418,8 +421,8 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $state = Cache::get("line_user_" . self::USER_ID . "_create_fish_state");
-        $indexed = Cache::get("line_user_" . self::USER_ID . "_create_fish_indexed_images");
+        $state = Cache::get('line_user_'.self::USER_ID.'_create_fish_state');
+        $indexed = Cache::get('line_user_'.self::USER_ID.'_create_fish_indexed_images');
 
         $this->assertContains($state, ['waiting_image', 'waiting_more_images']);
         $this->assertNotNull($indexed);
@@ -429,11 +432,11 @@ class LineFishCreateCaptureFlowTest extends TestCase
     /** @test */
     public function test_imageset_auto_transitions_to_name_choice_when_all_images_received(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_indexed_images", [
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_more_images', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_indexed_images', [
             'set_id' => 'set-x',
             'indexed' => [1 => 'a.jpg', 2 => 'b.jpg'],
-            'total'   => 3,
+            'total' => 3,
         ], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-3')->andReturn('blob3');
@@ -448,22 +451,22 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $this->assertEquals('waiting_name_choice', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+        $this->assertEquals('waiting_name_choice', Cache::get('line_user_'.self::USER_ID.'_create_fish_state'));
 
-        $images = Cache::get("line_user_" . self::USER_ID . "_create_fish_images");
+        $images = Cache::get('line_user_'.self::USER_ID.'_create_fish_images');
         $this->assertEquals(['a.jpg', 'b.jpg', 'c.jpg'], $images);
-        $this->assertNull(Cache::get("line_user_" . self::USER_ID . "_create_fish_indexed_images"));
+        $this->assertNull(Cache::get('line_user_'.self::USER_ID.'_create_fish_indexed_images'));
     }
 
     /** @test */
     public function test_imageset_images_are_sorted_by_index_regardless_of_arrival_order(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_more_images', now()->addMinutes(5));
         // index 2 arrived first (a.jpg), then index 1 arriving now (b.jpg)
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_indexed_images", [
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_indexed_images', [
             'set_id' => 'set-y',
             'indexed' => [2 => 'second.jpg'],
-            'total'   => 2,
+            'total' => 2,
         ], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob1');
@@ -478,9 +481,9 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $this->assertEquals('waiting_name_choice', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+        $this->assertEquals('waiting_name_choice', Cache::get('line_user_'.self::USER_ID.'_create_fish_state'));
 
-        $images = Cache::get("line_user_" . self::USER_ID . "_create_fish_images");
+        $images = Cache::get('line_user_'.self::USER_ID.'_create_fish_images');
         // index 1 (first.jpg) should be before index 2 (second.jpg)
         $this->assertEquals(['first.jpg', 'second.jpg'], $images);
     }
@@ -488,7 +491,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
     /** @test */
     public function test_single_non_imageset_image_auto_completes_to_name_choice(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_image', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_image', now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('getMessageContent')->with('msg-1')->andReturn('blob1');
         $mockUploadService = \Mockery::mock(\App\Services\LineUploadService::class);
@@ -502,15 +505,15 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $this->assertEquals('waiting_name_choice', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
-        $this->assertEquals(['fish.jpg'], Cache::get("line_user_" . self::USER_ID . "_create_fish_images"));
+        $this->assertEquals('waiting_name_choice', Cache::get('line_user_'.self::USER_ID.'_create_fish_state'));
+        $this->assertEquals(['fish.jpg'], Cache::get('line_user_'.self::USER_ID.'_create_fish_images'));
     }
 
     /** @test */
     public function test_text_during_waiting_more_images_does_not_offer_finish_upload_button(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_indexed_images", [
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_more_images', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_indexed_images', [
             'set_id' => 'set-x',
             'indexed' => [1 => 'a.jpg'],
             'total' => 3,
@@ -521,6 +524,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
             ->once()
             ->withArgs(function ($token, $messages) use (&$capturedMessages) {
                 $capturedMessages = $messages;
+
                 return true;
             });
 
@@ -535,8 +539,8 @@ class LineFishCreateCaptureFlowTest extends TestCase
     /** @test */
     public function test_finish_upload_fish_images_postback_no_longer_handled(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_more_images', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_more_images', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $this->mockLineBotService->shouldReceive('replyMessage')->never();
 
@@ -545,7 +549,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $this->assertEquals('waiting_more_images', Cache::get("line_user_" . self::USER_ID . "_create_fish_state"));
+        $this->assertEquals('waiting_more_images', Cache::get('line_user_'.self::USER_ID.'_create_fish_state'));
     }
 
     // =====================================================
@@ -554,25 +558,48 @@ class LineFishCreateCaptureFlowTest extends TestCase
 
     private function makePostbackEvent(string $data): object
     {
-        $source = new class(self::USER_ID) {
+        $source = new class(self::USER_ID)
+        {
             public function __construct(private string $userId) {}
-            public function getUserId(): string { return $this->userId; }
+
+            public function getUserId(): string
+            {
+                return $this->userId;
+            }
         };
 
-        $postback = new class($data) {
+        $postback = new class($data)
+        {
             public function __construct(private string $data) {}
-            public function getData(): string { return $this->data; }
+
+            public function getData(): string
+            {
+                return $this->data;
+            }
         };
 
-        return new class($source, $postback, self::REPLY_TOKEN) {
+        return new class($source, $postback, self::REPLY_TOKEN)
+        {
             public function __construct(
                 private $source,
                 private $postback,
                 private string $replyToken,
             ) {}
-            public function getSource() { return $this->source; }
-            public function getPostback() { return $this->postback; }
-            public function getReplyToken(): string { return $this->replyToken; }
+
+            public function getSource()
+            {
+                return $this->source;
+            }
+
+            public function getPostback()
+            {
+                return $this->postback;
+            }
+
+            public function getReplyToken(): string
+            {
+                return $this->replyToken;
+            }
         };
     }
 
@@ -613,7 +640,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
     }
 
     /**
-     * @param array{id:string,index:int,total:int}|null $imageSet
+     * @param  array{id:string,index:int,total:int}|null  $imageSet
      */
     private function makeImageMessageEvent(string $messageId, ?array $imageSet = null): \LINE\Webhook\Model\MessageEvent
     {
@@ -663,6 +690,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
                 }
             }
         }
+
         return $texts;
     }
 
@@ -685,6 +713,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
                 }
             }
         }
+
         return $labels;
     }
 
@@ -697,21 +726,22 @@ class LineFishCreateCaptureFlowTest extends TestCase
     {
         $existingFish = Fish::factory()->create();
         CaptureRecord::factory()->create([
-            'fish_id'        => $existingFish->id,
-            'tribe'          => 'iranmeilek',
-            'location'       => '溪邊釣點',
+            'fish_id' => $existingFish->id,
+            'tribe' => 'iranmeilek',
+            'location' => '溪邊釣點',
             'capture_method' => 'mamasil',
-            'capture_date'   => '2026-06-29',
+            'capture_date' => '2026-06-29',
         ]);
 
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $capturedMessages = [];
         $this->mockLineBotService->shouldReceive('replyMessage')
             ->once()
             ->withArgs(function ($token, $messages) use (&$capturedMessages) {
                 $capturedMessages = $messages;
+
                 return true;
             });
 
@@ -720,7 +750,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $this->assertSame('waiting_session_selection', Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+        $this->assertSame('waiting_session_selection', Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state'));
 
         $this->assertCount(1, $capturedMessages);
         $json = $this->flexToArray($capturedMessages[0]);
@@ -737,14 +767,15 @@ class LineFishCreateCaptureFlowTest extends TestCase
     /** @test */
     public function test_start_form_session_without_sessions_shows_tribe_card(): void
     {
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_state", 'waiting_name_choice', now()->addMinutes(5));
-        Cache::put("line_user_" . self::USER_ID . "_create_fish_images", ['img1.jpg'], now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_state', 'waiting_name_choice', now()->addMinutes(5));
+        Cache::put('line_user_'.self::USER_ID.'_create_fish_images', ['img1.jpg'], now()->addMinutes(5));
 
         $capturedMessages = [];
         $this->mockLineBotService->shouldReceive('replyMessage')
             ->once()
             ->withArgs(function ($token, $messages) use (&$capturedMessages) {
                 $capturedMessages = $messages;
+
                 return true;
             });
 
@@ -753,7 +784,7 @@ class LineFishCreateCaptureFlowTest extends TestCase
             self::REPLY_TOKEN
         );
 
-        $this->assertSame('waiting_tribe_selection', Cache::get("line_user_" . self::USER_ID . "_create_fish_form_state"));
+        $this->assertSame('waiting_tribe_selection', Cache::get('line_user_'.self::USER_ID.'_create_fish_form_state'));
 
         $json = $this->flexToArray($capturedMessages[0]);
         $labels = $this->allButtonLabels($json['contents']);
