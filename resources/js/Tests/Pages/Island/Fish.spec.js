@@ -84,6 +84,16 @@ const choiceRows = (wrapper) => wrapper.findAll('[data-testid="choice"]')
 const button = (wrapper, text) => wrapper.findAll('button').find((b) => b.text() === text)
 const visibleLimitMessage = (wrapper) => wrapper.find('[data-testid="rate-limit-message"]')
 
+const optionInput = (wrapper, label) =>
+  wrapper
+    .findAll('[data-testid="option"]')
+    .find((o) => o.text() === label)
+    .find('input')
+
+async function chooseSupplement(wrapper) {
+  await optionInput(wrapper, '都不對／補充').setValue()
+}
+
 async function skip(wrapper) {
   await button(wrapper, '跳過').trigger('click')
 }
@@ -142,7 +152,7 @@ describe('魚島作答頁：一次一題', () => {
     const wrapper = mountPage()
     expect(wrapper.find('#island-supplement').exists()).toBe(false)
 
-    await wrapper.find('input[type="radio"][value="__supplement__"]').setValue()
+    await chooseSupplement(wrapper)
     await wrapper.find('#island-supplement').setValue('ararow')
     await button(wrapper, '送出').trigger('click')
 
@@ -150,6 +160,55 @@ describe('魚島作答頁：一次一題', () => {
     expect(posted).toEqual([
       { url: '/island/tribes/iratay/fish/5/answers', question: 'name', value: 'ararow' },
     ])
+  })
+
+  it('既有寫法剛好是「__supplement__」也能直接選、送出這個寫法，不會進入補充', async () => {
+    const questions = defaultQuestions()
+    questions[0].options = ['dalakan', '__supplement__']
+    const wrapper = mountPage({ questions })
+
+    await optionInput(wrapper, '__supplement__').setValue()
+
+    expect(wrapper.find('#island-supplement').exists()).toBe(false)
+    expect(optionInput(wrapper, '都不對／補充').element.checked).toBe(false)
+    await button(wrapper, '送出').trigger('click')
+    expect(posted).toEqual([
+      { url: '/island/tribes/iratay/fish/5/answers', question: 'name', value: '__supplement__' },
+    ])
+  })
+
+  it('送出途中不能跳過或換題；回應晚到時顯示的是送出那一題的結果', async () => {
+    const wrapper = mountPage()
+    await optionInput(wrapper, 'arayo').setValue()
+    await button(wrapper, '送出').trigger('click')
+    wrapper.vm.form.processing = true
+    await wrapper.vm.$nextTick()
+
+    expect(button(wrapper, '跳過').attributes('disabled')).toBeDefined()
+
+    wrapper.vm.form.processing = false
+    lastPostOptions.onSuccess()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('h2').text()).toBe('iratay（漁人）怎麼叫這條魚？')
+    expect(wrapper.find('[data-testid="result"]').exists()).toBe(true)
+
+    await button(wrapper, '下一題 ›').trigger('click')
+    expect(wrapper.find('[data-testid="result"]').exists()).toBe(false)
+  })
+
+  it('換題後才收到前一題的成功回應：不會把現在這一題當成已看結果', async () => {
+    const wrapper = mountPage()
+    await optionInput(wrapper, 'arayo').setValue()
+    await button(wrapper, '送出').trigger('click')
+    const firstSuccess = lastPostOptions.onSuccess
+    await skip(wrapper)
+    await button(wrapper, '下一題 ›').trigger('click')
+
+    firstSuccess()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('h2').text()).toBe('iratay（漁人）把這條魚分在哪一類？')
+    expect(wrapper.find('[data-testid="result"]').exists()).toBe(false)
   })
 
   it('送出成功後同一頁換成這一題的結果', async () => {
@@ -166,7 +225,7 @@ describe('魚島作答頁：一次一題', () => {
 
   it('送出被拒時顯示錯誤，留在作答', async () => {
     const wrapper = mountPage()
-    await wrapper.find('input[type="radio"][value="__supplement__"]').setValue()
+    await chooseSupplement(wrapper)
     await button(wrapper, '送出').trigger('click')
     wrapper.vm.form.errors = { value: '請填叫法，或按跳過' }
     await wrapper.vm.$nextTick()

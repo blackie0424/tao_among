@@ -44,8 +44,8 @@
         </p>
 
         <label
-          v-for="option in answerOptions"
-          :key="option.value"
+          v-for="(option, i) in answerOptions"
+          :key="i"
           data-testid="option"
           class="flex min-h-touch-primary cursor-pointer items-center rounded-island border-2 px-3 text-elder-body font-bold has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-island-ink/30"
           :class="
@@ -86,7 +86,14 @@
         </p>
 
         <div class="flex gap-2 pt-2">
-          <button type="button" :class="secondaryButton" @click="reveal">跳過</button>
+          <button
+            type="button"
+            :disabled="form.processing"
+            :class="[secondaryButton, 'disabled:opacity-50']"
+            @click="reveal(current.key)"
+          >
+            跳過
+          </button>
           <button
             type="submit"
             :disabled="!choice || form.processing || waitSeconds > 0"
@@ -147,8 +154,8 @@ const props = defineProps({
   next_fish_id: { type: Number, default: null },
 })
 
-// 「都不對／補充」在選項裡的值（不會是真的寫法）
-const SUPPLEMENT = '__supplement__'
+// 「都不對／補充」在選項裡的值：用物件而不是字串，任何真的寫法都不會等於它
+const SUPPLEMENT = Object.freeze({ supplement: true })
 const PROMPTS = {
   name: (tribe) => `${tribe}怎麼叫這條魚？`,
   food_category: (tribe) => `${tribe}把這條魚分在哪一類？`,
@@ -187,9 +194,12 @@ const submitLabel = computed(() => {
 
 const promptOf = (key) => PROMPTS[key](islandTribeLabel(props.tribe))
 
-function reveal() {
-  revealed.value = { ...revealed.value, [current.value.key]: true }
-  editing.value = false
+/** 顯示某一題的結果；送出的回應可能在換題後才到，所以一律指定題目，不用「目前這一題」 */
+function reveal(key) {
+  revealed.value = { ...revealed.value, [key]: true }
+  if (key === current.value.key) {
+    editing.value = false
+  }
 }
 
 function edit() {
@@ -200,6 +210,7 @@ function edit() {
 }
 
 function next() {
+  if (form.processing) return
   index.value += 1
   choice.value = null
   supplement.value = ''
@@ -208,12 +219,13 @@ function next() {
 
 function submit() {
   if (waitSeconds.value > 0 || !choice.value) return
-  form.question = current.value.key
+  const key = current.value.key
+  form.question = key
   form.value = choice.value === SUPPLEMENT ? supplement.value : choice.value
   form.post(`/island/tribes/${props.tribe}/fish/${props.fish.id}/answers`, {
     preserveScroll: true,
     preserveState: true,
-    onSuccess: reveal,
+    onSuccess: () => reveal(key),
   })
 }
 </script>
