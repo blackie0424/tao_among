@@ -13,8 +13,14 @@
     </template>
 
     <!-- 照片完整顯示不裁切；點照片或「放大」全螢幕看，可兩指放大 -->
-    <div data-testid="fish-photo" class="relative h-52 overflow-hidden rounded-island bg-white">
+    <div
+      data-testid="fish-photo"
+      :data-size="mode === 'supplement' ? 'small' : 'large'"
+      class="relative overflow-hidden rounded-island bg-white transition-[height] duration-300 motion-reduce:transition-none"
+      :class="mode === 'supplement' ? 'h-28' : 'h-52'"
+    >
       <button
+        ref="zoomButton"
         type="button"
         data-testid="photo-zoom"
         class="block h-full w-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
@@ -175,7 +181,6 @@
       aria-modal="true"
       aria-label="魚的照片"
       class="fixed inset-0 z-50 flex flex-col bg-black/90"
-      @keydown.esc="photoOpen = false"
     >
       <div class="flex justify-end p-3">
         <button
@@ -199,7 +204,7 @@
 
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import QuestionResult from '@/Components/Island/QuestionResult.vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import { useRateLimitCountdown } from '@/composables/useRateLimitCountdown'
@@ -231,6 +236,7 @@ const mode = ref('result')
 const supplement = ref('')
 const photoOpen = ref(false)
 const closePhotoButton = ref(null)
+const zoomButton = ref(null)
 const form = useForm({ question: '', value: '' })
 const { waitSeconds, initialWaitSeconds } = useRateLimitCountdown()
 
@@ -246,13 +252,28 @@ const submitLabel = computed(() => {
 
 const promptOf = (key) => PROMPTS[key](islandTribeLabel(props.tribe))
 
-// 打開全螢幕照片時把焦點移到「關閉」，Esc 才關得掉
-watch(photoOpen, async (open) => {
-  if (open) {
-    await nextTick()
+// 全螢幕照片：焦點移到「關閉」並留在對話框裡（裡面只有這一個可按的東西），Esc 不論焦點在哪都能關；
+// 關閉後焦點回到「放大」
+function onPhotoKeydown(event) {
+  if (event.key === 'Escape') {
+    photoOpen.value = false
+  } else if (event.key === 'Tab') {
+    event.preventDefault()
     closePhotoButton.value?.focus()
   }
+}
+
+watch(photoOpen, async (open) => {
+  await nextTick()
+  if (open) {
+    document.addEventListener('keydown', onPhotoKeydown)
+    closePhotoButton.value?.focus()
+  } else {
+    document.removeEventListener('keydown', onPhotoKeydown)
+    zoomButton.value?.focus()
+  }
 })
+onUnmounted(() => document.removeEventListener('keydown', onPhotoKeydown))
 
 function setMode(next) {
   mode.value = next

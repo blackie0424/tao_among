@@ -140,6 +140,48 @@ describe('魚島作答頁：照片', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
 
+  it('作答時照片大；進入補充叫法時照片縮小', async () => {
+    const wrapper = mountPage()
+    const size = () => wrapper.find('[data-testid="fish-photo"]').attributes('data-size')
+    expect(size()).toBe('large')
+
+    await startAnswer(wrapper)
+    expect(size()).toBe('large')
+    await chooseSupplement(wrapper)
+    expect(size()).toBe('small')
+    await button(wrapper, '取消').trigger('click')
+    expect(size()).toBe('large')
+  })
+
+  it('全螢幕時焦點留在對話框：按 Tab 不會移到背景，關閉後焦點回到「放大」', async () => {
+    const wrapper = mountPage()
+    const zoom = wrapper.find('[data-testid="photo-zoom"]')
+    await zoom.trigger('click')
+    await wrapper.vm.$nextTick()
+    const close = button(wrapper, '關閉')
+    expect(document.activeElement).toBe(close.element)
+
+    tab(wrapper, '分類').element.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+    expect(document.activeElement).toBe(close.element)
+
+    await close.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(document.activeElement).toBe(zoom.element)
+  })
+
+  it('全螢幕時焦點不在對話框裡，按 Esc 仍會關閉', async () => {
+    const wrapper = mountPage()
+    await wrapper.find('[data-testid="photo-zoom"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    document.body.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+  })
+
   it('全螢幕時按 Esc 也會關閉', async () => {
     const wrapper = mountPage()
     await wrapper.find('[data-testid="photo-zoom"]').trigger('click')
