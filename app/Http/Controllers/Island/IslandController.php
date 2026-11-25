@@ -33,7 +33,10 @@ class IslandController extends Controller
         ]);
     }
 
-    /** 走到某個部落：記住所在部落，列出全部的魚（魚卡上的大家的結果在 #183）。 */
+    /**
+     * 走到某個部落：記住所在部落，列出全部的魚。
+     * 在這個部落有結果的魚排前面（各自依編號）；有結果的魚卡帶各部落的結果給魚卡與細節視窗。
+     */
     public function tribe(Request $request, string $tribe): Response
     {
         abort_unless(in_array($tribe, config('fish_options.tribes'), true), 404);
@@ -41,20 +44,42 @@ class IslandController extends Controller
         $character = $this->characterOf($request);
         $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
 
-        $page = Fish::with('displayCaptureRecord')->orderBy('id')->paginate(self::FISH_PER_PAGE);
+        [$hasResult, $bindings] = FishTribeResponse::islandHasResultSql($tribe, (new Fish)->qualifyColumn('id'));
+        $page = Fish::with('displayCaptureRecord')
+            ->select('*')
+            ->selectRaw("{$hasResult} as has_island_result", $bindings)
+            ->orderByDesc('has_island_result')
+            ->orderBy('id')
+            ->paginate(self::FISH_PER_PAGE);
+        $counts = FishTribeResponse::islandResultCounts($page->getCollection()->pluck('id')->all());
 
         return Inertia::render('Island/Tribe', [
             'character' => $this->characterProps($character),
             'tribe' => $tribe,
+            'tribes' => config('fish_options.tribes'),
+            'result_options' => FishTribeResponse::islandResultOptions(),
+            'unknown_processing_method' => FishTribeResponse::unknownProcessingMethod(),
             'fish' => $page->getCollection()->map(fn (Fish $fish) => [
                 'id' => $fish->id,
                 'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,
                 'image_url' => $fish->display_image_url,
+                'results' => $fish->has_island_result ? $counts[$fish->id] : null,
             ])->values(),
+            'progress' => $this->progress($page, $hasResult, $bindings),
             'page' => $page->currentPage(),
             'has_more_pages' => $page->hasMorePages(),
             'empty_reason' => $this->emptyReason($page),
         ]);
+    }
+
+    /** @return array{with_result: int, total: int}|null 這個部落有結果的魚條數／全部魚條數；沒有魚時為 null */
+    private function progress(LengthAwarePaginator $page, string $hasResult, array $bindings): ?array
+    {
+        if ($page->total() === 0) {
+            return null;
+        }
+
+        return ['with_result' => Fish::whereRaw($hasResult, $bindings)->count(), 'total' => $page->total()];
     }
 
     public function character(Request $request): Response|RedirectResponse
