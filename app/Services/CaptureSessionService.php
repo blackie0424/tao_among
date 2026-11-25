@@ -129,9 +129,12 @@ class CaptureSessionService implements CaptureSessionServiceInterface
         ];
     }
 
-    public function findAttributes(int $sessionId): ?array
+    public function findAttributes(int $sessionId, bool $lockForUpdate = false): ?array
     {
-        $session = CaptureSession::query()->with('place')->find($sessionId);
+        $session = CaptureSession::query()
+            ->with('place')
+            ->when($lockForUpdate, fn ($query) => $query->lockForUpdate())
+            ->find($sessionId);
 
         return $session ? $this->recordAttributes($session) : null;
     }

@@ -76,6 +76,12 @@ class CaptureRecordBatchService
     }
 
     /** @throws ValidationException */
+    public function validateLineSessionData(array $sharedData): array
+    {
+        return $this->captureRecordFieldValidator()->validateLineSessionData($sharedData);
+    }
+
+    /** @throws ValidationException */
     public function validateSharedData(array $sharedData): array
     {
         return $this->captureRecordFieldValidator()

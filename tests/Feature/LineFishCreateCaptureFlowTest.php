@@ -725,9 +725,10 @@ class LineFishCreateCaptureFlowTest extends TestCase
     public function test_start_form_session_with_recent_sessions_shows_session_picker(): void
     {
         $existingFish = Fish::factory()->create();
-        \App\Models\CaptureSession::factory()->create([
+        CaptureRecord::factory()->create([
+            'fish_id' => $existingFish->id,
             'tribe' => 'iranmeilek',
-            'location_hint' => '溪邊釣點',
+            'location' => '溪邊釣點',
             'capture_method' => 'mamasil',
             'capture_date' => '2026-06-29',
         ]);

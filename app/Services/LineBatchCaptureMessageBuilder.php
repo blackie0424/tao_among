@@ -89,7 +89,7 @@ class LineBatchCaptureMessageBuilder
     }
 
     /**
-     * @param  array<int, array{session_id:int,tribe:string,location:string,capture_method:string,capture_date:string}>  $sessions
+     * @param  array<int, array{session_id?:int,tribe:string,location:string,capture_method:string,capture_date:string}>  $sessions
      */
     public function buildSessionPickerMessage(array $sessions): FlexMessage
     {
@@ -97,10 +97,17 @@ class LineBatchCaptureMessageBuilder
 
         foreach ($sessions as $session) {
             $methodLabel = config('fish_options.capture_methods.'.$session['capture_method'], $session['capture_method']);
-            $postbackData = http_build_query([
-                'action' => 'select_capture_session',
-                'session_id' => $session['session_id'],
-            ]);
+            $postbackData = http_build_query(
+                isset($session['session_id'])
+                    ? ['action' => 'select_capture_session', 'session_id' => $session['session_id']]
+                    : [
+                        'action' => 'select_capture_session',
+                        'tribe' => $session['tribe'],
+                        'location' => $session['location'],
+                        'capture_method' => $session['capture_method'],
+                        'capture_date' => $session['capture_date'],
+                    ]
+            );
 
             $bubbles[] = [
                 'type' => 'bubble',

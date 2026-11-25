@@ -316,7 +316,7 @@ class LineBatchCaptureFlowService
     /**
      * @return array<int, array{session_id:int,tribe:string,location:string,capture_method:string,capture_date:string}>
      */
-    private function recentPickerSessions(): array
+    protected function recentPickerSessions(): array
     {
         return array_map(fn (array $session) => [
             'session_id' => $session['id'],

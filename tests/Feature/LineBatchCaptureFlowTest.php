@@ -779,6 +779,41 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->assertSame([$existing->id, $existing->id], \App\Models\CaptureRecord::orderBy('id')->pluck('session_id')->all());
     }
 
+    public function test_confirm_manual_with_empty_location_creates_a_new_session_every_batch(): void
+    {
+        $fish = Fish::factory()->create();
+        $form = ['tribe' => 'ivalino', 'location' => '', 'capture_method' => 'mapazat', 'capture_date' => '2026-06-29'];
+
+        $this->seedBatch($fish, 'waiting_confirm', $form);
+        $this->confirmAndCapture();
+        $this->seedBatch($fish, 'waiting_confirm', $form);
+        $this->confirmAndCapture();
+
+        $this->assertSame(2, \App\Models\CaptureSession::count());
+        $this->assertSame(0, \App\Models\Place::count());
+        $sessions = \App\Models\CaptureSession::orderBy('id')->get();
+        $this->assertNull($sessions[0]->place_id);
+        $this->assertSame(
+            [$sessions[0]->id, $sessions[0]->id, $sessions[1]->id, $sessions[1]->id],
+            \App\Models\CaptureRecord::orderBy('id')->pluck('session_id')->all()
+        );
+        $this->assertNull(\App\Models\CaptureRecord::first()->location);
+    }
+
+    public function test_manual_confirm_still_rejects_an_invalid_date_when_location_is_empty(): void
+    {
+        $fish = Fish::factory()->create();
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'tribe' => 'ivalino', 'location' => '', 'capture_method' => 'mapazat', 'capture_date' => now()->addDays(3)->toDateString(),
+        ]);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertStringContainsString('捕獲日期不能是未來日期', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertSame(0, \App\Models\CaptureSession::count());
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+    }
+
     public function test_confirm_with_selected_session_that_has_no_place_keeps_location_empty(): void
     {
         $fish = Fish::factory()->create();

@@ -128,6 +128,19 @@ class CaptureRecordFieldValidator
     }
 
     /**
+     * LINE 手動填寫並建立情境時的欄位驗證：地點可留空（情境允許沒有地點）。
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function validateLineSessionData(array $data): array
+    {
+        $rules = array_merge($this->legacyLineRules(false), ['location' => 'nullable|string|max:255']);
+
+        return Validator::make($data, $rules, $this->messages(), $this->attributes())->validate();
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

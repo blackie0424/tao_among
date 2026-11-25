@@ -53,33 +53,38 @@ class ConfirmLineBatchCaptureAction
     }
 
     /**
+     * 重新讀取情境、比對、寫入在同一個交易並鎖住情境，確認前被改或被刪不會被寫進去。
+     *
      * @param  string[]  $images
      * @return array<int, mixed>|ConfirmLineBatchCaptureResult 新增的紀錄，或需要使用者重新選擇／確認的結果
      */
     private function createFromSelectedSession(string $userId, Fish $fish, array $images, array $form): array|ConfirmLineBatchCaptureResult
     {
         $sessionId = (int) $form['session_id'];
-        $attributes = $this->captureSessionService()->findAttributes($sessionId);
 
-        if ($attributes === null) {
-            $this->lineBatchCaptureStateStore->putForm($userId, array_diff_key($form, ['session_id' => true]));
+        return DB::transaction(function () use ($userId, $fish, $images, $form, $sessionId) {
+            $attributes = $this->captureSessionService()->findAttributes($sessionId, true);
 
-            return ConfirmLineBatchCaptureResult::sessionGone();
-        }
+            if ($attributes === null) {
+                $this->lineBatchCaptureStateStore->putForm($userId, array_diff_key($form, ['session_id' => true]));
 
-        if ($this->sessionFieldsDiffer($attributes, $form)) {
-            $this->lineBatchCaptureStateStore->updateForm($userId, ['session_id' => $sessionId, ...$attributes]);
+                return ConfirmLineBatchCaptureResult::sessionGone();
+            }
 
-            return ConfirmLineBatchCaptureResult::sessionChanged();
-        }
+            if ($this->sessionFieldsDiffer($attributes, $form)) {
+                $this->lineBatchCaptureStateStore->updateForm($userId, ['session_id' => $sessionId, ...$attributes]);
 
-        return $this->captureRecordBatchService->createForFishFromSession(
-            $fish,
-            $images,
-            $sessionId,
-            null,
-            $form['notes'] ?? null
-        );
+                return ConfirmLineBatchCaptureResult::sessionChanged();
+            }
+
+            return $this->captureRecordBatchService->createForFishFromSession(
+                $fish,
+                $images,
+                $sessionId,
+                null,
+                $form['notes'] ?? null
+            );
+        });
     }
 
     /**
@@ -90,7 +95,7 @@ class ConfirmLineBatchCaptureAction
      */
     private function createFromManualFields(Fish $fish, array $images, array $form): array
     {
-        $validated = $this->captureRecordBatchService->validateSharedData($form);
+        $validated = $this->captureRecordBatchService->validateLineSessionData($form);
 
         return DB::transaction(function () use ($fish, $images, $validated) {
             $created = $this->captureSessionService()->create([
