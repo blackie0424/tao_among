@@ -125,6 +125,10 @@
       </form>
 
       <div v-else :key="`answer-${current.key}`" class="mt-3 flex flex-col gap-2">
+        <!-- 點選項就送出，沒有送出鈕；被限流時在選項上方放一個停用的鈕告訴使用者還要等多久 -->
+        <button v-if="waitSeconds > 0" type="button" disabled :class="primaryButton">
+          {{ submitLabel }}
+        </button>
         <button
           v-for="(option, i) in current.options"
           :key="i"

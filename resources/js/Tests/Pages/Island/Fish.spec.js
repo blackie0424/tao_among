@@ -459,11 +459,24 @@ describe('魚島作答頁：被限流', () => {
     expect(event.preventDefault).toHaveBeenCalled()
     expect(visibleLimitMessage(wrapper).text()).toBe('送出太多次了，請等 45 秒再試')
     expect(option(wrapper, 'arayo').attributes('disabled')).toBeDefined()
+    expect(button(wrapper, '45 秒後可以再試').attributes('disabled')).toBeDefined()
     wrapper.vm.send('arayo')
     expect(posted).toEqual([])
 
     await vi.advanceTimersByTimeAsync(3000)
     expect(visibleLimitMessage(wrapper).text()).toBe('送出太多次了，請等 42 秒再試')
+    expect(button(wrapper, '42 秒後可以再試')).toBeDefined()
+  })
+
+  it('倒數結束後「幾秒後可以再試」消失、選項恢復可點', async () => {
+    const wrapper = mountPage()
+    invalidResponse(429, { 'retry-after': '2' })
+    await wrapper.vm.$nextTick()
+
+    await vi.advanceTimersByTimeAsync(2000)
+
+    expect(wrapper.text()).not.toContain('秒後可以再試')
+    expect(option(wrapper, 'arayo').attributes('disabled')).toBeUndefined()
   })
 
   it('補充時被限流：送出鈕停用並顯示幾秒後可以再試', async () => {
