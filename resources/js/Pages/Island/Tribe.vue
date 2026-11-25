@@ -18,20 +18,6 @@
       {{ islandTribeLabel(tribe) }}的人怎麼說這些魚？
     </p>
 
-    <div
-      v-if="progress.total > 0"
-      data-testid="progress"
-      class="mb-3 rounded-island bg-white px-4 py-3 text-elder-aux"
-    >
-      <p>
-        {{ islandTribeLabel(tribe) }}的魚：<b>{{ progress.answered }}</b> /
-        {{ progress.total }} 條有人說過
-      </p>
-      <div class="mt-2 h-2 overflow-hidden rounded bg-island-line" aria-hidden="true">
-        <div class="h-2 rounded bg-island-accent" :style="{ width: progressPercent }"></div>
-      </div>
-    </div>
-
     <p v-if="empty_reason === 'no_fish'" class="rounded-island bg-white p-4 text-elder-body">
       目前沒有魚
     </p>
@@ -39,7 +25,7 @@
       沒有更多了
     </p>
 
-    <!-- 魚卡與「搶先回答／幫它取名／你也來說」先不可點，作答頁在 #172 -->
+    <!-- 魚卡與「搶先回答／幫它取名」先不可點，作答頁在 #172；大家的結果在 #183 -->
     <ul v-else class="grid grid-cols-2 gap-3">
       <li
         v-for="item in fish"
@@ -58,23 +44,11 @@
             {{ item.name ?? '還沒有名字' }}
           </p>
 
-          <template v-if="item.responder_count === 0">
-            <span
-              class="mt-auto block rounded-island bg-island-accent px-2 py-2 text-center text-elder-aux font-bold text-white"
-            >
-              {{ item.name === null ? '幫它取名' : '搶先回答' }}
-            </span>
-          </template>
-          <template v-else>
-            <p v-if="item.majority_name !== null" class="mt-1 text-elder-aux">
-              <span class="text-island-muted">大家叫它</span>
-              <b data-testid="majority-name" class="block text-elder-body">{{
-                item.majority_name
-              }}</b>
-            </p>
-            <p data-testid="responders" class="mt-1 text-elder-aux">{{ respondersText(item) }}</p>
-            <span class="mt-auto pt-1 text-elder-aux font-bold text-island-accent">你也來說 ›</span>
-          </template>
+          <span
+            class="mt-auto block rounded-island bg-island-accent px-2 py-2 text-center text-elder-aux font-bold text-white"
+          >
+            {{ item.name === null ? '幫它取名' : '搶先回答' }}
+          </span>
         </div>
       </li>
     </ul>
@@ -101,7 +75,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import { islandTribeLabel } from '@/constants/island'
@@ -113,23 +86,7 @@ const props = defineProps({
   page: { type: Number, required: true },
   has_more_pages: { type: Boolean, required: true },
   empty_reason: { type: String, default: null },
-  progress: { type: Object, required: true },
 })
 
-// 在 among 魚頁回答、沒有魚島角色的人
-const AMONG_RESPONDER_NAME = 'among 族人'
-
 const pageUrl = (page) => `/island/tribes/${props.tribe}?page=${page}`
-
-const progressPercent = computed(() => `${(props.progress.answered / props.progress.total) * 100}%`)
-
-/** 例如「阿海、Siyapen 等 3 人」；只列出全部回答者時不加「等」 */
-function respondersText(item) {
-  const names = item.first_responders
-    .map((responder) => responder.name ?? AMONG_RESPONDER_NAME)
-    .join('、')
-  const more = item.responder_count > item.first_responders.length ? ' 等' : ''
-
-  return `${names}${more} ${item.responder_count} 人`
-}
 </script>

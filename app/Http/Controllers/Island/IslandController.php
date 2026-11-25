@@ -19,9 +19,6 @@ class IslandController extends Controller
 {
     public const FISH_PER_PAGE = 20;
 
-    /** 這個部落還沒有人回答的魚卡 */
-    private const UNANSWERED_CARD = ['responder_count' => 0, 'majority_name' => null, 'first_responders' => []];
-
     /** session 裡記住的所在部落：['character_id' => 角色編號, 'tribe' => 部落代碼] */
     private const LOCATION_SESSION_KEY = 'island.location';
 
@@ -36,7 +33,7 @@ class IslandController extends Controller
         ]);
     }
 
-    /** 走到某個部落：記住所在部落，列出全部的魚與這個部落的回答人數。 */
+    /** 走到某個部落：記住所在部落，列出全部的魚（魚卡上的大家的結果在 #183）。 */
     public function tribe(Request $request, string $tribe): Response
     {
         abort_unless(in_array($tribe, config('fish_options.tribes'), true), 404);
@@ -44,15 +41,7 @@ class IslandController extends Controller
         $character = $this->characterOf($request);
         $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
 
-        // 這個部落有人說過的魚排前面，讓人一進來就看到大家的說法；兩組內各依編號
-        $page = Fish::with('displayCaptureRecord')
-            ->orderByRaw(
-                'EXISTS (SELECT 1 FROM fish_tribe_responses WHERE fish_tribe_responses.fish_id = fish.id AND fish_tribe_responses.tribe = ?) DESC',
-                [$tribe]
-            )
-            ->orderBy('id')
-            ->paginate(self::FISH_PER_PAGE);
-        $cards = FishTribeResponse::islandCardsInTribe($page->getCollection()->pluck('id')->all(), $tribe);
+        $page = Fish::with('displayCaptureRecord')->orderBy('id')->paginate(self::FISH_PER_PAGE);
 
         return Inertia::render('Island/Tribe', [
             'character' => $this->characterProps($character),
@@ -61,15 +50,10 @@ class IslandController extends Controller
                 'id' => $fish->id,
                 'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,
                 'image_url' => $fish->display_image_url,
-                ...($cards[$fish->id] ?? self::UNANSWERED_CARD),
             ])->values(),
             'page' => $page->currentPage(),
             'has_more_pages' => $page->hasMorePages(),
             'empty_reason' => $this->emptyReason($page),
-            'progress' => [
-                'answered' => FishTribeResponse::answeredFishCountInTribe($tribe),
-                'total' => $page->total(),
-            ],
         ]);
     }
 

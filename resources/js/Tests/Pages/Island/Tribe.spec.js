@@ -15,9 +15,6 @@ const fishCard = (overrides) => ({
   id: 1,
   name: '浪人鰺',
   image_url: 'https://example.test/1.webp',
-  responder_count: 0,
-  majority_name: null,
-  first_responders: [],
   ...overrides,
 })
 
@@ -30,7 +27,6 @@ const mountPage = (props = {}) =>
       page: 1,
       has_more_pages: false,
       empty_reason: null,
-      progress: { answered: 0, total: 0 },
       ...props,
     },
   })
@@ -54,84 +50,21 @@ describe('Island/Tribe 部落頁', () => {
     expect(card.find('img').attributes('src')).toBe('https://example.test/1.webp')
   })
 
-  it('沒人回答的卡：顯示「搶先回答」，不顯示 0', () => {
-    const card = cards(mountPage({ fish: [fishCard({ responder_count: 0 })] }))[0]
+  it('有正式名字的魚卡：顯示「搶先回答」，不顯示回答人數或結果', () => {
+    const card = cards(mountPage({ fish: [fishCard()] }))[0]
 
     expect(card.text()).toContain('搶先回答')
     expect(card.text()).not.toContain('0 人')
     expect(card.text()).not.toContain('大家叫它')
   })
 
-  it('沒人回答、也沒有正式名字的卡：顯示「還沒有名字」與「幫它取名」', () => {
-    const card = cards(mountPage({ fish: [fishCard({ name: null, responder_count: 0 })] }))[0]
+  it('沒有正式名字的魚卡：顯示「還沒有名字」與「幫它取名」', () => {
+    const card = cards(mountPage({ fish: [fishCard({ name: null })] }))[0]
 
     expect(card.text()).toContain('還沒有名字')
     expect(card.text()).toContain('幫它取名')
     expect(card.text()).not.toContain('搶先回答')
     expect(card.text()).not.toContain('我不知道')
-  })
-
-  it('有人回答、叫法有多數：顯示「大家叫它」＋寫法、回答者與「你也來說」', () => {
-    const card = cards(
-      mountPage({
-        fish: [
-          fishCard({
-            responder_count: 3,
-            majority_name: 'angsa',
-            first_responders: [{ name: '阿海' }, { name: 'Siyapen' }],
-          }),
-        ],
-      })
-    )[0]
-
-    expect(card.find('[data-testid="majority-name"]').text()).toBe('angsa')
-    expect(card.text()).toContain('大家叫它')
-    expect(card.find('[data-testid="responders"]').text()).toBe('阿海、Siyapen 等 3 人')
-    expect(card.text()).toContain('你也來說')
-    expect(card.text()).not.toContain('搶先回答')
-  })
-
-  it('有人回答、叫法沒有多數：不顯示「大家叫它」，只顯示回答者與人數', () => {
-    const card = cards(
-      mountPage({
-        fish: [
-          fishCard({
-            responder_count: 1,
-            majority_name: null,
-            first_responders: [{ name: '阿海' }],
-          }),
-        ],
-      })
-    )[0]
-
-    expect(card.text()).not.toContain('大家叫它')
-    expect(card.find('[data-testid="responders"]').text()).toBe('阿海 1 人')
-  })
-
-  it('2 人回答時不加「等」；沒有魚島角色的回答者顯示「among 族人」', () => {
-    const card = cards(
-      mountPage({
-        fish: [
-          fishCard({ responder_count: 2, first_responders: [{ name: '阿海' }, { name: null }] }),
-        ],
-      })
-    )[0]
-
-    expect(card.find('[data-testid="responders"]').text()).toBe('阿海、among 族人 2 人')
-  })
-
-  it('進度顯示「{部落}的魚：X / Y 條有人說過」，X 為 0 也顯示', () => {
-    const wrapper = mountPage({ fish: [fishCard()], progress: { answered: 0, total: 200 } })
-
-    expect(wrapper.find('[data-testid="progress"]').text()).toContain(
-      'iratay（漁人）的魚：0 / 200 條有人說過'
-    )
-  })
-
-  it('沒有魚（total 0）時不顯示進度', () => {
-    const wrapper = mountPage({ empty_reason: 'no_fish', progress: { answered: 0, total: 0 } })
-
-    expect(wrapper.find('[data-testid="progress"]').exists()).toBe(false)
   })
 
   it('沒有可顯示的魚：顯示「目前沒有魚」，不顯示「沒有更多了」', () => {
