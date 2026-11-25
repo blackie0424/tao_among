@@ -132,38 +132,41 @@ class CaptureSessionService implements CaptureSessionServiceInterface
 
     public function findAttributes(int $sessionId, bool $lockForUpdate = false): ?array
     {
-        // 鎖定順序與 PlaceService::merge 相同：先地名、再情境，避免兩邊各持一把等對方
-        if ($lockForUpdate) {
-            $placeId = CaptureSession::query()->whereKey($sessionId)->value('place_id');
+        $session = $lockForUpdate
+            ? $this->lockSessionWithPlace($sessionId)
+            : CaptureSession::query()->with('place')->find($sessionId);
 
-            if ($placeId) {
-                Place::query()->lockForUpdate()->find($placeId);
-            }
-        }
+        return $session ? $this->recordAttributes($session) : null;
+    }
 
-        $session = CaptureSession::query()
-            ->when($lockForUpdate, fn ($query) => $query->lockForUpdate())
-            ->find($sessionId);
+    /**
+     * 鎖定情境與它的地名，且地名取自鎖定讀取的結果（不再用一般查詢，避免 REPEATABLE READ 讀到舊快照）。
+     * 鎖定順序與 PlaceService::merge 相同：先地名、再情境，避免兩邊各持一把等對方。
+     * 必須在交易內呼叫。
+     */
+    private function lockSessionWithPlace(int $sessionId): ?CaptureSession
+    {
+        $peekedPlaceId = CaptureSession::query()->whereKey($sessionId)->value('place_id');
+        $place = $peekedPlaceId ? Place::query()->lockForUpdate()->find($peekedPlaceId) : null;
 
+        $session = CaptureSession::query()->lockForUpdate()->find($sessionId);
         if (! $session) {
             return null;
         }
 
-        // 取得情境鎖後地名才被併走：補鎖新地名（極少見；死鎖時由呼叫端的交易重試）
-        if ($lockForUpdate && $session->place_id && $session->place_id !== $placeId) {
-            Place::query()->lockForUpdate()->find($session->place_id);
+        // 取得情境鎖後地名才被併走或換掉：補鎖新地名（極少見；死鎖時由呼叫端的交易重試）
+        if ($session->place_id !== $peekedPlaceId) {
+            $place = $session->place_id ? Place::query()->lockForUpdate()->find($session->place_id) : null;
         }
 
-        $session->load('place');
-
-        return $this->recordAttributes($session);
+        return $session->setRelation('place', $place);
     }
 
     /** @param array{capture_date:string,tribe:string,capture_method:string,location?:?string}|null $legacyCombo */
     public function resolveForCreate(?int $sessionId, ?array $legacyCombo): CaptureSession
     {
         if ($sessionId !== null) {
-            $session = CaptureSession::query()->lockForUpdate()->find($sessionId);
+            $session = $this->lockSessionWithPlace($sessionId);
             if (! $session) {
                 throw ValidationException::withMessages(['session_id' => '這個情境已不存在，請重新選擇']);
             }
