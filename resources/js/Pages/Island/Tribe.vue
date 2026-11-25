@@ -25,31 +25,39 @@
       沒有更多了
     </p>
 
-    <!-- 魚卡與「搶先回答／幫它取名」先不可點，作答頁在 #172；大家的結果在 #183 -->
+    <!-- 整張魚卡連到這個部落的作答頁；大家的結果在 #183 -->
     <ul v-else class="grid grid-cols-2 gap-3">
       <li
         v-for="item in fish"
         :key="item.id"
         data-testid="fish-card"
-        class="flex flex-col overflow-hidden rounded-island bg-white"
+        class="overflow-hidden rounded-island bg-white"
       >
-        <img
-          :src="item.image_url"
-          alt=""
-          loading="lazy"
-          class="aspect-[4/3] w-full bg-island-line object-cover"
-        />
-        <div class="flex flex-1 flex-col p-3">
-          <p class="text-elder-body font-bold" :class="{ 'text-island-muted': item.name === null }">
-            {{ item.name ?? '還沒有名字' }}
-          </p>
+        <Link
+          :href="`/island/tribes/${tribe}/fish/${item.id}`"
+          class="flex h-full flex-col focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
+        >
+          <img
+            :src="item.image_url"
+            alt=""
+            loading="lazy"
+            class="aspect-[4/3] w-full bg-island-line object-cover"
+          />
+          <div class="flex flex-1 flex-col p-3">
+            <p
+              class="text-elder-body font-bold"
+              :class="{ 'text-island-muted': item.name === null }"
+            >
+              {{ item.name ?? '還沒有名字' }}
+            </p>
 
-          <span
-            class="mt-auto block rounded-island bg-island-accent px-2 py-2 text-center text-elder-aux font-bold text-white"
-          >
-            {{ item.name === null ? '幫它取名' : '搶先回答' }}
-          </span>
-        </div>
+            <span
+              class="mt-auto block rounded-island bg-island-accent px-2 py-2 text-center text-elder-aux font-bold text-white"
+            >
+              {{ item.name === null ? '幫它取名' : '搶先回答' }}
+            </span>
+          </div>
+        </Link>
       </li>
     </ul>
 

@@ -99,6 +99,18 @@ describe('Island/Tribe 部落頁', () => {
     expect(wrapper.find('[data-testid="previous-page"]').exists()).toBe(false)
   })
 
+  it('整張魚卡（含「搶先回答／幫它取名」）連到這個部落的作答頁', () => {
+    const wrapper = mountPage({ fish: [fishCard({ id: 7 }), fishCard({ id: 8, name: null })] })
+
+    const links = cards(wrapper).map((card) => card.find('a'))
+    expect(links.map((link) => link.attributes('href'))).toEqual([
+      '/island/tribes/iratay/fish/7',
+      '/island/tribes/iratay/fish/8',
+    ])
+    expect(links[0].text()).toContain('搶先回答')
+    expect(links[1].text()).toContain('幫它取名')
+  })
+
   it('有回地圖的連結', () => {
     expect(mountPage().find('[data-testid="back-to-map"]').attributes('href')).toBe('/island')
   })
