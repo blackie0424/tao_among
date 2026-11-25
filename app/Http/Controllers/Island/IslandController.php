@@ -44,7 +44,14 @@ class IslandController extends Controller
         $character = $this->characterOf($request);
         $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
 
-        $page = Fish::with('displayCaptureRecord')->orderBy('id')->paginate(self::FISH_PER_PAGE);
+        // 這個部落有人說過的魚排前面，讓人一進來就看到大家的說法；兩組內各依編號
+        $page = Fish::with('displayCaptureRecord')
+            ->orderByRaw(
+                'EXISTS (SELECT 1 FROM fish_tribe_responses WHERE fish_tribe_responses.fish_id = fish.id AND fish_tribe_responses.tribe = ?) DESC',
+                [$tribe]
+            )
+            ->orderBy('id')
+            ->paginate(self::FISH_PER_PAGE);
         $cards = FishTribeResponse::islandCardsInTribe($page->getCollection()->pluck('id')->all(), $tribe);
 
         return Inertia::render('Island/Tribe', [

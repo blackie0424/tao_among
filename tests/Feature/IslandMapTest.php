@@ -307,3 +307,27 @@ it('進度：沒有人說過時是 0 / Y；沒有魚時 total 為 0', function (
     $this->get('/island/tribes/yayo')
         ->assertInertia(fn ($page) => $page->where('progress', ['answered' => 0, 'total' => 3]));
 });
+
+// AC 3（規格修訂第 2 次）：有人說過的魚排前面
+it('這個部落有人回答過的魚排在前面，兩組內各依編號；別的部落的回答不影響排序', function () {
+    $fishes = Fish::factory()->count(25)->create();
+    islandAnswer(User::factory()->create(), $fishes[24], 'yayo', ['name' => 'ilek']);
+    islandAnswer(User::factory()->create(), $fishes[3], 'yayo', ['food_category' => 'oyod']);
+    islandAnswer(User::factory()->create(), $fishes[1], 'iratay', ['name' => 'ilek']);
+    $this->actingAs(islandPlayer());
+
+    $this->get('/island/tribes/yayo')
+        ->assertInertia(fn ($page) => $page
+            ->where('fish.0.id', $fishes[3]->id)
+            ->where('fish.1.id', $fishes[24]->id)
+            ->where('fish.2.id', $fishes[0]->id)
+            ->where('fish.3.id', $fishes[1]->id)
+            ->where('fish.4.id', $fishes[2]->id)
+            ->where('fish.5.id', $fishes[4]->id));
+
+    $this->get('/island/tribes/yayo?page=2')
+        ->assertInertia(fn ($page) => $page
+            ->has('fish', 5)
+            ->where('fish.0.id', $fishes[19]->id)
+            ->where('fish.4.id', $fishes[23]->id));
+});
