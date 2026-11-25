@@ -14,6 +14,9 @@ class ConfirmLineBatchCaptureAction
 {
     private const SESSION_FIELDS = ['tribe', 'location', 'capture_method', 'capture_date'];
 
+    /** 與地名合併／改名同時操作而死鎖時，整個交易重試的次數 */
+    private const TRANSACTION_ATTEMPTS = 3;
+
     public function __construct(
         private readonly LineBatchCaptureStateStore $lineBatchCaptureStateStore,
         private readonly CaptureRecordBatchService $captureRecordBatchService,
@@ -84,7 +87,7 @@ class ConfirmLineBatchCaptureAction
                 null,
                 $form['notes'] ?? null
             );
-        });
+        }, self::TRANSACTION_ATTEMPTS);
     }
 
     /**
@@ -112,7 +115,7 @@ class ConfirmLineBatchCaptureAction
                 null,
                 $validated['notes'] ?? null
             );
-        });
+        }, self::TRANSACTION_ATTEMPTS);
     }
 
     private function sessionFieldsDiffer(array $attributes, array $form): bool

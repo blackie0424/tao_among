@@ -848,6 +848,34 @@ class LineBatchCaptureFlowTest extends TestCase
         $this->assertStringContainsString('Vanes 新名', json_encode($replied, JSON_UNESCAPED_UNICODE));
     }
 
+    public function test_merging_the_selected_sessions_place_before_confirm_asks_to_reconfirm(): void
+    {
+        $fish = Fish::factory()->create();
+        $places = app(\App\Services\PlaceService::class);
+        $source = $places->resolveName('Vanes', 'ivalino');
+        $target = $places->resolveName('Vanes 正式名', 'ivalino');
+        $session = \App\Models\CaptureSession::factory()->create([
+            'tribe' => 'ivalino', 'capture_method' => 'mamasil', 'capture_date' => '2026-06-29', 'place_id' => $source->id,
+        ]);
+        $this->seedBatch($fish, 'waiting_confirm', [
+            'session_id' => $session->id, 'tribe' => 'ivalino', 'location' => 'Vanes',
+            'capture_method' => 'mamasil', 'capture_date' => '2026-06-29',
+        ]);
+        $places->merge($source, $target);
+
+        $replied = $this->confirmAndCapture();
+
+        $this->assertSame(0, \App\Models\CaptureRecord::count());
+        $this->assertStringContainsString('情境已更新，請重新確認', json_encode($replied, JSON_UNESCAPED_UNICODE));
+        $this->assertStringContainsString('Vanes 正式名', json_encode($replied, JSON_UNESCAPED_UNICODE));
+
+        $this->confirmAndCapture();
+        $this->assertSame(
+            ['Vanes 正式名', 'Vanes 正式名'],
+            \App\Models\CaptureRecord::orderBy('id')->pluck('location')->all()
+        );
+    }
+
     public function test_create_fish_flow_keeps_location_required_without_skip_option(): void
     {
         $flow = new \App\Services\LineCreateFish\LineCreateFishFormFlowService(

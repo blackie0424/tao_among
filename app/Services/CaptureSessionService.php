@@ -132,6 +132,15 @@ class CaptureSessionService implements CaptureSessionServiceInterface
 
     public function findAttributes(int $sessionId, bool $lockForUpdate = false): ?array
     {
+        // 鎖定順序與 PlaceService::merge 相同：先地名、再情境，避免兩邊各持一把等對方
+        if ($lockForUpdate) {
+            $placeId = CaptureSession::query()->whereKey($sessionId)->value('place_id');
+
+            if ($placeId) {
+                Place::query()->lockForUpdate()->find($placeId);
+            }
+        }
+
         $session = CaptureSession::query()
             ->when($lockForUpdate, fn ($query) => $query->lockForUpdate())
             ->find($sessionId);
@@ -140,8 +149,8 @@ class CaptureSessionService implements CaptureSessionServiceInterface
             return null;
         }
 
-        // 情境的地點取自地名；鎖住地名列後才讀，改名不會在比對與寫入之間插進來
-        if ($lockForUpdate && $session->place_id) {
+        // 取得情境鎖後地名才被併走：補鎖新地名（極少見；死鎖時由呼叫端的交易重試）
+        if ($lockForUpdate && $session->place_id && $session->place_id !== $placeId) {
             Place::query()->lockForUpdate()->find($session->place_id);
         }
 
