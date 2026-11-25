@@ -33,7 +33,7 @@ class FishTribeResponse extends Model
     public const EMPTY_RESPONSE_MESSAGE = '叫法、分類、錄音至少填一項';
 
     /** 魚名為此值代表尚未命名，不列為叫法選項 */
-    private const UNNAMED_FISH_NAME = '我不知道';
+    public const UNNAMED_FISH_NAME = '我不知道';
 
     protected $fillable = ['user_id', 'fish_id', 'tribe', 'name', 'food_category', 'name_submitted_at', 'recording_filename', 'recording_submitted_at', 'recording_seconds'];
 

@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Island;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureIslandCharacter;
+use App\Models\Fish;
+use App\Models\FishTribeResponse;
 use App\Models\IslandCharacter;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,15 +17,43 @@ use Inertia\Response;
 
 class IslandController extends Controller
 {
-    public function home(Request $request): Response|RedirectResponse
+    public const FISH_PER_PAGE = 20;
+
+    /** session 裡記住的所在部落：['character_id' => 角色編號, 'tribe' => 部落代碼] */
+    private const LOCATION_SESSION_KEY = 'island.location';
+
+    public function home(Request $request): Response
     {
-        $character = IslandCharacter::of($request->user());
-        if ($character === null) {
-            return redirect()->route('island.character');
-        }
+        $character = $this->characterOf($request);
 
         return Inertia::render('Island/Home', [
-            'character' => ['name' => $character->name, 'tribe' => $character->tribe],
+            'character' => $this->characterProps($character),
+            'tribes' => config('fish_options.tribes'),
+            'current_tribe' => $this->currentTribe($request, $character),
+        ]);
+    }
+
+    /** 走到某個部落：記住所在部落，列出全部的魚（魚卡上的大家的結果在 #183）。 */
+    public function tribe(Request $request, string $tribe): Response
+    {
+        abort_unless(in_array($tribe, config('fish_options.tribes'), true), 404);
+
+        $character = $this->characterOf($request);
+        $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
+
+        $page = Fish::with('displayCaptureRecord')->orderBy('id')->paginate(self::FISH_PER_PAGE);
+
+        return Inertia::render('Island/Tribe', [
+            'character' => $this->characterProps($character),
+            'tribe' => $tribe,
+            'fish' => $page->getCollection()->map(fn (Fish $fish) => [
+                'id' => $fish->id,
+                'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,
+                'image_url' => $fish->display_image_url,
+            ])->values(),
+            'page' => $page->currentPage(),
+            'has_more_pages' => $page->hasMorePages(),
+            'empty_reason' => $this->emptyReason($page),
         ]);
     }
 
@@ -59,6 +91,34 @@ class IslandController extends Controller
         $request->session()->regenerate();
 
         return redirect()->route('island.home');
+    }
+
+    private function characterOf(Request $request): IslandCharacter
+    {
+        return $request->attributes->get(EnsureIslandCharacter::ATTRIBUTE);
+    }
+
+    private function characterProps(IslandCharacter $character): array
+    {
+        return ['name' => $character->name, 'tribe' => $character->tribe];
+    }
+
+    /** session 記的所在部落屬於目前這個角色才用；沒有或屬於別的角色（換帳號）時回到角色自己的部落。 */
+    private function currentTribe(Request $request, IslandCharacter $character): string
+    {
+        $location = $request->session()->get(self::LOCATION_SESSION_KEY);
+
+        return ($location['character_id'] ?? null) === $character->id ? $location['tribe'] : $character->tribe;
+    }
+
+    /** 清單為空的原因：沒有可顯示的魚（含全部軟刪除）優先於頁碼超過最後一頁。 */
+    private function emptyReason(LengthAwarePaginator $page): ?string
+    {
+        if ($page->total() === 0) {
+            return 'no_fish';
+        }
+
+        return $page->isEmpty() ? 'no_more' : null;
     }
 
     /** 名字去前後空白（含全形空白）後驗證，規則同「大家怎麼說」的叫法。 */

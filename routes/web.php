@@ -22,6 +22,7 @@ use App\Http\Controllers\ReferenceKnowledgeController;
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\EnsureIslandCharacter;
 use Illuminate\Support\Facades\Route;
 
 // =====================================================
@@ -55,7 +56,10 @@ Route::middleware(['auth', 'browse'])->group(function () {
 });
 
 // 魚島：不用登入的新前端（設計見 docs/design.md）
-Route::get('/island', [IslandController::class, 'home'])->name('island.home');
+Route::middleware(EnsureIslandCharacter::class)->group(function () {
+    Route::get('/island', [IslandController::class, 'home'])->name('island.home');
+    Route::get('/island/tribes/{tribe}', [IslandController::class, 'tribe'])->name('island.tribe');
+});
 Route::get('/island/character', [IslandController::class, 'character'])->name('island.character');
 Route::post('/island/character', [IslandController::class, 'storeCharacter'])->middleware('throttle:island-character')->name('island.character.store');
 
