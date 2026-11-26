@@ -105,3 +105,34 @@ it('preserves audio data in fish Inertia props for editors', function () {
             ->has('fish.audio_filename')
             ->has('fish.audios', 1));
 });
+
+it('does not send soft-deleted recordings to the fish page, so a spelling with only deleted recordings has none (#176 AC 1)', function () {
+    $fish = Fish::factory()->create(['name' => 'Ivey、Ivay', 'audio_filename' => null]);
+    // 已刪除的編號比較小：若沒被排除，會變成 Ivey 最早的一段
+    $deletedIvey = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'deleted-ivey.m4a', 'spoken_name' => 'Ivey']);
+    $activeIvey = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'active-ivey.m4a', 'spoken_name' => 'Ivey']);
+    $deletedIvay = FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'deleted-ivay.m4a', 'spoken_name' => 'Ivay']);
+    $deletedIvey->delete();
+    $deletedIvay->delete();
+
+    $this->actingAs(User::factory()->lineEditor()->create())
+        ->get("/fish/{$fish->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Fish')
+            ->has('fish.audios', 1)
+            ->where('fish.audios.0.id', $activeIvey->id)
+            ->where('fish.audios.0.spoken_name', 'Ivey'));
+});
+
+it('sends no recordings to the fish page when every recording is soft-deleted', function () {
+    $fish = Fish::factory()->create(['name' => 'Ivey', 'audio_filename' => null]);
+    FishAudio::factory()->create(['fish_id' => $fish->id, 'name' => 'gone.m4a', 'spoken_name' => 'Ivey'])->delete();
+
+    $this->actingAs(User::factory()->lineEditor()->create())
+        ->get("/fish/{$fish->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Fish')
+            ->has('fish.audios', 0));
+});

@@ -1,6 +1,7 @@
 <?php
 
 use Tests\TestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Fish;
 use App\Models\User;
@@ -264,5 +265,24 @@ describe('getUserStats()', function () {
         $stats   = $service->getUserStats();
 
         expect($stats['total'])->toBe(1);
+    });
+});
+
+
+describe('getAudioStats() - 部落歸類', function () {
+    it('不在六個部落內的 locate（空、supabase、unknown、未知字串）合併為「未標部落」並計入合計', function () {
+        $fish = Fish::factory()->create();
+        foreach (['yayo', 'yayo', 'iratay', 'supabase', 'unknown', '某個未知字串', ''] as $locate) {
+            DB::table('fish_audios')->insert(['fish_id' => $fish->id, 'name' => uniqid().'.m4a', 'locate' => $locate !== '' ? $locate : null, 'created_at' => now(), 'updated_at' => now()]);
+        }
+
+        $stats = (new DashboardService())->getAudioStats(null);
+
+        expect($stats['total'])->toBe(7);
+        expect($stats['by_locate']->all())->toBe([
+            ['locate' => '未標部落', 'count' => 4],
+            ['locate' => 'yayo', 'count' => 2],
+            ['locate' => 'iratay', 'count' => 1],
+        ]);
     });
 });

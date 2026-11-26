@@ -47,6 +47,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         
         // Mock LINE messaging client 讓 getMessageContent 拋出例外
         $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
@@ -118,6 +119,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         
         // Mock LineUploadService 拋出例外
         $mockUploadService = \Mockery::mock(LineUploadService::class);
@@ -150,6 +152,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         $method->setAccessible(true);
         
         // 執行方法
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, $userId, $fish->id, $audioBlob, $duration, 'test_reply_token');
         
         // 驗證錯誤日誌被記錄
@@ -186,6 +189,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $nonExistentFishId, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         
         // Mock LineUploadService 成功上傳
         $mockUploadService = \Mockery::mock(LineUploadService::class);
@@ -218,6 +222,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         $method->setAccessible(true);
         
         // 執行方法
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         $method->invoke($controller, $userId, $nonExistentFishId, $audioBlob, $duration, 'test_reply_token');
         
         // 驗證錯誤日誌被記錄（Fish not found）
@@ -245,6 +250,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         
         // 設定使用者狀態
         Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+        Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
         
         // Mock LINE messaging client
         $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
@@ -373,6 +379,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
         $errorScenarios = [
             'download_failure' => function () use ($userId, $fish) {
                 Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
                 
                 $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
                 $mockLineBotService->shouldReceive('getMessageContent')->andThrow(new \Exception('Download failed'));
@@ -403,6 +410,7 @@ class LineAudioUploadErrorHandlingTest extends TestCase
             },
             'upload_failure' => function () use ($userId, $fish) {
                 Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
                 
                 $mockUploadService = \Mockery::mock(LineUploadService::class);
                 $mockUploadService->shouldReceive('uploadLineAudio')->andThrow(new \Exception('Upload failed'));
@@ -422,10 +430,12 @@ class LineAudioUploadErrorHandlingTest extends TestCase
                 $reflection = new \ReflectionClass($controller);
                 $method = $reflection->getMethod('saveFishAudio');
                 $method->setAccessible(true);
+                Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
                 $method->invoke($controller, $userId, $fish->id, 'blob', 3000, 'token');
             },
             'duration_exceeded' => function () use ($userId, $fish) {
                 Cache::put("line_user_{$userId}_adding_audio", $fish->id, now()->addMinutes(5));
+                Cache::put("line_user_{$userId}_audio_tribe", 'yayo', now()->addMinutes(5));
                 
                 $mockLineBotService = \Mockery::mock(LineMessagingClientInterface::class);
                 $mockLineBotService->shouldReceive('replyMessage');

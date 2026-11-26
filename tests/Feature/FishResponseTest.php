@@ -612,3 +612,18 @@ it('omits the placeholder name from the name options', function () {
 
     expect(responsesProps($user, $fish)['form']['name_options'])->toBe([]);
 });
+
+// #172：魚島作答寫進同一張表，among 魚頁的彙總輸出格式與人數規則不變
+it('keeps the among summary unchanged when island answers add processing method and respondent tribe', function () {
+    $fish = Fish::factory()->create();
+    $a = User::factory()->create(['role' => 'viewer']);
+    $b = User::factory()->create(['role' => 'viewer']);
+    FishTribeResponse::create(['user_id' => $a->id, 'fish_id' => $fish->id, 'tribe' => 'yayo', 'name' => 'arayo', 'food_category' => 'oyod', 'processing_method' => '剝皮', 'respondent_tribe' => 'iratay']);
+    FishTribeResponse::create(['user_id' => $b->id, 'fish_id' => $fish->id, 'tribe' => 'yayo', 'processing_method' => '去魚鱗', 'respondent_tribe' => 'yayo']);
+
+    $yayo = summaryFor(['summary' => FishTribeResponse::summaryForFish($fish->id)], 'yayo');
+
+    expect(array_keys($yayo))->toBe(['tribe', 'has_responses', 'names', 'recordings_only', 'has_variants', 'categories'])
+        ->and($yayo['names'])->toBe([['name' => 'arayo', 'count' => 1, 'recordings' => []]])
+        ->and(collect($yayo['categories'])->firstWhere('value', 'oyod')['count'])->toBe(1);
+});

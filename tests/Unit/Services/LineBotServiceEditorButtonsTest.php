@@ -9,7 +9,7 @@ use Tests\TestCase;
  * TDD 測試：editor 專屬按鈕整合至卡片 footer
  *
  * 需求：
- * 1. 「修改名稱」和「提供發音」按鈕整合到圖卡 footer（不再放 Quick Reply）
+ * 1. 「修改名稱」和「新增發音」按鈕整合到圖卡 footer（不再放 Quick Reply）
  * 2. 只有 editor/admin 才能看到這兩個按鈕（透過 isEditor 參數控制）
  */
 class LineFishMessageBuilderEditorButtonsTest extends TestCase
@@ -54,7 +54,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     }
 
     /**
-     * editor 看圖卡時，footer 應包含「提供發音」按鈕
+     * editor 看圖卡時，footer 應包含「新增發音」按鈕
      */
     public function test_build_fish_card_editor_sees_audio_button_in_footer(): void
     {
@@ -63,7 +63,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
 
-        $this->assertContains('🎤 提供發音', $footerLabels, 'editor 應能在 footer 看到「提供發音」按鈕');
+        $this->assertContains('🎤 新增發音', $footerLabels, 'editor 應能在 footer 看到「新增發音」按鈕');
     }
 
     /**
@@ -93,7 +93,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     }
 
     /**
-     * viewer 看圖卡時，footer 不應包含「提供發音」按鈕
+     * viewer 看圖卡時，footer 不應包含「新增發音」按鈕
      */
     public function test_build_fish_card_viewer_does_not_see_audio_button(): void
     {
@@ -102,7 +102,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $json = $this->extractBubbleJson($message);
         $footerLabels = $this->extractFooterButtonLabels($json);
 
-        $this->assertNotContains('🎤 提供發音', $footerLabels, 'viewer 不應看到「提供發音」按鈕');
+        $this->assertNotContains('🎤 新增發音', $footerLabels, 'viewer 不應看到「新增發音」按鈕');
     }
 
     /**
@@ -129,7 +129,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $footerLabels = $this->extractFooterButtonLabels($json);
 
         $this->assertNotContains('✏️ 修改名稱', $footerLabels);
-        $this->assertNotContains('🎤 提供發音', $footerLabels);
+        $this->assertNotContains('🎤 新增發音', $footerLabels);
         $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels);
     }
 
@@ -145,13 +145,13 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $footerActions = $this->extractFooterButtonActions($json);
 
         $renameAction = $this->findActionByLabel($footerActions, '✏️ 修改名稱');
-        $audioAction  = $this->findActionByLabel($footerActions, '🎤 提供發音');
+        $audioAction  = $this->findActionByLabel($footerActions, '🎤 新增發音');
         $batchCaptureAction = $this->findActionByLabel($footerActions, '⚡ 批次捕獲紀錄');
 
         $this->assertNotNull($renameAction, '應找到修改名稱 action');
         $this->assertStringContainsString('fish_id=42', $renameAction['data'] ?? '', 'postback data 應含 fish_id=42');
 
-        $this->assertNotNull($audioAction, '應找到提供發音 action');
+        $this->assertNotNull($audioAction, '應找到新增發音 action');
         $this->assertStringContainsString('fish_id=42', $audioAction['data'] ?? '', 'postback data 應含 fish_id=42');
 
         $this->assertNotNull($batchCaptureAction, '應找到批次捕獲紀錄 action');
@@ -172,7 +172,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $footerLabels = $this->extractFooterButtonLabels($json);
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
-        $this->assertContains('🎤 提供發音', $footerLabels);
+        $this->assertContains('🎤 新增發音', $footerLabels);
         $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
         // 捕獲紀錄按鈕也應保留
         $captureButton = array_filter($footerLabels, fn ($l) => str_contains($l, '查看捕獲紀錄'));
@@ -196,7 +196,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
     }
 
     /**
-     * editor 的 Quick Reply 不應再包含「提供發音」（已移入圖卡）
+     * editor 的 Quick Reply 不應再包含「新增發音」（已移入圖卡）
      */
     public function test_build_fish_card_with_quick_reply_editor_no_audio_in_qr(): void
     {
@@ -204,7 +204,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
 
         $qrLabels = $this->extractQuickReplyLabels($message);
 
-        $this->assertNotContains('🎤 提供發音', $qrLabels, '提供發音已移入卡片，Quick Reply 不應再有');
+        $this->assertNotContains('🎤 新增發音', $qrLabels, '新增發音已移入卡片，Quick Reply 不應再有');
     }
 
     /**
@@ -217,7 +217,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $qrLabels = $this->extractQuickReplyLabels($message);
 
         $this->assertNotContains('✏️ 修改名稱', $qrLabels);
-        $this->assertNotContains('🎤 提供發音', $qrLabels);
+        $this->assertNotContains('🎤 新增發音', $qrLabels);
         $this->assertNotContains('⚡ 批次捕獲紀錄', $qrLabels);
     }
 
@@ -244,7 +244,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         // Quick Reply 可能為 null 或為空陣列，不應有 editor 按鈕
         $qrLabels = $this->extractQuickReplyLabels($message);
         $this->assertNotContains('✏️ 修改名稱', $qrLabels);
-        $this->assertNotContains('🎤 提供發音', $qrLabels);
+        $this->assertNotContains('🎤 新增發音', $qrLabels);
     }
 
     // ------------------------------------------------------------------
@@ -275,7 +275,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         foreach ($bubbles as $i => $bubble) {
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertContains('✏️ 修改名稱', $footerLabels, "第 {$i} 張卡片應有修改名稱");
-            $this->assertContains('🎤 提供發音', $footerLabels, "第 {$i} 張卡片應有提供發音");
+            $this->assertContains('🎤 新增發音', $footerLabels, "第 {$i} 張卡片應有新增發音");
             $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels, "第 {$i} 張卡片應有批次捕獲紀錄");
         }
     }
@@ -302,7 +302,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         foreach ($bubbles as $i => $bubble) {
             $footerLabels = $this->extractFooterButtonLabelsFromBubble($bubble);
             $this->assertNotContains('✏️ 修改名稱', $footerLabels, "第 {$i} 張卡片不應有修改名稱");
-            $this->assertNotContains('🎤 提供發音', $footerLabels, "第 {$i} 張卡片不應有提供發音");
+            $this->assertNotContains('🎤 新增發音', $footerLabels, "第 {$i} 張卡片不應有新增發音");
             $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels, "第 {$i} 張卡片不應有批次捕獲紀錄");
         }
     }
@@ -381,7 +381,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $footerLabels = $this->extractFooterButtonLabels($json);
 
         $this->assertContains('✏️ 修改名稱', $footerLabels);
-        $this->assertContains('🎤 提供發音', $footerLabels);
+        $this->assertContains('🎤 新增發音', $footerLabels);
         $this->assertContains('⚡ 批次捕獲紀錄', $footerLabels);
     }
 
@@ -397,7 +397,7 @@ class LineFishMessageBuilderEditorButtonsTest extends TestCase
         $footerLabels = $this->extractFooterButtonLabels($json);
 
         $this->assertNotContains('✏️ 修改名稱', $footerLabels);
-        $this->assertNotContains('🎤 提供發音', $footerLabels);
+        $this->assertNotContains('🎤 新增發音', $footerLabels);
         $this->assertNotContains('⚡ 批次捕獲紀錄', $footerLabels);
     }
 

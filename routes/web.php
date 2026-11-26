@@ -13,6 +13,8 @@ use App\Http\Controllers\FishController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishReportController;
 use App\Http\Controllers\FishResponseController;
+use App\Http\Controllers\Island\IslandController;
+use App\Http\Controllers\Island\IslandResponseController;
 use App\Http\Controllers\LineLoginController;
 use App\Http\Controllers\LineUserController;
 use App\Http\Controllers\PlaceController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\ReferenceKnowledgeController;
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\TribalClassificationController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\EnsureIslandCharacter;
 use Illuminate\Support\Facades\Route;
 
 // =====================================================
@@ -52,6 +55,18 @@ Route::middleware(['auth', 'browse'])->group(function () {
     Route::get('/topics/{slug}', [TopicController::class, 'index'])->name('topics.index');
     Route::get('/topics/{slug}/{itemId}', [TopicController::class, 'show'])->name('topics.show');
 });
+
+// 魚島：不用登入的新前端（設計見 docs/design.md）
+Route::middleware(EnsureIslandCharacter::class)->group(function () {
+    Route::get('/island', [IslandController::class, 'home'])->name('island.home');
+    Route::get('/island/tribes/{tribe}', [IslandController::class, 'tribe'])->name('island.tribe');
+    Route::get('/island/tribes/{tribe}/spots/{spot}', [IslandController::class, 'spot'])->name('island.spot');
+    Route::get('/island/tribes/{tribe}/spots/{spot}/talk', [IslandController::class, 'talk'])->name('island.talk');
+    Route::get('/island/tribes/{tribe}/fish/{id}', [IslandResponseController::class, 'show'])->whereNumber('id')->name('island.fish');
+    Route::post('/island/tribes/{tribe}/fish/{id}/answers', [IslandResponseController::class, 'store'])->middleware('throttle:island-response')->whereNumber('id')->name('island.fish.answers.store');
+});
+Route::get('/island/character', [IslandController::class, 'character'])->name('island.character');
+Route::post('/island/character', [IslandController::class, 'storeCharacter'])->middleware('throttle:island-character')->name('island.character.store');
 
 // =====================================================
 // 需要登入的路由
@@ -122,6 +137,7 @@ Route::middleware(['auth', 'browse'])->group(function () {
         Route::get('/fish/{id}/audio/create', [FishAudioController::class, 'create'])->name('fish.audio.create');
         Route::get('/fish/{id}/audio/{audio}/edit', [FishAudioController::class, 'editAudio'])->name('fish.audio.edit');
         Route::put('/fish/{id}/audio/{audio}', [FishAudioController::class, 'updateAudio'])->name('fish.audio.update');
+        Route::put('/fish/{id}/audio/{audio}/name', [FishAudioController::class, 'assignName'])->name('fish.audio.assign-name');
         Route::put('/fish/{id}/audio/{audio}/set-base', [FishAudioController::class, 'updateAudioFilename'])->name('fish.audio.set-base');
         Route::delete('/fish/{id}/audio/{audio}', [FishAudioController::class, 'destroyAudio'])->name('fish.audio.destroy');
     });

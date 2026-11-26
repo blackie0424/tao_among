@@ -29,7 +29,7 @@
       <path d="M8 5v14l11-7z" />
     </svg>
 
-    <!-- 播放中圖示 -->
+    <!-- 播放中圖示：三條會跳動的聲音條（不是打勾，打勾看起來像「已完成」） -->
     <svg
       v-else-if="playbackState === 'playing'"
       class="w-5 h-5 text-white"
@@ -37,9 +37,9 @@
       viewBox="0 0 24 24"
       aria-hidden="true"
     >
-      <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-      />
+      <rect class="vol-bar" x="4" y="10" width="4" height="10" />
+      <rect class="vol-bar vol-bar-2" x="10" y="4" width="4" height="16" />
+      <rect class="vol-bar vol-bar-3" x="16" y="8" width="4" height="12" />
     </svg>
 
     <!-- 重試中圖示 -->
@@ -129,3 +129,31 @@ onMounted(() => {
   animationOptimizer.init()
 })
 </script>
+
+<style scoped>
+.vol-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: vol-bounce 0.9s ease-in-out infinite;
+}
+.vol-bar-2 {
+  animation-delay: 0.15s;
+}
+.vol-bar-3 {
+  animation-delay: 0.3s;
+}
+@keyframes vol-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vol-bar {
+    animation: none;
+  }
+}
+</style>

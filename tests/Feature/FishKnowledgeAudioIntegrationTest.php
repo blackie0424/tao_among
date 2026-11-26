@@ -129,17 +129,17 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             $response->assertStatus(200);
 
             // 3. Update audio
+            $originalName = $audio->name;
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
-                'name' => 'Updated pronunciation',
-                'audio_filename' => 'updated.mp3',
+                'tribe' => 'yayo',
             ]);
-            $response->assertRedirect("/fish/{$fish->id}?tab=audio");
+            $response->assertRedirect("/fish/{$fish->id}/audio-list");
 
-            // 4. Verify update in database
+            // 4. Verify update in database（只改部落，name 維持實際檔名）
             $this->assertDatabaseHas('fish_audios', [
                 'id' => $audio->id,
-                'name' => 'Updated pronunciation',
-                'locate' => 'updated.mp3',
+                'name' => $originalName,
+                'locate' => 'yayo',
             ]);
 
             // 5. Delete audio
@@ -209,7 +209,7 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
             // Update one audio
             $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio1->id}", [
-                'name' => 'Updated first pronunciation',
+                'tribe' => 'iratay',
             ]);
 
             // Verify the other audio is unchanged
@@ -222,8 +222,8 @@ describe('Fish Knowledge and Audio Management Integration', function () {
             // Verify the updated audio
             $this->assertDatabaseHas('fish_audios', [
                 'id' => $audio1->id,
-                'name' => 'Updated first pronunciation',
-                'locate' => 'first.mp3', // Should remain unchanged
+                'name' => 'First pronunciation',
+                'locate' => 'iratay',
             ]);
         });
 
@@ -299,9 +299,9 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
             // Test audio validation
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
-                'name' => '', // Invalid empty name
+                'tribe' => '', // Invalid empty tribe
             ]);
-            $response->assertSessionHasErrors(['name']);
+            $response->assertSessionHasErrors(['tribe']);
         });
 
         it('provides proper success feedback after operations', function () {
@@ -320,9 +320,9 @@ describe('Fish Knowledge and Audio Management Integration', function () {
 
             // Test audio update success
             $response = $this->actingAs($user)->put("/fish/{$fish->id}/audio/{$audio->id}", [
-                'name' => 'Updated audio',
+                'tribe' => 'yayo',
             ]);
-            $response->assertRedirect("/fish/{$fish->id}?tab=audio");
+            $response->assertRedirect("/fish/{$fish->id}/audio-list");
 
             // Test knowledge delete success
             $response = $this->actingAs($user)->delete("/fish/{$fish->id}/knowledge/{$note->id}");
