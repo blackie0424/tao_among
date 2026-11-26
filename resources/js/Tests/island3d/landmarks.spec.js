@@ -84,6 +84,27 @@ describe('island3d/landmarks 佔地的判斷（#207 驗收條件 6，手建的�
     expect(footprintsOverlap(a, footprintCorners(square(2.5, 0, Math.PI / 4)))).toBe(false)
   })
 
+  it('剛好共用一條邊或一個角（中間沒有空隙也沒有交疊）：不重疊', () => {
+    const a = footprintCorners(square(0, 0))
+
+    // 邊長 2、中心相距 2：共用 x = 1 那條邊
+    expect(footprintsOverlap(a, footprintCorners(square(2, 0)))).toBe(false)
+    expect(footprintsOverlap(footprintCorners(square(2, 0)), a)).toBe(false)
+    // 只碰到 (1, 1) 這個角
+    expect(footprintsOverlap(a, footprintCorners(square(2, 2)))).toBe(false)
+    // 轉 45 度的方塊，一個角剛好頂在 a 的邊上
+    expect(footprintsOverlap(a, footprintCorners(square(1 + Math.SQRT2, 0, Math.PI / 4)))).toBe(
+      false
+    )
+  })
+
+  it('只交疊一點點也算重疊', () => {
+    const a = footprintCorners(square(0, 0))
+
+    expect(footprintsOverlap(a, footprintCorners(square(1.99, 0)))).toBe(true)
+    expect(footprintsOverlap(a, footprintCorners(square(1.99, 1.99)))).toBe(true)
+  })
+
   it('一個完全包住另一個：重疊', () => {
     const big = footprintCorners({ x: 0, z: 0, width: 10, depth: 10, heading: 0 })
 

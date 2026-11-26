@@ -74,12 +74,33 @@ export function footprintGapToPoint(corners, point) {
   )
 }
 
-/** 兩塊凸的區域（各是一圈頂點，例如兩個佔地、佔地與六角格）有沒有重疊 */
+// 兩塊區域在某個方向上交疊不到這麼多，就當成只是碰到（共用邊或角），不算重疊
+const TOUCH_TOLERANCE = 1e-9
+
+/** 一圈頂點投影到 axis 方向上的範圍 */
+function projectOnto(polygon, axis) {
+  const along = polygon.map((point) => point.x * axis.x + point.z * axis.z)
+  return { min: Math.min(...along), max: Math.max(...along) }
+}
+
+/** 每條邊的法線方向（單位向量） */
+const edgeNormals = (polygon) =>
+  edgesOf(polygon).map(([from, to]) => {
+    const length = distance(from, to)
+    return { x: -(to.z - from.z) / length, z: (to.x - from.x) / length }
+  })
+
+/**
+ * 兩塊凸的區域（各是一圈頂點，例如兩個佔地、佔地與六角格）有沒有重疊。
+ * 只共用一條邊或一個角不算重疊。做法是分離軸：只要有一條邊的法線方向上兩者的投影沒有交疊，
+ * 就是分開的。
+ */
 export function footprintsOverlap(a, b) {
-  const edgesCross = edgesOf(a).some(([p, q]) =>
-    edgesOf(b).some(([r, s]) => segmentsCross(p, q, r, s))
-  )
-  return edgesCross || isInPolygon(a[0], b) || isInPolygon(b[0], a)
+  return [...edgeNormals(a), ...edgeNormals(b)].every((axis) => {
+    const spanA = projectOnto(a, axis)
+    const spanB = projectOnto(b, axis)
+    return Math.min(spanA.max, spanB.max) - Math.max(spanA.min, spanB.min) > TOUCH_TOLERANCE
+  })
 }
 
 /** 整個佔地是否都在多邊形 polygon 裡（凹的多邊形也可以）：四個角都在裡面，而且四條邊都不穿出去 */
