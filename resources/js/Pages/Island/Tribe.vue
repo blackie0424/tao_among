@@ -48,16 +48,23 @@
         data-testid="spot-card"
         class="flex flex-col items-center rounded-island bg-white p-3 text-center"
       >
-        <span
-          class="mb-2 block h-12 w-12 rounded-full border-4 border-island-ink"
-          :style="{ backgroundColor: islandSpotColor(spot.code) }"
-          aria-hidden="true"
-        />
-        <p data-testid="spot-name" class="text-elder-body font-extrabold">{{ spot.name }}</p>
-        <p class="text-elder-aux">{{ spot.npc }}</p>
-        <p data-testid="spot-progress" class="text-elder-aux text-island-muted">
-          {{ spot.total === 0 ? '這裡還沒有魚' : `${spot.with_result}/${spot.total} 有結果` }}
-        </p>
+        <!-- 點卡片本身＝跟這個地點的 NPC 聊天 -->
+        <Link
+          :href="`/island/tribes/${tribe}/spots/${spot.code}/talk?n=1`"
+          data-testid="spot-talk-link"
+          class="flex w-full flex-col items-center rounded-island focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
+        >
+          <span
+            class="mb-2 block h-12 w-12 rounded-full border-4 border-island-ink"
+            :style="{ backgroundColor: islandSpotColor(spot.code) }"
+            aria-hidden="true"
+          />
+          <p data-testid="spot-name" class="text-elder-body font-extrabold">{{ spot.name }}</p>
+          <p class="text-elder-aux">{{ spot.npc }}</p>
+          <p data-testid="spot-progress" class="text-elder-aux text-island-muted">
+            {{ spot.total === 0 ? '這裡還沒有魚' : `${spot.with_result}/${spot.total} 有結果` }}
+          </p>
+        </Link>
         <Link
           :href="`/island/tribes/${tribe}/spots/${spot.code}`"
           data-testid="spot-list-link"

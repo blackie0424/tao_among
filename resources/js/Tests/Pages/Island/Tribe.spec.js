@@ -92,6 +92,22 @@ describe('Island/Tribe 家屋（#189）', () => {
     ])
   })
 
+  it('點地點卡本身＝跟 NPC 聊天（對話 n＝1）；Y＝0 也可以點', () => {
+    const links = spotCards(mountPage()).map((card) =>
+      card.find('[data-testid="spot-talk-link"]').attributes('href')
+    )
+
+    expect(links).toEqual([
+      '/island/tribes/iratay/spots/main-house/talk?n=1',
+      '/island/tribes/iratay/spots/backrest-stone/talk?n=1',
+      '/island/tribes/iratay/spots/drying-yard/talk?n=1',
+      '/island/tribes/iratay/spots/pavilion/talk?n=1',
+    ])
+    expect(spotCards(mountPage())[0].find('[data-testid="spot-talk-link"]').text()).toContain(
+      '主屋'
+    )
+  })
+
   it('地點卡不用 emoji 圖示', () => {
     expect(mountPage().find('[data-testid="spot-cards"]').text()).not.toMatch(
       /\p{Extended_Pictographic}/u

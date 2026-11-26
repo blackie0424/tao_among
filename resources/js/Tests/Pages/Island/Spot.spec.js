@@ -140,6 +140,13 @@ describe('Island/Spot 地點清單（#189 由部落頁搬來）', () => {
     ])
   })
 
+  it('#189 有「跟 {NPC} 聊天」連到這個地點的對話 n＝1', () => {
+    const link = mountPage().find('[data-testid="spot-talk-link"]')
+
+    expect(link.text()).toBe('跟阿姨聊天')
+    expect(link.attributes('href')).toBe('/island/tribes/iratay/spots/main-house/talk?n=1')
+  })
+
   it('有回家屋的連結', () => {
     expect(mountPage().find('[data-testid="back-to-house"]').attributes('href')).toBe(
       '/island/tribes/iratay'

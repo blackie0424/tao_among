@@ -18,6 +18,14 @@
       {{ islandTribeLabel(tribe) }}的人怎麼說這些魚？
     </p>
 
+    <Link
+      :href="`/island/tribes/${tribe}/spots/${spot.code}/talk?n=1`"
+      data-testid="spot-talk-link"
+      class="mb-3 flex min-h-touch-primary items-center justify-center rounded-island bg-island-accent px-4 text-elder-body font-bold text-white"
+    >
+      跟{{ spot.npc }}聊天
+    </Link>
+
     <FishCardList
       :tribe="tribe"
       :fish="fish"

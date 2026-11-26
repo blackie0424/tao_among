@@ -134,9 +134,26 @@ describe('Island/Talk NPC 對話（#189）', () => {
     expect(byTestId(wrapper, 'talk-count').exists()).toBe(false)
     expect(byTestId(wrapper, 'next-fish').exists()).toBe(false)
     expect(byTestId(wrapper, 'finish-to-house').attributes('href')).toBe('/island/tribes/iratay')
+    expect(byTestId(wrapper, 'who-said').exists()).toBe(false)
+    expect(byTestId(wrapper, 'answer-here').exists()).toBe(false)
   })
 
-  it('NPC 頭像不用 emoji 圖示', () => {
+  it('這個地點沒有魚：上方照常有「← 家屋」與「看清單」（chung 裁決）', () => {
+    const wrapper = mountPage({
+      fish: null,
+      total: 0,
+      n: 1,
+      is_last: false,
+      speech: '這裡還沒有魚',
+    })
+
+    expect(byTestId(wrapper, 'back-to-house').attributes('href')).toBe('/island/tribes/iratay')
+    expect(byTestId(wrapper, 'talk-list-link').attributes('href')).toBe(
+      '/island/tribes/iratay/spots/main-house'
+    )
+  })
+
+  it('NPC 頭像)不用 emoji 圖示', () => {
     expect(byTestId(mountPage(), 'npc-name').text()).not.toMatch(/\p{Extended_Pictographic}/u)
   })
 })
