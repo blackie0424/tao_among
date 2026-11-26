@@ -405,20 +405,51 @@ class FishTribeResponse extends Model
      */
     public static function islandHasResultSql(string $tribe, string $fishIdColumn): array
     {
-        $options = self::islandResultOptions();
-        $knownMethods = array_values(array_diff($options['processing_method'], [self::unknownProcessingMethod()]));
-        $exists = fn (string $column, array $values) => self::whereExactlyIn(
-            self::whereExactlyIn(self::query()->toBase()->selectRaw('1')->whereColumn('fish_tribe_responses.fish_id', $fishIdColumn), 'tribe', [$tribe]),
-            $column,
-            $values,
-        );
-        $category = $exists('food_category', $options['food_category']);
-        $method = $exists('processing_method', $knownMethods);
+        $category = self::islandQuestionRows($tribe, $fishIdColumn, 'food_category', '1');
+        $method = self::islandQuestionRows($tribe, $fishIdColumn, 'processing_method', '1');
 
         return [
             "(exists ({$category->toSql()}) and exists ({$method->toSql()}))",
             [...$category->getBindings(), ...$method->getBindings()],
         ];
+    }
+
+    /**
+     * 地點清單與 NPC 的排序依據（#189，套在魚的查詢上），兩個 SQL 運算式各帶自己的綁定值：
+     * answered＝這個部落有結果的題數（分類、食用各算 0 或 1）；
+     * response_count＝這個部落兩題各自清單內回答筆數的和（食用不算「我不知道」）。
+     *
+     * @return array{answered: array{0: string, 1: list<mixed>}, response_count: array{0: string, 1: list<mixed>}}
+     */
+    public static function islandSpotOrderSql(string $tribe, string $fishIdColumn): array
+    {
+        $existsCategory = self::islandQuestionRows($tribe, $fishIdColumn, 'food_category', '1');
+        $existsMethod = self::islandQuestionRows($tribe, $fishIdColumn, 'processing_method', '1');
+        $countCategory = self::islandQuestionRows($tribe, $fishIdColumn, 'food_category', 'count(*)');
+        $countMethod = self::islandQuestionRows($tribe, $fishIdColumn, 'processing_method', 'count(*)');
+
+        return [
+            'answered' => [
+                "((case when exists ({$existsCategory->toSql()}) then 1 else 0 end) + (case when exists ({$existsMethod->toSql()}) then 1 else 0 end))",
+                [...$existsCategory->getBindings(), ...$existsMethod->getBindings()],
+            ],
+            'response_count' => [
+                "(({$countCategory->toSql()}) + ({$countMethod->toSql()}))",
+                [...$countCategory->getBindings(), ...$countMethod->getBindings()],
+            ],
+        ];
+    }
+
+    /** 這個部落、這條魚某一題「算結果」的回答列：只算選項清單內的值，食用不算「我不知道」。 */
+    private static function islandQuestionRows(string $tribe, string $fishIdColumn, string $question, string $select)
+    {
+        $values = self::islandResultOptions()[$question];
+        if ($question === 'processing_method') {
+            $values = array_values(array_diff($values, [self::unknownProcessingMethod()]));
+        }
+        $rows = self::query()->toBase()->selectRaw($select)->whereColumn('fish_tribe_responses.fish_id', $fishIdColumn);
+
+        return self::whereExactlyIn(self::whereExactlyIn($rows, 'tribe', [$tribe]), $question, $values);
     }
 
     /**

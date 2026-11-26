@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureIslandCharacter;
 use App\Models\Fish;
 use App\Models\FishTribeResponse;
 use App\Models\IslandCharacter;
+use App\Support\IslandSpot;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,11 +52,53 @@ class IslandController extends Controller
             ->orderByDesc('has_island_result')
             ->orderBy('id')
             ->paginate(self::FISH_PER_PAGE);
-        $counts = FishTribeResponse::islandResultCounts($page->getCollection()->pluck('id')->all());
 
         return Inertia::render('Island/Tribe', [
             'character' => $this->characterProps($character),
             'tribe' => $tribe,
+            ...$this->fishCardPageProps($page),
+            'progress' => $this->progress($page, $hasResult, $bindings),
+        ]);
+    }
+
+    /**
+     * 地點清單（#189）：只列這個地點的魚（編號除以 4 的餘數），每頁 20 條。
+     * 排序：這個部落有結果的題數多的在前（2 題、1 題、0 題），同組回答筆數多的在前，再依編號。
+     */
+    public function spot(Request $request, string $tribe, string $spot): Response
+    {
+        abort_unless(in_array($tribe, config('fish_options.tribes'), true), 404);
+        $spotDefinition = IslandSpot::find($spot);
+        abort_if($spotDefinition === null, 404);
+
+        $idColumn = (new Fish)->qualifyColumn('id');
+        [$hasResult, $hasResultBindings] = FishTribeResponse::islandHasResultSql($tribe, $idColumn);
+        $order = FishTribeResponse::islandSpotOrderSql($tribe, $idColumn);
+        $page = Fish::with('displayCaptureRecord')
+            ->select('*')
+            ->selectRaw("{$hasResult} as has_island_result", $hasResultBindings)
+            ->selectRaw("{$order['answered'][0]} as island_answered", $order['answered'][1])
+            ->selectRaw("{$order['response_count'][0]} as island_response_count", $order['response_count'][1])
+            ->whereRaw("{$idColumn} % ? = ?", [IslandSpot::COUNT, $spotDefinition['remainder']])
+            ->orderByDesc('island_answered')
+            ->orderByDesc('island_response_count')
+            ->orderBy('id')
+            ->paginate(self::FISH_PER_PAGE);
+
+        return Inertia::render('Island/Spot', [
+            'character' => $this->characterProps($this->characterOf($request)),
+            'tribe' => $tribe,
+            'spot' => IslandSpot::props($spotDefinition),
+            ...$this->fishCardPageProps($page),
+        ]);
+    }
+
+    /** 魚卡清單頁共用的資料：魚卡（有結果的帶各部落結果）、選項與部落清單、頁碼與空清單原因。 */
+    private function fishCardPageProps(LengthAwarePaginator $page): array
+    {
+        $counts = FishTribeResponse::islandResultCounts($page->getCollection()->pluck('id')->all());
+
+        return [
             'tribes' => config('fish_options.tribes'),
             'result_options' => FishTribeResponse::islandResultOptions(),
             'unknown_processing_method' => FishTribeResponse::unknownProcessingMethod(),
@@ -65,11 +108,10 @@ class IslandController extends Controller
                 'image_url' => $fish->display_image_url,
                 'results' => $fish->has_island_result ? $counts[$fish->id] : null,
             ])->values(),
-            'progress' => $this->progress($page, $hasResult, $bindings),
             'page' => $page->currentPage(),
             'has_more_pages' => $page->hasMorePages(),
             'empty_reason' => $this->emptyReason($page),
-        ]);
+        ];
     }
 
     /** @return array{with_result: int, total: int}|null 這個部落有結果的魚條數／全部魚條數；沒有魚時為 null */

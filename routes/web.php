@@ -60,6 +60,7 @@ Route::middleware(['auth', 'browse'])->group(function () {
 Route::middleware(EnsureIslandCharacter::class)->group(function () {
     Route::get('/island', [IslandController::class, 'home'])->name('island.home');
     Route::get('/island/tribes/{tribe}', [IslandController::class, 'tribe'])->name('island.tribe');
+    Route::get('/island/tribes/{tribe}/spots/{spot}', [IslandController::class, 'spot'])->name('island.spot');
     Route::get('/island/tribes/{tribe}/fish/{id}', [IslandResponseController::class, 'show'])->whereNumber('id')->name('island.fish');
     Route::post('/island/tribes/{tribe}/fish/{id}/answers', [IslandResponseController::class, 'store'])->middleware('throttle:island-response')->whereNumber('id')->name('island.fish.answers.store');
 });
