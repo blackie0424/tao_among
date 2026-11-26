@@ -9,6 +9,8 @@
 // 走路速度（每秒走多遠）：#199 的 2 倍
 export const WALK_SPEED = 5
 
+import { closestOnSegment } from './hexBounds'
+
 // 整座島的放大倍數（#212）：下面的座標是 #207 照實際地圖換算的數值，乘上這個倍數才是世界單位。
 // 格子、公路的寬度、人物不跟著放大，所以倍數越大，部落周圍的空間越多。
 export const ISLAND_SCALE = 1.5
@@ -121,7 +123,10 @@ export const ISLAND_MAP = {
     // 野銀
     tribe('ivalino', [36.0, 19.3], (main) => [neighborHex(main, 30, 1.5), neighborHex(main, -90)]),
     // 紅頭
-    tribe('imowrod', [12.1, 43.0], (main) => [neighborHex(main, 30), { x: 45.3, z: 98.2 }]),
+    tribe('imowrod', [12.1, 43.0], () => [
+      { x: 39.7, z: 86.9 },
+      { x: 56.7, z: 105.4 },
+    ]),
     // 漁人
     tribe('iratay', [-18.3, 39.2], () => [
       { x: -52.5, z: 63.3 },
@@ -152,11 +157,24 @@ export function roadSegments(map) {
   })
 }
 
-/** 找路用的「路線點」：部落中心與公路的折點，同一個位置只算一次 */
+/** 公路上離 point 最近的點 */
+function nearestOnRoads(map, point) {
+  const gap = (other) => Math.hypot(other.x - point.x, other.z - point.z)
+  return roadSegments(map)
+    .map(({ from, to }) => closestOnSegment(point, from, to))
+    .reduce((best, candidate) => (gap(candidate) < gap(best) ? candidate : best))
+}
+
+/**
+ * 找路用的「路線點」：每個格子的中心、公路的折點，以及每個格子中心在公路上最近的那一點
+ * （格子不在折點上時，從格子中心要先走到這一點才上得了公路）。同一個位置只算一次。
+ */
 export function routePoints(map) {
+  const centers = map.tribes.flatMap(tribeHexes)
   const all = [
-    ...map.tribes.flatMap(tribeHexes),
+    ...centers,
     ...map.roads.flatMap((road) => road.points),
+    ...(map.roads.length > 0 ? centers.map((center) => nearestOnRoads(map, center)) : []),
   ]
   return all.filter(
     (point, i) => all.findIndex((other) => other.x === point.x && other.z === point.z) === i
@@ -173,9 +191,9 @@ const COAST = [
   [-94.4, -14.6],
   [-94.3, -3.0],
   [-81.2, -0.0],
-  [-71.6, 18.2],
-  [-64.1, 17.5],
-  [-60.1, 20.8],
+  [-76.0, 21.5],
+  [-66.5, 25.0],
+  [-58.0, 26.5],
   [-57.0, 30.9],
   [-35.0, 53.5],
   [-24.7, 55.7],
