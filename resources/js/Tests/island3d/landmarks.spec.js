@@ -390,7 +390,7 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
 
       expect(parts.length).toBeGreaterThan(0)
       parts.forEach((part) => {
-        expect(['box', 'roof', 'plane', 'post']).toContain(part.shape)
+        expect(['box', 'roof', 'plane', 'post', 'ring']).toContain(part.shape)
         expect(part.color).toMatch(/^#[0-9a-f]{6}$/)
         ;['width', 'height', 'depth', 'x', 'y', 'z'].forEach((field) =>
           expect(Number.isFinite(part[field])).toBe(true)
@@ -419,6 +419,24 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
           expect(part.y - part.height / 2).toBeGreaterThanOrEqual(-1e-9)
         })
       })
+    })
+  })
+
+  it('籃球場：畫線的地面加兩個籃框（左右各一個，各有柱子、籃板、離地的框）', () => {
+    const parts = shapeParts('court', 4, 2.6)
+    const rims = parts.filter((part) => part.shape === 'ring')
+    const posts = parts.filter((part) => part.shape === 'post')
+    const ground = parts.filter((part) => part.shape === 'plane')
+
+    expect(ground.length).toBeGreaterThanOrEqual(2)
+    expect(rims).toHaveLength(2)
+    expect(posts).toHaveLength(2)
+    expect(rims.map((rim) => Math.sign(rim.x)).sort()).toEqual([-1, 1])
+    rims.forEach((rim) => {
+      // 框離地，而且比同一側的柱子靠球場中間（朝場內伸出去）
+      const post = posts.find((candidate) => Math.sign(candidate.x) === Math.sign(rim.x))
+      expect(rim.y).toBeGreaterThan(1)
+      expect(Math.abs(rim.x)).toBeLessThan(Math.abs(post.x))
     })
   })
 

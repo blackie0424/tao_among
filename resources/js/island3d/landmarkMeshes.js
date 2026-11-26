@@ -11,12 +11,24 @@ const PYRAMID_SIDES = 4
 const SIGN_HEIGHT_ABOVE_GROUND = 3.4
 const SIGN_SCREEN_HEIGHT = 0.03
 
-/** 一個零件：屋頂是四角錐，其他（盒子、平面、柱子）都是長方體 */
+// 平放的圓框的原型：外徑 1、高 1。管子的半徑是外徑的這個比例
+const RING_TUBE = 0.1
+const RING_TUBE_SIDES = 6
+const RING_SEGMENTS = 16
+
+/** 各種形狀邊長 1 的原型；沒列到的（盒子、平面、柱子）都是長方體 */
+const UNIT_GEOMETRY = {
+  roof: () => new THREE.ConeGeometry(PYRAMID_RADIUS, 1, PYRAMID_SIDES).rotateY(Math.PI / 4),
+  // TorusGeometry 立在 x–y 平面、厚度是管子的直徑：先把厚度拉成 1，再放平
+  ring: () =>
+    new THREE.TorusGeometry(0.5 - RING_TUBE, RING_TUBE, RING_TUBE_SIDES, RING_SEGMENTS)
+      .scale(1, 1, 1 / (RING_TUBE * 2))
+      .rotateX(Math.PI / 2),
+}
+
+/** 一個零件：原型縮放成零件的寬、高、深 */
 function buildPart({ shape, width, height, depth, x, y, z, color }) {
-  const geometry =
-    shape === 'roof'
-      ? new THREE.ConeGeometry(PYRAMID_RADIUS, 1, PYRAMID_SIDES).rotateY(Math.PI / 4)
-      : new THREE.BoxGeometry(1, 1, 1)
+  const geometry = UNIT_GEOMETRY[shape]?.() ?? new THREE.BoxGeometry(1, 1, 1)
   const part = flatMesh(geometry, color)
   part.scale.set(width, height, depth)
   part.position.set(x, y, z)

@@ -197,6 +197,7 @@ export const LANDMARKS = [
 
 // ── 程式拼的造型 ──
 // 零件用佔地的比例寫（0～1），所以不論佔地多大，零件都在佔地裡。
+// 形狀：box 盒子、roof 屋頂（四角錐）、plane 貼地的平面、post 柱子、ring 平放的圓框。
 // 每個零件：shape 形狀、[寬, 高, 深]（寬與深是佔地的比例、高是實際高度）、[x, z]（離佔地中心的比例）、顏色。
 
 const WALL_HEIGHT = 1.6
@@ -244,9 +245,17 @@ const SHAPES = {
   court: [
     { shape: 'plane', size: [1, FLAT, 1], at: [0, 0], color: '#c9764a' },
     { shape: 'plane', size: [0.02, FLAT, 0.9], at: [0, 0], base: FLAT, color: '#ffffff' },
+    // 兩個籃框：柱子、籃板、朝場內伸出去的橘色框
     ...[-1, 1].flatMap((side) => [
       { shape: 'post', size: [POST_WIDTH, 2, POST_WIDTH], at: [side * 0.45, 0], color: '#6b7280' },
-      { shape: 'box', size: [0.06, 0.5, 0.3], at: [side * 0.42, 0], base: 1.6, color: '#ffffff' },
+      { shape: 'box', size: [0.03, 0.5, 0.3], at: [side * 0.42, 0], base: 1.6, color: '#ffffff' },
+      {
+        shape: 'ring',
+        size: [0.1, 0.06, 0.16],
+        at: [side * 0.35, 0],
+        base: 1.6,
+        color: '#e8590c',
+      },
     ]),
   ],
   stall: [...stall(-0.25, '#e07a3f'), ...stall(0.25, '#3f8fd0')],
