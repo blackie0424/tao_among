@@ -20,7 +20,7 @@
           v-if="item.results"
           :ref="(el) => (cardButtons[index] = el)"
           type="button"
-          class="flex h-full w-full flex-col text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
+          class="flex h-full w-full flex-col text-left transition-colors hover:bg-island-sea/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
           @click="openDetail(index)"
         >
           <img
