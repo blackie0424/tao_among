@@ -2,7 +2,7 @@
 // 輸入狀態是不可變的：每個函式回傳新的狀態。
 //   keys 目前按住的方向鍵
 //   path 點地面後要依序走過的點（最後一個是目的地），沒有時是空的
-// world 是這張地圖的規則：{ clampToWalkable, findRoute }（見 walkable.js、route.js）。
+// world 是這張地圖的規則：createWalkable(map) 的結果加上 findRoute（見 walkable.js、route.js）。
 
 // 方向鍵對應的移動方向（鏡頭沒轉時）：上＝往畫面遠處（-z）
 const KEY_DIRECTIONS = {
@@ -82,7 +82,10 @@ function stepByKeys(input, position, distance, heading, world) {
   }
   const next = { x: position.x + direction.x * distance, z: position.z + direction.z * distance }
   // 走出可走範圍就拉回最近的邊上：往斜向走時會沿著邊滑動
-  return { input, position: world.clampToWalkable(next) }
+  const target = world.clampToWalkable(next)
+  // 這一步的直線要整段可走；中間隔著不可走的地方（格子與公路交界的凹角）就只走到邊上
+  const reachable = world.isStraightWalkable(position, target)
+  return { input, position: reachable ? target : world.reachToward(position, next) }
 }
 
 /** 沿著路線走 distance 這麼遠：走到的點從路線拿掉，走完就停在目的地 */

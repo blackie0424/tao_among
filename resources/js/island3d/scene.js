@@ -353,6 +353,22 @@ function buildWorld() {
   return { scene, player, npc, boat }
 }
 
+function buildCamera(container) {
+  return new THREE.PerspectiveCamera(
+    CAMERA_FIELD_OF_VIEW,
+    container.clientWidth / container.clientHeight,
+    CAMERA_NEAR,
+    CAMERA_FAR
+  )
+}
+
+/** 玩家一開始的狀態：沒有輸入、站在起點；world 是這座島的走路規則（可走範圍＋找路） */
+function createPlayerState() {
+  const walkable = createWalkable(ISLAND_MAP)
+  const world = { ...walkable, findRoute: createRouter(ISLAND_MAP, walkable) }
+  return { input: createMovementInput(), position: { ...PLAYER_START }, world }
+}
+
 /** 畫布跟著容器大小變；回傳停止監看的函式 */
 function watchResize(container, renderer, camera) {
   const observer = new ResizeObserver(() => {
@@ -402,16 +418,9 @@ export function createIslandScene(container, { reducedMotion = false, onStats = 
   const renderer = buildRenderer(container, level)
   const governor = createQualityGovernor(level)
   const reportStats = createStatsReporter(onStats, governor)
-  const camera = new THREE.PerspectiveCamera(
-    CAMERA_FIELD_OF_VIEW,
-    container.clientWidth / container.clientHeight,
-    CAMERA_NEAR,
-    CAMERA_FAR
-  )
+  const camera = buildCamera(container)
   const { scene, player, npc, boat } = buildWorld()
-  const walkable = createWalkable(ISLAND_MAP)
-  const world = { ...walkable, findRoute: createRouter(ISLAND_MAP, walkable) }
-  const state = { input: createMovementInput(), position: { ...PLAYER_START }, world }
+  const state = createPlayerState()
   const unwatchResize = watchResize(container, renderer, camera)
   const moveNpc = createNpcMover(npc, reducedMotion)
   const clock = createFrameClock()

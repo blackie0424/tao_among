@@ -8,7 +8,7 @@ const ORIGIN = { x: 0, z: 0 }
 const EDGE_TOLERANCE = 1e-9
 
 /** 六個頂點，從 +x 方向開始逆時針 */
-function hexVertices(radius, center) {
+export function hexVertices(radius, center = ORIGIN) {
   return Array.from({ length: HEX_SIDES }, (_, i) => ({
     x: center.x + radius * Math.cos(i * HEX_STEP_RADIANS),
     z: center.z + radius * Math.sin(i * HEX_STEP_RADIANS),

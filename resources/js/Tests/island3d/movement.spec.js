@@ -10,7 +10,15 @@ import {
 } from '@/island3d/movement'
 import { createRouter } from '@/island3d/route'
 import { createWalkable } from '@/island3d/walkable'
-import { BEND_NORTH, EAST, ONE_HEX_MAP, THREE_TRIBE_MAP } from './testMaps'
+import {
+  BEND_NORTH,
+  EAST,
+  NOTCH_IN_HEX,
+  NOTCH_ON_ROAD,
+  ONE_HEX_MAP,
+  THREE_TRIBE_MAP,
+  pointsBetween,
+} from './testMaps'
 
 /** 把地圖變成走路規則要的「世界」：可走範圍＋找路 */
 const worldOf = (map) => {
@@ -243,5 +251,20 @@ describe('island3d/movement 整座島的走路規則（#200）', () => {
 
     expect(tapped).toBe(midway.input)
     expect(position).toEqual({ x: 100, z: 0 })
+  })
+
+  it('用方向鍵往凹角對面走：一步跨得過去也不會穿過不可走的凹角', () => {
+    // 讓「上」剛好指向凹角對面：單步 0.05 秒 × 速度 5 = 0.25，比兩點的距離 0.16 長
+    const heading = Math.atan2(NOTCH_IN_HEX.x - NOTCH_ON_ROAD.x, NOTCH_IN_HEX.z - NOTCH_ON_ROAD.z)
+    const options = { ...ISLAND_OPTIONS, heading }
+    let current = { input: pressKey(createMovementInput(), 'ArrowUp'), position: NOTCH_IN_HEX }
+
+    for (let i = 0; i < 40; i++) {
+      const next = stepMovement(current.input, current.position, 0.05, options)
+      pointsBetween(current.position, next.position).forEach((point) =>
+        expect(ISLAND.isWalkable(point)).toBe(true)
+      )
+      current = next
+    }
   })
 })

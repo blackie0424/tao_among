@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { createRouter } from '@/island3d/route'
 import { createWalkable } from '@/island3d/walkable'
-import { BEND_NORTH, EAST, SOUTH, THREE_TRIBE_MAP } from './testMaps'
+import {
+  BEND_NORTH,
+  EAST,
+  NOTCH_IN_HEX,
+  NOTCH_ON_ROAD,
+  SOUTH,
+  THREE_TRIBE_MAP,
+  pointsBetween,
+} from './testMaps'
 
 const walkable = createWalkable(THREE_TRIBE_MAP)
 const findRoute = createRouter(THREE_TRIBE_MAP, walkable)
@@ -47,5 +55,16 @@ describe('island3d/route 點地面走過去的路線（#200 驗收條件 4）', 
     route[0].x = 999
 
     expect(EAST.x).toBe(100)
+  })
+
+  it('兩點很近但中間隔著格子與公路交界的凹角：不走直線，繞過去的每一點都可走', () => {
+    const route = findRoute(NOTCH_IN_HEX, NOTCH_ON_ROAD)
+    const stops = [NOTCH_IN_HEX, ...route]
+
+    expect(route.length).toBeGreaterThan(1)
+    expect(route.at(-1)).toEqual(NOTCH_ON_ROAD)
+    stops.slice(1).forEach((to, i) => {
+      pointsBetween(stops[i], to).forEach((point) => expect(walkable.isWalkable(point)).toBe(true))
+    })
   })
 })

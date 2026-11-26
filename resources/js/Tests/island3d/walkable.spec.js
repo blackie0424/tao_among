@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createWalkable } from '@/island3d/walkable'
-import { THREE_TRIBE_MAP } from './testMaps'
+import { NOTCH_IN_HEX, NOTCH_ON_ROAD, THREE_TRIBE_MAP } from './testMaps'
 
 const walkable = createWalkable(THREE_TRIBE_MAP)
 
@@ -69,5 +69,43 @@ describe('island3d/walkable 可走範圍（#200 驗收條件 3）', () => {
     expect(walkable.isStraightWalkable({ x: 130, z: 0 }, { x: 160, z: 50 })).toBe(false)
     // 兩端都可走，中間不行
     expect(walkable.isStraightWalkable({ x: 0, z: 0 }, { x: 100, z: 100 })).toBe(false)
+  })
+
+  it('兩端都可走、相距很近，但連線穿過格子與公路交界的凹角：不能直走', () => {
+    expect(walkable.isWalkable(NOTCH_IN_HEX)).toBe(true)
+    expect(walkable.isWalkable(NOTCH_ON_ROAD)).toBe(true)
+    expect(walkable.isWalkable({ x: 8.875, z: 2.025 })).toBe(false)
+
+    expect(walkable.isStraightWalkable(NOTCH_IN_HEX, NOTCH_ON_ROAD)).toBe(false)
+    expect(walkable.isStraightWalkable(NOTCH_ON_ROAD, NOTCH_IN_HEX)).toBe(false)
+  })
+
+  it('連線從格子走進公路、中間一直有地方可走：可以直走', () => {
+    expect(walkable.isStraightWalkable({ x: 3, z: 1 }, { x: 40, z: -1 })).toBe(true)
+  })
+
+  it('起點和終點是同一點：可走的點算可以直走，不可走的點不算', () => {
+    expect(walkable.isStraightWalkable({ x: 50, z: 1 }, { x: 50, z: 1 })).toBe(true)
+    expect(walkable.isStraightWalkable({ x: 50, z: 50 }, { x: 50, z: 50 })).toBe(false)
+  })
+
+  it('往不可走的地方直走，最遠只能走到可走範圍的邊上', () => {
+    // 從公路中線往正南走：公路半寬 2，所以走得到的是 (50, 2)
+    const reached = walkable.reachToward({ x: 50, z: 0 }, { x: 50, z: 10 })
+
+    expect(reached.x).toBeCloseTo(50, 5)
+    expect(reached.z).toBeCloseTo(2, 5)
+  })
+
+  it('往可以直走的地方走：走得到終點', () => {
+    expect(walkable.reachToward({ x: 30, z: 1 }, { x: 70, z: -1 })).toEqual({ x: 70, z: -1 })
+  })
+
+  it('往凹角對面走：停在凹角這一側的邊上，不會跳到對面', () => {
+    const reached = walkable.reachToward(NOTCH_IN_HEX, NOTCH_ON_ROAD)
+
+    expect(walkable.isWalkable(reached)).toBe(true)
+    expect(walkable.tribeAt(reached)).toBe('west')
+    expect(Math.hypot(reached.x - NOTCH_IN_HEX.x, reached.z - NOTCH_IN_HEX.z)).toBeLessThan(0.08)
   })
 })

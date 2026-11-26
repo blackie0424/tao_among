@@ -32,3 +32,17 @@ export const ONE_HEX_MAP = {
   tribes: [{ code: 'only', center: { x: 0, z: 0 } }],
   roads: [],
 }
+
+// west 格子的右上邊（從 (10,0) 到 (5,8.66)）和公路上緣（z = 2）在 (8.845, 2) 相交，
+// 交角外側是一小塊不可走的凹角。這兩點都可走、相距 0.16，連線的中段 (8.875, 2.025) 在凹角裡。
+export const NOTCH_IN_HEX = { x: 8.8, z: 2.05 }
+export const NOTCH_ON_ROAD = { x: 8.95, z: 2 }
+
+/** from 到 to 的直線上，每隔 spacing 取一點（含兩端） */
+export function pointsBetween(from, to, spacing = 0.001) {
+  const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / spacing))
+  return Array.from({ length: steps + 1 }, (_, i) => ({
+    x: from.x + ((to.x - from.x) * i) / steps,
+    z: from.z + ((to.z - from.z) * i) / steps,
+  }))
+}

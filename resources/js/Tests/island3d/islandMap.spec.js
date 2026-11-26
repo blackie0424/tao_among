@@ -149,4 +149,14 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
 
     expect(route.map(tribeOn)).toEqual(['yayo', 'iratay', 'imowrod'])
   })
+
+  it('朗島格子與環島公路交界的凹角：相距 0.2 的兩點不能直走（審查回報的座標）', () => {
+    const inHex = { x: 3.1183114058269643, z: -65.01192686017863 }
+    const onRoad = { x: 3.296764011474805, z: -65.11483130724925 }
+
+    expect(walkable.isWalkable(inHex)).toBe(true)
+    expect(walkable.isWalkable(onRoad)).toBe(true)
+    expect(walkable.isWalkable({ x: 3.1361566663917486, z: -65.0222173048857 })).toBe(false)
+    expect(walkable.isStraightWalkable(inHex, onRoad)).toBe(false)
+  })
 })
