@@ -153,7 +153,7 @@ describe('Island/Talk NPC 對話（#189）', () => {
     )
   })
 
-  it('NPC 頭像)不用 emoji 圖示', () => {
+  it('NPC 頭像不用 emoji 圖示', () => {
     expect(byTestId(mountPage(), 'npc-name').text()).not.toMatch(/\p{Extended_Pictographic}/u)
   })
 })
