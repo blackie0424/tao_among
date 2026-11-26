@@ -4,8 +4,11 @@ import { createWalkable } from '@/island3d/walkable'
 import {
   BEND_NORTH,
   EAST,
+  FAR_CENTER,
   NOTCH_IN_HEX,
   NOTCH_ON_ROAD,
+  OFF_ROAD_CENTER,
+  OFF_ROAD_MAP,
   SOUTH,
   THREE_TRIBE_MAP,
   pointsBetween,
@@ -66,5 +69,19 @@ describe('island3d/route 點地面走過去的路線（#200 驗收條件 4）', 
     stops.slice(1).forEach((to, i) => {
       pointsBetween(stops[i], to).forEach((point) => expect(walkable.isWalkable(point)).toBe(true))
     })
+  })
+})
+
+describe('island3d/route 格子的中心不在公路上（#212 驗收條件 4）', () => {
+  const offRoad = createWalkable(OFF_ROAD_MAP)
+  const findOffRoadRoute = createRouter(OFF_ROAD_MAP, offRoad)
+
+  it('中心偏離公路 6 的格子：先走到公路上離中心最近的那一點 (0, 0)，再沿公路走', () => {
+    expect(offRoad.isStraightWalkable(OFF_ROAD_CENTER, FAR_CENTER)).toBe(false)
+    expect(findOffRoadRoute(OFF_ROAD_CENTER, FAR_CENTER)).toEqual([{ x: 0, z: 0 }, FAR_CENTER])
+  })
+
+  it('反方向也走得到：沿公路走到 (0, 0) 再進格子', () => {
+    expect(findOffRoadRoute(FAR_CENTER, OFF_ROAD_CENTER)).toEqual([{ x: 0, z: 0 }, OFF_ROAD_CENTER])
   })
 })

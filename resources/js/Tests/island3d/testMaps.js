@@ -33,6 +33,33 @@ export const ONE_HEX_MAP = {
   roads: [],
 }
 
+// 一個部落兩格：第 2 格貼著主格的右下邊（中心距離是半徑的 √3 倍，方向是 +x 往 +z 轉 30 度），
+// 兩格共用從 (10, 0) 到 (5, 8.66) 的那條邊。沒有公路。
+export const TWIN_SECOND = {
+  x: 10 * Math.sqrt(3) * Math.cos(Math.PI / 6),
+  z: 10 * Math.sqrt(3) * 0.5,
+}
+export const TWIN_HEX_MAP = {
+  hexRadius: 10,
+  roadHalfWidth: 2,
+  tribes: [{ code: 'twin', center: { x: 0, z: 0 }, hexes: [{ x: 0, z: 0 }, TWIN_SECOND] }],
+  roads: [],
+}
+
+// 一條東西向的直路（z = 0，從 x = -100 到 100），旁邊有一格的中心偏離公路 6（公路從格子裡穿過，
+// 但中心不在路上、也不在公路的折點上）；far 格在路的另一頭。
+export const OFF_ROAD_CENTER = { x: 0, z: 6 }
+export const FAR_CENTER = { x: 100, z: 0 }
+export const OFF_ROAD_MAP = {
+  hexRadius: 10,
+  roadHalfWidth: 2,
+  tribes: [
+    { code: 'off', center: OFF_ROAD_CENTER },
+    { code: 'far', center: FAR_CENTER },
+  ],
+  roads: [{ points: [{ x: -100, z: 0 }, FAR_CENTER], closed: false }],
+}
+
 // west 格子的右上邊（從 (10,0) 到 (5,8.66)）和公路上緣（z = 2）在 (8.845, 2) 相交，
 // 交角外側是一小塊不可走的凹角。這兩點都可走、相距 0.16，連線的中段 (8.875, 2.025) 在凹角裡。
 export const NOTCH_IN_HEX = { x: 8.8, z: 2.05 }

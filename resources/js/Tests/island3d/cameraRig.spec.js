@@ -293,7 +293,11 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
   })
 
   it('拉到最遠時島是置中的：鏡頭對準的是島的中心，和角色站在哪裡無關', () => {
-    viewsAt(1).forEach(({ target }) => expect(target).toEqual(ISLAND.center))
+    // 對準的位置是由角色往島中心內插算出來的，放大後的座標有小數誤差，比到小數 9 位
+    viewsAt(1).forEach(({ target }) => {
+      expect(target.x).toBeCloseTo(ISLAND.center.x, 9)
+      expect(target.z).toBeCloseTo(ISLAND.center.z, 9)
+    })
   })
 
   it('任何縮放程度下角色都在畫面裡', () => {

@@ -1,19 +1,19 @@
-// 魚島 3D：整座島的資料（#200、#207）——6 個部落格子的位置、兩條公路、走路速度，
+// 魚島 3D：整座島的資料（#200、#207、#212）——6 個部落各 3 格的位置、兩條公路、走路速度，
 // 以及海岸線、沙灘、山、水田、船。繪圖、可走範圍、找路都讀這一份。不依賴 three.js。
 // 座標是 three.js 的世界單位：x 越大越東、z 越大越南。
 //
 // 位置照蘭嶼的實際地圖（#207 規格修訂 1）：海岸線、公路、村落與山頂的位置取自 OpenStreetMap
 // （© OpenStreetMap contributors，ODbL），以北緯 22.045、東經 121.55 為原點，1 公里＝22.5 單位，
-// 換算、簡化後寫死在這裡；做法見 docs/design.md 8.8。
-
-// 走路速度（每秒走多遠）：#199 的 2 倍
-export const WALK_SPEED = 5
-
+// 換算、簡化後寫死在這裡；做法見 docs/design.md 8.8。#212 再整座放大（見 ISLAND_SCALE）。
 import { closestOnSegment } from './hexBounds'
 
 // 整座島的放大倍數（#212）：下面的座標是 #207 照實際地圖換算的數值，乘上這個倍數才是世界單位。
 // 格子、公路的寬度、人物不跟著放大，所以倍數越大，部落周圍的空間越多。
 export const ISLAND_SCALE = 1.5
+
+// 走路速度（每秒走多遠）：#207 是 5，跟著島放大，走一樣的路花一樣的時間
+const WALK_SPEED_BEFORE_SCALE = 5
+export const WALK_SPEED = WALK_SPEED_BEFORE_SCALE * ISLAND_SCALE
 
 const point = ([x, z]) => ({ x: x * ISLAND_SCALE, z: z * ISLAND_SCALE })
 
@@ -191,8 +191,9 @@ const COAST = [
   [-94.4, -14.6],
   [-94.3, -3.0],
   [-81.2, -0.0],
+  // 這 3 點比實際的海岸線再往外推（#212）：公路靠海那一側要放得下機場
   [-76.0, 21.5],
-  [-66.5, 25.0],
+  [-66.0, 24.4],
   [-58.0, 26.5],
   [-57.0, 30.9],
   [-35.0, 53.5],
@@ -290,7 +291,7 @@ export function mountainColor(height) {
     .reduce((hex, channel) => hex + channel.toString(16).padStart(2, '0'), '#')
 }
 
-// 水田（芋頭田）的大小
+// 水田（芋頭田）的大小；位置直接寫世界單位（#212：#207 的位置放大後，壓到格子或離部落太遠的挪過）
 const PADDY = { width: 6, depth: 4 }
 const paddy = ([x, z, degrees], tribeCode) => ({
   ...(tribeCode ? { tribe: tribeCode } : {}),
@@ -325,22 +326,22 @@ export const ISLAND_DECOR = {
     mountain([-33.4, 28.0, 5.9, 9.4]),
   ],
   paddies: [
-    // 每個部落旁、靠山的那一側
-    paddy([-58.2, -65.2, 170], 'iraraley'),
-    paddy([15.6, -46.7, 50], 'iranmeilek'),
-    paddy([49.8, 30.9, -130], 'ivalino'),
-    paddy([15.1, 26.3, -10], 'imowrod'),
-    paddy([-12.5, 23.2, -20], 'iratay'),
-    paddy([-66.8, -22.7, -60], 'yayo'),
-    // 部落之間的環島公路旁、靠內陸的那一側
-    paddy([-15.7, -85.4, -172]),
-    paddy([31.5, -83.0, -162]),
-    paddy([62.2, 37.2, 152]),
-    paddy([91.3, 51.3, 155]),
-    paddy([90.8, 100.6, 15]),
-    paddy([54.7, 88.9, -37]),
-    paddy([-52.7, 12.7, -52]),
-    paddy([-84.2, -45.7, -110]),
+    // 每個部落旁、靠山的那一側（離那個部落的格子不超過 8）
+    paddy([-88.3, -98.8, 170], 'iraraley'),
+    paddy([29.4, -66.1, 50], 'iranmeilek'),
+    paddy([74.7, 52.8, -130], 'ivalino'),
+    paddy([22.6, 47.0, -10], 'imowrod'),
+    paddy([-19.3, 41.3, -20], 'iratay'),
+    paddy([-107.2, -31.0, -60], 'yayo'),
+    // 部落之間的環島公路旁、靠內陸的那一側：#207 的位置放大後原地不動
+    paddy([-23.5, -128.1, -172]),
+    paddy([47.3, -124.5, -162]),
+    paddy([93.3, 55.8, 152]),
+    paddy([136.9, 76.9, 155]),
+    paddy([136.2, 150.9, 15]),
+    paddy([82.1, 133.4, -37]),
+    paddy([-79.1, 19.0, -52]),
+    paddy([-126.3, -68.6, -110]),
   ],
   boats: [
     { ...point([-103, 2]), heading: Math.PI / 5 },

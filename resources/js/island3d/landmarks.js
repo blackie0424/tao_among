@@ -1,5 +1,5 @@
-// 魚島 3D：部落的地標（#207）——清單、佔地的判斷、程式拼的造型、招牌什麼時候顯示。
-// 全部是裝飾：走不進去的只是因為放在可走範圍外，格子裡的可以穿過。不依賴 three.js。
+// 魚島 3D：部落的地標（#207、#212）——清單、佔地的判斷、程式拼的造型、招牌什麼時候顯示。
+// 全部是裝飾，放在可走範圍外（公路邊、格子外），走不進去。不依賴 three.js。
 import { closestOnSegment } from './hexBounds'
 
 // ── 佔地：以位置為中心、依朝向旋轉的長方形 ──
@@ -115,11 +115,10 @@ export function footprintInside(corners, polygon) {
 const DEGREES_TO_RADIANS = Math.PI / 180
 
 /** 清單的一項：[x, z, 朝向（度）]、[寬, 深]；模型檔先不填 */
-const landmark = (tribe, sign, kind, placement, [x, z, degrees], [width, depth]) => ({
+const landmark = (tribe, sign, kind, [x, z, degrees], [width, depth]) => ({
   tribe,
   sign,
   kind,
-  placement,
   x,
   z,
   heading: degrees * DEGREES_TO_RADIANS,
@@ -128,47 +127,55 @@ const landmark = (tribe, sign, kind, placement, [x, z, degrees], [width, depth])
   model: null,
 })
 
+// 平房類的佔地：約 4～5 個人物寬（人物高 1.7）
+const HOUSE_FOOTPRINT = [8, 6]
+
 /**
- * 島上的地標。每一項：tribe 所屬部落、sign 招牌文字、kind 造型種類、placement 放法
- * （'in-hex' 格子裡、'roadside' 公路旁）、x z 位置、heading 朝向、width depth 佔地大小、
- * model 模型檔路徑（null 就用程式拼的造型）。
- * 格子裡的照實際的羅盤方位靠邊放（中間留給之後的 3 戶人家，#201），正面朝格子中心；
- * 公路旁的放在實際位置旁的環島公路邊，正面朝路。位置依 OpenStreetMap 換算後寫死（見 #207）。
+ * 島上的地標：每個部落 1 個特色建築（#212）。每一項：tribe 所屬部落、sign 招牌文字、kind 造型種類、
+ * x z 位置、heading 朝向、width depth 佔地大小、model 模型檔路徑（null 就用程式拼的造型）。
+ * 都放在公路邊、格子外，正面朝路；位置是 chung 在設計稿上標的（見 #212），寫死在這裡。
  */
 export const LANDMARKS = [
-  landmark('imowrod', '郵局', 'post-office', 'in-hex', [19.8, 46.3, -113], [3, 2.4]),
-  landmark('imowrod', '衛生所', 'clinic', 'in-hex', [12.9, 52.0, -175], [3, 2.4]),
-  landmark('imowrod', '警察局', 'police', 'in-hex', [4.4, 46.4, 114], [3, 2.4]),
-  landmark('iratay', '文物館', 'museum', 'in-hex', [-24.2, 45.1, 135], [3, 2.4]),
-  landmark('yayo', '農會', 'farmers', 'in-hex', [-81.5, -22.6, 0], [3, 2.4]),
-  landmark('iraraley', '學校', 'school', 'in-hex', [-49.9, -88.4, -39], [3, 2.4]),
-  landmark('iraraley', '路邊攤', 'stall', 'in-hex', [-55.2, -90.3, 0], [3, 2.4]),
-  landmark('iranmeilek', '夜市', 'night-market', 'in-hex', [37.0, -35.7, -91], [3, 2.4]),
-  landmark('iranmeilek', '便利商店', 'store', 'in-hex', [35.9, -31.7, -119], [3, 2.4]),
-  landmark('iranmeilek', '警察局', 'police', 'in-hex', [32.9, -28.6, -149], [3, 2.4]),
-  landmark('iranmeilek', '學校', 'school', 'in-hex', [24.1, -28.7, 148], [3, 2.4]),
-  landmark('ivalino', '籃球場', 'court', 'in-hex', [27.5, 19.3, 90], [4, 2.6]),
-  landmark('imowrod', '學校', 'school', 'roadside', [32.7, 62.2, -52], [4, 3]),
-  landmark('iratay', '機場', 'airport', 'roadside', [-34.8, 43.7, 177], [10, 4]),
-  landmark('yayo', '學校', 'school', 'roadside', [-62.8, 8.3, -22], [4, 3]),
-  landmark('yayo', '便利商店', 'store', 'roadside', [-96.7, -41.6, 70], [3, 2.4]),
-  landmark('yayo', '超市', 'supermarket', 'roadside', [-95.2, -46.3, 70], [4, 3]),
+  // 紅頭主格與第 2 格之間
+  landmark('imowrod', '郵局', 'post-office', [31.9, 72.5, -54], HOUSE_FOOTPRINT),
+  // 椰油主格北邊
+  landmark('yayo', '農會', 'farmers', [-131.5, -41.9, -52], HOUSE_FOOTPRINT),
+  // 東清主格與第 3 格之間
+  landmark('iranmeilek', '便利商店', 'store', [32.9, -39.9, 89], HOUSE_FOOTPRINT),
+  // 朗島主格與第 3 格之間
+  landmark('iraraley', '路邊攤', 'stall', [-72.6, -133.3, 19], [6, 3]),
+  // 野銀主格西邊、橫貫公路旁
+  landmark('ivalino', '籃球場', 'court', [39.7, 18.0, -141], [12, 7]),
+  // 椰油往漁人的公路旁、靠海那一側
+  landmark('iratay', '機場', 'airport', [-98.0, 26.0, 158], [20, 8]),
 ]
 
 // ── 程式拼的造型 ──
 // 零件用佔地的比例寫（0～1），所以不論佔地多大，零件都在佔地裡。
 // 形狀：box 盒子、roof 屋頂（四角錐）、plane 貼地的平面、post 柱子、ring 平放的圓框。
 // 每個零件：shape 形狀、[寬, 高, 深]（寬與深是佔地的比例、高是實際高度）、[x, z]（離佔地中心的比例）、顏色。
+// 高度和人物（1.7）合比例（#212）：平房約兩個人高。
 
-const WALL_HEIGHT = 1.6
-const ROOF_HEIGHT = 0.9
+const WALL_HEIGHT = 2.4
+const ROOF_HEIGHT = 1
 const FLAT = 0.06
-const POST_WIDTH = 0.08
+const POST_WIDTH = 0.04
+// 路邊攤：柱子撐著一片棚子，棚頂比人高一點
+const STALL_POST_HEIGHT = 2
+const STALL_CANOPY_THICKNESS = 0.2
+// 籃球場：籃框離地的高度、籃板、柱子
+const RIM_HEIGHT = 3
+const RIM_THICKNESS = 0.06
+const BACKBOARD_HEIGHT = 0.9
+const HOOP_POST_HEIGHT = 3.5
+// 機場：航站與塔台
+const TERMINAL_HEIGHT = 2.6
+const TOWER_HEIGHT = 4.8
 
 /** 房子：一個方盒加屋頂 */
-const house = (wall, roof, wallHeight = WALL_HEIGHT) => [
-  { shape: 'box', size: [0.9, wallHeight, 0.8], at: [0, 0], color: wall },
-  { shape: 'roof', size: [1, ROOF_HEIGHT, 0.9], at: [0, 0], base: wallHeight, color: roof },
+const house = (wall, roof) => [
+  { shape: 'box', size: [0.9, WALL_HEIGHT, 0.8], at: [0, 0], color: wall },
+  { shape: 'roof', size: [1, ROOF_HEIGHT, 0.9], at: [0, 0], base: WALL_HEIGHT, color: roof },
 ]
 
 /** 小攤：四根柱子加一片棚子，中心在佔地寬度的 at 比例處 */
@@ -176,50 +183,61 @@ const stall = (at, canopy) => [
   ...[-1, 1].flatMap((side) =>
     [-1, 1].map((front) => ({
       shape: 'post',
-      size: [POST_WIDTH, 1.4, POST_WIDTH],
+      size: [POST_WIDTH, STALL_POST_HEIGHT, POST_WIDTH],
       at: [at + side * 0.1, front * 0.3],
       color: '#8a6a4a',
     }))
   ),
-  { shape: 'box', size: [0.28, 0.12, 0.8], at: [at, 0], base: 1.4, color: canopy },
+  {
+    shape: 'box',
+    size: [0.28, STALL_CANOPY_THICKNESS, 0.8],
+    at: [at, 0],
+    base: STALL_POST_HEIGHT,
+    color: canopy,
+  },
+]
+
+/** 籃球架（side 是 -1 左、1 右）：柱子、籃板、朝場內伸出去的橘色框 */
+const hoop = (side) => [
+  {
+    shape: 'post',
+    size: [POST_WIDTH, HOOP_POST_HEIGHT, POST_WIDTH],
+    at: [side * 0.45, 0],
+    color: '#6b7280',
+  },
+  {
+    shape: 'box',
+    size: [0.03, BACKBOARD_HEIGHT, 0.3],
+    at: [side * 0.42, 0],
+    base: RIM_HEIGHT - RIM_THICKNESS / 2,
+    color: '#ffffff',
+  },
+  {
+    shape: 'ring',
+    size: [0.1, RIM_THICKNESS, 0.16],
+    at: [side * 0.35, 0],
+    base: RIM_HEIGHT - RIM_THICKNESS / 2,
+    color: '#e8590c',
+  },
 ]
 
 const SHAPES = {
   'post-office': house('#f3f1e7', '#3f8f5f'),
-  clinic: house('#ffffff', '#d9534f'),
-  police: house('#e8edf5', '#2f4f8f'),
-  school: [
-    ...house('#f6e7c8', '#b5653c', 1.9),
-    { shape: 'post', size: [POST_WIDTH, 2.6, POST_WIDTH], at: [0.42, 0.42], color: '#9aa0a6' },
-  ],
-  museum: house('#d8c7a8', '#6b4a32', 1.3),
   farmers: house('#f1ead2', '#7a9a3a'),
-  store: house('#f7f7f7', '#f0a030', 1.3),
-  supermarket: house('#f7f7f7', '#3a8fb7', 1.4),
+  store: house('#f7f7f7', '#f0a030'),
   airport: [
     { shape: 'plane', size: [1, FLAT, 0.45], at: [0, -0.25], color: '#5c6166' },
     { shape: 'plane', size: [0.9, FLAT, 0.04], at: [0, -0.25], base: FLAT, color: '#ffffff' },
-    { shape: 'box', size: [0.3, 1.4, 0.3], at: [0.3, 0.3], color: '#e6e9ee' },
-    { shape: 'box', size: [0.08, 2.4, 0.2], at: [0.1, 0.3], color: '#cfd5dd' },
+    { shape: 'box', size: [0.3, TERMINAL_HEIGHT, 0.3], at: [0.3, 0.3], color: '#e6e9ee' },
+    { shape: 'box', size: [0.08, TOWER_HEIGHT, 0.2], at: [0.1, 0.3], color: '#cfd5dd' },
   ],
   court: [
     { shape: 'plane', size: [1, FLAT, 1], at: [0, 0], color: '#c9764a' },
     { shape: 'plane', size: [0.02, FLAT, 0.9], at: [0, 0], base: FLAT, color: '#ffffff' },
-    // 兩個籃框：柱子、籃板、朝場內伸出去的橘色框
-    ...[-1, 1].flatMap((side) => [
-      { shape: 'post', size: [POST_WIDTH, 2, POST_WIDTH], at: [side * 0.45, 0], color: '#6b7280' },
-      { shape: 'box', size: [0.03, 0.5, 0.3], at: [side * 0.42, 0], base: 1.6, color: '#ffffff' },
-      {
-        shape: 'ring',
-        size: [0.1, 0.06, 0.16],
-        at: [side * 0.35, 0],
-        base: 1.6,
-        color: '#e8590c',
-      },
-    ]),
+    ...hoop(-1),
+    ...hoop(1),
   ],
   stall: [...stall(-0.25, '#e07a3f'), ...stall(0.25, '#3f8fd0')],
-  'night-market': [...stall(-0.33, '#d94f4f'), ...stall(0, '#f0c040'), ...stall(0.33, '#4fa36a')],
 }
 
 /**

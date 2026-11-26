@@ -61,17 +61,19 @@ describe('island3d/occlusion 魚島上的山與船', () => {
   })
 
   it('從西邊低處往東看，山遮住後面的橫貫公路：點那裡沒有反應', () => {
-    // 橫貫公路上的一點 (20.5, 15.7)；鏡頭、山 (16.3, -0.5)、這一點在同一條線上
-    // （#207 照實際地圖重排後的座標）
-    const onCrossRoad = { x: 20.5, z: 15.7 }
+    // 橫貫公路上的一點 (30.75, 23.55)；鏡頭、山 (24.45, -0.75)、這一點在同一條線上
+    // （#207 的座標放大 1.5 倍，#212）
+    const onCrossRoad = { x: 30.75, z: 23.55 }
 
     expect(walkable.isWalkable(onCrossRoad)).toBe(true)
     expect(walkable.tribeAt(onCrossRoad)).toBeNull()
-    expect(isTapBlocked({ x: 9.3, y: 12, z: -27.5 }, onCrossRoad, blockers)).toBe(true)
+    expect(isTapBlocked({ x: 13.95, y: 18, z: -41.25 }, onCrossRoad, blockers)).toBe(true)
   })
 
   it('同一個位置把鏡頭拉高、視線越過山頂：點得到橫貫公路', () => {
-    expect(isTapBlocked({ x: 9.3, y: 70, z: -27.5 }, { x: 20.5, z: 15.7 }, blockers)).toBe(false)
+    expect(isTapBlocked({ x: 13.95, y: 105, z: -41.25 }, { x: 30.75, z: 23.55 }, blockers)).toBe(
+      false
+    )
   })
 
   it('點在船上（船在海上）：算被擋', () => {
