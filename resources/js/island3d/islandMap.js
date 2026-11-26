@@ -66,3 +66,41 @@ export function routePoints(map) {
     (point, i) => all.findIndex((other) => other.x === point.x && other.z === point.z) === i
   )
 }
+
+// ── 裝飾（走不進去）：海岸線、山、船 ──
+
+// 海岸線：環島公路往外推這麼遠
+const COAST_MARGIN = 14
+
+/** 海岸線的多邊形：環島公路的每個點從島的中心（原點）往外推 */
+function coastline(ringRoad) {
+  return ringRoad.points.map(({ x, z }) => {
+    const fromCenter = Math.hypot(x, z)
+    return {
+      x: x + (x / fromCenter) * COAST_MARGIN,
+      z: z + (z / fromCenter) * COAST_MARGIN,
+    }
+  })
+}
+
+/**
+ * coast 海岸線（多邊形的頂點）；mountains 山（位置、山腳半徑、高度），都不壓到部落與公路；
+ * boats 海上的船（位置與船頭朝向的角度）。
+ */
+export const ISLAND_DECOR = {
+  coast: coastline(ISLAND_MAP.roads[0]),
+  mountains: [
+    { x: 0, z: -25, radius: 14, height: 20 },
+    { x: -20, z: -8, radius: 11, height: 15 },
+    { x: 18, z: -6, radius: 12, height: 17 },
+    { x: -4, z: 10, radius: 9, height: 12 },
+    { x: 24, z: 10, radius: 8, height: 10 },
+    { x: -28, z: 20, radius: 8, height: 10 },
+    { x: 2, z: 58, radius: 9, height: 11 },
+  ],
+  boats: [
+    { x: 78, z: -62, heading: Math.PI / 5 },
+    { x: -88, z: 28, heading: -Math.PI / 3 },
+    { x: 62, z: 98, heading: Math.PI },
+  ],
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ISLAND_MAP, WALK_SPEED } from '@/island3d/islandMap'
+import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from '@/island3d/islandMap'
 import { createRouter } from '@/island3d/route'
 import { createWalkable } from '@/island3d/walkable'
 
@@ -158,5 +158,68 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     expect(walkable.isWalkable(onRoad)).toBe(true)
     expect(walkable.isWalkable({ x: 3.1361566663917486, z: -65.0222173048857 })).toBe(false)
     expect(walkable.isStraightWalkable(inHex, onRoad)).toBe(false)
+  })
+})
+
+describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () => {
+  const awayFromWalkable = (point) => {
+    const nearest = walkable.clampToWalkable(point)
+    return Math.hypot(nearest.x - point.x, nearest.z - point.z)
+  }
+  /** 點是否在多邊形裡（射線法） */
+  const isInside = (point, polygon) =>
+    polygon.reduce((inside, a, i) => {
+      const b = polygon[(i + 1) % polygon.length]
+      const crosses =
+        a.z > point.z !== b.z > point.z &&
+        point.x < ((b.x - a.x) * (point.z - a.z)) / (b.z - a.z) + a.x
+      return crosses ? !inside : inside
+    }, false)
+
+  it('山不壓到部落格子與公路：每座山的山腳離可走範圍至少 2', () => {
+    expect(ISLAND_DECOR.mountains.length).toBeGreaterThan(0)
+    ISLAND_DECOR.mountains.forEach((mountain) => {
+      expect(awayFromWalkable(mountain)).toBeGreaterThanOrEqual(mountain.radius + 2)
+    })
+  })
+
+  it('山在島上：每座山的中心都在海岸線裡面', () => {
+    ISLAND_DECOR.mountains.forEach((mountain) => {
+      expect(isInside(mountain, ISLAND_DECOR.coast)).toBe(true)
+    })
+  })
+
+  it('有山在島的中間（原點附近），橫貫公路從山區穿過', () => {
+    expect(ISLAND_DECOR.mountains.some((m) => Math.hypot(m.x, m.z) < 30)).toBe(true)
+    // 橫貫公路的折點南北兩側都有山
+    expect(ISLAND_DECOR.mountains.some((m) => m.z < 30)).toBe(true)
+    expect(ISLAND_DECOR.mountains.some((m) => m.z > 30)).toBe(true)
+  })
+
+  it('部落格子與公路都在海岸線裡面（不會畫在海上）', () => {
+    const stops = [
+      ...ISLAND_MAP.tribes.map((tribe) => tribe.center),
+      ...ISLAND_MAP.roads.flatMap((road) => road.points),
+    ]
+    const r = ISLAND_MAP.hexRadius
+
+    stops.forEach(({ x, z }) => {
+      ;[
+        { x: x + r, z },
+        { x: x - r, z },
+        { x, z: z + r },
+        { x, z: z - r },
+      ].forEach((point) => expect(isInside(point, ISLAND_DECOR.coast)).toBe(true))
+    })
+  })
+
+  it('船在海上：最多 3 艘，都在海岸線外面，離岸不超過看得到的範圍', () => {
+    expect(ISLAND_DECOR.boats.length).toBeGreaterThan(0)
+    expect(ISLAND_DECOR.boats.length).toBeLessThanOrEqual(3)
+    ISLAND_DECOR.boats.forEach((boat) => {
+      expect(isInside(boat, ISLAND_DECOR.coast)).toBe(false)
+      expect(awayFromWalkable(boat)).toBeGreaterThan(10)
+      expect(Math.hypot(boat.x, boat.z)).toBeLessThan(150)
+    })
   })
 })
