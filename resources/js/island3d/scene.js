@@ -1,4 +1,4 @@
-// 魚島 3D：把整座島畫出來並接上輸入（#199、#200）。這個檔只管繪圖與接輸入；
+// 魚島 3D：把整座島畫出來並接上輸入（#199、#200、#207）。這個檔只管繪圖與接輸入；
 // 島的資料、可走範圍、找路、走路、鏡頭、手勢、畫質的規則在同資料夾的純函式模組裡，
 // 不會動的地形在 terrain.js。
 import * as THREE from 'three'
@@ -19,6 +19,7 @@ import {
 } from './cameraRig'
 import { createFrameClock } from './frameClock'
 import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
+import { buildLandmarks, showSigns } from './landmarkMeshes'
 import {
   clearInput,
   createMovementInput,
@@ -371,17 +372,19 @@ function trackQuality(renderer, governor, reportStats, now, frame) {
   }
 }
 
-/** 場景裡的東西：整座島（terrain.js）、玩家、點地面的提示 */
+/** 場景裡的東西：整座島（terrain.js）、地標（landmarkMeshes.js）、玩家、點地面的提示 */
 function buildWorld() {
   const loader = new GLTFLoader()
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(COLORS.sky)
   const player = createActor(loader, PLAYER_MODEL, COLORS.player)
   const terrain = buildTerrain(loader)
+  const landmarks = buildLandmarks(loader)
   const tapRings = createTapRings()
   buildLights(scene)
-  scene.add(terrain.group, player.group, tapRings.group)
-  return { scene, player, tapRings, boats: terrain.boats, labels: terrain.labels }
+  scene.add(terrain.group, landmarks.group, player.group, tapRings.group)
+  const { boats, labels } = terrain
+  return { scene, player, tapRings, boats, labels, signs: landmarks.signs }
 }
 
 function buildCamera(container) {
@@ -470,7 +473,7 @@ export function createIslandScene(container, options) {
   const governor = createQualityGovernor(level)
   const reportStats = createStatsReporter(onStats, governor)
   const camera = buildCamera(container)
-  const { scene, player, tapRings, boats, labels } = buildWorld()
+  const { scene, player, tapRings, boats, labels, signs } = buildWorld()
   const state = createPlayerState(startTribe)
   const unwatchResize = watchResize(container, renderer, camera)
   const clock = createFrameClock()
@@ -489,6 +492,7 @@ export function createIslandScene(container, options) {
     }
     followPlayer(camera, state)
     sizeTribeLabels(labels, state.rig.zoom)
+    showSigns(signs, state.rig.zoom)
     tapRings.update(state, camera)
     renderer.render(scene, camera)
     trackQuality(renderer, governor, reportStats, now, frame)

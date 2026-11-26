@@ -11,6 +11,10 @@
     <p class="mt-2 px-1 text-elder-aux text-island-muted">
       用方向鍵走路，或點地面走過去；拖曳畫面轉鏡頭，滾輪或雙指拉遠拉近
     </p>
+    <!-- 海岸線、公路、山的位置取自 OpenStreetMap，授權要求標示來源（#207） -->
+    <p data-testid="map-credit" class="px-1 text-elder-aux text-island-muted">
+      地圖資料 © OpenStreetMap contributors
+    </p>
 
     <section class="mt-3 rounded-island bg-white p-4">
       <dl class="space-y-3">

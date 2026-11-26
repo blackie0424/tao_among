@@ -1,8 +1,8 @@
-// 魚島 3D：把整座島不會動的部分畫出來（#200）——海、陸地、部落格子與標示、公路、山、船。
+// 魚島 3D：把整座島不會動的部分畫出來（#200、#207）——海、沙灘、陸地、部落格子與標示、公路、山、水田、船。
 // 位置都讀 islandMap.js；這個檔只管繪圖。
 import * as THREE from 'three'
 import { islandTribeLabel } from '@/constants/island'
-import { ISLAND_DECOR, ISLAND_MAP, roadSegments } from './islandMap'
+import { ISLAND_DECOR, ISLAND_MAP, mountainColor, roadSegments } from './islandMap'
 
 const HEX_SIDES = 6
 const HEX_THICKNESS = 0.6
@@ -13,6 +13,14 @@ const SEA_LEVEL = -0.35
 // 陸地比部落格子低一點、公路比格子高一點，重疊的地方才不會閃爍
 const LAND_LEVEL = -0.12
 const LAND_THICKNESS = 0.6
+// 沙灘以內的陸地蓋在沙灘上面一點點；公路旁的地標站在這個高度
+export const INLAND_LEVEL = LAND_LEVEL + 0.02
+// 水田再高一點點，才不會和陸地疊在同一層
+const PADDY_LEVEL = INLAND_LEVEL + 0.03
+// 水田四周留這麼寬的田埂
+const PADDY_RIDGE = 0.3
+// 水面比田埂高這麼一點點，才不會疊在同一層
+const PADDY_WATER_LIFT = 0.01
 const ROAD_LEVEL = 0.05
 const ROAD_JOINT_SEGMENTS = 16
 const MOUNTAIN_SIDES = 6
@@ -22,6 +30,8 @@ const BOAT_MODEL = '/island3d/boats/boat-fishing-small.glb'
 
 // 部落標示：畫在一張小畫布上貼成看板，永遠正面朝鏡頭、大小不隨鏡頭遠近改變
 const LABEL_CANVAS = { width: 512, height: 128 }
+// 標示的寬高比（招牌沿用同一張貼圖的比例）
+export const LABEL_ASPECT = LABEL_CANVAS.width / LABEL_CANVAS.height
 const LABEL_FONT = '800 56px system-ui, "PingFang TC", "Noto Sans TC", sans-serif'
 const LABEL_CORNER = 28
 // 看板高度佔畫面高度的比例大約是這個值 ÷ 0.83
@@ -35,8 +45,10 @@ const COLORS = {
   sea: '#8fd0e6',
   hex: '#8fd19e',
   land: '#5fae73',
+  beach: '#ecebe4',
+  paddyRidge: '#3d7f52',
+  paddyWater: '#6fb7c9',
   road: '#ead9ae',
-  mountain: '#4f9a63',
   labelBackground: '#ffffff',
   labelText: '#12394a',
 }
@@ -52,6 +64,12 @@ export function fitModel(model, size, axis) {
   model.scale.setScalar(size / current)
 }
 
+/** 把模型等比例縮放到寬（x）不超過 width、深（z）不超過 depth */
+export function fitModelToFootprint(model, width, depth) {
+  const box = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3())
+  model.scale.setScalar(Math.min(width / box.x, depth / box.z))
+}
+
 function buildSea() {
   const sea = flatMesh(new THREE.CircleGeometry(SEA_RADIUS, SEA_SEGMENTS), COLORS.sea)
   sea.rotation.x = -Math.PI / 2
@@ -59,22 +77,61 @@ function buildSea() {
   return sea
 }
 
-/** 陸地：海岸線圍起來的一塊厚板，頂面在 LAND_LEVEL */
-function buildLand() {
-  const [first, ...rest] = ISLAND_DECOR.coast
+/** 一圈頂點（x、z）圍成的形狀 */
+function outlineShape([first, ...rest]) {
   const outline = new THREE.Shape()
   outline.moveTo(first.x, first.z)
   rest.forEach(({ x, z }) => outline.lineTo(x, z))
-  const geometry = new THREE.ExtrudeGeometry(outline, {
+  return outline
+}
+
+/** 沙灘：海岸線圍起來的一塊厚板，頂面在 LAND_LEVEL；露出來的只有沿岸一圈 */
+function buildBeach() {
+  const geometry = new THREE.ExtrudeGeometry(outlineShape(ISLAND_DECOR.coast), {
     depth: LAND_THICKNESS,
     bevelEnabled: false,
   })
   // 形狀畫在 x–y 平面、往 +z 加厚；轉成躺在 x–z 平面、往下加厚
   geometry.rotateX(Math.PI / 2)
-  const land = flatMesh(geometry, COLORS.land)
-  land.material.side = THREE.DoubleSide
-  land.position.y = LAND_LEVEL
-  return land
+  const beach = flatMesh(geometry, COLORS.beach)
+  beach.material.side = THREE.DoubleSide
+  beach.position.y = LAND_LEVEL
+  return beach
+}
+
+/** 沙灘以內的陸地：蓋在沙灘上面的一片 */
+function buildInland() {
+  const geometry = new THREE.ShapeGeometry(outlineShape(ISLAND_DECOR.inland))
+  geometry.rotateX(Math.PI / 2)
+  const inland = flatMesh(geometry, COLORS.land)
+  inland.material.side = THREE.DoubleSide
+  inland.position.y = INLAND_LEVEL
+  return inland
+}
+
+/** 躺在地上的長方形，中心在原點 */
+function flatRectangle(width, depth, color, level) {
+  const rectangle = flatMesh(new THREE.PlaneGeometry(width, depth), color)
+  rectangle.rotation.x = -Math.PI / 2
+  rectangle.position.y = level
+  return rectangle
+}
+
+/** 水田：一塊田埂色的長方形，裡面是水的顏色 */
+function buildPaddy({ x, z, width, depth, heading }) {
+  const paddy = new THREE.Group()
+  paddy.add(
+    flatRectangle(width, depth, COLORS.paddyRidge, 0),
+    flatRectangle(
+      width - PADDY_RIDGE * 2,
+      depth - PADDY_RIDGE * 2,
+      COLORS.paddyWater,
+      PADDY_WATER_LIFT
+    )
+  )
+  paddy.position.set(x, PADDY_LEVEL, z)
+  paddy.rotation.y = heading
+  return paddy
 }
 
 // CylinderGeometry 預設第一個頂點朝 +z；轉四分之一圈讓頂點朝 +x，和 hexBounds 一致
@@ -99,8 +156,8 @@ function buildHex({ x, z }) {
   return hex
 }
 
-/** 部落標示的貼圖：白底圓角、深色字 */
-function labelTexture(text) {
+/** 標示的貼圖：白底圓角、深色字（部落標示與地標的招牌共用） */
+export function labelTexture(text) {
   const canvas = document.createElement('canvas')
   canvas.width = LABEL_CANVAS.width
   canvas.height = LABEL_CANVAS.height
@@ -135,8 +192,7 @@ function buildTribeLabel({ code, center }) {
 /** 看板大小跟著鏡頭遠近：zoom 0（最近）是原本大小，1（最遠）縮到 LABEL_FAR_SCALE */
 export function sizeTribeLabels(labels, zoom) {
   const height = LABEL_SCREEN_HEIGHT * (1 - (1 - LABEL_FAR_SCALE) * zoom)
-  const aspect = LABEL_CANVAS.width / LABEL_CANVAS.height
-  labels.forEach((label) => label.scale.set(height * aspect, height, 1))
+  labels.forEach((label) => label.scale.set(height * LABEL_ASPECT, height, 1))
 }
 
 /** 公路：每一段是一塊長方形，折點補一個圓，形狀和可走範圍一致 */
@@ -159,11 +215,14 @@ function buildRoads() {
   return group
 }
 
-/** 山：島中間的幾座圓錐，只是裝飾 */
+/** 山：島中間的幾座圓錐，只是裝飾；越高顏色越深 */
 function buildMountains() {
   const group = new THREE.Group()
   ISLAND_DECOR.mountains.forEach(({ x, z, radius, height }) => {
-    const cone = flatMesh(new THREE.ConeGeometry(radius, height, MOUNTAIN_SIDES), COLORS.mountain)
+    const cone = flatMesh(
+      new THREE.ConeGeometry(radius, height, MOUNTAIN_SIDES),
+      mountainColor(height)
+    )
     cone.position.set(x, LAND_LEVEL + height / 2, z)
     group.add(cone)
   })
@@ -201,7 +260,8 @@ export function buildTerrain(loader) {
   const group = new THREE.Group()
   const boats = ISLAND_DECOR.boats.map((boat) => buildBoat(loader, boat))
   const labels = ISLAND_MAP.tribes.map(buildTribeLabel)
-  group.add(buildSea(), buildLand(), buildRoads(), buildMountains(), ...boats, ...labels)
+  group.add(buildSea(), buildBeach(), buildInland(), buildRoads(), buildMountains())
+  group.add(...ISLAND_DECOR.paddies.map(buildPaddy), ...boats, ...labels)
   ISLAND_MAP.tribes.forEach((tribe) => group.add(buildHex(tribe.center)))
   sizeTribeLabels(labels, 0)
   return { group, boats, labels }
