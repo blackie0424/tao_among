@@ -3,6 +3,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { createFrameClock } from './frameClock'
+import { ISLAND_MAP, WALK_SPEED } from './islandMap'
 import {
   clearInput,
   createMovementInput,
@@ -13,16 +14,19 @@ import {
   tapGround,
 } from './movement'
 import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
+import { createRouter } from './route'
+import { createWalkable } from './walkable'
 import { wanderPosition, wanderRoute } from './wander'
 
 // 場景尺寸（單位是 three.js 的世界單位）
-const HEX_RADIUS = 6
+const HEX_RADIUS = ISLAND_MAP.hexRadius
 const HEX_SIDES = 6
 const HEX_THICKNESS = 0.6
 const SEA_RADIUS = 80
 const SEA_LEVEL = -0.35
-const PLAYER_SPEED = 2.5
-const PLAYER_START = { x: 0, z: 2 }
+// #200 第 1 步：整座島還沒畫出來，先把 #199 的單一格子擺在島上第一個部落的位置
+const HOME_CENTER = ISLAND_MAP.tribes[0].center
+const PLAYER_START = { x: HOME_CENTER.x, z: HOME_CENTER.z + 2 }
 const ACTOR_HEIGHT = 1.7
 const BOAT_LENGTH = 3
 const BOAT_POSITION = { x: 4.5, z: 8.5 }
@@ -272,7 +276,7 @@ function bindInput(state, renderer, camera, onLeaveView) {
   const onPointerDown = (event) => {
     const point = groundPointAt(event, renderer, camera)
     if (point) {
-      state.input = tapGround(state.input, point, HEX_RADIUS)
+      state.input = tapGround(state.input, point, state.position, state.world)
     }
   }
   const onLeave = () => {
@@ -341,7 +345,11 @@ function buildWorld() {
   const npc = createActor(loader, MODELS.npc, COLORS.npc)
   const boat = buildBoat(loader)
   buildLights(scene)
-  scene.add(buildSea(), buildHex(), buildMountains(), boat, player.group, npc.group)
+  // 不會動的東西與 NPC 都以部落格子的中心為原點
+  const home = new THREE.Group()
+  home.position.set(HOME_CENTER.x, 0, HOME_CENTER.z)
+  home.add(buildSea(), buildHex(), buildMountains(), boat, npc.group)
+  scene.add(home, player.group)
   return { scene, player, npc, boat }
 }
 
@@ -359,12 +367,12 @@ function watchResize(container, renderer, camera) {
 const stepBetween = (from, to) => ({ x: to.x - from.x, z: to.z - from.z })
 const hasMoved = (step) => step.x !== 0 || step.z !== 0
 
-/** 每張畫面依輸入移動玩家；state 是 { input, position } */
+/** 每張畫面依輸入移動玩家；state 是 { input, position, world } */
 function movePlayer(player, state, deltaSeconds) {
   const before = state.position
   const next = stepMovement(state.input, before, deltaSeconds, {
-    speed: PLAYER_SPEED,
-    radius: HEX_RADIUS,
+    speed: WALK_SPEED,
+    world: state.world,
   })
   state.input = next.input
   state.position = next.position
@@ -401,7 +409,9 @@ export function createIslandScene(container, { reducedMotion = false, onStats = 
     CAMERA_FAR
   )
   const { scene, player, npc, boat } = buildWorld()
-  const state = { input: createMovementInput(), position: { ...PLAYER_START } }
+  const walkable = createWalkable(ISLAND_MAP)
+  const world = { ...walkable, findRoute: createRouter(ISLAND_MAP, walkable) }
+  const state = { input: createMovementInput(), position: { ...PLAYER_START }, world }
   const unwatchResize = watchResize(container, renderer, camera)
   const moveNpc = createNpcMover(npc, reducedMotion)
   const clock = createFrameClock()

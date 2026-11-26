@@ -35,3 +35,32 @@ describe('island3d/hexBounds 六角格邊界', () => {
     expect(clamped.z).toBeCloseTo(0, 5)
   })
 })
+
+describe('island3d/hexBounds 不在原點的六角格（#200）', () => {
+  const CENTER = { x: 100, z: -50 }
+
+  it('以指定的中心判斷點在不在格子裡', () => {
+    expect(isInsideHex({ x: 104, z: -42 }, RADIUS, CENTER)).toBe(true)
+    expect(isInsideHex({ x: 100, z: -41 }, RADIUS, CENTER)).toBe(false)
+    expect(isInsideHex({ x: 4, z: 8 }, RADIUS, CENTER)).toBe(false)
+  })
+
+  it('走出指定中心的格子，會停在那個格子的邊上', () => {
+    const clamped = clampToHex({ x: 101, z: -20 }, RADIUS, CENTER)
+
+    expect(clamped.x).toBeCloseTo(101, 5)
+    expect(clamped.z).toBeCloseTo(-41.33975, 4)
+  })
+
+  it('拉回邊上的點本身算在格子裡', () => {
+    const outside = [
+      { x: 101, z: -20 },
+      { x: 120, z: -47 },
+      { x: 93, z: -70 },
+    ]
+
+    outside.forEach((point) => {
+      expect(isInsideHex(clampToHex(point, RADIUS, CENTER), RADIUS, CENTER)).toBe(true)
+    })
+  })
+})
