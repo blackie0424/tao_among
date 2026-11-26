@@ -25,7 +25,9 @@
         >
           <img
             :src="item.image_url"
-            alt=""
+            :alt="item.name ?? '還沒有名字的魚'"
+            width="400"
+            height="300"
             loading="lazy"
             class="aspect-[4/3] w-full bg-island-line object-cover"
           />
@@ -52,7 +54,9 @@
         >
           <img
             :src="item.image_url"
-            alt=""
+            :alt="item.name ?? '還沒有名字的魚'"
+            width="400"
+            height="300"
             loading="lazy"
             class="aspect-[4/3] w-full bg-island-line object-cover"
           />

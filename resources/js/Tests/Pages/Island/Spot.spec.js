@@ -147,6 +147,19 @@ describe('Island/Spot 地點清單（#189 由部落頁搬來）', () => {
     expect(link.attributes('href')).toBe('/island/tribes/iratay/spots/main-house/talk?n=1')
   })
 
+  it('#193 魚卡照片有替代文字（魚名／還沒有名字的魚）與固定寬高', () => {
+    const wrapper = mountPage({
+      fish: [fishCard({ id: 7, name: '浪人鰺' }), fishCard({ id: 8, name: null }), resultCard()],
+    })
+    const images = cards(wrapper).map((card) => card.find('img'))
+
+    expect(images.map((img) => img.attributes('alt'))).toEqual(['浪人鰺', '還沒有名字的魚', 'ilek'])
+    for (const img of images) {
+      expect(img.attributes('width')).toBe('400')
+      expect(img.attributes('height')).toBe('300')
+    }
+  })
+
   it('有回家屋的連結', () => {
     expect(mountPage().find('[data-testid="back-to-house"]').attributes('href')).toBe(
       '/island/tribes/iratay'

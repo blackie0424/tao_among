@@ -108,6 +108,18 @@ describe('Island/Tribe 家屋（#189）', () => {
     )
   })
 
+  it('#193 「看清單」的無障礙名稱包含地點名，畫面上的字維持「看清單」', () => {
+    const links = spotCards(mountPage()).map((card) => card.find('[data-testid="spot-list-link"]'))
+
+    expect(links.map((link) => link.attributes('aria-label'))).toEqual([
+      '看主屋的清單',
+      '看靠背石的清單',
+      '看曬魚庭院的清單',
+      '看涼亭的清單',
+    ])
+    expect(links.every((link) => link.text() === '看清單')).toBe(true)
+  })
+
   it('地點卡不用 emoji 圖示', () => {
     expect(mountPage().find('[data-testid="spot-cards"]').text()).not.toMatch(
       /\p{Extended_Pictographic}/u
