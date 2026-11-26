@@ -35,8 +35,8 @@ class IslandController extends Controller
     }
 
     /**
-     * 走到某個部落：記住所在部落，列出全部的魚。
-     * 在這個部落有結果的魚排前面（各自依編號）；有結果的魚卡帶各部落的結果給魚卡與細節視窗。
+     * 走到某個部落＝走進這個部落的家屋（#189）：記住所在部落，帶部落進度與四個地點各自的 X/Y。
+     * X＝這個地點在這個部落有結果的魚條數，Y＝這個地點未軟刪除的魚條數。
      */
     public function tribe(Request $request, string $tribe): Response
     {
@@ -45,19 +45,26 @@ class IslandController extends Controller
         $character = $this->characterOf($request);
         $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
 
-        [$hasResult, $bindings] = FishTribeResponse::islandHasResultSql($tribe, (new Fish)->qualifyColumn('id'));
-        $page = Fish::with('displayCaptureRecord')
-            ->select('*')
-            ->selectRaw("{$hasResult} as has_island_result", $bindings)
-            ->orderByDesc('has_island_result')
-            ->orderBy('id')
-            ->paginate(self::FISH_PER_PAGE);
+        $idColumn = (new Fish)->qualifyColumn('id');
+        [$hasResult, $bindings] = FishTribeResponse::islandHasResultSql($tribe, $idColumn);
+        $counts = Fish::query()
+            ->selectRaw("{$idColumn} % ? as remainder", [IslandSpot::COUNT])
+            ->selectRaw('count(*) as total')
+            ->selectRaw("sum(case when {$hasResult} then 1 else 0 end) as with_result", $bindings)
+            ->groupBy('remainder')
+            ->get()
+            ->keyBy('remainder');
+        $spots = array_map(fn (array $spot) => [
+            ...IslandSpot::props($spot),
+            'with_result' => (int) ($counts[$spot['remainder']]->with_result ?? 0),
+            'total' => (int) ($counts[$spot['remainder']]->total ?? 0),
+        ], IslandSpot::all());
 
         return Inertia::render('Island/Tribe', [
             'character' => $this->characterProps($character),
             'tribe' => $tribe,
-            ...$this->fishCardPageProps($page),
-            'progress' => $this->progress($page, $hasResult, $bindings),
+            'spots' => $spots,
+            'progress' => $this->progress($spots),
         ]);
     }
 
@@ -114,14 +121,16 @@ class IslandController extends Controller
         ];
     }
 
-    /** @return array{with_result: int, total: int}|null 這個部落有結果的魚條數／全部魚條數；沒有魚時為 null */
-    private function progress(LengthAwarePaginator $page, string $hasResult, array $bindings): ?array
+    /**
+     * 部落進度＝四個地點加總（每條魚剛好在一個地點）。
+     *
+     * @return array{with_result: int, total: int}|null 這個部落有結果的魚條數／全部魚條數；沒有魚時為 null
+     */
+    private function progress(array $spots): ?array
     {
-        if ($page->total() === 0) {
-            return null;
-        }
+        $total = array_sum(array_column($spots, 'total'));
 
-        return ['with_result' => Fish::whereRaw($hasResult, $bindings)->count(), 'total' => $page->total()];
+        return $total === 0 ? null : ['with_result' => array_sum(array_column($spots, 'with_result')), 'total' => $total];
     }
 
     public function character(Request $request): Response|RedirectResponse

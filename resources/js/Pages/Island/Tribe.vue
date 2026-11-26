@@ -13,10 +13,7 @@
       <p class="rounded-island bg-white px-3 py-1.5 text-elder-aux">{{ character.name }}</p>
     </template>
 
-    <h1 class="px-1 text-elder-title font-extrabold">{{ islandTribeLabel(tribe) }}</h1>
-    <p class="px-1 pb-3 text-elder-aux text-island-muted">
-      {{ islandTribeLabel(tribe) }}的人怎麼說這些魚？
-    </p>
+    <h1 class="px-1 pb-3 text-elder-title font-extrabold">{{ islandTribeLabel(tribe) }}的家屋</h1>
 
     <div
       v-if="progress"
@@ -40,37 +37,48 @@
       <b>{{ progress.with_result }}/{{ progress.total }}</b>
     </div>
 
-    <FishCardList
-      :tribe="tribe"
-      :fish="fish"
-      :page="page"
-      :has-more-pages="has_more_pages"
-      :empty-reason="empty_reason"
-      :tribes="tribes"
-      :result-options="result_options"
-      :unknown-processing-method="unknown_processing_method"
-      :base-path="`/island/tribes/${tribe}`"
-      no-fish-text="目前沒有魚"
-    />
+    <!-- 家屋的院子：四個地點 -->
+    <ul
+      data-testid="spot-cards"
+      class="grid grid-cols-2 gap-3 rounded-island border-4 border-island-land-line bg-island-land p-3"
+    >
+      <li
+        v-for="spot in spots"
+        :key="spot.code"
+        data-testid="spot-card"
+        class="flex flex-col items-center rounded-island bg-white p-3 text-center"
+      >
+        <span
+          class="mb-2 block h-12 w-12 rounded-full border-4 border-island-ink"
+          :style="{ backgroundColor: islandSpotColor(spot.code) }"
+          aria-hidden="true"
+        />
+        <p data-testid="spot-name" class="text-elder-body font-extrabold">{{ spot.name }}</p>
+        <p class="text-elder-aux">{{ spot.npc }}</p>
+        <p data-testid="spot-progress" class="text-elder-aux text-island-muted">
+          {{ spot.total === 0 ? '這裡還沒有魚' : `${spot.with_result}/${spot.total} 有結果` }}
+        </p>
+        <Link
+          :href="`/island/tribes/${tribe}/spots/${spot.code}`"
+          data-testid="spot-list-link"
+          class="mt-2 flex min-h-touch-secondary w-full items-center justify-center rounded-island border-2 border-island-line text-elder-aux font-bold"
+        >
+          看清單
+        </Link>
+      </li>
+    </ul>
   </IslandLayout>
 </template>
 
 <script setup>
 import { Head, Link } from '@inertiajs/vue3'
-import FishCardList from '@/Components/Island/FishCardList.vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
-import { islandTribeLabel } from '@/constants/island'
+import { islandSpotColor, islandTribeLabel } from '@/constants/island'
 
 defineProps({
   character: { type: Object, required: true },
   tribe: { type: String, required: true },
-  fish: { type: Array, required: true },
-  page: { type: Number, required: true },
-  has_more_pages: { type: Boolean, required: true },
-  empty_reason: { type: String, default: null },
-  tribes: { type: Array, required: true },
-  result_options: { type: Object, required: true },
-  unknown_processing_method: { type: String, required: true },
+  spots: { type: Array, required: true },
   progress: { type: Object, default: null },
 })
 </script>

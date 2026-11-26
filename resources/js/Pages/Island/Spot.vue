@@ -14,7 +14,9 @@
     </template>
 
     <h1 class="px-1 text-elder-title font-extrabold">{{ spot.name }}的魚</h1>
-    <p class="px-1 pb-3 text-elder-aux text-island-muted">{{ islandTribeLabel(tribe) }}</p>
+    <p class="px-1 pb-3 text-elder-aux text-island-muted">
+      {{ islandTribeLabel(tribe) }}的人怎麼說這些魚？
+    </p>
 
     <FishCardList
       :tribe="tribe"
