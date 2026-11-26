@@ -28,6 +28,7 @@ import {
   stepMovement,
   tapGround,
 } from './movement'
+import { isTapBlocked, tapBlockers } from './occlusion'
 import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
 import { createRouter } from './route'
 import { bobBoats, buildTerrain, fitModel, flatMesh, sizeTribeLabels } from './terrain'
@@ -38,6 +39,8 @@ const ACTOR_HEIGHT = 1.7
 const ACTION_FADE_SECONDS = 0.2
 // 整座島的範圍（海岸線以內）：鏡頭拉到最遠時對準它的中心、整個看得到
 const ISLAND_BOUNDS = boundingCircle(ISLAND_DECOR.coast)
+// 山與船：點到它們沒有反應，就算畫面上它們後面是可走的地面
+const TAP_BLOCKERS = tapBlockers(ISLAND_DECOR)
 // 鏡頭看得到的最近、最遠距離：最近的隨鏡頭遠近調整（拉遠時重疊的地面才不會閃爍）
 const CAMERA_NEAR_RATIO = 0.02
 const CAMERA_MIN_NEAR = 0.1
@@ -189,7 +192,7 @@ function applyGesture(state, effect, renderer, camera) {
     state.rig = zoomByPinch(state.rig, effect.scale, rangeOf(camera))
   } else {
     const point = groundPointAt(effect, renderer, camera)
-    if (point) {
+    if (point && !isTapBlocked(camera.position, point, TAP_BLOCKERS)) {
       state.input = tapGround(state.input, point, state.position, state.world)
     }
   }
