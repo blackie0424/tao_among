@@ -416,10 +416,11 @@ class FishTribeResponse extends Model
 
     /**
      * 地點清單與 NPC 的排序依據（#189，套在魚的查詢上），兩個 SQL 運算式各帶自己的綁定值：
-     * answered＝這個部落有結果的題數（分類、食用各算 0 或 1）；
+     * has_food_category／has_processing_method＝這一題在這個部落有沒有結果（0 或 1）；
+     * answered＝這個部落有結果的題數（兩題相加）；
      * response_count＝這個部落兩題各自清單內回答筆數的和（食用不算「我不知道」）。
      *
-     * @return array{answered: array{0: string, 1: list<mixed>}, response_count: array{0: string, 1: list<mixed>}}
+     * @return array<'has_food_category'|'has_processing_method'|'answered'|'response_count', array{0: string, 1: list<mixed>}>
      */
     public static function islandSpotOrderSql(string $tribe, string $fishIdColumn): array
     {
@@ -427,10 +428,14 @@ class FishTribeResponse extends Model
         $existsMethod = self::islandQuestionRows($tribe, $fishIdColumn, 'processing_method', '1');
         $countCategory = self::islandQuestionRows($tribe, $fishIdColumn, 'food_category', 'count(*)');
         $countMethod = self::islandQuestionRows($tribe, $fishIdColumn, 'processing_method', 'count(*)');
+        $hasCategory = "(case when exists ({$existsCategory->toSql()}) then 1 else 0 end)";
+        $hasMethod = "(case when exists ({$existsMethod->toSql()}) then 1 else 0 end)";
 
         return [
+            'has_food_category' => [$hasCategory, $existsCategory->getBindings()],
+            'has_processing_method' => [$hasMethod, $existsMethod->getBindings()],
             'answered' => [
-                "((case when exists ({$existsCategory->toSql()}) then 1 else 0 end) + (case when exists ({$existsMethod->toSql()}) then 1 else 0 end))",
+                "({$hasCategory} + {$hasMethod})",
                 [...$existsCategory->getBindings(), ...$existsMethod->getBindings()],
             ],
             'response_count' => [
@@ -438,6 +443,20 @@ class FishTribeResponse extends Model
                 [...$countCategory->getBindings(), ...$countMethod->getBindings()],
             ],
         ];
+    }
+
+    /**
+     * 要問的那一題（#189）：依叫法 → 分類 → 處理方式，第一個缺的。
+     * 叫法缺＝魚沒有名字（與魚卡顯示「還沒有名字」同一個判斷）；分類、處理方式缺＝那一題在這個部落沒結果。三題都不缺時為 null。
+     */
+    public static function islandQuestionToAsk(string $fishName, bool $hasCategory, bool $hasMethod): ?string
+    {
+        return match (true) {
+            $fishName === self::UNNAMED_FISH_NAME => 'name',
+            ! $hasCategory => 'food_category',
+            ! $hasMethod => 'processing_method',
+            default => null,
+        };
     }
 
     /** 這個部落、這條魚某一題「算結果」的回答列：只算選項清單內的值，食用不算「我不知道」。 */

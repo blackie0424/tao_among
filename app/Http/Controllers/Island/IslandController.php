@@ -84,6 +84,8 @@ class IslandController extends Controller
         $page = Fish::with('displayCaptureRecord')
             ->select('*')
             ->selectRaw("{$hasResult} as has_island_result", $hasResultBindings)
+            ->selectRaw("{$order['has_food_category'][0]} as island_has_food_category", $order['has_food_category'][1])
+            ->selectRaw("{$order['has_processing_method'][0]} as island_has_processing_method", $order['has_processing_method'][1])
             ->selectRaw("{$order['answered'][0]} as island_answered", $order['answered'][1])
             ->selectRaw("{$order['response_count'][0]} as island_response_count", $order['response_count'][1])
             ->whereRaw("{$idColumn} % ? = ?", [IslandSpot::COUNT, $spotDefinition['remainder']])
@@ -100,7 +102,7 @@ class IslandController extends Controller
         ]);
     }
 
-    /** 魚卡清單頁共用的資料：魚卡（有結果的帶各部落結果）、選項與部落清單、頁碼與空清單原因。 */
+    /** 地點清單的資料：魚卡（有結果的帶各部落結果、要問的那一題）、選項與部落清單、頁碼與空清單原因。 */
     private function fishCardPageProps(LengthAwarePaginator $page): array
     {
         $counts = FishTribeResponse::islandResultCounts($page->getCollection()->pluck('id')->all());
@@ -114,6 +116,7 @@ class IslandController extends Controller
                 'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,
                 'image_url' => $fish->display_image_url,
                 'results' => $fish->has_island_result ? $counts[$fish->id] : null,
+                'ask' => FishTribeResponse::islandQuestionToAsk($fish->name, (bool) $fish->island_has_food_category, (bool) $fish->island_has_processing_method),
             ])->values(),
             'page' => $page->currentPage(),
             'has_more_pages' => $page->hasMorePages(),

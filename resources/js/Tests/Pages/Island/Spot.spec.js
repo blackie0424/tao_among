@@ -124,6 +124,22 @@ describe('Island/Spot 地點清單（#189 由部落頁搬來）', () => {
     expect(links[1].text()).toContain('幫它取名')
   })
 
+  it('#189 沒有結果的魚卡連到作答頁「要問的那一題」', () => {
+    const wrapper = mountPage({
+      fish: [
+        fishCard({ id: 7, ask: 'food_category' }),
+        fishCard({ id: 8, name: null, ask: 'name' }),
+        fishCard({ id: 9, ask: 'processing_method' }),
+      ],
+    })
+
+    expect(cards(wrapper).map((card) => card.find('a').attributes('href'))).toEqual([
+      '/island/tribes/iratay/fish/7?question=food_category',
+      '/island/tribes/iratay/fish/8?question=name',
+      '/island/tribes/iratay/fish/9?question=processing_method',
+    ])
+  })
+
   it('有回家屋的連結', () => {
     expect(mountPage().find('[data-testid="back-to-house"]').attributes('href')).toBe(
       '/island/tribes/iratay'

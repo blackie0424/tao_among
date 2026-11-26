@@ -47,7 +47,7 @@
         </button>
         <Link
           v-else
-          :href="`/island/tribes/${tribe}/fish/${item.id}`"
+          :href="answerUrl(item)"
           class="flex h-full flex-col focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
         >
           <img
@@ -166,6 +166,10 @@ async function closeDetail() {
   await nextTick()
   cardButtons.value[index]?.focus()
 }
+
+// 沒有結果的魚卡：到作答頁「要問的那一題」（#189，後端算好放在 ask）
+const answerUrl = (item) =>
+  `/island/tribes/${props.tribe}/fish/${item.id}` + (item.ask ? `?question=${item.ask}` : '')
 
 const pageUrl = (page) => `${props.basePath}?page=${page}`
 </script>

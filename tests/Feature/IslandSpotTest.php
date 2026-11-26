@@ -214,3 +214,30 @@ it('有魚的頁面 empty_reason 是 null', function () {
 
     expect(spotPageProps($this, 'main-house')['empty_reason'])->toBeNull();
 });
+
+// AC 5：要問的那一題
+it('要問的那一題：依叫法、分類、處理方式的順序，第一個缺的；三題都不缺時為 null', function () {
+    [$unnamedBoth, $noCategory, $categoryOnly, $methodOnly, $both, $unknownMethod, $unnamedNone] = spotFish(1, 5, 9, 13, 17, 21, 25);
+    $unnamedBoth->update(['name' => '我不知道']);
+    $unnamedNone->update(['name' => '我不知道']);
+    foreach ([$noCategory, $categoryOnly, $methodOnly, $both, $unknownMethod] as $fish) {
+        $fish->update(['name' => '浪人鰺']);
+    }
+    spotAnswers($unnamedBoth, 'yayo', [['oyod', '去魚鱗']]);
+    spotAnswers($categoryOnly, 'yayo', [['oyod', null]]);
+    spotAnswers($methodOnly, 'yayo', [[null, '剝皮']]);
+    spotAnswers($both, 'yayo', [['rahet', '剝皮']]);
+    spotAnswers($unknownMethod, 'yayo', [['oyod', '我不知道']]);
+    spotAnswers($noCategory, 'iratay', [['oyod', '去魚鱗']]);
+    $this->actingAs(spotPlayer());
+
+    $ask = collect(spotPageProps($this, 'main-house')['fish'])->pluck('ask', 'id');
+
+    expect($ask[$unnamedBoth->id])->toBe('name')
+        ->and($ask[$unnamedNone->id])->toBe('name')
+        ->and($ask[$noCategory->id])->toBe('food_category')
+        ->and($ask[$methodOnly->id])->toBe('food_category')
+        ->and($ask[$categoryOnly->id])->toBe('processing_method')
+        ->and($ask[$unknownMethod->id])->toBe('processing_method')
+        ->and($ask[$both->id])->toBeNull();
+});
