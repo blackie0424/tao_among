@@ -59,6 +59,7 @@ Route::middleware(['auth', 'browse'])->group(function () {
 // 魚島：不用登入的新前端（設計見 docs/design.md）
 Route::middleware(EnsureIslandCharacter::class)->group(function () {
     Route::get('/island', [IslandController::class, 'home'])->name('island.home');
+    Route::post('/island/location', [IslandController::class, 'updateLocation'])->middleware('throttle:60,1')->name('island.location.update');
     Route::get('/island/tribes/{tribe}', [IslandController::class, 'tribe'])->name('island.tribe');
     Route::get('/island/tribes/{tribe}/spots/{spot}', [IslandController::class, 'spot'])->name('island.spot');
     Route::get('/island/tribes/{tribe}/spots/{spot}/talk', [IslandController::class, 'talk'])->name('island.talk');

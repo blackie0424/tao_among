@@ -423,3 +423,95 @@ it('#189 地點的 X＝這個部落有結果的魚條數、Y＝未軟刪除的�
         ->and($spots['pavilion'])->toMatchArray(['with_result' => 0, 'total' => 0])
         ->and(tribePageProps($this, 'iratay')['spots'][0])->toMatchArray(['with_result' => 1, 'total' => 4]);
 });
+
+// #200 AC 9：只記位置的寫入點
+it('#200 記位置：成功回 204，再開 /island 所在部落就是它，角色自己的部落不變', function () {
+    $this->actingAs(islandPlayer('yayo'));
+
+    $this->postJson('/island/location', ['tribe' => 'ivalino'])->assertNoContent();
+
+    $this->get('/island')
+        ->assertInertia(fn ($page) => $page
+            ->where('current_tribe', 'ivalino')
+            ->where('character.tribe', 'yayo'));
+});
+
+it('#200 記位置：連續記兩次，以最後一次為準', function () {
+    $this->actingAs(islandPlayer('yayo'));
+
+    $this->postJson('/island/location', ['tribe' => 'ivalino'])->assertNoContent();
+    $this->postJson('/island/location', ['tribe' => 'iraraley'])->assertNoContent();
+
+    $this->get('/island')->assertInertia(fn ($page) => $page->where('current_tribe', 'iraraley'));
+});
+
+it('#200 記位置：不在清單裡的部落、沒帶部落、不是文字都回 422，所在部落不變', function (mixed $tribe) {
+    $this->actingAs(islandPlayer('yayo'));
+    $this->postJson('/island/location', ['tribe' => 'iratay'])->assertNoContent();
+
+    $this->postJson('/island/location', ['tribe' => $tribe])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('tribe');
+
+    $this->get('/island')->assertInertia(fn ($page) => $page->where('current_tribe', 'iratay'));
+})->with([
+    '清單外' => ['taipei'],
+    '大小寫不同' => ['Ivalino'],
+    '空字串' => [''],
+    '沒帶' => [null],
+    '陣列' => [['ivalino']],
+]);
+
+it('#200 記位置：沒登入的人被導到角色設定頁', function () {
+    $this->post('/island/location', ['tribe' => 'ivalino'])->assertRedirect('/island/character');
+});
+
+it('#200 記位置：登入但沒有魚島角色的人被導到角色設定頁，不會記住', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/island/location', ['tribe' => 'ivalino'])
+        ->assertRedirect('/island/character');
+
+    IslandCharacter::create(['user_id' => $user->id, 'name' => '阿海', 'tribe' => 'yayo']);
+    $this->get('/island')->assertInertia(fn ($page) => $page->where('current_tribe', 'yayo'));
+});
+
+it('#200 記位置：同一個 session 換成另一個角色登入，不沿用前一個角色記的部落', function () {
+    $this->actingAs(islandPlayer('yayo', '甲'));
+    $this->postJson('/island/location', ['tribe' => 'iratay'])->assertNoContent();
+
+    Auth::logout();
+    $this->actingAs(islandPlayer('imowrod', '乙'));
+
+    $this->get('/island')->assertInertia(fn ($page) => $page->where('current_tribe', 'imowrod'));
+});
+
+// #200 無效起點：所在部落一定是清單裡的部落
+it('#200 session 記的部落已不在清單裡：所在部落改用角色自己的部落', function () {
+    $user = islandPlayer('yayo');
+    $character = IslandCharacter::where('user_id', $user->id)->firstOrFail();
+
+    $this->actingAs($user)
+        ->withSession(['island.location' => ['character_id' => $character->id, 'tribe' => 'taipei']])
+        ->get('/island')
+        ->assertInertia(fn ($page) => $page->where('current_tribe', 'yayo'));
+});
+
+it('#200 session 記的部落與角色自己的部落都不在清單裡：所在部落用清單的第一個', function () {
+    $user = islandPlayer('taipei');
+    $character = IslandCharacter::where('user_id', $user->id)->firstOrFail();
+
+    $this->actingAs($user)
+        ->withSession(['island.location' => ['character_id' => $character->id, 'tribe' => 'tainan']])
+        ->get('/island')
+        ->assertInertia(fn ($page) => $page
+            ->where('current_tribe', 'ivalino')
+            ->where('character.tribe', 'taipei'));
+});
+
+it('#200 沒記過位置、角色自己的部落不在清單裡：所在部落用清單的第一個', function () {
+    $this->actingAs(islandPlayer('taipei'))
+        ->get('/island')
+        ->assertInertia(fn ($page) => $page->where('current_tribe', 'ivalino'));
+});
