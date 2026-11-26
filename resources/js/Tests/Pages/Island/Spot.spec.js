@@ -147,6 +147,18 @@ describe('Island/Spot 地點清單（#189 由部落頁搬來）', () => {
     expect(link.attributes('href')).toBe('/island/tribes/iratay/spots/main-house/talk?n=1')
   })
 
+  it('#191 有結果的魚卡按鈕有 hover 樣式', () => {
+    const button = cards(mountPage({ fish: [resultCard()] }))[0].find('button')
+
+    expect(button.classes().some((name) => name.startsWith('hover:'))).toBe(true)
+  })
+
+  it('#191 細節視窗的捲動面板不帶動背後的頁面（overscroll-contain）', async () => {
+    const dialog = await openDetail(mountPage({ fish: [resultCard()] }))
+
+    expect(dialog.classes()).toContain('overscroll-contain')
+  })
+
   it('有回家屋的連結', () => {
     expect(mountPage().find('[data-testid="back-to-house"]').attributes('href')).toBe(
       '/island/tribes/iratay'

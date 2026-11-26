@@ -7,7 +7,7 @@
       role="dialog"
       aria-modal="true"
       :aria-label="`${title}：大家怎麼說`"
-      class="max-h-full w-full max-w-md overflow-y-auto rounded-island bg-white p-4 text-island-ink"
+      class="max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-island bg-white p-4 text-island-ink"
     >
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-elder-title font-extrabold">{{ title }}</h2>
