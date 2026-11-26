@@ -262,50 +262,44 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
   const ASPECTS = [16 / 9, 1, 9 / 16]
   const PITCHES = [degrees(25), DEFAULT_PITCH, degrees(75)]
   /** 每種寬高比 × 每個俯角 × 角色站的每個位置 × 每個左右角度，在某個縮放程度下的鏡頭 */
-  const eachView = (zoom, check) => {
-    ASPECTS.forEach((aspect) => {
-      PITCHES.forEach((pitch) => {
-        const range = cameraRange({ aspect, viewRadius: ISLAND.radius, pitch })
-        STOPS.forEach((player) => {
-          HEADINGS.forEach((heading) => {
-            const rig = rigOf({ heading, pitch, zoom })
-            const target = cameraTarget(rig, player, range, ISLAND.center)
-            const camera = cameraPlacement(rig, target, range)
-            check({ aspect, pitch, player, heading, target, camera })
-          })
-        })
-      })
+  /** 幾個清單的所有組合：[[a1, b1], [a1, b2], …] */
+  const combinations = (lists) =>
+    lists.reduce((rows, list) => rows.flatMap((row) => list.map((item) => [...row, item])), [[]])
+  const VIEWS = combinations([ASPECTS, PITCHES, STOPS, HEADINGS])
+  /** 某個縮放程度下，每一種組合的鏡頭：{ zoom, aspect, pitch, player, heading, target, camera } */
+  const viewsAt = (zoom) =>
+    VIEWS.map(([aspect, pitch, player, heading]) => {
+      const range = cameraRange({ aspect, viewRadius: ISLAND.radius, pitch })
+      const rig = rigOf({ heading, pitch, zoom })
+      const target = cameraTarget(rig, player, range, ISLAND.center)
+      return {
+        zoom,
+        aspect,
+        pitch,
+        player,
+        heading,
+        target,
+        camera: cameraPlacement(rig, target, range),
+      }
     })
-  }
+  const sees = (view, point) => isInView(view.camera, view.target, point, view.aspect)
 
   it('拉到最遠：不論角色在哪裡、鏡頭左右轉到哪、俯角多少、橫式或直式，整條海岸線都在畫面裡', () => {
-    const missed = []
-
-    eachView(1, ({ aspect, pitch, player, heading, target, camera }) => {
-      ISLAND_DECOR.coast.forEach((point) => {
-        if (!isInView(camera, target, point, aspect)) {
-          missed.push({ aspect, pitch, player, heading, point })
-        }
-      })
-    })
+    const missed = viewsAt(1).filter(
+      (view) => !ISLAND_DECOR.coast.every((point) => sees(view, point))
+    )
 
     expect(missed).toEqual([])
   })
 
   it('拉到最遠時島是置中的：鏡頭對準的是島的中心，和角色站在哪裡無關', () => {
-    eachView(1, ({ target }) => expect(target).toEqual(ISLAND.center))
+    viewsAt(1).forEach(({ target }) => expect(target).toEqual(ISLAND.center))
   })
 
   it('任何縮放程度下角色都在畫面裡', () => {
-    const missed = []
-
-    ;[0, 0.1, 0.25, 0.5, 0.75, 0.9, 1].forEach((zoom) => {
-      eachView(zoom, ({ aspect, player, heading, target, camera }) => {
-        if (!isInView(camera, target, player, aspect)) {
-          missed.push({ zoom, aspect, player, heading })
-        }
-      })
-    })
+    const missed = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]
+      .flatMap(viewsAt)
+      .filter((view) => !sees(view, view.player))
 
     expect(missed).toEqual([])
   })
