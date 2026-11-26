@@ -2,16 +2,17 @@ import { describe, expect, it } from 'vitest'
 import {
   cameraDistance,
   cameraPlacement,
+  boundingCircle,
   cameraRange,
+  cameraTarget,
   createCameraRig,
   createGesture,
   reduceGesture,
   rotateCamera,
-  viewRadius,
   zoomByPinch,
   zoomByWheel,
 } from '@/island3d/cameraRig'
-import { ISLAND_MAP } from '@/island3d/islandMap'
+import { ISLAND_DECOR, ISLAND_MAP } from '@/island3d/islandMap'
 
 // 鏡頭的俯角沿用 #199：在角色後方 13、上方 12 的方向（距離 17.692）
 const PITCH_SIN = 12 / Math.hypot(12, 13)
@@ -125,12 +126,6 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
     expect(cameraRange({ aspect: 9 / 16, viewRadius: 100 }).farthest).toBeCloseTo(435.44, 1)
   })
 
-  it('魚島要看得到的範圍半徑：比島上最遠兩點的距離大，但不超過它加上兩個格子', () => {
-    // 朗島 (0,-70) 到島南端的折點 (0,88) 相距 158
-    expect(viewRadius(ISLAND_MAP)).toBeGreaterThanOrEqual(158)
-    expect(viewRadius(ISLAND_MAP)).toBeLessThanOrEqual(158 + 4 * ISLAND_MAP.hexRadius)
-  })
-
   // 用測試自己的投影算法驗證：鏡頭拉到最遠時，地面上的點落在畫面裡
   const isInView = (camera, target, point, aspect) => {
     const toTarget = { x: target.x - camera.x, y: -camera.y, z: target.z - camera.z }
@@ -152,34 +147,85 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
     return depth > 0 && across <= 1.0001 && upward <= 1.0001
   }
 
-  it('拉到最遠：角色站在任何部落或公路折點、鏡頭轉到任何方向、橫式或直式，整座島都在畫面裡', () => {
-    const r = ISLAND_MAP.hexRadius
-    const stops = [
-      ...ISLAND_MAP.tribes.map((tribe) => tribe.center),
-      ...ISLAND_MAP.roads.flatMap((road) => road.points),
-    ]
-    // 每個部落格子與公路折點周圍一個格子半徑的四個方向
-    const landmarks = stops.flatMap(({ x, z }) => [
-      { x: x + r, z },
-      { x: x - r, z },
-      { x, z: z + r },
-      { x, z: z - r },
+  it('一群點的外接範圍：中心是左右、前後的正中間，半徑是中心到最遠那一點', () => {
+    const circle = boundingCircle([
+      { x: 0, z: 0 },
+      { x: 10, z: 0 },
+      { x: 10, z: 6 },
+      { x: 0, z: 6 },
     ])
-    const headings = [0, Math.PI / 4, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]
-    const aspects = [16 / 9, 1, 9 / 16]
+
+    expect(circle.center).toEqual({ x: 5, z: 3 })
+    expect(circle.radius).toBeCloseTo(Math.hypot(5, 3), 5)
+  })
+
+  it('鏡頭對準的位置：最近時是角色，最遠時是島的中心', () => {
+    const range = { nearest: 10, farthest: 110 }
+    const player = { x: 40, z: -20 }
+    const island = { x: 0, z: 0 }
+
+    expect(cameraTarget({ heading: 0, zoom: 0 }, player, range, island)).toEqual(player)
+    expect(cameraTarget({ heading: 0, zoom: 1 }, player, range, island)).toEqual(island)
+  })
+
+  it('鏡頭對準的位置依鏡頭距離移動：距離走到最近與最遠的正中間時，在角色與島中心的正中間', () => {
+    const range = { nearest: 10, farthest: 110 }
+    // 距離 60 是 10 與 110 的正中間；距離等比例變化，所以 zoom = log(6) / log(11)
+    const rig = { heading: 0, zoom: Math.log(6) / Math.log(11) }
+    const target = cameraTarget(rig, { x: 40, z: -20 }, range, { x: 0, z: 0 })
+
+    expect(target.x).toBeCloseTo(20, 5)
+    expect(target.z).toBeCloseTo(-10, 5)
+  })
+
+  // 魚島：海岸線圍住整座島
+  const ISLAND = boundingCircle(ISLAND_DECOR.coast)
+  const STOPS = [
+    ...ISLAND_MAP.tribes.map((tribe) => tribe.center),
+    ...ISLAND_MAP.roads.flatMap((road) => road.points),
+  ]
+  const HEADINGS = [0, Math.PI / 4, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]
+  const ASPECTS = [16 / 9, 1, 9 / 16]
+  /** 每種寬高比 × 角色站的每個位置 × 每個鏡頭角度，在某個縮放程度下的鏡頭 */
+  const eachView = (zoom, check) => {
+    ASPECTS.forEach((aspect) => {
+      const range = cameraRange({ aspect, viewRadius: ISLAND.radius })
+      STOPS.forEach((player) => {
+        HEADINGS.forEach((heading) => {
+          const rig = { heading, zoom }
+          const target = cameraTarget(rig, player, range, ISLAND.center)
+          check({ aspect, player, heading, target, camera: cameraPlacement(rig, target, range) })
+        })
+      })
+    })
+  }
+
+  it('拉到最遠：不論角色在哪裡、鏡頭轉到哪個方向、橫式或直式，整條海岸線都在畫面裡', () => {
     const missed = []
 
-    aspects.forEach((aspect) => {
-      const range = cameraRange({ aspect, viewRadius: viewRadius(ISLAND_MAP) })
-      stops.forEach((target) => {
-        headings.forEach((heading) => {
-          const camera = cameraPlacement({ heading, zoom: 1 }, target, range)
-          landmarks.forEach((point) => {
-            if (!isInView(camera, target, point, aspect)) {
-              missed.push({ aspect, target, heading, point })
-            }
-          })
-        })
+    eachView(1, ({ aspect, player, heading, target, camera }) => {
+      ISLAND_DECOR.coast.forEach((point) => {
+        if (!isInView(camera, target, point, aspect)) {
+          missed.push({ aspect, player, heading, point })
+        }
+      })
+    })
+
+    expect(missed).toEqual([])
+  })
+
+  it('拉到最遠時島是置中的：鏡頭對準的是島的中心，和角色站在哪裡無關', () => {
+    eachView(1, ({ target }) => expect(target).toEqual(ISLAND.center))
+  })
+
+  it('任何縮放程度下角色都在畫面裡', () => {
+    const missed = []
+
+    ;[0, 0.1, 0.25, 0.5, 0.75, 0.9, 1].forEach((zoom) => {
+      eachView(zoom, ({ aspect, player, heading, target, camera }) => {
+        if (!isInView(camera, target, player, aspect)) {
+          missed.push({ zoom, aspect, player, heading })
+        }
       })
     })
 

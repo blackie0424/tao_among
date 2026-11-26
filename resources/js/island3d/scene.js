@@ -7,17 +7,18 @@ import {
   CAMERA_FIELD_OF_VIEW,
   cameraDistance,
   cameraPlacement,
+  boundingCircle,
   cameraRange,
+  cameraTarget,
   createCameraRig,
   createGesture,
   reduceGesture,
   rotateCamera,
-  viewRadius,
   zoomByPinch,
   zoomByWheel,
 } from './cameraRig'
 import { createFrameClock } from './frameClock'
-import { ISLAND_MAP, WALK_SPEED } from './islandMap'
+import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
 import {
   clearInput,
   createMovementInput,
@@ -35,8 +36,8 @@ import { createWalkable } from './walkable'
 const ACTOR_HEIGHT = 1.7
 // 動作切換的淡入淡出秒數
 const ACTION_FADE_SECONDS = 0.2
-// 鏡頭拉到最遠時，角色周圍要看得到的半徑
-const VIEW_RADIUS = viewRadius(ISLAND_MAP)
+// 整座島的範圍（海岸線以內）：鏡頭拉到最遠時對準它的中心、整個看得到
+const ISLAND_BOUNDS = boundingCircle(ISLAND_DECOR.coast)
 // 鏡頭看得到的最近、最遠距離：最近的隨鏡頭遠近調整（拉遠時重疊的地面才不會閃爍）
 const CAMERA_NEAR_RATIO = 0.02
 const CAMERA_MIN_NEAR = 0.1
@@ -156,7 +157,7 @@ function groundPointAt({ x, y }, renderer, camera) {
   return hit ? { x: hit.x, z: hit.z } : null
 }
 
-const rangeOf = (camera) => cameraRange({ aspect: camera.aspect, viewRadius: VIEW_RADIUS })
+const rangeOf = (camera) => cameraRange({ aspect: camera.aspect, viewRadius: ISLAND_BOUNDS.radius })
 
 /** 接方向鍵；state.input 由 movement.js 的規則更新。回傳解除監聽的函式 */
 function bindKeys(state) {
@@ -256,12 +257,13 @@ function bindInput(state, renderer, camera, onLeaveView) {
   }
 }
 
-/** 鏡頭繞著角色、看著角色；角度與距離來自 state.rig */
+/** 鏡頭最近時看著角色，拉遠時移向島的中心；角度與距離來自 state.rig */
 function followPlayer(camera, state) {
   const range = rangeOf(camera)
-  const placement = cameraPlacement(state.rig, state.position, range)
+  const target = cameraTarget(state.rig, state.position, range, ISLAND_BOUNDS.center)
+  const placement = cameraPlacement(state.rig, target, range)
   camera.position.set(placement.x, placement.y, placement.z)
-  camera.lookAt(state.position.x, 0, state.position.z)
+  camera.lookAt(target.x, 0, target.z)
   camera.near = Math.max(CAMERA_MIN_NEAR, cameraDistance(state.rig, range) * CAMERA_NEAR_RATIO)
   camera.updateProjectionMatrix()
 }

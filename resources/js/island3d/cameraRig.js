@@ -1,6 +1,7 @@
 // 魚島 3D：鏡頭規則與手勢判斷（#200 驗收條件 6、7）。不依賴 three.js。
-// 鏡頭繞著角色轉、始終看著角色，俯角固定；rig 是 { heading, zoom }：
-//   heading 繞著角色轉的角度（弧度）：0 時鏡頭在角色的 +z 那一側往 -z 看
+// 鏡頭繞著它對準的位置轉，俯角固定。對準的位置最近時是角色，拉遠時移向島的中心，
+// 最遠時是島的中心（整座島置中）。rig 是 { heading, zoom }：
+//   heading 鏡頭轉的角度（弧度）：0 時鏡頭在對準位置的 +z 那一側往 -z 看
 //   zoom    0 是最近、1 是最遠
 // 狀態都是不可變的：每個函式回傳新的狀態。
 
@@ -52,24 +53,21 @@ export function cameraDistance(rig, { nearest, farthest }) {
   return nearest * (farthest / nearest) ** rig.zoom
 }
 
-/**
- * 要看得到的範圍半徑：角色站在島上任何地方時，島上最遠的東西離他多遠。
- * 取部落中心與公路折點之間最遠的距離，兩端各加一個格子半徑。
- */
-export function viewRadius(map) {
-  const stops = [
-    ...map.tribes.map((tribe) => tribe.center),
-    ...map.roads.flatMap((road) => road.points),
-  ]
-  const farthestApart = Math.max(
-    ...stops.flatMap((a) => stops.map((b) => Math.hypot(a.x - b.x, a.z - b.z)))
-  )
-  return farthestApart + 2 * map.hexRadius
+/** 一群點的外接範圍：{ center 左右、前後的正中間, radius 中心到最遠那一點的距離 } */
+export function boundingCircle(points) {
+  const xs = points.map((point) => point.x)
+  const zs = points.map((point) => point.z)
+  const center = {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2,
+    z: (Math.min(...zs) + Math.max(...zs)) / 2,
+  }
+  const radius = Math.max(...points.map(({ x, z }) => Math.hypot(x - center.x, z - center.z)))
+  return { center, radius }
 }
 
 /**
- * 鏡頭距離的上下限。aspect 是畫面的寬高比，viewRadius 是拉到最遠時角色周圍要看得到的半徑。
- * 最遠：以角色為中心、半徑 viewRadius 的地面圓剛好整個在畫面裡（不論鏡頭轉到哪個角度）。
+ * 鏡頭距離的上下限。aspect 是畫面的寬高比，viewRadius 是拉到最遠時要看得到的半徑（整座島）。
+ * 最遠：以對準的位置為中心、半徑 viewRadius 的地面圓剛好整個在畫面裡（不論鏡頭轉到哪個角度）。
  */
 export function cameraRange({ aspect, viewRadius: radius }) {
   const pullback = Math.min(NEAREST_MAX_PULLBACK, Math.max(1, NEAREST_FIT_ASPECT / aspect))
@@ -81,6 +79,19 @@ export function cameraRange({ aspect, viewRadius: radius }) {
   return {
     nearest: NEAREST_DISTANCE * pullback,
     farthest: radius * Math.max(fitVertical, fitHorizontal),
+  }
+}
+
+/**
+ * 鏡頭對準地面上的哪裡：在角色 player 與島中心 islandCenter 之間，依鏡頭距離移動——
+ * 最近時是角色、最遠時是島中心。這樣移動時，角色離對準位置的距離不會超過當下看得到的範圍，
+ * 所以任何縮放程度下角色都在畫面裡。
+ */
+export function cameraTarget(rig, player, range, islandCenter) {
+  const toIsland = (cameraDistance(rig, range) - range.nearest) / (range.farthest - range.nearest)
+  return {
+    x: player.x + (islandCenter.x - player.x) * toIsland,
+    z: player.z + (islandCenter.z - player.z) * toIsland,
   }
 }
 

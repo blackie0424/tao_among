@@ -28,7 +28,7 @@ const LABEL_CORNER = 28
 const LABEL_SCREEN_HEIGHT = 0.045
 const LABEL_HEIGHT_ABOVE_GROUND = 4.5
 // 鏡頭拉到最遠時看板縮成這個比例：整座島在畫面裡變小，看板太大會互相蓋住
-const LABEL_FAR_SCALE = 0.5
+const LABEL_FAR_SCALE = 0.75
 
 // 顏色沿用魚島的色票（tailwind.config.js 的 island）；公路是沙色
 const COLORS = {
