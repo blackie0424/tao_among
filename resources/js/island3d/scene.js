@@ -160,7 +160,8 @@ function groundPointAt({ x, y }, renderer, camera) {
   return hit ? { x: hit.x, z: hit.z } : null
 }
 
-const rangeOf = (camera) => cameraRange({ aspect: camera.aspect, viewRadius: ISLAND_BOUNDS.radius })
+const rangeOf = (camera, rig) =>
+  cameraRange({ aspect: camera.aspect, viewRadius: ISLAND_BOUNDS.radius, pitch: rig.pitch })
 
 /** 接方向鍵；state.input 由 movement.js 的規則更新。回傳解除監聽的函式 */
 function bindKeys(state) {
@@ -181,15 +182,15 @@ function bindKeys(state) {
   }
 }
 
-/** 手勢判斷出來的結果：輕點＝走過去、拖曳＝轉鏡頭、雙指＝縮放 */
+/** 手勢判斷出來的結果：輕點＝走過去、拖曳＝轉鏡頭（左右轉、上下改俯角）、雙指＝縮放 */
 function applyGesture(state, effect, renderer, camera) {
   if (effect === null) {
     return
   }
   if (effect.type === 'rotate') {
-    state.rig = rotateCamera(state.rig, effect.deltaX)
+    state.rig = rotateCamera(state.rig, effect.deltaX, effect.deltaY)
   } else if (effect.type === 'zoom') {
-    state.rig = zoomByPinch(state.rig, effect.scale, rangeOf(camera))
+    state.rig = zoomByPinch(state.rig, effect.scale, rangeOf(camera, state.rig))
   } else {
     const point = groundPointAt(effect, renderer, camera)
     if (point && !isTapBlocked(camera.position, point, TAP_BLOCKERS)) {
@@ -262,7 +263,7 @@ function bindInput(state, renderer, camera, onLeaveView) {
 
 /** 鏡頭最近時看著角色，拉遠時移向島的中心；角度與距離來自 state.rig */
 function followPlayer(camera, state) {
-  const range = rangeOf(camera)
+  const range = rangeOf(camera, state.rig)
   const target = cameraTarget(state.rig, state.position, range, ISLAND_BOUNDS.center)
   const placement = cameraPlacement(state.rig, target, range)
   camera.position.set(placement.x, placement.y, placement.z)

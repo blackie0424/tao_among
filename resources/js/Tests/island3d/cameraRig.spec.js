@@ -31,11 +31,19 @@ const play = (events, state = createGesture()) => {
   return { state, effects }
 }
 const finger = (type, id, x = 0, y = 0) => ({ type, id, x, y, button: 0 })
+// 進入頁面時的俯角（#199 的角度）：鏡頭在後方 13、上方 12 的方向
+const DEFAULT_PITCH = Math.atan2(12, 13)
+const degrees = (value) => (value * Math.PI) / 180
+const rigOf = (overrides) => ({ heading: 0, pitch: DEFAULT_PITCH, zoom: 0, ...overrides })
 const typesOf = (effects) => effects.map((effect) => effect?.type ?? null)
 
 describe('island3d/cameraRig 轉鏡頭（#200 驗收條件 6）', () => {
   it('一開始鏡頭沒有轉、在最近的距離', () => {
-    expect(createCameraRig()).toEqual({ heading: 0, zoom: 0 })
+    const rig = createCameraRig()
+
+    expect(rig.heading).toBe(0)
+    expect(rig.zoom).toBe(0)
+    expect(rig.pitch).toBeCloseTo(DEFAULT_PITCH, 10)
   })
 
   it('往右拖 360 像素轉半圈；往左拖轉回來', () => {
@@ -55,14 +63,14 @@ describe('island3d/cameraRig 轉鏡頭（#200 驗收條件 6）', () => {
   })
 
   it('轉鏡頭不改變距離', () => {
-    const rig = { heading: 0, zoom: 0.4 }
+    const rig = rigOf({ heading: 0, zoom: 0.4 })
 
     expect(rotateCamera(rig, 100).zoom).toBe(0.4)
   })
 
   it('鏡頭的位置：沒轉時在角色的 +z 那一側斜上方，俯角固定', () => {
     const range = { nearest: 10, farthest: 1000 }
-    const position = cameraPlacement({ heading: 0, zoom: 0 }, { x: 10, z: 5 }, range)
+    const position = cameraPlacement(rigOf({ heading: 0, zoom: 0 }), { x: 10, z: 5 }, range)
 
     expect(position.x).toBeCloseTo(10, 5)
     expect(position.y).toBeCloseTo(10 * PITCH_SIN, 5)
@@ -71,7 +79,11 @@ describe('island3d/cameraRig 轉鏡頭（#200 驗收條件 6）', () => {
 
   it('轉四分之一圈：鏡頭繞到角色的 +x 那一側，高度不變', () => {
     const range = { nearest: 10, farthest: 1000 }
-    const position = cameraPlacement({ heading: Math.PI / 2, zoom: 0 }, { x: 10, z: 5 }, range)
+    const position = cameraPlacement(
+      rigOf({ heading: Math.PI / 2, zoom: 0 }),
+      { x: 10, z: 5 },
+      range
+    )
 
     expect(position.x).toBeCloseTo(10 + 10 * PITCH_COS, 5)
     expect(position.y).toBeCloseTo(10 * PITCH_SIN, 5)
@@ -79,17 +91,68 @@ describe('island3d/cameraRig 轉鏡頭（#200 驗收條件 6）', () => {
   })
 })
 
+describe('island3d/cameraRig 上下轉（#200 驗收條件 6，規格修訂 2）', () => {
+  it('手指往下拖 100 像素：鏡頭升高 25 度、更俯視；往上拖回來', () => {
+    const higher = rotateCamera(createCameraRig(), 0, 100)
+
+    expect(higher.pitch).toBeCloseTo(DEFAULT_PITCH + degrees(25), 5)
+    expect(rotateCamera(higher, 0, -100).pitch).toBeCloseTo(DEFAULT_PITCH, 5)
+  })
+
+  it('俯角最高 75 度、最低 25 度，到了上下限就不再變', () => {
+    expect(rotateCamera(createCameraRig(), 0, 5000).pitch).toBeCloseTo(degrees(75), 10)
+    expect(rotateCamera(createCameraRig(), 0, -5000).pitch).toBeCloseTo(degrees(25), 10)
+  })
+
+  it('上下拖不改變左右的角度；左右拖不改變俯角；斜著拖兩個都變', () => {
+    const start = rigOf({ heading: 1, zoom: 0.3 })
+    const diagonal = rotateCamera(start, 360, 40)
+
+    expect(rotateCamera(start, 0, 40).heading).toBe(1)
+    expect(rotateCamera(start, 90, 0).pitch).toBe(DEFAULT_PITCH)
+    expect(diagonal.heading).toBeCloseTo(1 - Math.PI, 5)
+    expect(diagonal.pitch).toBeCloseTo(DEFAULT_PITCH + degrees(10), 5)
+    expect(diagonal.zoom).toBe(0.3)
+  })
+
+  it('鏡頭的位置跟著俯角：75 度時幾乎在正上方，25 度時壓得很低', () => {
+    const range = { nearest: 10, farthest: 1000 }
+    const high = cameraPlacement(rigOf({ pitch: degrees(75) }), { x: 0, z: 0 }, range)
+    const low = cameraPlacement(rigOf({ pitch: degrees(25) }), { x: 0, z: 0 }, range)
+
+    // sin 75° = 0.9659、cos 75° = 0.2588；sin 25° = 0.4226、cos 25° = 0.9063
+    expect(high.y).toBeCloseTo(9.659, 2)
+    expect(high.z).toBeCloseTo(2.588, 2)
+    expect(low.y).toBeCloseTo(4.226, 2)
+    expect(low.z).toBeCloseTo(9.063, 2)
+  })
+
+  it('最遠的距離跟著俯角（橫式、範圍半徑 100）：25 度是 192.7、75 度是 259.1', () => {
+    const farthest = (pitch) => cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch }).farthest
+
+    expect(farthest(degrees(25))).toBeCloseTo(192.66, 1)
+    expect(farthest(degrees(75))).toBeCloseTo(259.08, 1)
+  })
+
+  it('最近的距離不受俯角影響', () => {
+    const nearest = (pitch) => cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch }).nearest
+
+    expect(nearest(degrees(25))).toBeCloseTo(17.692, 2)
+    expect(nearest(degrees(75))).toBeCloseTo(17.692, 2)
+  })
+})
+
 describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
   const RANGE = { nearest: 10, farthest: 1000 }
 
   it('距離在最近與最遠之間等比例變化：zoom 0 最近、1 最遠、0.5 是兩者的等比中點', () => {
-    expect(cameraDistance({ heading: 0, zoom: 0 }, RANGE)).toBeCloseTo(10, 5)
-    expect(cameraDistance({ heading: 0, zoom: 1 }, RANGE)).toBeCloseTo(1000, 5)
-    expect(cameraDistance({ heading: 0, zoom: 0.5 }, RANGE)).toBeCloseTo(100, 5)
+    expect(cameraDistance(rigOf({ heading: 0, zoom: 0 }), RANGE)).toBeCloseTo(10, 5)
+    expect(cameraDistance(rigOf({ heading: 0, zoom: 1 }), RANGE)).toBeCloseTo(1000, 5)
+    expect(cameraDistance(rigOf({ heading: 0, zoom: 0.5 }), RANGE)).toBeCloseTo(100, 5)
   })
 
   it('滾輪往下（往自己）拉遠、往上拉近', () => {
-    const out = zoomByWheel({ heading: 0, zoom: 0.5 }, 100)
+    const out = zoomByWheel(rigOf({ heading: 0, zoom: 0.5 }), 100)
     const back = zoomByWheel(out, -100)
 
     expect(out.zoom).toBeGreaterThan(0.5)
@@ -97,33 +160,44 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
   })
 
   it('到了最近或最遠就不再變', () => {
-    expect(zoomByWheel({ heading: 0, zoom: 0 }, -5000).zoom).toBe(0)
-    expect(zoomByWheel({ heading: 0, zoom: 1 }, 5000).zoom).toBe(1)
-    expect(zoomByPinch({ heading: 0, zoom: 0 }, 50, RANGE).zoom).toBe(0)
-    expect(zoomByPinch({ heading: 0, zoom: 1 }, 0.01, RANGE).zoom).toBe(1)
+    expect(zoomByWheel(rigOf({ heading: 0, zoom: 0 }), -5000).zoom).toBe(0)
+    expect(zoomByWheel(rigOf({ heading: 0, zoom: 1 }), 5000).zoom).toBe(1)
+    expect(zoomByPinch(rigOf({ heading: 0, zoom: 0 }), 50, RANGE).zoom).toBe(0)
+    expect(zoomByPinch(rigOf({ heading: 0, zoom: 1 }), 0.01, RANGE).zoom).toBe(1)
   })
 
   it('雙指張開成 2 倍：距離變一半（拉近）；捏合成一半：距離變 2 倍', () => {
-    const middle = { heading: 0, zoom: 0.5 }
+    const middle = rigOf({ heading: 0, zoom: 0.5 })
 
     expect(cameraDistance(zoomByPinch(middle, 2, RANGE), RANGE)).toBeCloseTo(50, 5)
     expect(cameraDistance(zoomByPinch(middle, 0.5, RANGE), RANGE)).toBeCloseTo(200, 5)
   })
 
   it('縮放不改變鏡頭的角度', () => {
-    expect(zoomByWheel({ heading: 1.2, zoom: 0.5 }, 100).heading).toBe(1.2)
-    expect(zoomByPinch({ heading: 1.2, zoom: 0.5 }, 2, RANGE).heading).toBe(1.2)
+    expect(zoomByWheel(rigOf({ heading: 1.2, zoom: 0.5 }), 100).heading).toBe(1.2)
+    expect(zoomByPinch(rigOf({ heading: 1.2, zoom: 0.5 }), 2, RANGE).heading).toBe(1.2)
   })
 
   it('最近的距離等於 #199：橫式是 17.69；直式畫面拉遠到看得完一個格子的寬度，最多 2.4 倍', () => {
-    expect(cameraRange({ aspect: 16 / 9, viewRadius: 100 }).nearest).toBeCloseTo(17.692, 2)
-    expect(cameraRange({ aspect: 0.5, viewRadius: 100 }).nearest).toBeCloseTo(35.384, 2)
-    expect(cameraRange({ aspect: 0.25, viewRadius: 100 }).nearest).toBeCloseTo(42.461, 2)
+    expect(
+      cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH }).nearest
+    ).toBeCloseTo(17.692, 2)
+    expect(cameraRange({ aspect: 0.5, viewRadius: 100, pitch: DEFAULT_PITCH }).nearest).toBeCloseTo(
+      35.384,
+      2
+    )
+    expect(
+      cameraRange({ aspect: 0.25, viewRadius: 100, pitch: DEFAULT_PITCH }).nearest
+    ).toBeCloseTo(42.461, 2)
   })
 
   it('最遠的距離依寬高比計算（要看得到的範圍半徑 100）：橫式 237.2、直式 9:16 是 435.4', () => {
-    expect(cameraRange({ aspect: 16 / 9, viewRadius: 100 }).farthest).toBeCloseTo(237.23, 1)
-    expect(cameraRange({ aspect: 9 / 16, viewRadius: 100 }).farthest).toBeCloseTo(435.44, 1)
+    expect(
+      cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH }).farthest
+    ).toBeCloseTo(237.23, 1)
+    expect(
+      cameraRange({ aspect: 9 / 16, viewRadius: 100, pitch: DEFAULT_PITCH }).farthest
+    ).toBeCloseTo(435.44, 1)
   })
 
   // 用測試自己的投影算法驗證：鏡頭拉到最遠時，地面上的點落在畫面裡
@@ -164,14 +238,14 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
     const player = { x: 40, z: -20 }
     const island = { x: 0, z: 0 }
 
-    expect(cameraTarget({ heading: 0, zoom: 0 }, player, range, island)).toEqual(player)
-    expect(cameraTarget({ heading: 0, zoom: 1 }, player, range, island)).toEqual(island)
+    expect(cameraTarget(rigOf({ heading: 0, zoom: 0 }), player, range, island)).toEqual(player)
+    expect(cameraTarget(rigOf({ heading: 0, zoom: 1 }), player, range, island)).toEqual(island)
   })
 
   it('鏡頭對準的位置依鏡頭距離移動：距離走到最近與最遠的正中間時，在角色與島中心的正中間', () => {
     const range = { nearest: 10, farthest: 110 }
     // 距離 60 是 10 與 110 的正中間；距離等比例變化，所以 zoom = log(6) / log(11)
-    const rig = { heading: 0, zoom: Math.log(6) / Math.log(11) }
+    const rig = rigOf({ heading: 0, zoom: Math.log(6) / Math.log(11) })
     const target = cameraTarget(rig, { x: 40, z: -20 }, range, { x: 0, z: 0 })
 
     expect(target.x).toBeCloseTo(20, 5)
@@ -186,27 +260,31 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
   ]
   const HEADINGS = [0, Math.PI / 4, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]
   const ASPECTS = [16 / 9, 1, 9 / 16]
-  /** 每種寬高比 × 角色站的每個位置 × 每個鏡頭角度，在某個縮放程度下的鏡頭 */
+  const PITCHES = [degrees(25), DEFAULT_PITCH, degrees(75)]
+  /** 每種寬高比 × 每個俯角 × 角色站的每個位置 × 每個左右角度，在某個縮放程度下的鏡頭 */
   const eachView = (zoom, check) => {
     ASPECTS.forEach((aspect) => {
-      const range = cameraRange({ aspect, viewRadius: ISLAND.radius })
-      STOPS.forEach((player) => {
-        HEADINGS.forEach((heading) => {
-          const rig = { heading, zoom }
-          const target = cameraTarget(rig, player, range, ISLAND.center)
-          check({ aspect, player, heading, target, camera: cameraPlacement(rig, target, range) })
+      PITCHES.forEach((pitch) => {
+        const range = cameraRange({ aspect, viewRadius: ISLAND.radius, pitch })
+        STOPS.forEach((player) => {
+          HEADINGS.forEach((heading) => {
+            const rig = rigOf({ heading, pitch, zoom })
+            const target = cameraTarget(rig, player, range, ISLAND.center)
+            const camera = cameraPlacement(rig, target, range)
+            check({ aspect, pitch, player, heading, target, camera })
+          })
         })
       })
     })
   }
 
-  it('拉到最遠：不論角色在哪裡、鏡頭轉到哪個方向、橫式或直式，整條海岸線都在畫面裡', () => {
+  it('拉到最遠：不論角色在哪裡、鏡頭左右轉到哪、俯角多少、橫式或直式，整條海岸線都在畫面裡', () => {
     const missed = []
 
-    eachView(1, ({ aspect, player, heading, target, camera }) => {
+    eachView(1, ({ aspect, pitch, player, heading, target, camera }) => {
       ISLAND_DECOR.coast.forEach((point) => {
         if (!isInView(camera, target, point, aspect)) {
-          missed.push({ aspect, player, heading, point })
+          missed.push({ aspect, pitch, player, heading, point })
         }
       })
     })
@@ -234,10 +312,10 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
 
   it('最遠距離沒有多拉：再近 10% 就會有地方跑出畫面', () => {
     const aspect = 16 / 9
-    const range = cameraRange({ aspect, viewRadius: 100 })
+    const range = cameraRange({ aspect, viewRadius: 100, pitch: DEFAULT_PITCH })
     const target = { x: 0, z: 0 }
     const closer = { nearest: range.nearest, farthest: range.farthest * 0.9 }
-    const camera = cameraPlacement({ heading: 0, zoom: 1 }, target, closer)
+    const camera = cameraPlacement(rigOf({ heading: 0, zoom: 1 }), target, closer)
 
     // 沒轉時鏡頭在 +z 側：離鏡頭最近的邊緣點是 (0, 100)
     expect(isInView(camera, target, { x: 0, z: 100 }, aspect)).toBe(false)
@@ -268,7 +346,7 @@ describe('island3d/cameraRig 手勢（#200 驗收條件 6、7）', () => {
     expect(typesOf(beyond.effects)).toEqual([null, 'rotate', null])
   })
 
-  it('拖曳：每次移動回報這一次左右移動了多少，放開不算輕點', () => {
+  it('拖曳：每次移動回報這一次左右、上下各移動了多少，放開不算輕點', () => {
     const { effects } = play([
       finger('down', 1, 100, 100),
       finger('move', 1, 120, 100),
@@ -279,9 +357,9 @@ describe('island3d/cameraRig 手勢（#200 驗收條件 6、7）', () => {
 
     expect(effects).toEqual([
       null,
-      { type: 'rotate', deltaX: 20 },
-      { type: 'rotate', deltaX: 30 },
-      { type: 'rotate', deltaX: -20 },
+      { type: 'rotate', deltaX: 20, deltaY: 0 },
+      { type: 'rotate', deltaX: 30, deltaY: 40 },
+      { type: 'rotate', deltaX: -20, deltaY: 0 },
       null,
     ])
   })
@@ -363,7 +441,7 @@ describe('island3d/cameraRig 手勢（#200 驗收條件 6、7）', () => {
     const drag = play([finger('down', 6, 50, 60), finger('move', 6, 90, 60)], tap.state)
 
     expect(tap.effects.at(-1)).toEqual({ type: 'tap', x: 50, y: 60 })
-    expect(drag.effects.at(-1)).toEqual({ type: 'rotate', deltaX: 40 })
+    expect(drag.effects.at(-1)).toEqual({ type: 'rotate', deltaX: 40, deltaY: 0 })
   })
 
   it('雙指時加入第三指：不影響前兩指的縮放', () => {
