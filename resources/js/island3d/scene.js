@@ -22,6 +22,7 @@ import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
 import {
   clearInput,
   createMovementInput,
+  destinationOf,
   isMoving,
   pressKey,
   releaseKey,
@@ -31,6 +32,7 @@ import {
 import { isTapBlocked, tapBlockers } from './occlusion'
 import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
 import { createRouter } from './route'
+import { createTapMarker, markerScale, rejectTap, rejectedPointAt, tapOutcome } from './tapMarker'
 import { bobBoats, buildTerrain, fitModel, flatMesh, sizeTribeLabels } from './terrain'
 import { createWalkable } from './walkable'
 
@@ -49,7 +51,16 @@ const CAMERA_FAR = 8000
 const WHEEL_LINE_MODE = 1
 const WHEEL_LINE_PIXELS = 33
 
-const COLORS = { sky: '#e6f6fa', sea: '#8fd0e6', player: '#c2410c' }
+// destination 是魚島的重點色（tailwind.config.js 的 island.accent）
+const COLORS = {
+  sky: '#e6f6fa',
+  sea: '#8fd0e6',
+  player: '#c2410c',
+  destination: '#c2410c',
+  rejected: '#4b5563',
+}
+// 點地面的提示：貼在地面上的圓圈（鏡頭在最近的距離時的大小）
+const TAP_RING = { inner: 0.55, outer: 0.85, segments: 32, level: 0.1, opacity: 0.9 }
 const PLAYER_MODEL = '/island3d/characters/character-male-a.glb'
 
 // 燈光
@@ -182,6 +193,22 @@ function bindKeys(state) {
   }
 }
 
+/**
+ * 輕點地面上的 point（沒對到地面是 null）：可以走就設路線；
+ * 點到山、船或其他不能走的地方就在那裡出現灰色圓圈，角色不動
+ */
+function handleTap(state, point, camera) {
+  if (point === null) {
+    return
+  }
+  const before = state.input
+  const blocked = isTapBlocked(camera.position, point, TAP_BLOCKERS)
+  state.input = blocked ? before : tapGround(before, point, state.position, state.world)
+  if (tapOutcome(before, state.input) === 'rejected') {
+    state.marker = rejectTap(state.marker, point, state.elapsedSeconds)
+  }
+}
+
 /** 手勢判斷出來的結果：輕點＝走過去、拖曳＝轉鏡頭（左右轉、上下改俯角）、雙指＝縮放 */
 function applyGesture(state, effect, renderer, camera) {
   if (effect === null) {
@@ -192,10 +219,7 @@ function applyGesture(state, effect, renderer, camera) {
   } else if (effect.type === 'zoom') {
     state.rig = zoomByPinch(state.rig, effect.scale, rangeOf(camera, state.rig))
   } else {
-    const point = groundPointAt(effect, renderer, camera)
-    if (point && !isTapBlocked(camera.position, point, TAP_BLOCKERS)) {
-      state.input = tapGround(state.input, point, state.position, state.world)
-    }
+    handleTap(state, groundPointAt(effect, renderer, camera), camera)
   }
 }
 
@@ -261,6 +285,51 @@ function bindInput(state, renderer, camera, onLeaveView) {
   }
 }
 
+/** 貼在地面上的圓圈；不被山擋住 */
+function buildTapRing(color) {
+  const geometry = new THREE.RingGeometry(TAP_RING.inner, TAP_RING.outer, TAP_RING.segments)
+  geometry.rotateX(-Math.PI / 2)
+  const material = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: TAP_RING.opacity,
+    depthTest: false,
+  })
+  const ring = new THREE.Mesh(geometry, material)
+  ring.renderOrder = 2
+  ring.visible = false
+  return ring
+}
+
+/** 圓圈放到 point；point 是 null 就藏起來 */
+function placeTapRing(ring, point, scale) {
+  ring.visible = point !== null
+  if (point !== null) {
+    ring.position.set(point.x, TAP_RING.level, point.z)
+    ring.scale.setScalar(scale)
+  }
+}
+
+/**
+ * 點地面的提示：橘色圓圈在目的地，灰色圓圈在剛才點到的不能走的地方。
+ * 回傳 { group, update(state, camera) }，每張畫面呼叫 update
+ */
+function createTapRings() {
+  const destination = buildTapRing(COLORS.destination)
+  const rejected = buildTapRing(COLORS.rejected)
+  const group = new THREE.Group()
+  group.add(destination, rejected)
+  return {
+    group,
+    update(state, camera) {
+      const range = rangeOf(camera, state.rig)
+      const scale = markerScale(cameraDistance(state.rig, range), range.nearest)
+      placeTapRing(destination, destinationOf(state.input), scale)
+      placeTapRing(rejected, rejectedPointAt(state.marker, state.elapsedSeconds), scale)
+    },
+  }
+}
+
 /** 鏡頭最近時看著角色，拉遠時移向島的中心；角度與距離來自 state.rig */
 function followPlayer(camera, state) {
   const range = rangeOf(camera, state.rig)
@@ -302,16 +371,17 @@ function trackQuality(renderer, governor, reportStats, now, frame) {
   }
 }
 
-/** 場景裡的東西：整座島（terrain.js）與玩家 */
+/** 場景裡的東西：整座島（terrain.js）、玩家、點地面的提示 */
 function buildWorld() {
   const loader = new GLTFLoader()
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(COLORS.sky)
   const player = createActor(loader, PLAYER_MODEL, COLORS.player)
   const terrain = buildTerrain(loader)
+  const tapRings = createTapRings()
   buildLights(scene)
-  scene.add(terrain.group, player.group)
-  return { scene, player, boats: terrain.boats, labels: terrain.labels }
+  scene.add(terrain.group, player.group, tapRings.group)
+  return { scene, player, tapRings, boats: terrain.boats, labels: terrain.labels }
 }
 
 function buildCamera(container) {
@@ -325,7 +395,8 @@ function buildCamera(container) {
 
 /**
  * 玩家一開始的狀態：站在 startTribe 部落格子的中心、沒有輸入、鏡頭沒轉且在最近的距離。
- * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落
+ * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落；
+ * marker 是點地面的提示；elapsedSeconds 是開始到現在經過的秒數（每張畫面更新）
  */
 function createPlayerState(startTribe) {
   const walkable = createWalkable(ISLAND_MAP)
@@ -336,6 +407,8 @@ function createPlayerState(startTribe) {
     world: { ...walkable, findRoute: createRouter(ISLAND_MAP, walkable) },
     rig: createCameraRig(),
     gesture: createGesture(),
+    marker: createTapMarker(),
+    elapsedSeconds: 0,
     tribe: startTribe,
   }
 }
@@ -397,7 +470,7 @@ export function createIslandScene(container, options) {
   const governor = createQualityGovernor(level)
   const reportStats = createStatsReporter(onStats, governor)
   const camera = buildCamera(container)
-  const { scene, player, boats, labels } = buildWorld()
+  const { scene, player, tapRings, boats, labels } = buildWorld()
   const state = createPlayerState(startTribe)
   const unwatchResize = watchResize(container, renderer, camera)
   const clock = createFrameClock()
@@ -409,12 +482,14 @@ export function createIslandScene(container, options) {
     if (frame === null) {
       return // 分頁在背景：不移動、不繪圖
     }
+    state.elapsedSeconds = frame.elapsedSeconds
     movePlayer(player, state, frame.deltaSeconds, onTribeChange)
     if (!reducedMotion) {
       bobBoats(boats, frame.elapsedSeconds)
     }
     followPlayer(camera, state)
     sizeTribeLabels(labels, state.rig.zoom)
+    tapRings.update(state, camera)
     renderer.render(scene, camera)
     trackQuality(renderer, governor, reportStats, now, frame)
   })

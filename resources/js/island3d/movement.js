@@ -24,6 +24,12 @@ export function isMoving(input) {
   return input.keys.length > 0 || input.path.length > 0
 }
 
+/** 點地面選的目的地（路線的最後一點）；沒有要走的路線時是 null */
+export function destinationOf(input) {
+  const last = input.path.at(-1)
+  return last ? { x: last.x, z: last.z } : null
+}
+
 /** 按下方向鍵：取消點選的目的地，改由方向鍵控制。不是方向鍵的按鍵不理會 */
 export function pressKey(input, key) {
   if (!(key in KEY_DIRECTIONS)) {
