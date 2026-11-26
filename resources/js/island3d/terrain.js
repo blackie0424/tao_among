@@ -19,6 +19,8 @@ export const INLAND_LEVEL = LAND_LEVEL + 0.02
 const PADDY_LEVEL = INLAND_LEVEL + 0.03
 // 水田四周留這麼寬的田埂
 const PADDY_RIDGE = 0.3
+// 水面比田埂高這麼一點點，才不會疊在同一層
+const PADDY_WATER_LIFT = 0.01
 const ROAD_LEVEL = 0.05
 const ROAD_JOINT_SEGMENTS = 16
 const MOUNTAIN_SIDES = 6
@@ -120,7 +122,12 @@ function buildPaddy({ x, z, width, depth, heading }) {
   const paddy = new THREE.Group()
   paddy.add(
     flatRectangle(width, depth, COLORS.paddyRidge, 0),
-    flatRectangle(width - PADDY_RIDGE * 2, depth - PADDY_RIDGE * 2, COLORS.paddyWater, 0.01)
+    flatRectangle(
+      width - PADDY_RIDGE * 2,
+      depth - PADDY_RIDGE * 2,
+      COLORS.paddyWater,
+      PADDY_WATER_LIFT
+    )
   )
   paddy.position.set(x, PADDY_LEVEL, z)
   paddy.rotation.y = heading
