@@ -116,6 +116,25 @@ function reachAlong(spans, slack) {
   return reach
 }
 
+/** 不可走的點拉回最近的可走位置：每個格子、每段公路各自最近的邊上那一點裡，取最近的 */
+function nearestEdgePoint(point, { hexRadius, roadHalfWidth, tribes }, roads) {
+  const candidates = [
+    ...tribes.map(({ center }) => clampToHex(point, hexRadius, center)),
+    ...roads.map((road) => clampToRoad(point, road, roadHalfWidth)),
+  ]
+  return candidates.reduce((best, candidate) =>
+    distance(candidate, point) < distance(best, point) ? candidate : best
+  )
+}
+
+/** 直線 from–to 和每個格子、每段公路重疊的那一段（沒有重疊的不列） */
+function walkableSpans(from, to, hexes, roads, roadHalfWidth) {
+  return [
+    ...hexes.map((vertices) => spanInPolygon(from, to, vertices)),
+    ...roads.map((road) => spanInRoad(from, to, road, roadHalfWidth)),
+  ].filter(Boolean)
+}
+
 /**
  * 回傳這張地圖的可走範圍判斷：
  * - isWalkable(point) 這一點能不能走
@@ -143,18 +162,8 @@ export function createWalkable(map) {
 
   const isWalkable = (point) => tribeAt(point) !== null || isOnRoad(point)
 
-  const clampToWalkable = (point) => {
-    if (isWalkable(point)) {
-      return copy(point)
-    }
-    const candidates = [
-      ...tribes.map(({ center }) => clampToHex(point, hexRadius, center)),
-      ...roads.map((road) => clampToRoad(point, road, roadHalfWidth)),
-    ]
-    return candidates.reduce((best, candidate) =>
-      distance(candidate, point) < distance(best, point) ? candidate : best
-    )
-  }
+  const clampToWalkable = (point) =>
+    isWalkable(point) ? copy(point) : nearestEdgePoint(point, map, roads)
 
   /** 從 from 往 to 直走最遠能到直線的哪裡（0～1）；from 不可走是 null */
   const reachFraction = (from, to) => {
@@ -162,10 +171,7 @@ export function createWalkable(map) {
     if (length === 0) {
       return isWalkable(from) ? 1 : null
     }
-    const spans = [
-      ...hexes.map((vertices) => spanInPolygon(from, to, vertices)),
-      ...roads.map((road) => spanInRoad(from, to, road, roadHalfWidth)),
-    ].filter(Boolean)
+    const spans = walkableSpans(from, to, hexes, roads, roadHalfWidth)
     return reachAlong(spans, SPAN_TOLERANCE / length)
   }
 
