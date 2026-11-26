@@ -66,3 +66,14 @@ export function createQualityGovernor(initialLevel) {
     },
   }
 }
+
+/**
+ * 把畫面時鐘（frameClock）的一張畫面交給調節器。沒出畫面（null）或間隔不是真的量到的
+ * （interrupted：第一張、從背景回來、停頓太久）都不列入計算。回傳值同 governor.sample。
+ */
+export function sampleFrame(governor, now, frame) {
+  if (frame === null || frame.interrupted) {
+    return null
+  }
+  return governor.sample(now, frame.frameMs)
+}

@@ -12,7 +12,7 @@ import {
   stepMovement,
   tapGround,
 } from './movement'
-import { createQualityGovernor, initialQuality, pixelRatioFor } from './quality'
+import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
 import { wanderPosition, wanderRoute } from './wander'
 
 // 場景尺寸（單位是 three.js 的世界單位）
@@ -256,8 +256,11 @@ function groundPointAt(event, renderer, camera) {
   return hit ? { x: hit.x, z: hit.z } : null
 }
 
-/** 接鍵盤、點擊與觸控；state.input 由 movement.js 的規則更新。回傳解除監聽的函式 */
-function bindInput(state, renderer, camera) {
+/**
+ * 接鍵盤、點擊與觸控；state.input 由 movement.js 的規則更新。
+ * 視窗失去焦點或分頁切換時清掉輸入並呼叫 onLeave。回傳解除監聽的函式
+ */
+function bindInput(state, renderer, camera, onLeaveView) {
   const onKeyDown = (event) => {
     const next = pressKey(state.input, event.key)
     if (next !== state.input) {
@@ -272,7 +275,10 @@ function bindInput(state, renderer, camera) {
       state.input = tapGround(state.input, point, HEX_RADIUS)
     }
   }
-  const onLeave = () => (state.input = clearInput())
+  const onLeave = () => {
+    state.input = clearInput()
+    onLeaveView()
+  }
 
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
@@ -286,6 +292,13 @@ function bindInput(state, renderer, camera) {
     window.removeEventListener('blur', onLeave)
     document.removeEventListener('visibilitychange', onLeave)
     renderer.domElement.removeEventListener('pointerdown', onPointerDown)
+  }
+}
+
+/** 船在海面上輕輕上下晃；「減少動態效果」時不動 */
+function bobBoat(boat, elapsedSeconds, reducedMotion) {
+  if (!reducedMotion) {
+    boat.position.y = SEA_LEVEL + Math.sin(elapsedSeconds) * BOAT_BOB_HEIGHT
   }
 }
 
@@ -389,30 +402,30 @@ export function createIslandScene(container, { reducedMotion = false, onStats = 
   )
   const { scene, player, npc, boat } = buildWorld()
   const state = { input: createMovementInput(), position: { ...PLAYER_START } }
-  const unbindInput = bindInput(state, renderer, camera)
   const unwatchResize = watchResize(container, renderer, camera)
   const moveNpc = createNpcMover(npc, reducedMotion)
-  const readClock = createFrameClock()
+  const clock = createFrameClock()
+  // 失焦或切分頁時暫停時鐘：回來的第一張重新開始，不把離開的時間算進去
+  const unbindInput = bindInput(state, renderer, camera, clock.pause)
 
   renderer.setAnimationLoop((now) => {
-    const frame = readClock(now, document.hidden)
+    const frame = clock.tick(now, document.hidden)
     if (frame === null) {
       return // 分頁在背景：不移動、不繪圖
     }
-    const { frameMs, deltaSeconds, elapsedSeconds } = frame
-    movePlayer(player, state, deltaSeconds)
-    moveNpc(elapsedSeconds, deltaSeconds)
-    if (!reducedMotion) {
-      boat.position.y = SEA_LEVEL + Math.sin(elapsedSeconds) * BOAT_BOB_HEIGHT
-    }
+    movePlayer(player, state, frame.deltaSeconds)
+    moveNpc(frame.elapsedSeconds, frame.deltaSeconds)
+    bobBoat(boat, frame.elapsedSeconds, reducedMotion)
     followPlayer(camera, state.position)
     renderer.render(scene, camera)
 
-    const lowered = governor.sample(now, frameMs)
+    const lowered = sampleFrame(governor, now, frame)
     if (lowered) {
       renderer.setPixelRatio(pixelRatioFor(lowered, window.devicePixelRatio))
     }
-    reportStats(frameMs)
+    if (!frame.interrupted) {
+      reportStats(frame.frameMs)
+    }
   })
 
   return {

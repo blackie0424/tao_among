@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createQualityGovernor, initialQuality, pixelRatioFor } from '@/island3d/quality'
+import { createFrameClock } from '@/island3d/frameClock'
+import {
+  createQualityGovernor,
+  initialQuality,
+  pixelRatioFor,
+  sampleFrame,
+} from '@/island3d/quality'
 
 const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15'
 const PHONE_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/126.0 Mobile Safari/537.36'
@@ -106,5 +112,34 @@ describe('island3d/quality 畫質分級', () => {
 
     expect(feed(governor, clock, 16, 400)).toEqual([])
     expect(governor.level).toBe('high')
+  })
+
+  it('接上畫面時鐘：夾在慢畫面之間的停頓不會把平均拉低而漏掉降級', () => {
+    const governor = createQualityGovernor('high')
+    const { tick } = createFrameClock()
+    let now = 0
+    const changes = []
+    const frame = (gapMs) => {
+      now += gapMs
+      const changed = sampleFrame(governor, now, tick(now, false))
+      if (changed) changes.push(changed)
+    }
+    for (let i = 0; i < 252; i++) frame(16) // 過了載入後的前 4 秒
+
+    // 89 張各 34 毫秒的畫面，中間夾 10 次 300 毫秒的停頓；有效畫面平均 34 毫秒 → 應該降級
+    for (let i = 0; i < 89; i++) {
+      frame(34)
+      if (i % 9 === 8) frame(300)
+    }
+
+    expect(changes).toEqual(['medium'])
+  })
+
+  it('接上畫面時鐘：從背景回來的第一張不列入計算', () => {
+    const governor = createQualityGovernor('high')
+    const { tick } = createFrameClock()
+
+    expect(sampleFrame(governor, 5000, tick(5000, false))).toBeNull()
+    expect(sampleFrame(governor, 5016, tick(5016, true))).toBeNull()
   })
 })
