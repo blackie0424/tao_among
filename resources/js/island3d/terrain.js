@@ -1,8 +1,9 @@
-// 魚島 3D：把整座島不會動的部分畫出來（#200、#207）——海、沙灘、陸地、部落格子與標示、公路、山、水田、船。
+// 魚島 3D：把整座島不會動的部分畫出來（#200、#207、#212）——海、海邊的岩岸、陸地、部落格子與標示、
+// 公路、山、水田、船。
 // 位置都讀 islandMap.js；這個檔只管繪圖。
 import * as THREE from 'three'
 import { islandTribeLabel } from '@/constants/island'
-import { ISLAND_DECOR, ISLAND_MAP, mountainColor, roadSegments } from './islandMap'
+import { ISLAND_DECOR, ISLAND_MAP, mountainColor, roadSegments, tribeHexes } from './islandMap'
 
 const HEX_SIDES = 6
 const HEX_THICKNESS = 0.6
@@ -40,12 +41,13 @@ const LABEL_HEIGHT_ABOVE_GROUND = 4.5
 // 鏡頭拉到最遠時看板縮成這個比例：整座島在畫面裡變小，看板太大會互相蓋住
 const LABEL_FAR_SCALE = 0.75
 
-// 顏色沿用魚島的色票（tailwind.config.js 的 island）；公路是沙色
+// 顏色沿用魚島的色票（tailwind.config.js 的 island）；公路是沙色；
+// 海邊那一圈是岩岸的灰色（蘭嶼的海邊多是岩岸，不是白沙；也和公路的沙色分得開，#212）
 const COLORS = {
   sea: '#8fd0e6',
   hex: '#8fd19e',
   land: '#5fae73',
-  beach: '#ecebe4',
+  beach: '#8c9196',
   paddyRidge: '#3d7f52',
   paddyWater: '#6fb7c9',
   road: '#ead9ae',
@@ -85,7 +87,7 @@ function outlineShape([first, ...rest]) {
   return outline
 }
 
-/** 沙灘：海岸線圍起來的一塊厚板，頂面在 LAND_LEVEL；露出來的只有沿岸一圈 */
+/** 海邊的岩岸：海岸線圍起來的一塊厚板，頂面在 LAND_LEVEL；露出來的只有沿岸一圈 */
 function buildBeach() {
   const geometry = new THREE.ExtrudeGeometry(outlineShape(ISLAND_DECOR.coast), {
     depth: LAND_THICKNESS,
@@ -176,7 +178,7 @@ export function labelTexture(text) {
   return texture
 }
 
-/** 部落格子上方的標示「族語（中文）」：不被山擋住 */
+/** 部落主格上方的標示「族語（中文）」，每個部落 1 個：不被山擋住 */
 function buildTribeLabel({ code, center }) {
   const material = new THREE.SpriteMaterial({
     map: labelTexture(islandTribeLabel(code)),
@@ -262,7 +264,7 @@ export function buildTerrain(loader) {
   const labels = ISLAND_MAP.tribes.map(buildTribeLabel)
   group.add(buildSea(), buildBeach(), buildInland(), buildRoads(), buildMountains())
   group.add(...ISLAND_DECOR.paddies.map(buildPaddy), ...boats, ...labels)
-  ISLAND_MAP.tribes.forEach((tribe) => group.add(buildHex(tribe.center)))
+  group.add(...ISLAND_MAP.tribes.flatMap(tribeHexes).map(buildHex))
   sizeTribeLabels(labels, 0)
   return { group, boats, labels }
 }

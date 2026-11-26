@@ -9,6 +9,7 @@ import {
   footprintInside,
   footprintsOverlap,
   shapeParts,
+  signHeight,
   signsVisible,
 } from '@/island3d/landmarks'
 import { createWalkable } from '@/island3d/walkable'
@@ -387,6 +388,26 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
   it('#212 拿掉的地標，造型也一起拿掉', () => {
     ;['clinic', 'police', 'school', 'museum', 'supermarket', 'night-market'].forEach((kind) => {
       expect(() => shapeParts(kind, 4, 3)).toThrow()
+    })
+  })
+})
+
+describe('island3d/landmarks 招牌的高度（#212 驗收條件 9）', () => {
+  it('招牌在建物最高點的上方 1.2：平房 4.6、路邊攤 3.4、機場 6.0', () => {
+    const heightOf = (sign) => signHeight(LANDMARKS.find((landmark) => landmark.sign === sign))
+
+    expect(heightOf('郵局')).toBeCloseTo(4.6, 9)
+    expect(heightOf('路邊攤')).toBeCloseTo(3.4, 9)
+    expect(heightOf('機場')).toBeCloseTo(6.0, 9)
+  })
+
+  it('每一個地標的招牌都比造型的每個零件高', () => {
+    LANDMARKS.forEach((landmark) => {
+      const tops = shapeParts(landmark.kind, landmark.width, landmark.depth).map(
+        (part) => part.y + part.height / 2
+      )
+
+      expect(signHeight(landmark)).toBeGreaterThan(Math.max(...tops))
     })
   })
 })
