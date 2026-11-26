@@ -13,6 +13,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -37,6 +38,20 @@ class IslandController extends Controller
     }
 
     /**
+     * 3D 魚島（#200）：角色走進另一個部落的格子時只記住所在部落，不帶任何頁面資料。
+     * 不在清單裡的部落回 422，所在部落不變。
+     */
+    public function updateLocation(Request $request): HttpResponse
+    {
+        $validated = $request->validate([
+            'tribe' => ['required', 'string', Rule::in(config('fish_options.tribes'))],
+        ]);
+        $this->rememberLocation($request, $this->characterOf($request), $validated['tribe']);
+
+        return response()->noContent();
+    }
+
+    /**
      * 走到某個部落＝走進這個部落的家屋（#189）：記住所在部落，帶部落進度與四個地點各自的 X/Y。
      * X＝這個地點在這個部落有結果的魚條數，Y＝這個地點未軟刪除的魚條數。
      */
@@ -45,7 +60,7 @@ class IslandController extends Controller
         abort_unless(in_array($tribe, config('fish_options.tribes'), true), 404);
 
         $character = $this->characterOf($request);
-        $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
+        $this->rememberLocation($request, $character, $tribe);
 
         $idColumn = (new Fish)->qualifyColumn('id');
         [$hasResult, $bindings] = FishTribeResponse::islandHasResultSql($tribe, $idColumn);
@@ -251,11 +266,23 @@ class IslandController extends Controller
     }
 
     /** session 記的所在部落屬於目前這個角色才用；沒有或屬於別的角色（換帳號）時回到角色自己的部落。 */
+    private function rememberLocation(Request $request, IslandCharacter $character, string $tribe): void
+    {
+        $request->session()->put(self::LOCATION_SESSION_KEY, ['character_id' => $character->id, 'tribe' => $tribe]);
+    }
+
+    /**
+     * 所在部落一定是清單裡的部落：session 記的（同一個角色）→ 角色自己的部落 → 清單的第一個。
+     * 所以 3D 畫面的起點與畫面上寫的所在部落一定一致（#200）。
+     */
     private function currentTribe(Request $request, IslandCharacter $character): string
     {
+        $tribes = config('fish_options.tribes');
         $location = $request->session()->get(self::LOCATION_SESSION_KEY);
+        $remembered = ($location['character_id'] ?? null) === $character->id ? $location['tribe'] : null;
 
-        return ($location['character_id'] ?? null) === $character->id ? $location['tribe'] : $character->tribe;
+        return collect([$remembered, $character->tribe])
+            ->first(fn (?string $tribe) => in_array($tribe, $tribes, true), $tribes[0]);
     }
 
     /** 清單為空的原因：沒有可顯示的魚（含全部軟刪除）優先於頁碼超過最後一頁。 */

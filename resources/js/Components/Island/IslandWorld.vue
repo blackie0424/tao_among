@@ -1,5 +1,6 @@
 <template>
-  <!-- 魚島 3D（#199）：畫面由 island3d/scene.js 畫在 stage 裡；這個元件只管載入、標示與說明文字 -->
+  <!-- 魚島 3D（#199、#200）：畫面由 island3d/scene.js 畫在 stage 裡；這個元件只管載入、標示與說明文字。
+       tribe 是目前所在部落：一開始決定角色站在哪，之後由上層依 tribe-change 更新 -->
   <div class="relative overflow-hidden rounded-island bg-island-sea">
     <p
       v-if="unsupported"
@@ -38,9 +39,11 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { islandTribeLabel } from '@/constants/island'
 
-defineProps({
+const props = defineProps({
   tribe: { type: String, required: true },
 })
+// 角色走進另一個部落的格子時發出，帶那個部落的代碼
+const emit = defineEmits(['tribe-change'])
 
 const QUALITY_NAMES = { high: '高', medium: '中', low: '低' }
 
@@ -64,7 +67,9 @@ onMounted(async () => {
       return
     }
     world = createIslandScene(stage.value, {
+      startTribe: props.tribe,
       reducedMotion: prefersReducedMotion(),
+      onTribeChange: (tribe) => emit('tribe-change', tribe),
       onStats: (next) => (stats.value = next),
     })
   } catch (error) {

@@ -1,73 +1,67 @@
-// 魚島 3D：把一個部落格子畫出來（#199）。這個檔只管繪圖與接輸入；
-// 走路、邊界、畫質、NPC 走動的規則在同資料夾的純函式模組裡。
+// 魚島 3D：把整座島畫出來並接上輸入（#199、#200）。這個檔只管繪圖與接輸入；
+// 島的資料、可走範圍、找路、走路、鏡頭、手勢、畫質的規則在同資料夾的純函式模組裡，
+// 不會動的地形在 terrain.js。
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import {
+  CAMERA_FIELD_OF_VIEW,
+  cameraDistance,
+  cameraPlacement,
+  boundingCircle,
+  cameraRange,
+  cameraTarget,
+  createCameraRig,
+  createGesture,
+  reduceGesture,
+  rotateCamera,
+  zoomByPinch,
+  zoomByWheel,
+} from './cameraRig'
 import { createFrameClock } from './frameClock'
+import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
 import {
   clearInput,
   createMovementInput,
+  destinationOf,
   isMoving,
   pressKey,
   releaseKey,
   stepMovement,
   tapGround,
 } from './movement'
+import { isTapBlocked, tapBlockers } from './occlusion'
 import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
-import { wanderPosition, wanderRoute } from './wander'
+import { createRouter } from './route'
+import { createTapMarker, markerScale, rejectTap, rejectedPointAt, tapOutcome } from './tapMarker'
+import { bobBoats, buildTerrain, fitModel, flatMesh, sizeTribeLabels } from './terrain'
+import { createWalkable } from './walkable'
 
-// 場景尺寸（單位是 three.js 的世界單位）
-const HEX_RADIUS = 6
-const HEX_SIDES = 6
-const HEX_THICKNESS = 0.6
-const SEA_RADIUS = 80
-const SEA_LEVEL = -0.35
-const PLAYER_SPEED = 2.5
-const PLAYER_START = { x: 0, z: 2 }
 const ACTOR_HEIGHT = 1.7
-const BOAT_LENGTH = 3
-const BOAT_POSITION = { x: 4.5, z: 8.5 }
-const BOAT_BOB_HEIGHT = 0.06
-const BOAT_HEADING = Math.PI / 5
-const SEA_SEGMENTS = 48
-const MOUNTAIN_SIDES = 6
-const MOUNTAIN_BASE_SIDES = 7
 // 動作切換的淡入淡出秒數
 const ACTION_FADE_SECONDS = 0.2
-// 鏡頭在角色斜上方的位置
-const CAMERA_OFFSET = { x: 0, y: 12, z: 13 }
-// 鏡頭看向角色前方（畫面遠處）一點，讓後面的山進到畫面裡
-const CAMERA_LOOK_AHEAD = 2
-// 畫面比這個寬高比窄（直式手機）時鏡頭往後拉，讓整個格子的寬度進到畫面；最多拉這麼多倍
-const CAMERA_FIT_ASPECT = 1
-const CAMERA_MAX_PULLBACK = 2.4
-const CAMERA_FIELD_OF_VIEW = 45
-const CAMERA_NEAR = 0.1
-const CAMERA_FAR = 300
-// 山：格子後方的幾座圓錐（x、z 是位置，radius、height 是大小）
-const MOUNTAINS = [
-  { x: -3.5, z: -10.5, radius: 3.2, height: 5.5 },
-  { x: 1.5, z: -11.5, radius: 4, height: 7.5 },
-  { x: 6, z: -10, radius: 2.8, height: 4.5 },
-]
-// 山腳的陸地比部落格子低一點，兩塊重疊的地方才不會閃爍
-const MOUNTAIN_BASE = { x: 1.5, z: -10.5, radius: 8, drop: 0.12 }
+// 整座島的範圍（海岸線以內）：鏡頭拉到最遠時對準它的中心、整個看得到
+const ISLAND_BOUNDS = boundingCircle(ISLAND_DECOR.coast)
+// 山與船：點到它們沒有反應，就算畫面上它們後面是可走的地面
+const TAP_BLOCKERS = tapBlockers(ISLAND_DECOR)
+// 鏡頭看得到的最近、最遠距離：最近的隨鏡頭遠近調整（拉遠時重疊的地面才不會閃爍）
+const CAMERA_NEAR_RATIO = 0.02
+const CAMERA_MIN_NEAR = 0.1
+const CAMERA_FAR = 8000
+// 滾輪以「行」為單位回報時（部分瀏覽器），一行當成這麼多像素
+const WHEEL_LINE_MODE = 1
+const WHEEL_LINE_PIXELS = 33
 
-// 顏色沿用魚島的色票（tailwind.config.js 的 island）
+// destination 是魚島的重點色（tailwind.config.js 的 island.accent）
 const COLORS = {
   sky: '#e6f6fa',
   sea: '#8fd0e6',
-  land: '#8fd19e',
-  landEdge: '#5fae73',
-  mountain: '#4f9a63',
   player: '#c2410c',
-  npc: '#f2a7a0',
+  destination: '#c2410c',
+  rejected: '#4b5563',
 }
-
-const MODELS = {
-  player: '/island3d/characters/character-male-a.glb',
-  npc: '/island3d/characters/character-female-a.glb',
-  boat: '/island3d/boats/boat-fishing-small.glb',
-}
+// 點地面的提示：貼在地面上的圓圈（鏡頭在最近的距離時的大小）
+const TAP_RING = { inner: 0.55, outer: 0.85, segments: 32, level: 0.1, opacity: 0.9 }
+const PLAYER_MODEL = '/island3d/characters/character-male-a.glb'
 
 // 燈光
 const SKY_LIGHT_INTENSITY = 1.6
@@ -97,62 +91,6 @@ function buildLights(scene) {
   scene.add(sun)
 }
 
-function flatMesh(geometry, color) {
-  return new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color, flatShading: true }))
-}
-
-// CylinderGeometry 預設第一個頂點朝 +z；轉四分之一圈讓頂點朝 +x，和 hexBounds 一致
-const HEX_VERTEX_TOWARD_X = Math.PI / 2
-
-/** 部落格子：平頂六角柱，頂面在 y = 0，頂點方向和 hexBounds 一致（+x） */
-function buildHex() {
-  const geometry = new THREE.CylinderGeometry(
-    HEX_RADIUS,
-    HEX_RADIUS,
-    HEX_THICKNESS,
-    HEX_SIDES,
-    1,
-    false,
-    HEX_VERTEX_TOWARD_X
-  )
-  const hex = new THREE.Mesh(geometry, [
-    new THREE.MeshLambertMaterial({ color: COLORS.landEdge, flatShading: true }),
-    new THREE.MeshLambertMaterial({ color: COLORS.land, flatShading: true }),
-    new THREE.MeshLambertMaterial({ color: COLORS.landEdge, flatShading: true }),
-  ])
-  hex.position.y = -HEX_THICKNESS / 2
-  return hex
-}
-
-function buildSea() {
-  const sea = flatMesh(new THREE.CircleGeometry(SEA_RADIUS, SEA_SEGMENTS), COLORS.sea)
-  sea.rotation.x = -Math.PI / 2
-  sea.position.y = SEA_LEVEL
-  return sea
-}
-
-/** 山：一塊陸地加幾座圓錐，只是裝飾 */
-function buildMountains() {
-  const group = new THREE.Group()
-  const base = flatMesh(
-    new THREE.CylinderGeometry(
-      MOUNTAIN_BASE.radius,
-      MOUNTAIN_BASE.radius,
-      HEX_THICKNESS,
-      MOUNTAIN_BASE_SIDES
-    ),
-    COLORS.landEdge
-  )
-  base.position.set(MOUNTAIN_BASE.x, -HEX_THICKNESS / 2 - MOUNTAIN_BASE.drop, MOUNTAIN_BASE.z)
-  group.add(base)
-  MOUNTAINS.forEach(({ x, z, radius, height }) => {
-    const cone = flatMesh(new THREE.ConeGeometry(radius, height, MOUNTAIN_SIDES), COLORS.mountain)
-    cone.position.set(x, height / 2, z)
-    group.add(cone)
-  })
-  return group
-}
-
 /** 模型還沒載入（或載入失敗）時先用的簡單人形，走路照常 */
 function placeholderFigure(color) {
   const figure = new THREE.Group()
@@ -166,13 +104,6 @@ function placeholderFigure(color) {
   body.position.y = ACTOR_HEIGHT / 2
   figure.add(body)
   return figure
-}
-
-/** 把模型縮放到指定大小：size 是目標值，axis 是量哪一邊（'y' 高度、'longest' 最長邊） */
-function fitModel(model, size, axis) {
-  const box = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3())
-  const current = axis === 'y' ? box.y : Math.max(box.x, box.z)
-  model.scale.setScalar(size / current)
 }
 
 /**
@@ -224,28 +155,12 @@ function createActor(loader, url, color) {
   }
 }
 
-function buildBoat(loader) {
-  const boat = new THREE.Group()
-  boat.position.set(BOAT_POSITION.x, SEA_LEVEL, BOAT_POSITION.z)
-  boat.rotation.y = BOAT_HEADING
-  loader.load(
-    MODELS.boat,
-    (gltf) => {
-      fitModel(gltf.scene, BOAT_LENGTH, 'longest')
-      boat.add(gltf.scene)
-    },
-    undefined,
-    (error) => console.warn('魚島 3D：船的模型載入失敗', error)
-  )
-  return boat
-}
-
-/** 畫面上的一點（滑鼠或手指）對到地面（y = 0）的哪裡；沒對到地面時回傳 null */
-function groundPointAt(event, renderer, camera) {
+/** 畫面上的一點（clientX、clientY）對到地面（y = 0）的哪裡；沒對到地面時回傳 null */
+function groundPointAt({ x, y }, renderer, camera) {
   const rect = renderer.domElement.getBoundingClientRect()
   const pointer = new THREE.Vector2(
-    ((event.clientX - rect.left) / rect.width) * 2 - 1,
-    -((event.clientY - rect.top) / rect.height) * 2 + 1
+    ((x - rect.left) / rect.width) * 2 - 1,
+    -((y - rect.top) / rect.height) * 2 + 1
   )
   const raycaster = new THREE.Raycaster()
   raycaster.setFromCamera(pointer, camera)
@@ -256,11 +171,11 @@ function groundPointAt(event, renderer, camera) {
   return hit ? { x: hit.x, z: hit.z } : null
 }
 
-/**
- * 接鍵盤、點擊與觸控；state.input 由 movement.js 的規則更新。
- * 視窗失去焦點或分頁切換時清掉輸入並呼叫 onLeave。回傳解除監聽的函式
- */
-function bindInput(state, renderer, camera, onLeaveView) {
+const rangeOf = (camera, rig) =>
+  cameraRange({ aspect: camera.aspect, viewRadius: ISLAND_BOUNDS.radius, pitch: rig.pitch })
+
+/** 接方向鍵；state.input 由 movement.js 的規則更新。回傳解除監聽的函式 */
+function bindKeys(state) {
   const onKeyDown = (event) => {
     const next = pressKey(state.input, event.key)
     if (next !== state.input) {
@@ -269,48 +184,161 @@ function bindInput(state, renderer, camera, onLeaveView) {
     }
   }
   const onKeyUp = (event) => (state.input = releaseKey(state.input, event.key))
-  const onPointerDown = (event) => {
-    const point = groundPointAt(event, renderer, camera)
-    if (point) {
-      state.input = tapGround(state.input, point, HEX_RADIUS)
-    }
-  }
-  const onLeave = () => {
-    state.input = clearInput()
-    onLeaveView()
-  }
 
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
-  window.addEventListener('blur', onLeave)
-  document.addEventListener('visibilitychange', onLeave)
-  renderer.domElement.addEventListener('pointerdown', onPointerDown)
-
   return () => {
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('keyup', onKeyUp)
+  }
+}
+
+/**
+ * 輕點地面上的 point（沒對到地面是 null）：可以走就設路線；
+ * 點到山、船或其他不能走的地方就在那裡出現灰色圓圈，角色不動
+ */
+function handleTap(state, point, camera) {
+  if (point === null) {
+    return
+  }
+  const before = state.input
+  const blocked = isTapBlocked(camera.position, point, TAP_BLOCKERS)
+  state.input = blocked ? before : tapGround(before, point, state.position, state.world)
+  if (tapOutcome(before, state.input) === 'rejected') {
+    state.marker = rejectTap(state.marker, point, state.elapsedSeconds)
+  }
+}
+
+/** 手勢判斷出來的結果：輕點＝走過去、拖曳＝轉鏡頭（左右轉、上下改俯角）、雙指＝縮放 */
+function applyGesture(state, effect, renderer, camera) {
+  if (effect === null) {
+    return
+  }
+  if (effect.type === 'rotate') {
+    state.rig = rotateCamera(state.rig, effect.deltaX, effect.deltaY)
+  } else if (effect.type === 'zoom') {
+    state.rig = zoomByPinch(state.rig, effect.scale, rangeOf(camera, state.rig))
+  } else {
+    handleTap(state, groundPointAt(effect, renderer, camera), camera)
+  }
+}
+
+/** 接滑鼠、觸控與滾輪；手勢由 cameraRig.js 的規則判斷。回傳解除監聽的函式 */
+function bindPointer(state, renderer, camera) {
+  const canvas = renderer.domElement
+  const onPointer = (type) => (event) => {
+    if (type === 'down') {
+      canvas.setPointerCapture?.(event.pointerId) // 拖出畫布也收得到放開
+    }
+    const next = reduceGesture(state.gesture, {
+      type,
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      button: event.pointerType === 'mouse' ? event.button : 0,
+    })
+    state.gesture = next.state
+    applyGesture(state, next.effect, renderer, camera)
+  }
+  const onWheel = (event) => {
+    event.preventDefault() // 滾輪用來縮放，不要捲動頁面
+    const pixels = event.deltaMode === WHEEL_LINE_MODE ? WHEEL_LINE_PIXELS : 1
+    state.rig = zoomByWheel(state.rig, event.deltaY * pixels)
+  }
+  const listeners = {
+    pointerdown: onPointer('down'),
+    pointermove: onPointer('move'),
+    pointerup: onPointer('up'),
+    pointercancel: onPointer('cancel'),
+    wheel: onWheel,
+  }
+
+  Object.entries(listeners).forEach(([name, listener]) =>
+    canvas.addEventListener(name, listener, { passive: false })
+  )
+  return () =>
+    Object.entries(listeners).forEach(([name, listener]) =>
+      canvas.removeEventListener(name, listener)
+    )
+}
+
+/**
+ * 接所有輸入。視窗失去焦點或分頁切換時清掉輸入與進行中的手勢，並呼叫 onLeaveView。
+ * 回傳解除監聽的函式
+ */
+function bindInput(state, renderer, camera, onLeaveView) {
+  const unbindKeys = bindKeys(state)
+  const unbindPointer = bindPointer(state, renderer, camera)
+  const onLeave = () => {
+    state.input = clearInput()
+    state.gesture = createGesture()
+    onLeaveView()
+  }
+
+  window.addEventListener('blur', onLeave)
+  document.addEventListener('visibilitychange', onLeave)
+  return () => {
+    unbindKeys()
+    unbindPointer()
     window.removeEventListener('blur', onLeave)
     document.removeEventListener('visibilitychange', onLeave)
-    renderer.domElement.removeEventListener('pointerdown', onPointerDown)
   }
 }
 
-/** 船在海面上輕輕上下晃；「減少動態效果」時不動 */
-function bobBoat(boat, elapsedSeconds, reducedMotion) {
-  if (!reducedMotion) {
-    boat.position.y = SEA_LEVEL + Math.sin(elapsedSeconds) * BOAT_BOB_HEIGHT
+/** 貼在地面上的圓圈；不被山擋住 */
+function buildTapRing(color) {
+  const geometry = new THREE.RingGeometry(TAP_RING.inner, TAP_RING.outer, TAP_RING.segments)
+  geometry.rotateX(-Math.PI / 2)
+  const material = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: TAP_RING.opacity,
+    depthTest: false,
+  })
+  const ring = new THREE.Mesh(geometry, material)
+  ring.renderOrder = 2
+  ring.visible = false
+  return ring
+}
+
+/** 圓圈放到 point；point 是 null 就藏起來 */
+function placeTapRing(ring, point, scale) {
+  ring.visible = point !== null
+  if (point !== null) {
+    ring.position.set(point.x, TAP_RING.level, point.z)
+    ring.scale.setScalar(scale)
   }
 }
 
-/** 鏡頭固定在角色斜上方、跟著角色；畫面窄時拉遠 */
-function followPlayer(camera, position) {
-  const pullback = Math.min(CAMERA_MAX_PULLBACK, Math.max(1, CAMERA_FIT_ASPECT / camera.aspect))
-  camera.position.set(
-    position.x + CAMERA_OFFSET.x * pullback,
-    CAMERA_OFFSET.y * pullback,
-    position.z + CAMERA_OFFSET.z * pullback
-  )
-  camera.lookAt(position.x, 0, position.z - CAMERA_LOOK_AHEAD)
+/**
+ * 點地面的提示：橘色圓圈在目的地，灰色圓圈在剛才點到的不能走的地方。
+ * 回傳 { group, update(state, camera) }，每張畫面呼叫 update
+ */
+function createTapRings() {
+  const destination = buildTapRing(COLORS.destination)
+  const rejected = buildTapRing(COLORS.rejected)
+  const group = new THREE.Group()
+  group.add(destination, rejected)
+  return {
+    group,
+    update(state, camera) {
+      const range = rangeOf(camera, state.rig)
+      const scale = markerScale(cameraDistance(state.rig, range), range.nearest)
+      placeTapRing(destination, destinationOf(state.input), scale)
+      placeTapRing(rejected, rejectedPointAt(state.marker, state.elapsedSeconds), scale)
+    },
+  }
+}
+
+/** 鏡頭最近時看著角色，拉遠時移向島的中心；角度與距離來自 state.rig */
+function followPlayer(camera, state) {
+  const range = rangeOf(camera, state.rig)
+  const target = cameraTarget(state.rig, state.position, range, ISLAND_BOUNDS.center)
+  const placement = cameraPlacement(state.rig, target, range)
+  camera.position.set(placement.x, placement.y, placement.z)
+  camera.lookAt(target.x, 0, target.z)
+  camera.near = Math.max(CAMERA_MIN_NEAR, cameraDistance(state.rig, range) * CAMERA_NEAR_RATIO)
+  camera.updateProjectionMatrix()
 }
 
 /** 每隔一小段時間回報一次目前畫質與每秒張數（給 ?debug=1 顯示） */
@@ -332,17 +360,57 @@ function createStatsReporter(onStats, governor) {
   }
 }
 
-/** 場景裡的東西：海、部落格子、山、船、玩家與 NPC */
+/** 畫完一張之後：畫面變慢就降畫質，並回報目前的畫質與每秒張數 */
+function trackQuality(renderer, governor, reportStats, now, frame) {
+  const lowered = sampleFrame(governor, now, frame)
+  if (lowered) {
+    renderer.setPixelRatio(pixelRatioFor(lowered, window.devicePixelRatio))
+  }
+  if (!frame.interrupted) {
+    reportStats(frame.frameMs)
+  }
+}
+
+/** 場景裡的東西：整座島（terrain.js）、玩家、點地面的提示 */
 function buildWorld() {
   const loader = new GLTFLoader()
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(COLORS.sky)
-  const player = createActor(loader, MODELS.player, COLORS.player)
-  const npc = createActor(loader, MODELS.npc, COLORS.npc)
-  const boat = buildBoat(loader)
+  const player = createActor(loader, PLAYER_MODEL, COLORS.player)
+  const terrain = buildTerrain(loader)
+  const tapRings = createTapRings()
   buildLights(scene)
-  scene.add(buildSea(), buildHex(), buildMountains(), boat, player.group, npc.group)
-  return { scene, player, npc, boat }
+  scene.add(terrain.group, player.group, tapRings.group)
+  return { scene, player, tapRings, boats: terrain.boats, labels: terrain.labels }
+}
+
+function buildCamera(container) {
+  return new THREE.PerspectiveCamera(
+    CAMERA_FIELD_OF_VIEW,
+    container.clientWidth / container.clientHeight,
+    CAMERA_MIN_NEAR,
+    CAMERA_FAR
+  )
+}
+
+/**
+ * 玩家一開始的狀態：站在 startTribe 部落格子的中心、沒有輸入、鏡頭沒轉且在最近的距離。
+ * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落；
+ * marker 是點地面的提示；elapsedSeconds 是開始到現在經過的秒數（每張畫面更新）
+ */
+function createPlayerState(startTribe) {
+  const walkable = createWalkable(ISLAND_MAP)
+  const { center } = ISLAND_MAP.tribes.find((tribe) => tribe.code === startTribe)
+  return {
+    input: createMovementInput(),
+    position: { ...center },
+    world: { ...walkable, findRoute: createRouter(ISLAND_MAP, walkable) },
+    rig: createCameraRig(),
+    gesture: createGesture(),
+    marker: createTapMarker(),
+    elapsedSeconds: 0,
+    tribe: startTribe,
+  }
 }
 
 /** 畫布跟著容器大小變；回傳停止監看的函式 */
@@ -359,51 +427,52 @@ function watchResize(container, renderer, camera) {
 const stepBetween = (from, to) => ({ x: to.x - from.x, z: to.z - from.z })
 const hasMoved = (step) => step.x !== 0 || step.z !== 0
 
-/** 每張畫面依輸入移動玩家；state 是 { input, position } */
-function movePlayer(player, state, deltaSeconds) {
+/** 每張畫面依輸入移動玩家；走進另一個部落的格子時呼叫 onTribeChange(部落代碼) */
+function movePlayer(player, state, deltaSeconds, onTribeChange) {
   const before = state.position
   const next = stepMovement(state.input, before, deltaSeconds, {
-    speed: PLAYER_SPEED,
-    radius: HEX_RADIUS,
+    speed: WALK_SPEED,
+    heading: state.rig.heading,
+    world: state.world,
   })
   state.input = next.input
   state.position = next.position
   const step = stepBetween(before, next.position)
   player.update(next.position, hasMoved(step) ? step : null, isMoving(next.input), deltaSeconds)
-}
 
-/** NPC 沿自己的路線來回走；回傳每張畫面呼叫的函式 */
-function createNpcMover(npc, reducedMotion) {
-  const route = wanderRoute(HEX_RADIUS)
-  let position = wanderPosition(0, route, { reducedMotion })
-  return (elapsedSeconds, deltaSeconds) => {
-    const next = wanderPosition(elapsedSeconds, route, { reducedMotion })
-    const step = stepBetween(position, next)
-    position = next
-    npc.update(next, hasMoved(step) ? step : null, hasMoved(step), deltaSeconds)
+  // 走在公路上（不在任何格子裡）時，所在部落不變
+  const tribe = state.world.tribeAt(next.position)
+  if (tribe !== null && tribe !== state.tribe) {
+    state.tribe = tribe
+    onTribeChange(tribe)
   }
 }
 
 /**
- * 在 container 裡畫出部落格子並開始動。瀏覽器無法建立 3D 畫面時丟出例外。
- * options: { reducedMotion 系統設定「減少動態效果」, onStats({ level, framesPerSecond }) }
+ * 在 container 裡畫出整座島並開始動。瀏覽器無法建立 3D 畫面時丟出例外。
+ * options: {
+ *   startTribe 角色一開始所在的部落代碼,
+ *   reducedMotion 系統設定「減少動態效果」,
+ *   onStats({ level, framesPerSecond }),
+ *   onTribeChange(部落代碼) 角色走進另一個部落的格子時呼叫
+ * }
  * 回傳 { dispose } 給離開頁面時停掉。
  */
-export function createIslandScene(container, { reducedMotion = false, onStats = () => {} } = {}) {
+export function createIslandScene(container, options) {
+  const {
+    startTribe,
+    reducedMotion = false,
+    onStats = () => {},
+    onTribeChange = () => {},
+  } = options
   const level = initialQuality({ width: window.innerWidth, userAgent: navigator.userAgent })
   const renderer = buildRenderer(container, level)
   const governor = createQualityGovernor(level)
   const reportStats = createStatsReporter(onStats, governor)
-  const camera = new THREE.PerspectiveCamera(
-    CAMERA_FIELD_OF_VIEW,
-    container.clientWidth / container.clientHeight,
-    CAMERA_NEAR,
-    CAMERA_FAR
-  )
-  const { scene, player, npc, boat } = buildWorld()
-  const state = { input: createMovementInput(), position: { ...PLAYER_START } }
+  const camera = buildCamera(container)
+  const { scene, player, tapRings, boats, labels } = buildWorld()
+  const state = createPlayerState(startTribe)
   const unwatchResize = watchResize(container, renderer, camera)
-  const moveNpc = createNpcMover(npc, reducedMotion)
   const clock = createFrameClock()
   // 失焦或切分頁時暫停時鐘：回來的第一張重新開始，不把離開的時間算進去
   const unbindInput = bindInput(state, renderer, camera, clock.pause)
@@ -413,19 +482,16 @@ export function createIslandScene(container, { reducedMotion = false, onStats = 
     if (frame === null) {
       return // 分頁在背景：不移動、不繪圖
     }
-    movePlayer(player, state, frame.deltaSeconds)
-    moveNpc(frame.elapsedSeconds, frame.deltaSeconds)
-    bobBoat(boat, frame.elapsedSeconds, reducedMotion)
-    followPlayer(camera, state.position)
+    state.elapsedSeconds = frame.elapsedSeconds
+    movePlayer(player, state, frame.deltaSeconds, onTribeChange)
+    if (!reducedMotion) {
+      bobBoats(boats, frame.elapsedSeconds)
+    }
+    followPlayer(camera, state)
+    sizeTribeLabels(labels, state.rig.zoom)
+    tapRings.update(state, camera)
     renderer.render(scene, camera)
-
-    const lowered = sampleFrame(governor, now, frame)
-    if (lowered) {
-      renderer.setPixelRatio(pixelRatioFor(lowered, window.devicePixelRatio))
-    }
-    if (!frame.interrupted) {
-      reportStats(frame.frameMs)
-    }
+    trackQuality(renderer, governor, reportStats, now, frame)
   })
 
   return {
