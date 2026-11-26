@@ -2,6 +2,7 @@
 // 走路、邊界、畫質、NPC 走動的規則在同資料夾的純函式模組裡。
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { createFrameClock } from './frameClock'
 import {
   clearInput,
   createMovementInput,
@@ -370,22 +371,6 @@ function createNpcMover(npc, reducedMotion) {
   }
 }
 
-/** 把瀏覽器給的時間換成這張畫面的間隔與開始到現在的秒數 */
-function createFrameClock() {
-  let previous = null
-  let startedAt = null
-  return (now) => {
-    startedAt ??= now
-    const frameMs = now - (previous ?? now)
-    previous = now
-    return {
-      frameMs,
-      deltaSeconds: frameMs / MS_PER_SECOND,
-      elapsedSeconds: (now - startedAt) / MS_PER_SECOND,
-    }
-  }
-}
-
 /**
  * 在 container 裡畫出部落格子並開始動。瀏覽器無法建立 3D 畫面時丟出例外。
  * options: { reducedMotion 系統設定「減少動態效果」, onStats({ level, framesPerSecond }) }
@@ -410,7 +395,11 @@ export function createIslandScene(container, { reducedMotion = false, onStats = 
   const readClock = createFrameClock()
 
   renderer.setAnimationLoop((now) => {
-    const { frameMs, deltaSeconds, elapsedSeconds } = readClock(now)
+    const frame = readClock(now, document.hidden)
+    if (frame === null) {
+      return // 分頁在背景：不移動、不繪圖
+    }
+    const { frameMs, deltaSeconds, elapsedSeconds } = frame
     movePlayer(player, state, deltaSeconds)
     moveNpc(elapsedSeconds, deltaSeconds)
     if (!reducedMotion) {
@@ -419,7 +408,7 @@ export function createIslandScene(container, { reducedMotion = false, onStats = 
     followPlayer(camera, state.position)
     renderer.render(scene, camera)
 
-    const lowered = governor.sample(now, frameMs, document.hidden)
+    const lowered = governor.sample(now, frameMs)
     if (lowered) {
       renderer.setPixelRatio(pixelRatioFor(lowered, window.devicePixelRatio))
     }
