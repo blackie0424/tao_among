@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { clampToHex, closestOnSegment, hexVertices } from '@/island3d/hexBounds'
-import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED, mountainColor } from '@/island3d/islandMap'
+import {
+  ISLAND_DECOR,
+  ISLAND_MAP,
+  WALK_SPEED,
+  insetOutline,
+  mountainColor,
+} from '@/island3d/islandMap'
 import {
   footprintCorners,
   footprintGapToPoint,
@@ -336,6 +342,43 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
 
   it('沙灘有固定的寬度', () => {
     expect(ISLAND_DECOR.beachWidth).toBeGreaterThan(0)
+  })
+
+  it('沙灘以內的陸地：海岸線每個頂點往內縮，離海岸線的每一條邊都至少一個沙灘寬', () => {
+    const { inland, coast, beachWidth } = ISLAND_DECOR
+
+    expect(inland).toHaveLength(coast.length)
+    inland.forEach((point) => {
+      expect(isInside(point, coast)).toBe(true)
+      expect(coastGap(point)).toBeGreaterThanOrEqual(beachWidth - 1e-9)
+      // 也不會縮太多：轉角處最多到 2 倍寬
+      expect(coastGap(point)).toBeLessThan(beachWidth * 2)
+    })
+  })
+
+  it('往內縮的做法：邊長 10 的正方形往內縮 1，得到邊長 8 的正方形（順時針、逆時針都一樣）', () => {
+    const square = [
+      { x: 0, z: 0 },
+      { x: 10, z: 0 },
+      { x: 10, z: 10 },
+      { x: 0, z: 10 },
+    ]
+    const expected = [
+      [1, 1],
+      [9, 1],
+      [9, 9],
+      [1, 9],
+    ]
+
+    insetOutline(square, 1).forEach((point, i) => {
+      expect(point.x).toBeCloseTo(expected[i][0], 9)
+      expect(point.z).toBeCloseTo(expected[i][1], 9)
+    })
+    const reversed = insetOutline([...square].reverse(), 1)
+    ;[...expected].reverse().forEach(([x, z], i) => {
+      expect(reversed[i].x).toBeCloseTo(x, 9)
+      expect(reversed[i].z).toBeCloseTo(z, 9)
+    })
   })
 
   it('船整艘在海上：離新海岸線至少 6（#207 驗收條件 3）', () => {

@@ -103,6 +103,31 @@ const COAST = [
 // 沙灘：海岸線往內這麼寬是灰白色
 const BEACH_WIDTH = 5
 
+/**
+ * 把多邊形 polygon 的每個頂點往內縮：縮完的每條邊離原本的邊都是 width。
+ * 頂點順時針或逆時針排都可以；回傳同樣數量、同樣順序的頂點。
+ */
+export function insetOutline(polygon, width) {
+  const at = (i) => polygon[(i + polygon.length) % polygon.length]
+  const doubleArea = polygon.reduce((sum, a, i) => sum + a.x * at(i + 1).z - at(i + 1).x * a.z, 0)
+  const turn = Math.sign(doubleArea)
+  // 邊 from → to 朝多邊形裡面的法線
+  const inward = (from, to) => {
+    const length = Math.hypot(to.x - from.x, to.z - from.z)
+    return { x: (-(to.z - from.z) / length) * turn, z: ((to.x - from.x) / length) * turn }
+  }
+  return polygon.map((vertex, i) => {
+    const before = inward(at(i - 1), vertex)
+    const after = inward(vertex, at(i + 1))
+    // 沿兩條邊法線的角平分線走，走到離兩條邊都是 width
+    const scale = width / (1 + before.x * after.x + before.z * after.z)
+    return {
+      x: vertex.x + (before.x + after.x) * scale,
+      z: vertex.z + (before.z + after.z) * scale,
+    }
+  })
+}
+
 // 山的顏色由高度決定：這個高度以下最淺、這個高度以上最深，中間照比例
 const MOUNTAIN_LOW = { height: 8, color: [0x7d, 0xbb, 0x88] }
 const MOUNTAIN_HIGH = { height: 22, color: [0x2f, 0x7a, 0x45] }
@@ -164,7 +189,7 @@ function paddyNear({ code, center }) {
 }
 
 /**
- * coast 海岸線（多邊形的頂點）；beachWidth 沙灘的寬度；
+ * coast 海岸線（多邊形的頂點）；beachWidth 沙灘的寬度；inland 沙灘以內的陸地（海岸線往內縮）；
  * mountains 山（位置、山腳半徑、高度），都不壓到部落、公路、地標、水田；
  * paddies 水田（佔地：位置、寬、深、朝向；tribe 是它在哪個部落旁，公路旁的沒有）；
  * boats 海上的船（位置與船頭朝向的角度）。
@@ -172,6 +197,7 @@ function paddyNear({ code, center }) {
 export const ISLAND_DECOR = {
   coast: COAST,
   beachWidth: BEACH_WIDTH,
+  inland: insetOutline(COAST, BEACH_WIDTH),
   mountains: [
     // 由高到低；最高的在北半部中間（對應紅頭山）
     { x: -4, z: -30, radius: 14, height: 22 },
