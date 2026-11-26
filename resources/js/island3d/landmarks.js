@@ -1,7 +1,6 @@
 // 魚島 3D：部落的地標（#207）——清單、佔地的判斷、程式拼的造型、招牌什麼時候顯示。
 // 全部是裝飾：走不進去的只是因為放在可走範圍外，格子裡的可以穿過。不依賴 three.js。
 import { closestOnSegment } from './hexBounds'
-import { ISLAND_MAP, besideRoad } from './islandMap'
 
 // ── 佔地：以位置為中心、依朝向旋轉的長方形 ──
 
@@ -114,85 +113,46 @@ export function footprintInside(corners, polygon) {
 // ── 地標清單 ──
 
 const DEGREES_TO_RADIANS = Math.PI / 180
-const center = (code) => ISLAND_MAP.tribes.find((tribe) => tribe.code === code).center
 
-// 格子裡的地標靠邊放：佔地最靠近格子中心的那一邊離中心這麼遠，中間留給之後的 3 戶人家（#201）
-const INNER_CLEARANCE = 7.2
-// 一般房子的佔地
-const HOUSE = { width: 3, depth: 2.4 }
-
-/**
- * 格子裡的地標：在 tribe 部落中心的 degrees 方向（0 是東、90 是南），正面朝格子中心。
- * extra 是比一般位置再往外多少。
- */
-function inHex(tribe, sign, kind, degrees, { width, depth } = HOUSE, extra = 0) {
-  const angle = degrees * DEGREES_TO_RADIANS
-  const away = INNER_CLEARANCE + depth / 2 + extra
-  const { x, z } = center(tribe)
-  return {
-    tribe,
-    sign,
-    kind,
-    placement: 'in-hex',
-    x: x + Math.cos(angle) * away,
-    z: z + Math.sin(angle) * away,
-    width,
-    depth,
-    heading: Math.atan2(-Math.cos(angle), -Math.sin(angle)),
-    model: null,
-  }
-}
-
-/** 公路旁的地標：沿 from → to 那一段離 from 走 along，放在 side 那一側（見 besideRoad） */
-function roadside(tribe, sign, kind, [from, to, along, side], { width, depth } = HOUSE) {
-  return {
-    tribe,
-    sign,
-    kind,
-    placement: 'roadside',
-    ...besideRoad(from, to, along, side, width, depth),
-    model: null,
-  }
-}
-
-// 環島公路在紅頭往島南端那一段的另一端（islandMap.js 的南端折點）
-const SOUTH_OF_IMOWROD = { x: -30, z: 76 }
+/** 清單的一項：[x, z, 朝向（度）]、[寬, 深]；模型檔先不填 */
+const landmark = (tribe, sign, kind, placement, [x, z, degrees], [width, depth]) => ({
+  tribe,
+  sign,
+  kind,
+  placement,
+  x,
+  z,
+  heading: degrees * DEGREES_TO_RADIANS,
+  width,
+  depth,
+  model: null,
+})
 
 /**
  * 島上的地標。每一項：tribe 所屬部落、sign 招牌文字、kind 造型種類、placement 放法
  * （'in-hex' 格子裡、'roadside' 公路旁）、x z 位置、heading 朝向、width depth 佔地大小、
- * model 模型檔路徑（null 就用程式拼的造型）。方位依 OpenStreetMap 查到的相對位置（見 #207）。
+ * model 模型檔路徑（null 就用程式拼的造型）。
+ * 格子裡的照實際的羅盤方位靠邊放（中間留給之後的 3 戶人家，#201），正面朝格子中心；
+ * 公路旁的放在實際位置旁的環島公路邊，正面朝路。位置依 OpenStreetMap 換算後寫死（見 #207）。
  */
 export const LANDMARKS = [
-  inHex('imowrod', '郵局', 'post-office', 20),
-  inHex('imowrod', '衛生所', 'clinic', 50, HOUSE, 0.6),
-  inHex('imowrod', '警察局', 'police', 180),
-  roadside('imowrod', '學校', 'school', [center('imowrod'), SOUTH_OF_IMOWROD, 24, 'inland'], {
-    width: 4,
-    depth: 3,
-  }),
-  inHex('iratay', '文物館', 'museum', 135),
-  roadside('iratay', '機場', 'airport', [center('iratay'), center('yayo'), 21, 'seaward'], {
-    width: 10,
-    depth: 4,
-  }),
-  inHex('yayo', '農會', 'farmers', -62),
-  roadside('yayo', '學校', 'school', [center('yayo'), center('iratay'), 18, 'inland'], {
-    width: 4,
-    depth: 3,
-  }),
-  roadside('yayo', '便利商店', 'store', [center('yayo'), center('iraraley'), 17, 'seaward']),
-  roadside('yayo', '超市', 'supermarket', [center('yayo'), center('iraraley'), 23, 'seaward'], {
-    width: 4,
-    depth: 3,
-  }),
-  inHex('iraraley', '學校', 'school', -45),
-  inHex('iraraley', '路邊攤', 'stall', -90),
-  inHex('iranmeilek', '夜市', 'night-market', -20),
-  inHex('iranmeilek', '便利商店', 'store', 10),
-  inHex('iranmeilek', '警察局', 'police', 42),
-  inHex('iranmeilek', '學校', 'school', 126),
-  inHex('ivalino', '籃球場', 'court', 200, { width: 4, depth: 2.6 }),
+  landmark('imowrod', '郵局', 'post-office', 'in-hex', [19.8, 46.3, -113], [3, 2.4]),
+  landmark('imowrod', '衛生所', 'clinic', 'in-hex', [12.9, 52.0, -175], [3, 2.4]),
+  landmark('imowrod', '警察局', 'police', 'in-hex', [4.4, 46.4, 114], [3, 2.4]),
+  landmark('iratay', '文物館', 'museum', 'in-hex', [-24.2, 45.1, 135], [3, 2.4]),
+  landmark('yayo', '農會', 'farmers', 'in-hex', [-81.5, -22.6, 0], [3, 2.4]),
+  landmark('iraraley', '學校', 'school', 'in-hex', [-49.9, -88.4, -39], [3, 2.4]),
+  landmark('iraraley', '路邊攤', 'stall', 'in-hex', [-55.2, -90.3, 0], [3, 2.4]),
+  landmark('iranmeilek', '夜市', 'night-market', 'in-hex', [37.0, -35.7, -91], [3, 2.4]),
+  landmark('iranmeilek', '便利商店', 'store', 'in-hex', [35.9, -31.7, -119], [3, 2.4]),
+  landmark('iranmeilek', '警察局', 'police', 'in-hex', [32.9, -28.6, -149], [3, 2.4]),
+  landmark('iranmeilek', '學校', 'school', 'in-hex', [24.1, -28.7, 148], [3, 2.4]),
+  landmark('ivalino', '籃球場', 'court', 'in-hex', [27.5, 19.3, 90], [4, 2.6]),
+  landmark('imowrod', '學校', 'school', 'roadside', [32.7, 62.2, -52], [4, 3]),
+  landmark('iratay', '機場', 'airport', 'roadside', [-34.8, 43.7, 177], [10, 4]),
+  landmark('yayo', '學校', 'school', 'roadside', [-62.8, 8.3, -22], [4, 3]),
+  landmark('yayo', '便利商店', 'store', 'roadside', [-96.7, -41.6, 70], [3, 2.4]),
+  landmark('yayo', '超市', 'supermarket', 'roadside', [-95.2, -46.3, 70], [4, 3]),
 ]
 
 // ── 程式拼的造型 ──

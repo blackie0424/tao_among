@@ -142,6 +142,14 @@ describe('Island/Home 地圖頁', () => {
     expect(wrapper.text()).not.toContain('點部落，角色就會走過去')
   })
 
+  it('#207 3D 畫面下方標示地圖資料的來源（OpenStreetMap 的授權要求）', async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="map-credit"]').text()).toBe(
+      '地圖資料 © OpenStreetMap contributors'
+    )
+  })
+
   it('#200 角色的起點是目前所在部落', async () => {
     await mountPage()
 

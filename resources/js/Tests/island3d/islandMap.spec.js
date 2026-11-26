@@ -48,10 +48,18 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     expect(center('ivalino').z).toBeGreaterThan(center('iranmeilek').z)
   })
 
-  it('紅頭、漁人、椰油在西半邊，由南到北是紅頭、漁人、椰油', () => {
-    ;['imowrod', 'iratay', 'yayo'].forEach((code) => expect(center(code).x).toBeLessThan(0))
-    expect(center('imowrod').z).toBeGreaterThan(center('iratay').z)
-    expect(center('iratay').z).toBeGreaterThan(center('yayo').z)
+  it('椰油最西；紅頭與漁人在南岸緊鄰，漁人在紅頭的西邊（實際位置，#207 規格修訂 1）', () => {
+    ;['iraraley', 'iranmeilek', 'ivalino', 'imowrod', 'iratay'].forEach((code) =>
+      expect(center('yayo').x).toBeLessThan(center(code).x)
+    )
+    ;['iraraley', 'iranmeilek', 'ivalino', 'yayo'].forEach((code) => {
+      expect(center('imowrod').z).toBeGreaterThan(center(code).z)
+      expect(center('iratay').z).toBeGreaterThan(center(code).z)
+    })
+    expect(center('iratay').x).toBeLessThan(center('imowrod').x)
+    expect(
+      Math.hypot(center('iratay').x - center('imowrod').x, center('iratay').z - center('imowrod').z)
+    ).toBeLessThan(40)
   })
 
   it('部落格子彼此不重疊', () => {
@@ -75,15 +83,14 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     ])
   })
 
-  it('野銀到紅頭之間繞過島的南端：中間的折點都比兩個部落南', () => {
+  it('野銀到紅頭之間繞過島的東南端：中間有折點比兩個部落都更東也更南', () => {
     const codes = ringRoad.points.map(tribeOn)
     const between = ringRoad.points.slice(codes.indexOf('ivalino') + 1, codes.indexOf('imowrod'))
+    const farther = between.filter((point) =>
+      ['ivalino', 'imowrod'].every((code) => point.x > center(code).x && point.z > center(code).z)
+    )
 
-    expect(between.length).toBeGreaterThan(0)
-    between.forEach((point) => {
-      expect(point.z).toBeGreaterThan(center('ivalino').z)
-      expect(point.z).toBeGreaterThan(center('imowrod').z)
-    })
+    expect(farther.length).toBeGreaterThan(0)
   })
 
   it('只有兩條公路；橫貫公路不是一圈，不經過任何部落中心', () => {
@@ -92,51 +99,63 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     expect(crossRoad.points.map(tribeOn).filter(Boolean)).toEqual([])
   })
 
-  it('部落之間沒有捷徑：部落中心兩兩之間，只有環島公路上相鄰的五對可以直走', () => {
-    const straight = []
+  it('部落之間沒有捷徑：格子彼此不相連；部落中心之間能直走的，一定是環島公路上相鄰的一對', () => {
+    const adjacent = [
+      'iranmeilek–iraraley',
+      'iranmeilek–ivalino',
+      'imowrod–iratay',
+      'iratay–yayo',
+      'iraraley–yayo',
+    ]
     ISLAND_MAP.tribes.forEach((a, i) => {
       ISLAND_MAP.tribes.slice(i + 1).forEach((b) => {
+        const hexA = hexVertices(ISLAND_MAP.hexRadius, a.center)
+        const hexB = hexVertices(ISLAND_MAP.hexRadius, b.center)
+        const gap = Math.min(
+          ...edgesOf(hexA).flatMap(([p, q]) =>
+            edgesOf(hexB).map(([r, t]) => segmentGap(p, q, r, t))
+          )
+        )
+        expect(gap).toBeGreaterThan(0)
         if (walkable.isStraightWalkable(a.center, b.center)) {
-          straight.push([a.code, b.code].sort().join('–'))
+          expect(adjacent).toContain([a.code, b.code].sort().join('–'))
         }
       })
     })
-
-    expect(straight.sort()).toEqual(
-      [
-        'iranmeilek–iraraley',
-        'iranmeilek–ivalino',
-        'imowrod–iratay',
-        'iratay–yayo',
-        'iraraley–yayo',
-      ].sort()
-    )
   })
 
   it('走路速度是 #199（每秒 2.5）的 2 倍', () => {
     expect(WALK_SPEED).toBe(5)
   })
 
-  it('沿環島公路走一圈要 80～100 秒', () => {
+  it('沿環島公路走一圈要 140～180 秒（照實際路線，#207 規格修訂 1）', () => {
     const seconds = length([...ringRoad.points, ringRoad.points[0]]) / 5
 
-    expect(seconds).toBeGreaterThanOrEqual(80)
-    expect(seconds).toBeLessThanOrEqual(100)
+    expect(seconds).toBeGreaterThanOrEqual(140)
+    expect(seconds).toBeLessThanOrEqual(180)
   })
 
-  it('環島公路上相鄰兩個部落（中心到中心）要 7～13 秒，繞南端的野銀—紅頭除外', () => {
-    const pairs = [
+  it('沿環島公路，相鄰兩個部落（中心到中心）：紅頭—漁人 5～10 秒，其餘 10～40 秒（繞東南端的野銀—紅頭除外）', () => {
+    const loop = [...ringRoad.points, ringRoad.points[0]]
+    const codes = loop.map(tribeOn)
+    // 沿環島公路從 from 走到 to（照公路的順序）要幾秒
+    const secondsAlong = (from, to) => {
+      const start = codes.indexOf(from)
+      const end = codes.indexOf(to, start + 1)
+      return length(loop.slice(start, end + 1)) / 5
+    }
+    const others = [
       ['iraraley', 'iranmeilek'],
       ['iranmeilek', 'ivalino'],
-      ['imowrod', 'iratay'],
       ['iratay', 'yayo'],
       ['yayo', 'iraraley'],
     ]
 
-    pairs.forEach(([from, to]) => {
-      const seconds = length([center(from), center(to)]) / 5
-      expect(seconds).toBeGreaterThanOrEqual(7)
-      expect(seconds).toBeLessThanOrEqual(13)
+    expect(secondsAlong('imowrod', 'iratay')).toBeGreaterThanOrEqual(5)
+    expect(secondsAlong('imowrod', 'iratay')).toBeLessThanOrEqual(10)
+    others.forEach(([from, to]) => {
+      expect(secondsAlong(from, to)).toBeGreaterThanOrEqual(10)
+      expect(secondsAlong(from, to)).toBeLessThanOrEqual(40)
     })
   })
 
@@ -153,40 +172,36 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     expect(length([center('imowrod'), ...route])).toBeLessThan(length(viaRing))
   })
 
-  it('從紅頭中心點野銀中心：剛好經過西端接點、橫貫公路的折點、東端接點（#207 驗收條件 2）', () => {
+  it('從紅頭中心點野銀中心：依序經過西端接點、東端接點（#207 驗收條件 2）', () => {
     const findRoute = createRouter(ISLAND_MAP, walkable)
     const route = findRoute(center('imowrod'), center('ivalino'))
+    // 手寫的接點座標
+    const west = route.findIndex((point) => point.x === 22.7 && point.z === 57.5)
+    const east = route.findIndex((point) => point.x === 32.7 && point.z === 1.6)
 
-    // 手寫的預期路線：西端接點 → 兩個折點 → 東端接點 → 野銀中心
-    const expected = [
-      [-32, 60],
-      [-10, 52],
-      [22, 10],
-      [47.2, 8.6],
-      [46, 26],
-    ]
-    expect(route).toHaveLength(expected.length)
-    route.forEach((point, i) => {
-      expect(point.x).toBeCloseTo(expected[i][0], 9)
-      expect(point.z).toBeCloseTo(expected[i][1], 9)
-    })
+    expect(west).toBeGreaterThanOrEqual(0)
+    expect(east).toBeGreaterThan(west)
+    expect(route.at(-1)).toEqual(center('ivalino'))
+    // 不經過島的東南端：路線上沒有比野銀更東的點
+    route.forEach((point) => expect(point.x).toBeLessThanOrEqual(center('ivalino').x))
   })
 
-  it('從朗島點紅頭：沿環島公路往西走（經過椰油、漁人），比往東近', () => {
+  it('從朗島點椰油：沿環島公路往西走，不經過別的部落', () => {
     const findRoute = createRouter(ISLAND_MAP, walkable)
-    const route = findRoute(center('iraraley'), center('imowrod'))
+    const route = findRoute(center('iraraley'), center('yayo'))
 
-    expect(route.map(tribeOn)).toEqual(['yayo', 'iratay', 'imowrod'])
+    expect(route.map(tribeOn).filter(Boolean)).toEqual(['yayo'])
+    route.forEach((point) => expect(point.x).toBeLessThanOrEqual(center('iraraley').x))
   })
 
-  it('朗島格子與環島公路交界的凹角：相距 0.2 的兩點不能直走（#207 格子放大後重找的座標）', () => {
-    const inHex = { x: 7.229289321881275, z: -61.7692893218818 }
-    const onRoad = { x: 7.370710678118584, z: -61.910710678119116 }
+  it('朗島格子與環島公路交界的凹角：相距 0.2 的兩點不能直走（#207 照實際地圖重排後重找的座標）', () => {
+    const inHex = { x: -46.32314696122948, z: -87.2555570233031 }
+    const onRoad = { x: -46.15685303876897, z: -87.14444297669918 }
 
     expect(walkable.tribeAt(inHex)).toBe('iraraley')
     expect(walkable.tribeAt(onRoad)).toBeNull()
     expect(walkable.isWalkable(onRoad)).toBe(true)
-    expect(walkable.isWalkable({ x: 7.3, z: -61.84 })).toBe(false)
+    expect(walkable.isWalkable({ x: -46.24, z: -87.2 })).toBe(false)
     expect(walkable.isStraightWalkable(inHex, onRoad)).toBe(false)
   })
 })
@@ -214,36 +229,48 @@ describe('island3d/islandMap 格子放大與橫貫公路的接點（#207 驗收�
     expect(ISLAND_MAP.hexRadius).toBe(12)
   })
 
-  it('6 個部落的中心和 #200 一樣（手寫的座標）', () => {
-    expect(
-      Object.fromEntries(ISLAND_MAP.tribes.map((t) => [t.code, [t.center.x, t.center.z]]))
-    ).toEqual({
-      iraraley: [0, -70],
-      iranmeilek: [50, -32],
-      ivalino: [46, 26],
-      imowrod: [-34, 44],
-      iratay: [-54, 0],
-      yayo: [-50, -46],
+  it('6 個部落在實際的位置：離由經緯度換算的位置（手寫）不超過 8 單位', () => {
+    // 北緯 22.045、東經 121.55 為原點，1 公里＝22.5 單位；OpenStreetMap 的村落位置
+    const real = {
+      iraraley: [-55.2, -81.9],
+      iranmeilek: [33.9, -32.0],
+      ivalino: [38.1, 16.8],
+      imowrod: [8.5, 48.7],
+      iratay: [-16.4, 43.9],
+      yayo: [-86.0, -14.2],
+    }
+
+    expect(ISLAND_MAP.tribes).toHaveLength(6)
+    ISLAND_MAP.tribes.forEach(({ code, center: at }) => {
+      expect(Math.hypot(at.x - real[code][0], at.z - real[code][1])).toBeLessThanOrEqual(8)
     })
   })
 
+  it('環島公路穿過每個部落格子的中心', () => {
+    ISLAND_MAP.tribes.forEach((tribe) => {
+      expect(ringRoad.points.some((point) => samePoint(point, tribe.center))).toBe(true)
+    })
+  })
+
+  const ringCodes = ringRoad.points.map(tribeOn)
+  const ringIndex = (point) => ringRoad.points.findIndex((other) => samePoint(other, point))
   const junctions = [
-    // [接點, 所屬部落, 環島公路上那一段的另一端]
-    { name: '西端', point: crossRoad.points[0], tribe: 'imowrod', toward: { x: -30, z: 76 } },
+    // [接點, 所屬部落, 在環島公路上哪兩個部落之間]
+    { name: '西端', point: crossRoad.points[0], tribe: 'imowrod', between: ['ivalino', 'imowrod'] },
     {
       name: '東端',
       point: crossRoad.points.at(-1),
       tribe: 'ivalino',
-      toward: center('iranmeilek'),
+      between: ['iranmeilek', 'ivalino'],
     },
   ]
 
-  junctions.forEach(({ name, point, tribe, toward }) => {
-    it(`${name}接點在環島公路的中線上：紅頭往島南端、野銀往東清的那一段`, () => {
-      const onRoad = closestOnSegment(point, center(tribe), toward)
+  junctions.forEach(({ name, point, tribe, between }) => {
+    it(`${name}接點是環島公路上的一點：西端在紅頭往野銀（島的東南端）那一段、東端在野銀往東清那一段`, () => {
+      const at = ringIndex(point)
 
-      expect(distanceBetween(point, onRoad)).toBeLessThan(1e-9)
-      expect(ringRoad.points.some((p) => samePoint(p, toward))).toBe(true)
+      expect(at).toBeGreaterThan(ringCodes.indexOf(between[0]))
+      expect(at).toBeLessThan(ringCodes.indexOf(between[1]))
     })
 
     it(`${name}接點在部落格子外，離格子邊 4～10 單位`, () => {
@@ -284,6 +311,13 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
       return crosses ? !inside : inside
     }, false)
 
+  const coastGap = (point) =>
+    Math.min(
+      ...edgesOf(ISLAND_DECOR.coast).map(([a, b]) =>
+        distanceBetween(point, closestOnSegment(point, a, b))
+      )
+    )
+
   it('山不壓到部落格子與公路：每座山的山腳離可走範圍至少 2', () => {
     expect(ISLAND_DECOR.mountains.length).toBeGreaterThan(0)
     ISLAND_DECOR.mountains.forEach((mountain) => {
@@ -305,39 +339,48 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
   })
 
   it('部落格子與公路都在海岸線裡面（不會畫在海上）', () => {
-    const stops = [
-      ...ISLAND_MAP.tribes.map((tribe) => tribe.center),
-      ...ISLAND_MAP.roads.flatMap((road) => road.points),
-    ]
-    const r = ISLAND_MAP.hexRadius
-
-    stops.forEach(({ x, z }) => {
-      ;[
-        { x: x + r, z },
-        { x: x - r, z },
-        { x, z: z + r },
-        { x, z: z - r },
-      ].forEach((point) => expect(isInside(point, ISLAND_DECOR.coast)).toBe(true))
+    ISLAND_MAP.tribes.forEach((tribe) => {
+      hexVertices(ISLAND_MAP.hexRadius, tribe.center).forEach((vertex) =>
+        expect(isInside(vertex, ISLAND_DECOR.coast)).toBe(true)
+      )
     })
+    // 公路貼著海邊：中線上的每個折點都在裡面，而且離海岸線超過路的半寬
+    ISLAND_MAP.roads
+      .flatMap((road) => road.points)
+      .forEach((point) => {
+        expect(isInside(point, ISLAND_DECOR.coast)).toBe(true)
+        expect(coastGap(point)).toBeGreaterThan(ISLAND_MAP.roadHalfWidth)
+      })
   })
 
   // ── #207 ──
-  const coastGap = (point) =>
-    Math.min(
-      ...edgesOf(ISLAND_DECOR.coast).map(([a, b]) =>
-        distanceBetween(point, closestOnSegment(point, a, b))
-      )
-    )
-  const widthAt = (z) => {
-    const xs = edgesOf(ISLAND_DECOR.coast)
-      .filter(([a, b]) => a.z > z !== b.z > z)
-      .map(([a, b]) => a.x + ((b.x - a.x) * (z - a.z)) / (b.z - a.z))
-    return Math.max(...xs) - Math.min(...xs)
-  }
+  it('海岸線是實際的輪廓：50～80 個頂點，大小是實際的 10.4 × 9.5 公里換算再往外推 4 單位（#207 規格修訂 1）', () => {
+    const xs = ISLAND_DECOR.coast.map((point) => point.x)
+    const zs = ISLAND_DECOR.coast.map((point) => point.z)
+    // 1 公里＝22.5 單位，兩邊各往外 4：寬約 242、高約 222
+    expect(ISLAND_DECOR.coast.length).toBeGreaterThanOrEqual(50)
+    expect(ISLAND_DECOR.coast.length).toBeLessThanOrEqual(80)
+    expect(Math.abs(Math.max(...xs) - Math.min(...xs) - 242)).toBeLessThan(10)
+    expect(Math.abs(Math.max(...zs) - Math.min(...zs) - 222)).toBeLessThan(10)
+  })
 
-  it('海岸線北邊寬、往南收窄（#207 驗收條件 3）', () => {
-    expect(widthAt(-40)).toBeGreaterThan(widthAt(40))
-    expect(widthAt(40)).toBeGreaterThan(widthAt(90))
+  it('海岸線有實際的特徵：西北角突出、東南邊有一段沒有部落的尾巴', () => {
+    const { coast } = ISLAND_DECOR
+    const tribes = ISLAND_MAP.tribes.map((tribe) => tribe.center)
+    // 東南的尾巴：有頂點比野銀、紅頭都更東也更南，而且離所有部落都超過 60
+    const tail = coast.filter(
+      (point) =>
+        point.x > center('ivalino').x + 40 &&
+        point.z > center('imowrod').z + 40 &&
+        tribes.every((at) => distanceBetween(point, at) > 60)
+    )
+    // 西北角：有頂點比椰油更西、也比椰油更北
+    const northwest = coast.filter(
+      (point) => point.x < center('yayo').x - 10 && point.z < center('yayo').z - 10
+    )
+
+    expect(tail.length).toBeGreaterThan(0)
+    expect(northwest.length).toBeGreaterThan(0)
   })
 
   it('沙灘有固定的寬度', () => {
@@ -393,11 +436,46 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
     expect(new Set(ISLAND_DECOR.mountains.map((m) => m.height)).size).toBeGreaterThanOrEqual(4)
   })
 
-  it('最高的山在島的北半部中間（對應紅頭山）', () => {
+  it('最高的山對應紅頭山：在北半部、朗島與東清之間的內陸', () => {
     const highest = ISLAND_DECOR.mountains.reduce((a, b) => (b.height > a.height ? b : a))
 
     expect(highest.z).toBeLessThan(0)
-    expect(Math.abs(highest.x)).toBeLessThan(30)
+    expect(highest.x).toBeGreaterThan(center('iraraley').x)
+    expect(highest.x).toBeLessThan(center('iranmeilek').x)
+    expect(coastGap(highest)).toBeGreaterThan(20)
+  })
+
+  it('山在實際山頭的位置：離由經緯度換算的山頂（手寫）不超過 10 單位，越高的山頭在 3D 裡也越高', () => {
+    // [x, z, 實際高度（公尺）]，OpenStreetMap 的山頂位置
+    const peaks = [
+      [-35.8, -20.0, 548], // 紅頭山
+      [-73.4, -33.9, 509], // 相愛山
+      [-39.2, -51.9, 495], // 殺蛇山
+      [82.9, 86.6, 483], // 大森山
+      [15.6, -72.1, 464], // 尖禿山
+      [-16.5, -36.9, 439], // 青蛇山
+      [16.3, -0.5, 432], // 山田山
+      [-25.5, 17.7, 408], // 飯山
+      [102.4, 62.9, 378], // 龍門溪山
+      [39.5, 39.4, 298], // 奧本嶺
+      [-30.4, 34.2, 236], // 台山
+    ]
+    const nearestPeak = (mountain) =>
+      peaks.reduce((a, b) =>
+        Math.hypot(b[0] - mountain.x, b[1] - mountain.z) <
+        Math.hypot(a[0] - mountain.x, a[1] - mountain.z)
+          ? b
+          : a
+      )
+    const matched = ISLAND_DECOR.mountains.map((mountain) => {
+      const [x, z, metres] = nearestPeak(mountain)
+      expect(Math.hypot(x - mountain.x, z - mountain.z)).toBeLessThanOrEqual(10)
+      return { metres, height: mountain.height }
+    })
+
+    expect(new Set(matched.map((m) => m.metres)).size).toBe(matched.length)
+    const byMetres = [...matched].sort((a, b) => a.metres - b.metres)
+    byMetres.slice(1).forEach((m, i) => expect(m.height).toBeGreaterThan(byMetres[i].height))
   })
 
   it('山的顏色：越高越深、同高同色', () => {
@@ -427,7 +505,8 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
     const paddies = ISLAND_DECOR.paddies
     const beside = paddies.filter((paddy) => paddy.tribe)
     const alongRoad = paddies.filter((paddy) => !paddy.tribe)
-    const towardCenter = (from, to) => Math.hypot(to.x, to.z) < Math.hypot(from.x, from.z)
+    // 靠山＝離海岸線更遠
+    const fartherInland = (from, to) => coastGap(to) > coastGap(from)
     const ringSegments = [...ringRoad.points, ringRoad.points[0]]
       .slice(1)
       .map((to, i) => [ringRoad.points[i], to])
@@ -444,21 +523,21 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
       expect(alongRoad.length).toBeLessThanOrEqual(10)
     })
 
-    it('部落旁的在格子外、靠島中心的那一側、離格子邊不超過 8', () => {
+    it('部落旁的在格子外、靠山的那一側（比格子中心離海岸線更遠）、離格子邊不超過 8', () => {
       beside.forEach((paddy) => {
         const tribeCenter = center(paddy.tribe)
         const edge = clampToHex(paddy, ISLAND_MAP.hexRadius, tribeCenter)
 
-        expect(towardCenter(tribeCenter, paddy)).toBe(true)
+        expect(fartherInland(tribeCenter, paddy)).toBe(true)
         expect(distanceBetween(paddy, edge)).toBeLessThanOrEqual(8)
       })
     })
 
-    it('公路旁的在環島公路靠島中心的那一側、離路邊不超過 8', () => {
+    it('公路旁的在環島公路靠內陸的那一側（比公路上最近的點離海岸線更遠）、離路邊不超過 8', () => {
       alongRoad.forEach((paddy) => {
         const onRoad = nearestOnRing(paddy)
 
-        expect(towardCenter(onRoad, paddy)).toBe(true)
+        expect(fartherInland(onRoad, paddy)).toBe(true)
         expect(distanceBetween(paddy, onRoad) - ISLAND_MAP.roadHalfWidth).toBeLessThanOrEqual(8)
       })
     })
@@ -514,7 +593,7 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
     ISLAND_DECOR.boats.forEach((boat) => {
       expect(isInside(boat, ISLAND_DECOR.coast)).toBe(false)
       expect(awayFromWalkable(boat)).toBeGreaterThan(10)
-      expect(Math.hypot(boat.x, boat.z)).toBeLessThan(150)
+      expect(coastGap(boat)).toBeLessThan(40)
     })
   })
 })

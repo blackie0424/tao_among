@@ -103,9 +103,10 @@ export function cameraRange({ aspect, viewRadius: radius, pitch }) {
  */
 export function cameraTarget(rig, player, range, islandCenter) {
   const toIsland = (cameraDistance(rig, range) - range.nearest) / (range.farthest - range.nearest)
+  // 寫成兩邊各乘比例再相加：拉到最遠（比例是 1）時剛好等於島的中心，不留浮點誤差
   return {
-    x: player.x + (islandCenter.x - player.x) * toIsland,
-    z: player.z + (islandCenter.z - player.z) * toIsland,
+    x: player.x * (1 - toIsland) + islandCenter.x * toIsland,
+    z: player.z * (1 - toIsland) + islandCenter.z * toIsland,
   }
 }
 

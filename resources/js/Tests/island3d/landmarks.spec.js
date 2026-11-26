@@ -17,6 +17,13 @@ const center = (code) => ISLAND_MAP.tribes.find((tribe) => tribe.code === code).
 const distanceBetween = (a, b) => Math.hypot(a.x - b.x, a.z - b.z)
 const edgesOf = (polygon) => polygon.map((from, i) => [from, polygon[(i + 1) % polygon.length]])
 const walkable = createWalkable(ISLAND_MAP)
+/** 離海岸線多遠 */
+const coastGap = (point) =>
+  Math.min(
+    ...edgesOf(ISLAND_DECOR.coast).map(([a, b]) =>
+      distanceBetween(point, closestOnSegment(point, a, b))
+    )
+  )
 const roadSegments = ISLAND_MAP.roads.flatMap(({ points, closed }) => {
   const ends = closed ? [...points, points[0]] : points
   return ends.slice(1).map((to, i) => [ends[i], to])
@@ -232,13 +239,15 @@ describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
       expect(dz).toBeGreaterThan(0)
     })
 
-    it('椰油：農會在往朗島的那一側', () => {
+    it('椰油：農會在北（往朗島的那一側）', () => {
       const { dx, dz } = offset(find('yayo', '農會'))
       const toIraraley = {
         dx: center('iraraley').x - center('yayo').x,
         dz: center('iraraley').z - center('yayo').z,
       }
 
+      expect(dz).toBeLessThan(0)
+      expect(Math.abs(dx)).toBeLessThan(Math.abs(dz))
       expect(dx * toIraraley.dx + dz * toIraraley.dz).toBeGreaterThan(0)
     })
 
@@ -266,25 +275,28 @@ describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
       expect(Math.abs(school.dx)).toBeLessThan(school.dz)
     })
 
-    it('野銀：籃球場在靠島中心（靠山）的那一側', () => {
-      const court = find('ivalino', '籃球場')
-
-      expect(Math.hypot(court.x, court.z)).toBeLessThan(
-        Math.hypot(center('ivalino').x, center('ivalino').z)
-      )
+    it('野銀：籃球場在靠山的那一側（比格子中心離海岸線更遠）', () => {
+      expect(coastGap(find('ivalino', '籃球場'))).toBeGreaterThan(coastGap(center('ivalino')))
     })
   })
 
   describe('公路旁的地標', () => {
     const roadside = LANDMARKS.filter((landmark) => landmark.placement === 'roadside')
-    /** 在 from → to 這一段公路旁：最近的公路點落在這一段上，回傳它離 from 多遠 */
-    const along = (landmark, from, to) => {
-      const onRoad = closestOnSegment(landmark, from, to)
-      expect(roadGap(footprintCorners(landmark))).toBeCloseTo(
-        footprintGapToSegment(footprintCorners(landmark), from, to),
-        9
-      )
-      return distanceBetween(onRoad, from)
+    const ring = ISLAND_MAP.roads[0].points
+    const loop = [...ring, ring[0]]
+    /** 沿環島公路（照公路的順序，從朗島出發）走到離 point 最近的地方有多遠 */
+    const along = (point) => {
+      let travelled = 0
+      let best = { gap: Infinity, at: 0 }
+      loop.slice(1).forEach((to, i) => {
+        const onRoad = closestOnSegment(point, loop[i], to)
+        const gap = distanceBetween(point, onRoad)
+        if (gap < best.gap) {
+          best = { gap, at: travelled + distanceBetween(loop[i], onRoad) }
+        }
+        travelled += distanceBetween(loop[i], to)
+      })
+      return best.at
     }
 
     it('整個佔地在可走範圍外、離路邊不超過 6、在所屬部落的格子外', () => {
@@ -303,33 +315,42 @@ describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
       })
     })
 
-    it('紅頭的學校：在紅頭往島南端的那一段，橫貫公路接點之後', () => {
+    // 環島公路的順序：朗島 → 東清 → 野銀 →（島的東南端）→ 西端接點 → 紅頭 → 漁人 → 椰油 → 回朗島
+    it('紅頭的學校：在紅頭往野銀（島的東南端）的那一段，橫貫公路接點之後', () => {
       const junction = ISLAND_MAP.roads[1].points[0]
-      const from = center('imowrod')
-      const fromTribe = along(find('imowrod', '學校'), from, { x: -30, z: 76 })
+      const school = along(find('imowrod', '學校'))
 
-      expect(fromTribe).toBeGreaterThan(distanceBetween(junction, from))
+      expect(school).toBeGreaterThan(along(center('ivalino')))
+      expect(school).toBeLessThan(along(junction))
     })
 
     it('機場：在漁人—椰油之間，靠漁人、靠海側', () => {
       const airport = find('iratay', '機場')
-      const fromIratay = along(airport, center('iratay'), center('yayo'))
-      const onRoad = closestOnSegment(airport, center('iratay'), center('yayo'))
+      const from = along(center('iratay'))
+      const to = along(center('yayo'))
+      const nearestOnRoad = loop
+        .slice(1)
+        .map((end, i) => closestOnSegment(airport, loop[i], end))
+        .reduce((a, b) => (distanceBetween(b, airport) < distanceBetween(a, airport) ? b : a))
 
-      expect(fromIratay).toBeLessThan(distanceBetween(center('iratay'), center('yayo')) / 2)
-      expect(Math.hypot(airport.x, airport.z)).toBeGreaterThan(Math.hypot(onRoad.x, onRoad.z))
+      expect(along(airport)).toBeGreaterThan(from)
+      expect(along(airport)).toBeLessThan((from + to) / 2)
+      expect(coastGap(airport)).toBeLessThan(coastGap(nearestOnRoad))
     })
 
     it('椰油的學校：在椰油—漁人之間，靠椰油', () => {
-      const fromYayo = along(find('yayo', '學校'), center('yayo'), center('iratay'))
+      const from = along(center('iratay'))
+      const to = along(center('yayo'))
 
-      expect(fromYayo).toBeLessThan(distanceBetween(center('iratay'), center('yayo')) / 2)
+      expect(along(find('yayo', '學校'))).toBeGreaterThan((from + to) / 2)
+      expect(along(find('yayo', '學校'))).toBeLessThan(to)
     })
 
     it('椰油的便利商店、超市：在椰油—朗島之間，超市比便利商店靠朗島', () => {
-      const store = along(find('yayo', '便利商店'), center('yayo'), center('iraraley'))
-      const market = along(find('yayo', '超市'), center('yayo'), center('iraraley'))
+      const store = along(find('yayo', '便利商店'))
+      const market = along(find('yayo', '超市'))
 
+      expect(store).toBeGreaterThan(along(center('yayo')))
       expect(market).toBeGreaterThan(store)
     })
   })
