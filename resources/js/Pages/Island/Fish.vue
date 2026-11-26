@@ -231,7 +231,11 @@ const secondaryButton =
   'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold disabled:opacity-50'
 
 // mode：result 看結果（每個分頁一進來）、answer 選選項、supplement 打補充的叫法
-const activeKey = ref(props.questions[0].key)
+// 網址帶 question（#189 地點清單、NPC 的「我來說」）時一進來停在那一題；沒帶或值不對時停在第一題
+const requestedKey = new URLSearchParams(window.location.search).get('question')
+const activeKey = ref(
+  props.questions.some((q) => q.key === requestedKey) ? requestedKey : props.questions[0].key
+)
 const mode = ref('result')
 const supplement = ref('')
 const photoOpen = ref(false)

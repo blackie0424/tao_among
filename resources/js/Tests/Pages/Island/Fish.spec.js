@@ -203,6 +203,28 @@ describe('魚島作答頁：分頁與先看結果', () => {
     expect(optionLabels(wrapper)).toEqual([])
   })
 
+  describe('#189 網址帶 question 時一進來停在那一題', () => {
+    afterEach(() => window.history.replaceState(null, '', '/'))
+
+    it.each([
+      ['food_category', '分類', 'iratay（漁人）把這條魚分在哪一類？'],
+      ['processing_method', '處理', 'iratay（漁人）怎麼處理這條魚？'],
+      ['name', '叫法', 'iratay（漁人）怎麼叫這條魚？'],
+    ])('question=%s → 「%s」分頁', (question, label, prompt) => {
+      window.history.replaceState(null, '', `/island/tribes/iratay/fish/5?question=${question}`)
+      const wrapper = mountPage()
+
+      expect(tab(wrapper, label).attributes('aria-selected')).toBe('true')
+      expect(wrapper.find('h2').text()).toBe(prompt)
+    })
+
+    it('值不對時停在第一個分頁「叫法」', () => {
+      window.history.replaceState(null, '', '/island/tribes/iratay/fish/5?question=beach')
+
+      expect(tab(mountPage(), '叫法').attributes('aria-selected')).toBe('true')
+    })
+  })
+
   it('可以直接切到任何一題，不必依序', async () => {
     const wrapper = mountPage()
 

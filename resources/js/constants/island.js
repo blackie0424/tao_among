@@ -25,3 +25,16 @@ export function islandResultColor(options, value, unknownValue) {
   if (value === unknownValue) return UNKNOWN_RESULT_COLOR
   return RESULT_COLORS[options.indexOf(value)] ?? UNKNOWN_RESULT_COLOR
 }
+
+// 家屋四個地點（#189）的代表色：只用在 NPC 頭像與卡片左邊色條（裝飾，文字一律深色寫在白底上）
+const SPOT_COLORS = {
+  'main-house': '#f2a7a0',
+  'backrest-stone': '#f4c27a',
+  'drying-yard': '#a7c7e7',
+  pavilion: '#b9e0a5',
+}
+
+/** 地點代表色；不在對照表裡的代碼用島嶼綠 */
+export function islandSpotColor(code) {
+  return SPOT_COLORS[code] ?? '#8fd19e'
+}

@@ -13,10 +13,7 @@
       <p class="rounded-island bg-white px-3 py-1.5 text-elder-aux">{{ character.name }}</p>
     </template>
 
-    <h1 class="px-1 text-elder-title font-extrabold">{{ islandTribeLabel(tribe) }}</h1>
-    <p class="px-1 pb-3 text-elder-aux text-island-muted">
-      {{ islandTribeLabel(tribe) }}的人怎麼說這些魚？
-    </p>
+    <h1 class="px-1 pb-3 text-elder-title font-extrabold">{{ islandTribeLabel(tribe) }}的家屋</h1>
 
     <div
       v-if="progress"
@@ -40,171 +37,55 @@
       <b>{{ progress.with_result }}/{{ progress.total }}</b>
     </div>
 
-    <p v-if="empty_reason === 'no_fish'" class="rounded-island bg-white p-4 text-elder-body">
-      目前沒有魚
-    </p>
-    <p v-else-if="empty_reason === 'no_more'" class="rounded-island bg-white p-4 text-elder-body">
-      沒有更多了
-    </p>
-
-    <!-- 有結果的魚卡：點了開細節視窗；沒結果的魚卡：整張連到這個部落的作答頁 -->
-    <ul v-else class="grid grid-cols-2 gap-3">
+    <!-- 家屋的院子：四個地點 -->
+    <ul
+      data-testid="spot-cards"
+      class="grid grid-cols-2 gap-3 rounded-island border-4 border-island-land-line bg-island-land p-3"
+    >
       <li
-        v-for="(item, index) in fish"
-        :key="item.id"
-        data-testid="fish-card"
-        class="overflow-hidden rounded-island bg-white"
+        v-for="spot in spots"
+        :key="spot.code"
+        data-testid="spot-card"
+        class="flex flex-col items-center rounded-island bg-white p-3 text-center"
       >
-        <button
-          v-if="item.results"
-          :ref="(el) => (cardButtons[index] = el)"
-          type="button"
-          class="flex h-full w-full flex-col text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
-          @click="openDetail(index)"
-        >
-          <img
-            :src="item.image_url"
-            alt=""
-            loading="lazy"
-            class="aspect-[4/3] w-full bg-island-line object-cover"
-          />
-          <div class="flex flex-1 flex-col p-3">
-            <p
-              class="text-elder-body font-bold"
-              :class="{ 'text-island-muted': item.name === null }"
-            >
-              {{ item.name ?? '還沒有名字' }}
-            </p>
-            <div v-for="summary in cardSummaries(item)" :key="summary.key" class="mt-2">
-              <p class="text-sm text-island-muted">{{ summary.label }}</p>
-              <ResultBar :segments="summary.segments" />
-              <p data-testid="result-label" class="text-elder-aux font-bold">
-                {{ summary.text }}
-              </p>
-            </div>
-          </div>
-        </button>
+        <!-- 點卡片本身＝跟這個地點的 NPC 聊天 -->
         <Link
-          v-else
-          :href="`/island/tribes/${tribe}/fish/${item.id}`"
-          class="flex h-full flex-col focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
+          :href="`/island/tribes/${tribe}/spots/${spot.code}/talk?n=1`"
+          data-testid="spot-talk-link"
+          class="flex w-full flex-col items-center rounded-island focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-island-ink/40"
         >
-          <img
-            :src="item.image_url"
-            alt=""
-            loading="lazy"
-            class="aspect-[4/3] w-full bg-island-line object-cover"
+          <span
+            class="mb-2 block h-12 w-12 rounded-full border-4 border-island-ink"
+            :style="{ backgroundColor: islandSpotColor(spot.code) }"
+            aria-hidden="true"
           />
-          <div class="flex flex-1 flex-col p-3">
-            <p
-              class="text-elder-body font-bold"
-              :class="{ 'text-island-muted': item.name === null }"
-            >
-              {{ item.name ?? '還沒有名字' }}
-            </p>
-
-            <span
-              class="mt-auto block rounded-island bg-island-accent px-2 py-2 text-center text-elder-aux font-bold text-white"
-            >
-              {{ item.name === null ? '幫它取名' : '搶先回答' }}
-            </span>
-          </div>
+          <p data-testid="spot-name" class="text-elder-body font-extrabold">{{ spot.name }}</p>
+          <p class="text-elder-aux">{{ spot.npc }}</p>
+          <p data-testid="spot-progress" class="text-elder-aux text-island-muted">
+            {{ spot.total === 0 ? '這裡還沒有魚' : `${spot.with_result}/${spot.total} 有結果` }}
+          </p>
+        </Link>
+        <Link
+          :href="`/island/tribes/${tribe}/spots/${spot.code}`"
+          data-testid="spot-list-link"
+          class="mt-2 flex min-h-touch-secondary w-full items-center justify-center rounded-island border-2 border-island-line text-elder-aux font-bold"
+        >
+          看清單
         </Link>
       </li>
     </ul>
-
-    <nav v-if="page > 1 || has_more_pages" class="mt-4 flex gap-3" aria-label="換頁">
-      <Link
-        v-if="page > 1"
-        :href="pageUrl(page - 1)"
-        data-testid="previous-page"
-        class="flex min-h-touch-primary flex-1 items-center justify-center rounded-island bg-white text-elder-body font-bold"
-      >
-        上一頁
-      </Link>
-      <Link
-        v-if="has_more_pages"
-        :href="pageUrl(page + 1)"
-        data-testid="next-page"
-        class="flex min-h-touch-primary flex-1 items-center justify-center rounded-island bg-island-accent text-elder-body font-bold text-white"
-      >
-        下一頁
-      </Link>
-    </nav>
-    <ResultDetailDialog
-      v-if="detailIndex !== null"
-      :fish="fish[detailIndex]"
-      :tribe="tribe"
-      :tribes="tribes"
-      :result-options="result_options"
-      :unknown-processing-method="unknown_processing_method"
-      @close="closeDetail"
-    />
   </IslandLayout>
 </template>
 
 <script setup>
 import { Head, Link } from '@inertiajs/vue3'
-import { nextTick, ref } from 'vue'
-import ResultBar from '@/Components/Island/ResultBar.vue'
-import ResultDetailDialog from '@/Components/Island/ResultDetailDialog.vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
-import { islandResultColor, islandTribeLabel } from '@/constants/island'
+import { islandSpotColor, islandTribeLabel } from '@/constants/island'
 
-const CARD_QUESTIONS = [
-  { key: 'food_category', label: '分類' },
-  { key: 'processing_method', label: '食用' },
-]
-
-const props = defineProps({
+defineProps({
   character: { type: Object, required: true },
   tribe: { type: String, required: true },
-  fish: { type: Array, required: true },
-  page: { type: Number, required: true },
-  has_more_pages: { type: Boolean, required: true },
-  empty_reason: { type: String, default: null },
-  tribes: { type: Array, required: true },
-  result_options: { type: Object, required: true },
-  unknown_processing_method: { type: String, required: true },
+  spots: { type: Array, required: true },
   progress: { type: Object, default: null },
 })
-
-const detailIndex = ref(null)
-const cardButtons = ref([])
-
-/**
- * 魚卡上兩題的長條與標籤：只算所在部落，食用不算「我不知道」。
- * 標籤＝最多人選的選項＋人數，平手並列（例如「oyod、rahet 2」）。
- */
-function cardSummaries(item) {
-  return CARD_QUESTIONS.map(({ key, label }) => {
-    const options = props.result_options[key]
-    const choices = (item.results[key][props.tribe] ?? []).filter(
-      (choice) => choice.value !== props.unknown_processing_method
-    )
-    const top = Math.max(...choices.map((choice) => choice.count))
-    const leaders = choices.filter((choice) => choice.count === top).map((choice) => choice.value)
-    return {
-      key,
-      label,
-      segments: choices.map((choice) => ({
-        ...choice,
-        color: islandResultColor(options, choice.value, props.unknown_processing_method),
-      })),
-      text: `${leaders.join('、')} ${top}`,
-    }
-  })
-}
-
-const openDetail = (index) => (detailIndex.value = index)
-
-// 關閉後焦點回到原本那張魚卡
-async function closeDetail() {
-  const index = detailIndex.value
-  detailIndex.value = null
-  await nextTick()
-  cardButtons.value[index]?.focus()
-}
-
-const pageUrl = (page) => `/island/tribes/${props.tribe}?page=${page}`
 </script>
