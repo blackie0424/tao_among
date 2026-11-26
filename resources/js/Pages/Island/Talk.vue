@@ -36,7 +36,9 @@
         v-if="fish"
         :src="fish.image_url"
         :alt="fish.name ?? '還沒有名字的魚'"
-        class="my-3 max-h-64 w-full rounded-island bg-island-line object-contain"
+        width="400"
+        height="300"
+        class="my-3 aspect-[4/3] w-full rounded-island bg-island-line object-contain"
       />
 
       <p data-testid="speech" class="mt-3 rounded-island bg-island-sea/40 p-3 text-elder-body">

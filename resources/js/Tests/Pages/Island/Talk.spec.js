@@ -63,6 +63,14 @@ describe('Island/Talk NPC 對話（#189）', () => {
     )
   })
 
+  it('#193 魚照片有固定寬高與比例', () => {
+    const img = mountPage().find('img')
+
+    expect(img.attributes('width')).toBe('400')
+    expect(img.attributes('height')).toBe('300')
+    expect(img.classes()).toContain('aspect-[4/3]')
+  })
+
   it('有回家屋與看清單的連結', () => {
     const wrapper = mountPage()
 

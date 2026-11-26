@@ -68,6 +68,7 @@
         <Link
           :href="`/island/tribes/${tribe}/spots/${spot.code}`"
           data-testid="spot-list-link"
+          :aria-label="`看${spot.name}的清單`"
           class="mt-2 flex min-h-touch-secondary w-full items-center justify-center rounded-island border-2 border-island-line text-elder-aux font-bold"
         >
           看清單
