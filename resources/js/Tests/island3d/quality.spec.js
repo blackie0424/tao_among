@@ -39,6 +39,11 @@ describe('island3d/quality 畫質分級', () => {
     expect(pixelRatioFor('low', 3)).toBe(1)
   })
 
+  it('「低」不管裝置像素比多少都是 1（低於 1 的裝置也是）', () => {
+    expect(pixelRatioFor('low', 0.8)).toBe(1)
+    expect(pixelRatioFor('low', 1)).toBe(1)
+  })
+
   it('裝置像素比低於上限時用裝置自己的值', () => {
     expect(pixelRatioFor('high', 1)).toBe(1)
     expect(pixelRatioFor('medium', 1.25)).toBe(1.25)

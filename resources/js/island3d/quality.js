@@ -1,10 +1,10 @@
 // 魚島 3D：畫質分級（#199 驗收條件 4）。三級只差在繪圖解析度（裝置像素比的上限）。不依賴 three.js。
 
-// 由高到低；maxPixelRatio 是這一級的裝置像素比上限
+// 由高到低；maxPixelRatio 是這一級的裝置像素比上限，fixedPixelRatio 是不看裝置、固定用的值
 const QUALITY_LEVELS = [
   { name: 'high', maxPixelRatio: 1.75 },
   { name: 'medium', maxPixelRatio: 1.4 },
-  { name: 'low', maxPixelRatio: 1 },
+  { name: 'low', fixedPixelRatio: 1 },
 ]
 
 // 視窗寬度在這以下當成手機
@@ -25,10 +25,10 @@ export function initialQuality({ width, userAgent }) {
   return width <= NARROW_VIEWPORT_MAX_WIDTH || MOBILE_USER_AGENT.test(userAgent) ? 'medium' : 'high'
 }
 
-/** 這一級實際用的繪圖解析度：裝置自己的像素比，但不超過這一級的上限 */
+/** 這一級實際用的繪圖解析度：「低」固定 1；其他是裝置自己的像素比，但不超過這一級的上限 */
 export function pixelRatioFor(level, devicePixelRatio) {
-  const { maxPixelRatio } = QUALITY_LEVELS.find(({ name }) => name === level)
-  return Math.min(devicePixelRatio, maxPixelRatio)
+  const { maxPixelRatio, fixedPixelRatio } = QUALITY_LEVELS.find(({ name }) => name === level)
+  return fixedPixelRatio ?? Math.min(devicePixelRatio, maxPixelRatio)
 }
 
 /**
