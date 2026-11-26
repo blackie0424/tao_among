@@ -142,7 +142,8 @@ const rowOf = (key, label, choices, current = false) => {
     total,
     current,
     segments: withColors(choices),
-    width: `${(total / islandTotal.value) * 100}%`,
+    // 這一題全島沒人答（NPC 對話可能只有另一題有結果）時寬度 0%，避免除以 0
+    width: islandTotal.value === 0 ? '0%' : `${(total / islandTotal.value) * 100}%`,
   }
 }
 
