@@ -117,7 +117,7 @@ export const ISLAND_MAP = {
     // 朗島：第 2 格貼著主格的西南邊，第 3 格在東邊的公路上
     tribe('iraraley', [-55.2, -81.9], (main) => [neighborHex(main, 150), { x: -58.6, z: -129.7 }]),
     // 東清
-    tribe('iranmeilek', [28.6, -35.8], (main) => [neighborHex(main, -30), { x: 41.9, z: -28.7 }]),
+    tribe('iranmeilek', [28.6, -35.8], (main) => [neighborHex(main, -30), { x: 41.9, z: -24.7 }]),
     // 野銀
     tribe('ivalino', [36.0, 19.3], (main) => [neighborHex(main, 30, 1.5), neighborHex(main, -90)]),
     // 紅頭
@@ -129,7 +129,7 @@ export const ISLAND_MAP = {
     ]),
     // 椰油
     tribe('yayo', [-81.5, -14.2], () => [
-      { x: -138.9, z: -40.0 },
+      { x: -136.9, z: -58.0 },
       { x: -109.5, z: 0.2 },
     ]),
   ],
