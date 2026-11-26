@@ -20,7 +20,7 @@
       :data-tribe="tribe"
       role="button"
       tabindex="0"
-      class="cursor-pointer focus:outline-none"
+      class="group cursor-pointer focus:outline-none"
       :aria-label="`走到 ${islandTribeLabel(tribe)}`"
       :aria-current="tribe === currentTribe ? 'location' : undefined"
       @click="walkTo(tribe)"
@@ -29,6 +29,15 @@
     >
       <!-- 透明的大圓是觸控範圍（約 48px），看得到的是中間的小圓點 -->
       <circle :cx="point(tribe).x" :cy="point(tribe).y" r="26" fill="transparent" />
+      <!-- 鍵盤焦點外框：只在用鍵盤移到這個部落點時出現 -->
+      <circle
+        data-testid="focus-ring"
+        :cx="point(tribe).x"
+        :cy="point(tribe).y"
+        r="20"
+        class="fill-none stroke-island-ink opacity-0 group-focus-visible:opacity-100"
+        stroke-width="4"
+      />
       <circle
         :cx="point(tribe).x"
         :cy="point(tribe).y"
@@ -62,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { islandTribeLabel } from '@/constants/island'
 
 const props = defineProps({
@@ -109,6 +118,9 @@ function walkTo(tribe) {
   markerTribe.value = tribe
   fallbackTimer = setTimeout(arrive, WALK_FALLBACK_MS)
 }
+
+// 離開地圖頁時清掉保險計時器（Vue 已擋掉卸載後的事件，這裡只是不留下懸空的計時器）
+onUnmounted(() => clearTimeout(fallbackTimer))
 
 function arrive() {
   if (destination === null) {
