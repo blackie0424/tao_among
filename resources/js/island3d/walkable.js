@@ -165,6 +165,22 @@ function walkableSpans(from, to, hexes, roads, roadHalfWidth) {
   ].filter(Boolean)
 }
 
+/** 回傳 tribeAt(point)：這一點在哪個部落格子裡（代碼）；不在任何格子裡是 null */
+function tribeLocator(tribes, hexRadius) {
+  return (point) =>
+    tribes.find((tribe) =>
+      tribeHexes(tribe).some((center) => isInsideHex(point, hexRadius, center))
+    )?.code ?? null
+}
+
+/** 點是否在任何一段公路上（中線加路寬） */
+function isOnAnyRoad(point, roads, roadHalfWidth) {
+  return roads.some(
+    ({ from, to }) =>
+      distance(point, closestOnSegment(point, from, to)) <= roadHalfWidth + EDGE_TOLERANCE
+  )
+}
+
 /**
  * 回傳這張地圖的可走範圍判斷。obstacles 是擋路的東西（凸多邊形的頂點，順序和 hexVertices 相同；#201 的家屋四件），
  * 裡面不能走、邊上可以：
@@ -182,17 +198,8 @@ export function createWalkable(map, obstacles = []) {
     corners: roadCorners(segment, roadHalfWidth),
   }))
 
-  const tribeAt = (point) =>
-    tribes.find((tribe) =>
-      tribeHexes(tribe).some((center) => isInsideHex(point, hexRadius, center))
-    )?.code ?? null
-
-  const isOnRoad = (point) =>
-    roads.some(
-      ({ from, to }) =>
-        distance(point, closestOnSegment(point, from, to)) <= roadHalfWidth + EDGE_TOLERANCE
-    )
-
+  const tribeAt = tribeLocator(tribes, hexRadius)
+  const isOnRoad = (point) => isOnAnyRoad(point, roads, roadHalfWidth)
   const blockingAt = (point) => obstacles.find((vertices) => isInsideObstacle(point, vertices))
 
   const isWalkable = (point) =>
