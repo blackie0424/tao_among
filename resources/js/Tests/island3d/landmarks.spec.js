@@ -10,6 +10,7 @@ import {
   footprintsOverlap,
   shapeParts,
   signHeight,
+  signHeightAbove,
   signsVisible,
 } from '@/island3d/landmarks'
 import { createWalkable } from '@/island3d/walkable'
@@ -201,23 +202,29 @@ describe('island3d/landmarks 6 個特色建築（#212 驗收條件 9、10）', (
     })
   })
 
-  it('平房類（郵局、農會、便利商店）牆加屋頂共 3.4 高：人物（1.7）的 2 倍', () => {
+  it('平房類（郵局、農會、便利商店）最高處是人物（1.7）的 1.8～2.2 倍（#211 驗收條件 8）', () => {
     ;[
       ['imowrod', '郵局'],
       ['yayo', '農會'],
       ['iranmeilek', '便利商店'],
-    ].forEach(([tribe, sign]) => expect(topOf(find(tribe, sign))).toBeCloseTo(3.4, 9))
+    ].forEach(([tribe, sign]) => {
+      expect(topOf(find(tribe, sign))).toBeGreaterThanOrEqual(3.06)
+      expect(topOf(find(tribe, sign))).toBeLessThanOrEqual(3.74)
+    })
   })
 
-  it('路邊攤的棚頂 2.2 高、機場的塔台 4.8 高', () => {
-    expect(topOf(find('iraraley', '路邊攤'))).toBeCloseTo(2.2, 9)
-    expect(topOf(find('iratay', '機場'))).toBeCloseTo(4.8, 9)
+  it('路邊攤的棚頂 2.2～2.6、機場的塔台最高處 4.8～5.6（#211 驗收條件 8）', () => {
+    expect(topOf(find('iraraley', '路邊攤'))).toBeGreaterThanOrEqual(2.2)
+    expect(topOf(find('iraraley', '路邊攤'))).toBeLessThanOrEqual(2.6)
+    expect(topOf(find('iratay', '機場'))).toBeGreaterThanOrEqual(4.8)
+    expect(topOf(find('iratay', '機場'))).toBeLessThanOrEqual(5.6)
   })
 
   it('籃球場的籃框離地 3.0', () => {
     const court = find('ivalino', '籃球場')
+    // 籃框是橘色的圓框（白色的圓框是中圈，#211）
     const rims = shapeParts(court.kind, court.width, court.depth).filter(
-      (part) => part.shape === 'ring'
+      (part) => part.shape === 'ring' && part.color === '#e8590c'
     )
 
     expect(rims).toHaveLength(2)
@@ -320,6 +327,20 @@ describe('island3d/landmarks 6 個特色建築（#212 驗收條件 9、10）', (
   })
 })
 
+// 零件的形狀（#211 加了圓柱、半球、兩面坡屋頂、陽傘的兩組瓣）；不含圖片，所以不會有商標圖樣
+const PART_SHAPES = [
+  'box',
+  'roof',
+  'plane',
+  'post',
+  'ring',
+  'cylinder',
+  'dome',
+  'gable',
+  'umbrella',
+  'umbrella-alt',
+]
+
 describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () => {
   const kinds = [...new Set(LANDMARKS.map((landmark) => landmark.kind))]
 
@@ -329,7 +350,7 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
 
       expect(parts.length).toBeGreaterThan(0)
       parts.forEach((part) => {
-        expect(['box', 'roof', 'plane', 'post', 'ring']).toContain(part.shape)
+        expect(PART_SHAPES).toContain(part.shape)
         expect(part.color).toMatch(/^#[0-9a-f]{6}$/)
         ;['width', 'height', 'depth', 'x', 'y', 'z'].forEach((field) =>
           expect(Number.isFinite(part[field])).toBe(true)
@@ -365,7 +386,7 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
 
   it('籃球場：畫線的地面加兩個籃框（左右各一個，各有柱子、籃板、離地的框）', () => {
     const parts = shapeParts('court', 12, 7)
-    const rims = parts.filter((part) => part.shape === 'ring')
+    const rims = parts.filter((part) => part.shape === 'ring' && part.color === '#e8590c')
     const posts = parts.filter((part) => part.shape === 'post')
     const ground = parts.filter((part) => part.shape === 'plane')
 
@@ -393,12 +414,25 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
 })
 
 describe('island3d/landmarks 招牌的高度（#212 驗收條件 9）', () => {
-  it('招牌在建物最高點的上方 1.2：平房 4.6、路邊攤 3.4、機場 6.0', () => {
-    const heightOf = (sign) => signHeight(LANDMARKS.find((landmark) => landmark.sign === sign))
+  it('招牌在建物最高點的上方 1.2（#211 驗收條件 9）', () => {
+    LANDMARKS.forEach((landmark) => {
+      const top = Math.max(
+        ...shapeParts(landmark.kind, landmark.width, landmark.depth).map(
+          (part) => part.y + part.height / 2
+        )
+      )
+      expect(signHeight(landmark)).toBeCloseTo(top + 1.2, 9)
+    })
+  })
 
-    expect(heightOf('郵局')).toBeCloseTo(4.6, 9)
-    expect(heightOf('路邊攤')).toBeCloseTo(3.4, 9)
-    expect(heightOf('機場')).toBeCloseTo(6.0, 9)
+  it('手建零件的例子：最高的零件頂端在 2.5（中心 2、高 1），招牌在 3.7', () => {
+    const parts = [
+      { y: 0.5, height: 1 },
+      { y: 2, height: 1 },
+      { y: 1, height: 0.4 },
+    ]
+
+    expect(signHeightAbove(parts)).toBeCloseTo(3.7, 9)
   })
 
   it('每一個地標的招牌都比造型的每個零件高', () => {
@@ -418,5 +452,185 @@ describe('island3d/landmarks 招牌什麼時候顯示（#207 驗收條件 8）',
     expect(signsVisible(0.5)).toBe(true)
     expect(signsVisible(0.51)).toBe(false)
     expect(signsVisible(1)).toBe(false)
+  })
+})
+
+describe('island3d/landmarks 認得出來的特徵（#211 驗收條件 1～6、10）', () => {
+  /** 這個地標用實際佔地算出來的零件 */
+  const partsOf = (sign) => {
+    const landmark = LANDMARKS.find((item) => item.sign === sign)
+    return shapeParts(landmark.kind, landmark.width, landmark.depth)
+  }
+  const having = (parts, { shape, color, axis }) =>
+    parts.filter(
+      (part) =>
+        (!shape || part.shape === shape) &&
+        (!color || part.color === color) &&
+        (!axis || part.axis === axis)
+    )
+  const isGlass = (part) => part.opacity > 0 && part.opacity < 1
+  const RED = '#d9363e'
+  const WHITE = '#ffffff'
+  const WHEEL = '#333333'
+
+  it('路邊攤：兩輪木推車、玻璃櫃、紅白條紋棚子、紅白大陽傘、塑膠椅、保麗龍箱（條件 1）', () => {
+    const parts = partsOf('路邊攤')
+
+    expect(having(parts, { shape: 'box', color: '#9a6b3f' }).length).toBeGreaterThan(0)
+    expect(having(parts, { shape: 'box', color: '#6e4a2a' }).length).toBeGreaterThan(0)
+    // 輪子：躺著（軸朝 x）的黑色圓柱
+    expect(having(parts, { shape: 'cylinder', color: WHEEL, axis: 'x' })).toHaveLength(2)
+    expect(
+      parts.filter((part) => isGlass(part) && part.color === '#bfe8f5').length
+    ).toBeGreaterThan(0)
+    // 條紋棚子：同一個高度的紅白長條交錯，都是平的
+    const stripes = parts.filter(
+      (part) => part.shape === 'box' && part.y > 2 && [RED, WHITE].includes(part.color)
+    )
+    expect(having(stripes, { color: RED }).length).toBeGreaterThanOrEqual(2)
+    expect(having(stripes, { color: WHITE }).length).toBeGreaterThanOrEqual(2)
+    expect(new Set(stripes.map((part) => part.y.toFixed(6))).size).toBe(1)
+    // 大陽傘：兩組瓣一紅一白
+    expect(having(parts, { shape: 'umbrella', color: RED })).toHaveLength(1)
+    expect(having(parts, { shape: 'umbrella-alt', color: WHITE })).toHaveLength(1)
+    // 塑膠椅的椅面：離地約 0.45 的薄板，紅或藍
+    const seats = parts.filter(
+      (part) =>
+        part.shape === 'box' &&
+        [RED, '#2f6fd0'].includes(part.color) &&
+        Math.abs(part.y - 0.45) < 0.05
+    )
+    expect(seats.length).toBeGreaterThanOrEqual(2)
+    // 保麗龍箱：貼地的白色盒子
+    expect(
+      parts.filter(
+        (part) => part.shape === 'box' && part.color === WHITE && part.y - part.height / 2 < 0.01
+      ).length
+    ).toBeGreaterThan(0)
+  })
+
+  it('郵局：白色平房、綠色屋簷帶、玻璃門窗、紅綠郵筒各 1 個、旗桿（條件 2）', () => {
+    const parts = partsOf('郵局')
+    const GREEN = '#1f8a4c'
+
+    expect(having(parts, { shape: 'box', color: '#f5f3ea' }).length).toBeGreaterThan(0)
+    expect(having(parts, { shape: 'box', color: GREEN }).length).toBeGreaterThanOrEqual(2)
+    expect(
+      parts.filter((part) => isGlass(part) && part.color === '#bfe8f5').length
+    ).toBeGreaterThan(0)
+    // 郵筒：立著的圓柱身加半球頂，紅綠各 1 個
+    ;[RED, GREEN].forEach((color) => {
+      expect(having(parts, { shape: 'cylinder', color, axis: 'y' })).toHaveLength(1)
+      expect(having(parts, { shape: 'dome', color })).toHaveLength(1)
+    })
+    // 旗桿：比人（1.7）高很多的細柱子
+    expect(parts.filter((part) => part.shape === 'post' && part.height > 3).length).toBe(1)
+  })
+
+  it('農會：淺黃倉庫、綠色兩面坡屋頂、有橫紋的鐵捲門、麻袋堆、四輪白色小貨車（條件 3）', () => {
+    const parts = partsOf('農會')
+
+    expect(having(parts, { shape: 'box', color: '#efe3b8' }).length).toBeGreaterThan(0)
+    expect(having(parts, { shape: 'gable', color: '#3f8a3a' })).toHaveLength(1)
+    expect(having(parts, { shape: 'box', color: '#9aa3ab' })).toHaveLength(1)
+    expect(having(parts, { shape: 'box', color: '#7d868f' }).length).toBeGreaterThanOrEqual(3)
+    expect(having(parts, { shape: 'cylinder', color: '#e9dcb5' }).length).toBeGreaterThanOrEqual(3)
+    expect(having(parts, { shape: 'box', color: WHITE }).length).toBeGreaterThan(0)
+    expect(having(parts, { shape: 'cylinder', color: WHEEL, axis: 'z' })).toHaveLength(4)
+  })
+
+  it('機場：跑道與白線、玻璃頂塔台、藍頂航站、橘白風向袋、白色小飛機（條件 4）', () => {
+    const parts = partsOf('機場')
+    const BLUE = '#2f6fb0'
+    const runway = having(parts, { shape: 'plane', color: '#55595e' })
+
+    expect(runway).toHaveLength(1)
+    // 跑道上的白線：中線與兩端斑馬線
+    expect(having(parts, { shape: 'plane', color: WHITE }).length).toBeGreaterThanOrEqual(10)
+    // 塔台：高高的柱身，頂端是玻璃，上面有藍色頂蓋
+    expect(having(parts, { shape: 'box', color: '#dfe4ea' })).toHaveLength(1)
+    const towerGlass = parts.filter((part) => isGlass(part) && part.y > 3.5)
+    expect(towerGlass).toHaveLength(1)
+    expect(
+      having(parts, { shape: 'box', color: BLUE }).some((part) => part.y > towerGlass[0].y)
+    ).toBe(true)
+    expect(having(parts, { shape: 'box', color: '#eef1f4' })).toHaveLength(1)
+    // 風向袋：躺著的橘白相間圓柱
+    expect(
+      having(parts, { shape: 'cylinder', color: '#e8590c', axis: 'x' }).length
+    ).toBeGreaterThan(0)
+    expect(having(parts, { shape: 'cylinder', color: WHITE, axis: 'x' }).length).toBeGreaterThan(0)
+    // 小飛機：躺著的白色機身在跑道上、機身上方的主翼、兩個螺旋槳、藍色腰線
+    const body = having(parts, { shape: 'cylinder', color: WHITE, axis: 'x' }).find(
+      (part) => part.width > 3
+    )
+    expect(body).toBeDefined()
+    expect(Math.abs(body.z - runway[0].z)).toBeLessThan(runway[0].depth / 2)
+    const wing = parts.find(
+      (part) =>
+        part.shape === 'box' &&
+        part.color === WHITE &&
+        part.depth > body.depth * 3 &&
+        part.y > body.y
+    )
+    expect(wing).toBeDefined()
+    expect(having(parts, { shape: 'box', color: WHEEL })).toHaveLength(2)
+    expect(
+      having(parts, { shape: 'box', color: BLUE }).some((part) => Math.abs(part.z - body.z) < 0.01)
+    ).toBe(true)
+  })
+
+  it('超商：白色方盒、由下往上綠橘紅三條色帶、落地玻璃、至少 2 台不同顏色的機車（條件 5）', () => {
+    const parts = partsOf('便利商店')
+
+    expect(having(parts, { shape: 'box', color: '#fafafa' }).length).toBeGreaterThan(0)
+    const bands = ['#1f8a4c', '#f08c00', RED].map((color) =>
+      parts.find((part) => part.shape === 'box' && part.color === color && part.width > 6)
+    )
+    bands.forEach((band) => expect(band).toBeDefined())
+    expect(bands[0].y).toBeLessThan(bands[1].y)
+    expect(bands[1].y).toBeLessThan(bands[2].y)
+    expect(parts.filter(isGlass).some((part) => part.width > 5)).toBe(true)
+    // 機車：每台兩個躺著的黑輪子，車身顏色不同
+    const wheels = having(parts, { shape: 'cylinder', color: WHEEL, axis: 'x' })
+    expect(wheels.length).toBeGreaterThanOrEqual(4)
+    const bodies = parts.filter(
+      (part) =>
+        part.shape === 'box' &&
+        wheels.some((wheel) => Math.abs(wheel.x - part.x) < 0.01) &&
+        part.color !== WHEEL &&
+        part.height > 0.3
+    )
+    expect(new Set(bodies.map((part) => part.color)).size).toBeGreaterThanOrEqual(2)
+  })
+
+  it('籃球場：綠色場地紅外框、白線與中圈、兩邊橘色禁區、白籃板、橘籃框、木頭長椅（條件 6）', () => {
+    const parts = partsOf('籃球場')
+
+    expect(having(parts, { shape: 'plane', color: '#2f8f5f' })).toHaveLength(1)
+    expect(having(parts, { shape: 'plane', color: '#c0392b' })).toHaveLength(1)
+    // 白線：兩條邊線、兩條底線、中線，加一個中圈
+    expect(having(parts, { shape: 'plane', color: WHITE }).length).toBeGreaterThanOrEqual(5)
+    expect(having(parts, { shape: 'ring', color: WHITE })).toHaveLength(1)
+    const keys = having(parts, { shape: 'plane', color: '#c97a3a' })
+    expect(keys.map((key) => Math.sign(key.x)).sort()).toEqual([-1, 1])
+    expect(having(parts, { shape: 'ring', color: '#e8590c' })).toHaveLength(2)
+    expect(having(parts, { shape: 'box', color: WHITE }).filter((part) => part.y > 2)).toHaveLength(
+      2
+    )
+    expect(having(parts, { shape: 'box', color: '#9a6b3f' }).length).toBeGreaterThan(0)
+  })
+
+  it('零件只有幾何形狀，沒有貼圖或文字，不會出現商標圖樣（條件 10）', () => {
+    LANDMARKS.forEach((landmark) => {
+      shapeParts(landmark.kind, landmark.width, landmark.depth).forEach((part) => {
+        expect(PART_SHAPES).toContain(part.shape)
+        expect(Object.keys(part).sort()).toEqual(
+          expect.arrayContaining(['color', 'depth', 'height', 'shape', 'width', 'x', 'y', 'z'])
+        )
+        expect(part).not.toHaveProperty('texture')
+        expect(part).not.toHaveProperty('text')
+      })
+    })
   })
 })

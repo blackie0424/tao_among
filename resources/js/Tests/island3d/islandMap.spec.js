@@ -15,6 +15,7 @@ import {
   footprintInside,
   footprintsOverlap,
 } from '@/island3d/landmarks'
+import { PADDY_LAYOUTS, paddySize } from '@/island3d/paddyShape'
 import { createRouter } from '@/island3d/route'
 import { createWalkable } from '@/island3d/walkable'
 
@@ -545,12 +546,28 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
       expect(alongRoad.length).toBeLessThanOrEqual(10)
     })
 
-    it('一共 14 塊，大小都是 6×4', () => {
+    it('一共 14 處，大小照拼法（#211 規格修訂 1）', () => {
       expect(paddies).toHaveLength(14)
       paddies.forEach((paddy) => {
-        expect(paddy.width).toBe(6)
-        expect(paddy.depth).toBe(4)
+        expect(paddy.width).toBeCloseTo(paddySize(paddy.layout).width, 9)
+        expect(paddy.depth).toBeCloseTo(paddySize(paddy.layout).depth, 9)
       })
+    })
+
+    it('拼法照表：部落旁 2×2 或 2×3、公路旁 3×3 與 1×3 交錯，4 種都有出現（#211 驗收條件 14）', () => {
+      const byTribe = Object.fromEntries(beside.map((paddy) => [paddy.tribe, paddy.layout]))
+      expect(byTribe).toEqual({
+        iraraley: PADDY_LAYOUTS['2x2'],
+        iranmeilek: PADDY_LAYOUTS['2x3'],
+        ivalino: PADDY_LAYOUTS['2x2'],
+        imowrod: PADDY_LAYOUTS['2x3'],
+        iratay: PADDY_LAYOUTS['2x2'],
+        yayo: PADDY_LAYOUTS['2x3'],
+      })
+      expect(alongRoad.map((paddy) => paddy.layout)).toEqual(
+        [0, 1, 2, 3, 4, 5, 6, 7].map((i) => PADDY_LAYOUTS[i % 2 ? '1x3' : '3x3'])
+      )
+      expect(new Set(paddies.map((paddy) => paddy.layout.join('x'))).size).toBe(4)
     })
 
     it('部落旁的在格子外、靠山的那一側（比主格中心離海岸線更遠）、離該部落任一格的邊不超過 8', () => {

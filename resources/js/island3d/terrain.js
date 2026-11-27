@@ -3,7 +3,9 @@
 // 位置都讀 islandMap.js；這個檔只管繪圖。
 import * as THREE from 'three'
 import { islandTribeLabel } from '@/constants/island'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { ISLAND_DECOR, ISLAND_MAP, mountainColor, roadSegments, tribeHexes } from './islandMap'
+import { PADDY_COLORS, paddyShape } from './paddyShape'
 
 const HEX_SIDES = 6
 const HEX_THICKNESS = 0.6
@@ -18,10 +20,17 @@ const LAND_THICKNESS = 0.6
 export const INLAND_LEVEL = LAND_LEVEL + 0.02
 // 水田再高一點點，才不會和陸地疊在同一層
 const PADDY_LEVEL = INLAND_LEVEL + 0.03
-// 水田四周留這麼寬的田埂
-const PADDY_RIDGE = 0.3
-// 水面比田埂高這麼一點點，才不會疊在同一層
-const PADDY_WATER_LIFT = 0.01
+// 水芋田小塊之間的田埂（整片底下的一層草色），比最前一排的土頂低
+const PADDY_RIDGE_THICKNESS = 0.02
+// 一株芋頭：4 片心形葉子斜插在短莖上（樣品的比例，大小再乘上每株的 scale）
+const TARO_LEAVES = 4
+const LEAF_OFFSET = 0.18
+const LEAF_HEIGHT = 0.72
+const LEAF_TILT = -1.1
+const STEM_OFFSET = 0.08
+const STEM_LENGTH = 0.7
+const STEM_WIDTH = 0.03
+const STEM_TILT = 0.25
 const ROAD_LEVEL = 0.05
 const ROAD_JOINT_SEGMENTS = 16
 const MOUNTAIN_SIDES = 6
@@ -48,8 +57,6 @@ const COLORS = {
   hex: '#8fd19e',
   land: '#5fae73',
   beach: '#8c9196',
-  paddyRidge: '#3d7f52',
-  paddyWater: '#6fb7c9',
   road: '#ead9ae',
   labelBackground: '#ffffff',
   labelText: '#12394a',
@@ -111,29 +118,157 @@ function buildInland() {
   return inland
 }
 
-/** 躺在地上的長方形，中心在原點 */
-function flatRectangle(width, depth, color, level) {
-  const rectangle = flatMesh(new THREE.PlaneGeometry(width, depth), color)
-  rectangle.rotation.x = -Math.PI / 2
-  rectangle.position.y = level
-  return rectangle
+// ── 水芋田（#211）：小塊田拼成一片、石頭田埂、芋頭。14 處的田埂底、土、水各合成一個網格，
+// 芋頭葉、莖、田埂石頭各用一個 InstancedMesh，不是每株一個 ──
+
+const UP = new THREE.Vector3(0, 1, 0)
+const UNIT_SCALE = new THREE.Vector3(1, 1, 1)
+
+/** 位置、旋轉（Euler）、縮放組成的矩陣 */
+function transform(position, rotation = new THREE.Euler(), scale = UNIT_SCALE) {
+  return new THREE.Matrix4().compose(position, new THREE.Quaternion().setFromEuler(rotation), scale)
 }
 
-/** 水田：一塊田埂色的長方形，裡面是水的顏色 */
-function buildPaddy({ x, z, width, depth, heading }) {
-  const paddy = new THREE.Group()
-  paddy.add(
-    flatRectangle(width, depth, COLORS.paddyRidge, 0),
-    flatRectangle(
-      width - PADDY_RIDGE * 2,
-      depth - PADDY_RIDGE * 2,
-      COLORS.paddyWater,
-      PADDY_WATER_LIFT
+/** 一塊田：從田的座標（中心為原點、正面朝 +z）換到世界座標 */
+function paddyMatrix({ x, z, heading }) {
+  return new THREE.Matrix4().compose(
+    new THREE.Vector3(x, PADDY_LEVEL, z),
+    new THREE.Quaternion().setFromAxisAngle(UP, heading),
+    UNIT_SCALE
+  )
+}
+
+/** 心形葉子：尖端在原點、往 +y 長，長約 0.6 */
+function leafGeometry() {
+  const leaf = new THREE.Shape()
+  leaf.moveTo(0, 0)
+  leaf.bezierCurveTo(0.35, 0.05, 0.4, 0.45, 0.12, 0.6)
+  leaf.lineTo(0, 0.48)
+  leaf.lineTo(-0.12, 0.6)
+  leaf.bezierCurveTo(-0.4, 0.45, -0.35, 0.05, 0, 0)
+  return new THREE.ShapeGeometry(leaf)
+}
+
+/** 一株芋頭的 4 片葉子與 4 根莖的矩陣（世界座標） */
+function taroMatrices(paddy, plant) {
+  const base = paddy
+    .clone()
+    .multiply(
+      transform(
+        new THREE.Vector3(plant.x, plant.level, plant.z),
+        new THREE.Euler(0, plant.turn, 0),
+        new THREE.Vector3().setScalar(plant.scale)
+      )
+    )
+  return Array.from({ length: TARO_LEAVES }, (_, i) => {
+    const angle = (i / TARO_LEAVES) * Math.PI * 2
+    const [sin, cos] = [Math.sin(angle), Math.cos(angle)]
+    const leaf = transform(
+      new THREE.Vector3(sin * LEAF_OFFSET, LEAF_HEIGHT, cos * LEAF_OFFSET),
+      new THREE.Euler(LEAF_TILT, angle + Math.PI, 0, 'YXZ')
+    )
+    const stem = transform(
+      new THREE.Vector3(sin * STEM_OFFSET, STEM_LENGTH / 2, cos * STEM_OFFSET),
+      new THREE.Euler(cos * STEM_TILT, 0, -sin * STEM_TILT),
+      new THREE.Vector3(STEM_WIDTH, STEM_LENGTH, STEM_WIDTH)
+    )
+    return { leaf: base.clone().multiply(leaf), stem: base.clone().multiply(stem), color: i % 2 }
+  })
+}
+
+/** 一片水田的田埂底、土、水（世界座標的形體）、石頭與芋頭（矩陣） */
+function paddyPieces(paddy) {
+  const matrix = paddyMatrix(paddy)
+  const { fields, stones, taro } = paddyShape(paddy.layout)
+  const ridge = new THREE.BoxGeometry(paddy.width, PADDY_RIDGE_THICKNESS, paddy.depth)
+    .translate(0, PADDY_RIDGE_THICKNESS / 2, 0)
+    .applyMatrix4(matrix)
+  const soil = fields.map(({ x, z, width, depth, soilTop }) =>
+    new THREE.BoxGeometry(width, soilTop, depth).translate(x, soilTop / 2, z).applyMatrix4(matrix)
+  )
+  const water = fields.map(({ water: surface }) =>
+    new THREE.PlaneGeometry(surface.width, surface.depth)
+      .rotateX(-Math.PI / 2)
+      .translate(surface.x, surface.level, surface.z)
+      .applyMatrix4(matrix)
+  )
+  const stoneMatrices = stones.map((stone) => ({
+    matrix: matrix
+      .clone()
+      .multiply(
+        transform(
+          new THREE.Vector3(stone.x, stone.level + stone.height / 2, stone.z),
+          undefined,
+          new THREE.Vector3(stone.width, stone.height, stone.depth)
+        )
+      ),
+    color: stone.color,
+  }))
+  return {
+    ridge: [ridge],
+    soil,
+    water,
+    stones: stoneMatrices,
+    taro: taro.flatMap((plant) => taroMatrices(matrix, plant)),
+  }
+}
+
+/** 同一個形體、同一種材質畫很多份：每份一個矩陣，可以各有顏色 */
+function instanced(name, geometry, material, items, colorOf) {
+  const mesh = new THREE.InstancedMesh(geometry, material, items.length)
+  mesh.name = name
+  items.forEach((item, i) => {
+    mesh.setMatrixAt(i, item.matrix)
+    if (colorOf) {
+      mesh.setColorAt(i, new THREE.Color(colorOf(item)))
+    }
+  })
+  return mesh
+}
+
+/** 很多個形體合成一個網格；沒有形體就不畫 */
+function mergedMesh(name, geometries, color) {
+  if (!geometries.length) {
+    return []
+  }
+  const mesh = flatMesh(mergeGeometries(geometries), color)
+  mesh.name = name
+  return [mesh]
+}
+
+/** 所有的水芋田（預設是 islandMap.js 的 14 塊），回傳一個 group */
+export function buildPaddies(paddies = ISLAND_DECOR.paddies) {
+  const pieces = paddies.map(paddyPieces)
+  const all = (key) => pieces.flatMap((piece) => piece[key])
+  const taro = all('taro')
+  const lambert = (options) => new THREE.MeshLambertMaterial({ flatShading: true, ...options })
+  const group = new THREE.Group()
+  group.add(
+    ...mergedMesh('paddy-ridge', all('ridge'), PADDY_COLORS.ridge),
+    ...mergedMesh('paddy-soil', all('soil'), PADDY_COLORS.soil),
+    ...mergedMesh('paddy-water', all('water'), PADDY_COLORS.water),
+    instanced(
+      'paddy-stones',
+      new THREE.BoxGeometry(1, 1, 1),
+      lambert(),
+      all('stones'),
+      (stone) => stone.color
+    ),
+    instanced(
+      'paddy-leaves',
+      leafGeometry(),
+      lambert({ side: THREE.DoubleSide }),
+      taro.map(({ leaf, color }) => ({ matrix: leaf, color })),
+      (leaf) => PADDY_COLORS.leaves[leaf.color]
+    ),
+    instanced(
+      'paddy-stems',
+      new THREE.BoxGeometry(1, 1, 1),
+      lambert({ color: PADDY_COLORS.stem }),
+      taro.map(({ stem }) => ({ matrix: stem }))
     )
   )
-  paddy.position.set(x, PADDY_LEVEL, z)
-  paddy.rotation.y = heading
-  return paddy
+  return group
 }
 
 // CylinderGeometry 預設第一個頂點朝 +z；轉四分之一圈讓頂點朝 +x，和 hexBounds 一致
@@ -263,7 +398,7 @@ export function buildTerrain(loader) {
   const boats = ISLAND_DECOR.boats.map((boat) => buildBoat(loader, boat))
   const labels = ISLAND_MAP.tribes.map(buildTribeLabel)
   group.add(buildSea(), buildBeach(), buildInland(), buildRoads(), buildMountains())
-  group.add(...ISLAND_DECOR.paddies.map(buildPaddy), ...boats, ...labels)
+  group.add(buildPaddies(), ...boats, ...labels)
   group.add(...ISLAND_MAP.tribes.flatMap(tribeHexes).map(buildHex))
   sizeTribeLabels(labels, 0)
   return { group, boats, labels }
