@@ -21,7 +21,7 @@ import { createFamily } from './familyMeshes'
 import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
 import { createFrameClock } from './frameClock'
 import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
-import { householdObstacles } from './households'
+import { householdObstacles, spotAt } from './households'
 import { buildHouseholds, buildLandmarks, showSigns } from './landmarkMeshes'
 import {
   clearInput,
@@ -37,7 +37,7 @@ import { isTapBlocked, tapBlockers } from './occlusion'
 import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
 import { createRouter } from './route'
 import { createTapMarker, markerScale, rejectTap, rejectedPointAt, tapOutcome } from './tapMarker'
-import { bobBoats, buildTerrain, fitModel, sizeTribeLabels } from './terrain'
+import { bobBoats, buildTerrain, fitModel } from './terrain'
 import { createWalkable } from './walkable'
 
 // 整座島的範圍（海岸線以內）：鏡頭拉到最遠時對準它的中心、整個看得到
@@ -373,8 +373,7 @@ function buildWorld() {
     player.group,
     tapRings.group
   )
-  const { boats, labels } = terrain
-  return { scene, player, family, tapRings, boats, labels, signs: landmarks.signs }
+  return { scene, player, family, tapRings, boats: terrain.boats, signs: landmarks.signs }
 }
 
 function buildCamera(container) {
@@ -386,11 +385,22 @@ function buildCamera(container) {
   )
 }
 
+/** 角色走進或離開某一件的範圍時呼叫 onSpotChange（{ tribe, hex, slot } 或 null）（#201） */
+function reportSpot(state, onSpotChange) {
+  const spot = spotAt(state.position)
+  const key = spot && `${spot.tribe}#${spot.hex}#${spot.slot}`
+  if (key !== state.spotKey) {
+    state.spotKey = key
+    onSpotChange(spot)
+  }
+}
+
 /** 每張畫面要更新的東西：玩家、家人、船、鏡頭、標示與招牌、點地面的提示 */
-function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange }) {
-  const { player, family, tapRings, boats, labels, signs } = world
+function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange }) {
+  const { player, family, tapRings, boats, signs } = world
   state.elapsedSeconds = frame.elapsedSeconds
   movePlayer(player, state, frame.deltaSeconds, onTribeChange)
+  reportSpot(state, onSpotChange)
   family.update(frame.elapsedSeconds, frame.deltaSeconds, {
     currentTribe: state.tribe,
     reducedMotion,
@@ -399,14 +409,13 @@ function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChang
     bobBoats(boats, frame.elapsedSeconds)
   }
   followPlayer(camera, state)
-  sizeTribeLabels(labels, state.rig.zoom)
   showSigns(signs, state.rig.zoom)
   tapRings.update(state, camera)
 }
 
 /**
  * 玩家一開始的狀態：站在 startTribe 部落主格的中心、沒有輸入、鏡頭沒轉且在最近的距離。
- * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落；
+ * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落；spotKey 是目前在哪一件的範圍裡；
  * marker 是點地面的提示；elapsedSeconds 是開始到現在經過的秒數（每張畫面更新）
  */
 function createPlayerState(startTribe) {
@@ -422,6 +431,7 @@ function createPlayerState(startTribe) {
     marker: createTapMarker(),
     elapsedSeconds: 0,
     tribe: startTribe,
+    spotKey: null,
   }
 }
 
@@ -466,7 +476,8 @@ function movePlayer(player, state, deltaSeconds, onTribeChange) {
  *   startTribe 角色一開始所在的部落代碼,
  *   reducedMotion 系統設定「減少動態效果」,
  *   onStats({ level, framesPerSecond }),
- *   onTribeChange(部落代碼) 角色走進另一個部落的格子時呼叫
+ *   onTribeChange(部落代碼) 角色走進另一個部落的格子時呼叫,
+ *   onSpotChange({ tribe, hex, slot } 或 null) 角色走進或離開某一件的範圍時呼叫（#201）
  * }
  * 回傳 { dispose } 給離開頁面時停掉。
  */
@@ -476,6 +487,7 @@ export function createIslandScene(container, options) {
     reducedMotion = false,
     onStats = () => {},
     onTribeChange = () => {},
+    onSpotChange = () => {},
   } = options
   const level = initialQuality({ width: window.innerWidth, userAgent: navigator.userAgent })
   const renderer = buildRenderer(container, level)
@@ -494,7 +506,7 @@ export function createIslandScene(container, options) {
     if (frame === null) {
       return // 分頁在背景：不移動、不繪圖
     }
-    advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange })
+    advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange })
     renderer.render(world.scene, camera)
     trackQuality(renderer, governor, reportStats, now, frame)
   })

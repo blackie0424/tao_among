@@ -459,7 +459,7 @@ export function signHeight({ kind, width, depth }) {
   return signHeightAbove(shapeParts(kind, width, depth))
 }
 
-// 鏡頭拉遠超過這個程度（zoom：0 最近、1 最遠）招牌就隱藏，只留部落標示
+// 鏡頭拉遠超過這個程度（zoom：0 最近、1 最遠）招牌就隱藏
 const SIGN_HIDE_ZOOM = 0.5
 
 export function signsVisible(zoom) {

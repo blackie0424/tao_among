@@ -9,7 +9,7 @@ import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, labelTexture } from '.
 // 四角錐的底是邊長 1 的正方形：ConeGeometry 的半徑是中心到頂點
 const PYRAMID_RADIUS = Math.SQRT1_2
 const PYRAMID_SIDES = 4
-// 招牌在畫面上這麼大（畫面高度的比例；比部落標示小）
+// 招牌在畫面上這麼大（畫面高度的比例）
 const SIGN_SCREEN_HEIGHT = 0.03
 
 // 平放的圓框：管子的半徑是外徑的這個比例
@@ -132,7 +132,7 @@ function buildLandmark(loader, landmark) {
   return group
 }
 
-/** 招牌：地標最高點上方的文字，永遠正面朝鏡頭；畫在部落標示之前，所以不會蓋住部落標示 */
+/** 招牌：地標最高點上方的文字，永遠正面朝鏡頭 */
 function buildSign(landmark) {
   const { sign, x, z } = landmark
   const material = new THREE.SpriteMaterial({

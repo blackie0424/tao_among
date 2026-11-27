@@ -155,3 +155,19 @@ export const HOUSEHOLDS = [
 export function householdObstacles(households = HOUSEHOLDS) {
   return households.flatMap(({ items }) => items.map(footprintCorners))
 }
+
+/**
+ * 這一點在哪一件的範圍裡（走近的提示，#201 驗收條件 9）：{ tribe, hex 第幾格, slot 第幾件（0～3） }；
+ * 不在任何範圍裡是 null。範圍彼此不重疊，所以最多一個。
+ */
+export function spotAt(point, households = HOUSEHOLDS) {
+  for (const { tribe, hex, items } of households) {
+    const slot = items.findIndex(
+      ({ zone }) => Math.hypot(point.x - zone.x, point.z - zone.z) <= zone.radius
+    )
+    if (slot !== -1) {
+      return { tribe, hex, slot }
+    }
+  }
+  return null
+}

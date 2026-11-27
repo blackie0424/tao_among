@@ -4,6 +4,7 @@ import {
   HOUSEHOLD_KIND_ORDER,
   HOUSEHOLDS,
   householdObstacles,
+  spotAt,
 } from '@/island3d/households'
 import { ISLAND_DECOR, ISLAND_MAP, roadSegments, tribeHexes } from '@/island3d/islandMap'
 import { closestOnSegment, hexVertices, isInsideHex } from '@/island3d/hexBounds'
@@ -222,5 +223,25 @@ describe('island3d/households 四件擋路，但每個範圍都走得到（#201 
         expect(findRoute(center, { x: zone.x, z: zone.z })).not.toBeNull()
       )
     })
+  })
+})
+
+describe('island3d/households 角色在哪一件的範圍裡（#201 驗收條件 9）', () => {
+  it('站在範圍中心或邊上：回傳部落、第幾格、第幾件；範圍外是 null', () => {
+    const household = HOUSEHOLDS[4]
+    const { zone } = household.items[2]
+
+    expect(spotAt({ x: zone.x, z: zone.z })).toEqual({
+      tribe: household.tribe,
+      hex: household.hex,
+      slot: 2,
+    })
+    expect(spotAt({ x: zone.x + zone.radius, z: zone.z })).toEqual({
+      tribe: household.tribe,
+      hex: household.hex,
+      slot: 2,
+    })
+    expect(spotAt({ x: zone.x + zone.radius + 0.01, z: zone.z })).toBeNull()
+    expect(spotAt(hexCenterOf(household))).toBeNull()
   })
 })
