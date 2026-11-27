@@ -26,6 +26,7 @@ class FishController extends Controller
         'name',
         'image_url',
         'display_image_url',
+        'display_image_framing',
         'display_image_position',
         'display_image_scale',
     ];

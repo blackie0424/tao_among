@@ -89,6 +89,10 @@ describe('CaptureRecord Model', function () {
             'notes',
             'image_position',
             'image_scale',
+            'image_focus_x',
+            'image_focus_y',
+            'image_zoom',
+            'image_rotation',
         ];
 
         expect($captureRecord->getFillable())->toBe($expectedFillable);

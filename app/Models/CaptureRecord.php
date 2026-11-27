@@ -23,17 +23,26 @@ class CaptureRecord extends Model
         'notes',
         'image_position',
         'image_scale',
+        'image_focus_x',
+        'image_focus_y',
+        'image_zoom',
+        'image_rotation',
     ];
 
     protected $casts = [
         'capture_date' => 'date',
         'image_scale' => 'float',
+        'image_focus_x' => 'float',
+        'image_focus_y' => 'float',
+        'image_zoom' => 'float',
+        'image_rotation' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     protected $appends = [
         'image_url',
+        'framing',
     ];
 
     protected static function booted()
@@ -73,5 +82,18 @@ class CaptureRecord extends Model
         }
 
         return $storage->getUrl('images', $this->image_path, $hasWebp);
+    }
+
+    // 照片調整值（魚身中心、放大、旋轉）：四者皆有值才回傳，否則 null＝沒調整
+    public function getFramingAttribute(): ?array
+    {
+        $values = [
+            'x' => $this->image_focus_x,
+            'y' => $this->image_focus_y,
+            'zoom' => $this->image_zoom,
+            'rotation' => $this->image_rotation,
+        ];
+
+        return in_array(null, $values, true) ? null : $values;
     }
 }

@@ -21,7 +21,7 @@ class UpdateCaptureRecordRequest extends FormRequest
         $validator = app(CaptureRecordFieldValidator::class);
 
         if (! $record->session_id) {
-            return $validator->legacyLineRules(false);
+            return $validator->legacyLineRules(false) + $validator->framingRules();
         }
 
         return [
@@ -33,7 +33,7 @@ class UpdateCaptureRecordRequest extends FormRequest
             'image_filename' => ['nullable', 'string'],
             'image_position' => ['nullable', 'in:center,top,bottom,left,right'],
             'image_scale' => ['nullable', 'numeric', 'min:0.8', 'max:2.0'],
-        ];
+        ] + $validator->framingRules();
     }
 
     public function messages(): array

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CaptureRecord;
 use App\Models\CaptureSession;
 use App\Models\Fish;
 use App\Models\Place;
@@ -24,6 +25,26 @@ describe('GET /workspace', function () {
                 ->has('needPhoto')
                 ->has('recentEdits')
                 ->has('limit')
+            );
+    });
+
+    it('工作區的魚帶主圖照片與同一張照片的調整值', function () {
+        $editor = User::factory()->create();
+        $fish = Fish::factory()->create(['audio_filename' => null]);
+        $record = CaptureRecord::factory()->create([
+            'fish_id' => $fish->id,
+            'image_path' => 'main.jpg',
+            'image_focus_x' => 30, 'image_focus_y' => 60, 'image_zoom' => 1.5, 'image_rotation' => 90,
+        ]);
+        $fish->update(['display_capture_record_id' => $record->id]);
+
+        $this->actingAs($editor, 'sanctum')
+            ->get('/workspace')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('needAudio.0.display_image_url', $record->image_url)
+                ->where('needAudio.0.display_image_framing', ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90])
+                ->where('recentEdits.0.display_image_framing', ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90])
             );
     });
 

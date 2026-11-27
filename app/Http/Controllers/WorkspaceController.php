@@ -15,9 +15,10 @@ class WorkspaceController extends Controller
     public function index(Request $request): Response
     {
         $limit = $this->resolveLimit($request->query('limit'));
-        $cols = ['id', 'name', 'image'];
+        $cols = ['id', 'name', 'image', 'display_capture_record_id'];
 
         $needAudio = Fish::doesntHave('audios')
+            ->with('displayCaptureRecord')
             ->orderBy('id')
             ->limit($limit)
             ->get($cols)
@@ -25,6 +26,8 @@ class WorkspaceController extends Controller
                 'id' => $f->id,
                 'name' => $f->name,
                 'image_url' => $f->image_url,
+                'display_image_url' => $f->display_image_url,
+                'display_image_framing' => $f->display_image_framing,
             ]);
 
         $needPhoto = Fish::where(function ($q) {
@@ -41,13 +44,16 @@ class WorkspaceController extends Controller
                 'image_url' => null,
             ]);
 
-        $recentEdits = Fish::orderByDesc('updated_at')
+        $recentEdits = Fish::with('displayCaptureRecord')
+            ->orderByDesc('updated_at')
             ->limit($limit)
             ->get($cols)
             ->map(fn ($f) => [
                 'id' => $f->id,
                 'name' => $f->name,
                 'image_url' => $f->image_url,
+                'display_image_url' => $f->display_image_url,
+                'display_image_framing' => $f->display_image_framing,
             ]);
 
         $pendingPlaces = CaptureSession::whereNull('place_id')
