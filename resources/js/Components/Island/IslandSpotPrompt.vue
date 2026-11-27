@@ -13,62 +13,75 @@
         class="pointer-events-auto w-full max-w-3xl rounded-island bg-white px-4 py-3 text-left shadow-lg"
         @click="onDialogClick"
       >
-        <template v-if="step === STEPS.greet || step === STEPS.ask">
-          <p data-testid="spot-dialog-speaker" class="text-elder-aux font-bold text-island-muted">
-            {{ speaker }}
-          </p>
-          <p data-testid="player-line" class="mt-1 text-elder-name font-extrabold">
-            {{ step === STEPS.greet ? spot.greeting : ASK }}
-          </p>
-        </template>
-        <p v-else class="text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
-
-        <template v-if="step === STEPS.answer && askedFish">
-          <div class="mt-1 flex flex-col gap-3 min-[801px]:flex-row min-[801px]:items-start">
-            <img
-              data-testid="asked-photo"
-              :src="askedFish.image_url"
-              alt=""
-              width="170"
-              height="128"
-              class="aspect-[4/3] w-full rounded-island bg-island-line object-cover min-[801px]:w-[170px]"
-            />
-            <div class="flex-1">
-              <p data-testid="npc-line" class="text-elder-body">{{ askedFish.speech }}</p>
-              <div class="mt-3 flex flex-wrap gap-2">
-                <button
-                  v-if="askedFish.has_detail"
-                  ref="whoSaidButton"
-                  type="button"
-                  data-testid="who-said"
-                  :class="actionButton"
-                  @click="detailOpen = true"
-                >
-                  誰說的？
-                </button>
-                <button
-                  type="button"
-                  data-testid="ask-another"
-                  :class="actionButton"
-                  @click="step = STEPS.pick"
-                >
-                  問別條
-                </button>
-              </div>
-            </div>
-          </div>
-        </template>
-        <p
-          v-else-if="step === STEPS.hello"
-          data-testid="npc-line"
-          class="mt-1 text-elder-body font-bold"
+        <!-- ④⑤ 旁邊放選的那條魚的照片（規格修訂 2）：電腦在句子左邊、手機在句子上面 -->
+        <div
+          :class="
+            showsAskedPhoto
+              ? 'flex flex-col gap-3 min-[801px]:flex-row min-[801px]:items-start'
+              : ''
+          "
         >
-          {{ hello }}
-        </p>
-        <template v-else-if="step === STEPS.pick">
-          <p data-testid="npc-line" class="mt-1 text-elder-body font-bold">{{ WHICH_FISH }}</p>
-          <IslandFishPicker class="mt-3" :fish="fish" :heard="heard" @pick="ask" />
-        </template>
+          <img
+            v-if="showsAskedPhoto"
+            data-testid="asked-photo"
+            :src="askedFish.image_url"
+            alt=""
+            width="170"
+            height="128"
+            class="aspect-[4/3] w-full rounded-island bg-island-line object-cover min-[801px]:w-[170px]"
+          />
+          <div class="flex-1">
+            <template v-if="step === STEPS.greet || step === STEPS.ask">
+              <p
+                data-testid="spot-dialog-speaker"
+                class="text-elder-aux font-bold text-island-muted"
+              >
+                {{ speaker }}
+              </p>
+              <p data-testid="player-line" class="mt-1 text-elder-name font-extrabold">
+                {{ step === STEPS.greet ? spot.greeting : ASK }}
+              </p>
+            </template>
+            <p v-else class="text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
+
+            <template v-if="step === STEPS.answer && askedFish">
+              <div class="mt-1">
+                <p data-testid="npc-line" class="text-elder-body">{{ askedFish.speech }}</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button
+                    v-if="askedFish.has_detail"
+                    ref="whoSaidButton"
+                    type="button"
+                    data-testid="who-said"
+                    :class="actionButton"
+                    @click="detailOpen = true"
+                  >
+                    誰說的？
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="ask-another"
+                    :class="actionButton"
+                    @click="step = STEPS.pick"
+                  >
+                    問別條
+                  </button>
+                </div>
+              </div>
+            </template>
+            <p
+              v-else-if="step === STEPS.hello"
+              data-testid="npc-line"
+              class="mt-1 text-elder-body font-bold"
+            >
+              {{ hello }}
+            </p>
+            <template v-else-if="step === STEPS.pick">
+              <p data-testid="npc-line" class="mt-1 text-elder-body font-bold">{{ WHICH_FISH }}</p>
+              <IslandFishPicker class="mt-3" :fish="fish" :heard="heard" @pick="ask" />
+            </template>
+          </div>
+        </div>
         <p
           data-testid="next-hint"
           class="mt-2 text-right text-elder-aux font-bold text-island-accent"
@@ -138,6 +151,9 @@ const hello = computed(() =>
 const step = ref(STEPS.greet)
 const askedId = ref(null)
 const askedFish = computed(() => props.fish.find((item) => item.id === askedId.value) ?? null)
+const showsAskedPhoto = computed(
+  () => askedFish.value !== null && (step.value === STEPS.ask || step.value === STEPS.answer)
+)
 const detailOpen = ref(false)
 const whoSaidButton = ref(null)
 

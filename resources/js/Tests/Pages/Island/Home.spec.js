@@ -571,17 +571,19 @@ describe('Island/Home 地圖頁', () => {
       expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
     })
 
-    it('點照片：④ 只有玩家「ikongo o ya?」，再按一下 ⑤ 家人才講那條魚', async () => {
+    it('點照片：④ 玩家「ikongo o ya?」＋剛才選的那條魚的照片（規格修訂 2），再按一下 ⑤ 家人才講那條魚', async () => {
       const wrapper = await openToPhotos()
 
-      await photos(wrapper)[0].trigger('click')
+      await photos(wrapper)[1].trigger('click')
       await flushPromises()
       expect(playerLine(wrapper).text()).toBe('ikongo o ya?')
+      expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/b.jpg')
       expect(dialog(wrapper).find('[data-testid="npc-line"]').exists()).toBe(false)
       expect(photos(wrapper)).toHaveLength(0)
 
       await dialog(wrapper).trigger('click')
-      expect(npcLine(wrapper)).toBe(SPEECH_A_IRATAY)
+      expect(npcLine(wrapper)).toBe(SPEECH_UNNAMED_IRATAY)
+      expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/b.jpg')
       expect(playerLine(wrapper).exists()).toBe(false)
     })
 
