@@ -1,7 +1,10 @@
 <template>
   <section class="space-y-4" data-testid="image-framing-editor">
     <h3 class="text-xl font-semibold text-gray-700">調整照片</h3>
-    <p class="text-base text-gray-600">用手指拖曳照片，讓魚在框的中間</p>
+    <p v-if="photoFailed" data-testid="framing-photo-failed" class="text-base text-red-600">
+      照片讀不到，暫時無法調整。請稍後重新整理，或更換照片。
+    </p>
+    <p v-else class="text-base text-gray-600">用手指拖曳照片，讓魚在框的中間</p>
 
     <!-- 調整框（4:3）：拖曳移動、雙指放大；十字虛線的交點是魚身中心 -->
     <div
@@ -19,6 +22,7 @@
         :framing="modelValue"
         wrapperClass="absolute inset-0 w-full h-full"
         @loaded="photo = $event"
+        @failed="onPhotoFailed"
       />
       <div class="pointer-events-none absolute inset-y-0 left-1/2 border-l border-dashed border-white/90"></div>
       <div class="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-white/90"></div>
@@ -40,6 +44,7 @@
         :max="MAX_ZOOM"
         step="0.1"
         :value="zoom"
+        :disabled="photoFailed"
         class="w-full"
         @input="onZoomInput"
       />
@@ -47,8 +52,8 @@
     </div>
 
     <div class="flex flex-wrap gap-3">
-      <button type="button" data-testid="rotate-left" class="min-h-touch-primary rounded-lg border-2 border-brand px-4 text-xl text-brand" @click="rotate(-1)">⟲ 向左轉</button>
-      <button type="button" data-testid="rotate-right" class="min-h-touch-primary rounded-lg border-2 border-brand px-4 text-xl text-brand" @click="rotate(1)">向右轉 ⟳</button>
+      <button type="button" data-testid="rotate-left" :disabled="photoFailed" class="min-h-touch-primary rounded-lg border-2 border-brand px-4 text-xl text-brand" @click="rotate(-1)">⟲ 向左轉</button>
+      <button type="button" data-testid="rotate-right" :disabled="photoFailed" class="min-h-touch-primary rounded-lg border-2 border-brand px-4 text-xl text-brand" @click="rotate(1)">向右轉 ⟳</button>
       <button type="button" data-testid="framing-reset" class="min-h-touch-primary rounded-lg border-2 border-gray-400 px-4 text-xl text-gray-700" @click="reset">還原</button>
     </div>
 
@@ -74,7 +79,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import FramedImage from '@/Components/UI/FramedImage.vue'
 import {
   MAX_ZOOM,
@@ -97,13 +102,30 @@ const emit = defineEmits(['update:modelValue'])
 
 const frameEl = ref(null)
 const photo = ref(null)
+const photoFailed = ref(false)
 const pointers = new Map()
 let gesture = null
 
 const zoom = computed(() => props.modelValue?.zoom ?? MIN_ZOOM)
 
 const frameSize = () => ({ width: frameEl.value.clientWidth, height: frameEl.value.clientHeight })
-const ready = () => !!photo.value && frameEl.value?.clientWidth > 0 && frameEl.value?.clientHeight > 0
+const ready = () => !photoFailed.value && !!photo.value && frameEl.value?.clientWidth > 0 && frameEl.value?.clientHeight > 0
+
+function onPhotoFailed() {
+  photo.value = null
+  photoFailed.value = true
+  pointers.clear()
+  gesture = null
+}
+
+// 換照片：舊照片的尺寸與失敗狀態不能沿用
+watch(
+  () => props.src,
+  () => {
+    photo.value = null
+    photoFailed.value = false
+  }
+)
 
 function onPointerDown(event) {
   if (!ready()) return

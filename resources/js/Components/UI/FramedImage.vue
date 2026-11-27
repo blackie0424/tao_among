@@ -42,6 +42,8 @@ const frame = ref(null)
 let observer = null
 
 function onLoaded(size) {
+  // 原照片失敗後載入的是預設圖，它的尺寸不是這張照片的，不採用也不往外送
+  if (failed.value) return
   photo.value = size
   emit('loaded', size)
 }
