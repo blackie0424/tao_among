@@ -32,44 +32,44 @@ describe('island3d/terrain 水芋田合在一起畫（#211 驗收條件 13）', 
   const group = buildPaddies(paddies)
   group.updateMatrixWorld(true)
   const instanced = instancedByName(group)
-  const shape = paddyShape(paddies[0].width, paddies[0].depth)
+  const shapes = paddies.map((paddy) => paddyShape(paddy.layout))
+  const stemsOf = (shape) => shape.taro.length * LEAVES_PER_PLANT
+  const stonesOf = (shape) => shape.stones.length
+  const total = (count) => shapes.reduce((sum, shape) => sum + count(shape), 0)
+  /** 第 p 處的實例：[開始, 結束) */
+  const rangeOf = (p, count) => {
+    const start = shapes.slice(0, p).reduce((sum, shape) => sum + count(shape), 0)
+    return [start, start + count(shapes[p])]
+  }
+  /** mesh 第 p 處的實例都落在那一處的佔地裡 */
+  const expectInsideEach = (mesh, count) => {
+    paddies.forEach((paddy, p) => {
+      const corners = footprintCorners(paddy)
+      const [start, end] = rangeOf(p, count)
+      for (let i = start; i < end; i++) {
+        const at = instancePosition(mesh, i)
+        expect(footprintGapToPoint(corners, { x: at.x, z: at.z })).toBe(0)
+      }
+    })
+  }
 
   it('芋頭葉、莖、田埂石頭各一個 InstancedMesh，共 3 個', () => {
     expect(Object.keys(instanced).sort()).toEqual(['paddy-leaves', 'paddy-stems', 'paddy-stones'])
   })
 
-  it('實例數是 14 塊田加起來的數量', () => {
+  it('實例數是 14 處加起來的數量', () => {
     expect(paddies).toHaveLength(14)
-    expect(instanced['paddy-stems'].count).toBe(
-      paddies.length * shape.taro.length * LEAVES_PER_PLANT
-    )
-    expect(instanced['paddy-leaves'].count).toBe(
-      paddies.length * shape.taro.length * LEAVES_PER_PLANT
-    )
-    expect(instanced['paddy-stones'].count).toBe(paddies.length * shape.stones.length)
+    expect(instanced['paddy-stems'].count).toBe(total(stemsOf))
+    expect(instanced['paddy-leaves'].count).toBe(total(stemsOf))
+    expect(instanced['paddy-stones'].count).toBe(total(stonesOf))
   })
 
-  it('每株芋頭的莖都落在它那塊田的佔地裡（田的位置與朝向有套用）', () => {
-    const stems = instanced['paddy-stems']
-    const perPaddy = shape.taro.length * LEAVES_PER_PLANT
-    paddies.forEach((paddy, p) => {
-      const corners = footprintCorners(paddy)
-      for (let i = p * perPaddy; i < (p + 1) * perPaddy; i++) {
-        const at = instancePosition(stems, i)
-        expect(footprintGapToPoint(corners, { x: at.x, z: at.z })).toBe(0)
-      }
-    })
+  it('每株芋頭的莖都落在它那一處的佔地裡（位置與朝向有套用）', () => {
+    expectInsideEach(instanced['paddy-stems'], stemsOf)
   })
 
-  it('田埂石頭也落在它那塊田的佔地裡', () => {
-    const stones = instanced['paddy-stones']
-    paddies.forEach((paddy, p) => {
-      const corners = footprintCorners(paddy)
-      for (let i = p * shape.stones.length; i < (p + 1) * shape.stones.length; i++) {
-        const at = instancePosition(stones, i)
-        expect(footprintGapToPoint(corners, { x: at.x, z: at.z })).toBe(0)
-      }
-    })
+  it('田埂石頭也落在它那一處的佔地裡', () => {
+    expectInsideEach(instanced['paddy-stones'], stonesOf)
   })
 
   it('畫出來的水面高過同一層的土頂、低過上一層的土頂（#211 驗收條件 11，審查 1）', () => {
@@ -82,7 +82,7 @@ describe('island3d/terrain 水芋田合在一起畫（#211 驗收條件 13）', 
       }
       return [...ys].map(Number).sort((a, b) => a - b)
     }
-    // 土：最底下一個高度加上 3 層的土頂；水：3 層的水面（14 塊田一樣大，高度相同）
+    // 土：最底下一個高度加上 3 排的土頂；水：3 排的水面（最多 3 排，各處同一排的高度一樣）
     const [, ...soilTops] = heightsOf('paddy-soil')
     const waters = heightsOf('paddy-water')
 

@@ -20,6 +20,8 @@ const LAND_THICKNESS = 0.6
 export const INLAND_LEVEL = LAND_LEVEL + 0.02
 // 水田再高一點點，才不會和陸地疊在同一層
 const PADDY_LEVEL = INLAND_LEVEL + 0.03
+// 水芋田小塊之間的田埂（整片底下的一層草色），比最前一排的土頂低
+const PADDY_RIDGE_THICKNESS = 0.02
 // 一株芋頭：4 片心形葉子斜插在短莖上（樣品的比例，大小再乘上每株的 scale）
 const TARO_LEAVES = 4
 const LEAF_OFFSET = 0.18
@@ -116,7 +118,7 @@ function buildInland() {
   return inland
 }
 
-// ── 水芋田（#211）：3 層梯田、石頭田埂、芋頭。14 塊田的土、水各合成一個網格，
+// ── 水芋田（#211）：小塊田拼成一片、石頭田埂、芋頭。14 處的田埂底、土、水各合成一個網格，
 // 芋頭葉、莖、田埂石頭各用一個 InstancedMesh，不是每株一個 ──
 
 const UP = new THREE.Vector3(0, 1, 0)
@@ -174,14 +176,17 @@ function taroMatrices(paddy, plant) {
   })
 }
 
-/** 一塊田的土、水（世界座標的形體）、石頭與芋頭（矩陣） */
+/** 一片水田的田埂底、土、水（世界座標的形體）、石頭與芋頭（矩陣） */
 function paddyPieces(paddy) {
   const matrix = paddyMatrix(paddy)
-  const { terraces, stones, taro } = paddyShape(paddy.width, paddy.depth)
-  const soil = terraces.map(({ z, width, depth, soilTop }) =>
-    new THREE.BoxGeometry(width, soilTop, depth).translate(0, soilTop / 2, z).applyMatrix4(matrix)
+  const { fields, stones, taro } = paddyShape(paddy.layout)
+  const ridge = new THREE.BoxGeometry(paddy.width, PADDY_RIDGE_THICKNESS, paddy.depth)
+    .translate(0, PADDY_RIDGE_THICKNESS / 2, 0)
+    .applyMatrix4(matrix)
+  const soil = fields.map(({ x, z, width, depth, soilTop }) =>
+    new THREE.BoxGeometry(width, soilTop, depth).translate(x, soilTop / 2, z).applyMatrix4(matrix)
   )
-  const water = terraces.map(({ water: surface }) =>
+  const water = fields.map(({ water: surface }) =>
     new THREE.PlaneGeometry(surface.width, surface.depth)
       .rotateX(-Math.PI / 2)
       .translate(surface.x, surface.level, surface.z)
@@ -200,6 +205,7 @@ function paddyPieces(paddy) {
     color: stone.color,
   }))
   return {
+    ridge: [ridge],
     soil,
     water,
     stones: stoneMatrices,
@@ -238,6 +244,7 @@ export function buildPaddies(paddies = ISLAND_DECOR.paddies) {
   const lambert = (options) => new THREE.MeshLambertMaterial({ flatShading: true, ...options })
   const group = new THREE.Group()
   group.add(
+    ...mergedMesh('paddy-ridge', all('ridge'), PADDY_COLORS.ridge),
     ...mergedMesh('paddy-soil', all('soil'), PADDY_COLORS.soil),
     ...mergedMesh('paddy-water', all('water'), PADDY_COLORS.water),
     instanced(

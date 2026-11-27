@@ -6,6 +6,7 @@
 // （© OpenStreetMap contributors，ODbL），以北緯 22.045、東經 121.55 為原點，1 公里＝22.5 單位，
 // 換算、簡化後寫死在這裡；做法見 docs/design.md 8.8。#212 再整座放大（見 ISLAND_SCALE）。
 import { closestOnSegment } from './hexBounds'
+import { PADDY_LAYOUTS, paddySize } from './paddyShape'
 
 // 整座島的放大倍數（#212）：下面的座標是 #207 照實際地圖換算的數值，乘上這個倍數才是世界單位。
 // 格子、公路的寬度、人物不跟著放大，所以倍數越大，部落周圍的空間越多。
@@ -291,20 +292,21 @@ export function mountainColor(height) {
     .reduce((hex, channel) => hex + channel.toString(16).padStart(2, '0'), '#')
 }
 
-// 水田（芋頭田）的大小；位置直接寫世界單位（#212：#207 的位置放大後，壓到格子或離部落太遠的挪過）
-const PADDY = { width: 6, depth: 4 }
-const paddy = ([x, z, degrees], tribeCode) => ({
+// 水田（芋頭田）：好幾小塊拼成一片，拼法決定大小（#211 規格修訂 1）；位置直接寫世界單位
+// （#212：#207 的位置放大後挪過；#211：拼成一片變大後再挪過、朝向調過）
+const paddy = ([x, z, degrees], layout, tribeCode) => ({
   ...(tribeCode ? { tribe: tribeCode } : {}),
   x,
   z,
-  ...PADDY,
+  layout: PADDY_LAYOUTS[layout],
+  ...paddySize(PADDY_LAYOUTS[layout]),
   heading: degrees * DEGREES_TO_RADIANS,
 })
 
 /**
  * coast 海岸線（多邊形的頂點）；beachWidth 沙灘的寬度；inland 沙灘以內的陸地（海岸線往內縮）；
  * mountains 山（位置、山腳半徑、高度），照實際山頭的位置與相對高低，都不壓到部落、公路、地標、水田；
- * paddies 水田（佔地：位置、寬、深、朝向；tribe 是它在哪個部落旁，公路旁的沒有）；
+ * paddies 水田（佔地：位置、拼法、寬、深、朝向；tribe 是它在哪個部落旁，公路旁的沒有）；
  * boats 海上的船（位置與船頭朝向的角度）。
  */
 export const ISLAND_DECOR = {
@@ -327,21 +329,21 @@ export const ISLAND_DECOR = {
   ],
   paddies: [
     // 每個部落旁、靠山的那一側（離那個部落的格子不超過 8）
-    paddy([-88.3, -98.8, 170], 'iraraley'),
-    paddy([29.4, -66.1, 50], 'iranmeilek'),
-    paddy([74.7, 52.8, -130], 'ivalino'),
-    paddy([22.6, 47.0, -10], 'imowrod'),
-    paddy([-19.3, 41.3, -20], 'iratay'),
-    paddy([-107.2, -31.0, -60], 'yayo'),
-    // 部落之間的環島公路旁、靠內陸的那一側：#207 的位置放大後原地不動
-    paddy([-23.5, -128.1, -172]),
-    paddy([47.3, -124.5, -162]),
-    paddy([93.3, 55.8, 152]),
-    paddy([136.9, 76.9, 155]),
-    paddy([136.2, 150.9, 15]),
-    paddy([82.1, 133.4, -37]),
-    paddy([-79.1, 19.0, -52]),
-    paddy([-126.3, -68.6, -110]),
+    paddy([-88.3, -98.8, 170], '2x2', 'iraraley'),
+    paddy([29.4, -66.1, 50], '2x3', 'iranmeilek'),
+    paddy([75.2, 53.7, -85], '2x2', 'ivalino'),
+    paddy([22.6, 47.0, -10], '2x3', 'imowrod'),
+    paddy([-19.3, 41.3, -20], '2x2', 'iratay'),
+    paddy([-107.2, -31.0, -40], '2x3', 'yayo'),
+    // 部落之間的環島公路旁、靠內陸的那一側
+    paddy([-23.5, -128.1, -172], '3x3'),
+    paddy([47.3, -124.5, -162], '1x3'),
+    paddy([93.3, 55.8, 152], '3x3'),
+    paddy([136.9, 76.9, 155], '1x3'),
+    paddy([136.2, 150.9, 15], '3x3'),
+    paddy([82.1, 133.4, -37], '1x3'),
+    paddy([-79.3, 18.6, -62], '3x3'),
+    paddy([-126.3, -68.6, -65], '1x3'),
   ],
   boats: [
     { ...point([-103, 2]), heading: Math.PI / 5 },
