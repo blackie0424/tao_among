@@ -31,54 +31,54 @@
             class="aspect-[4/3] w-full rounded-island bg-island-line object-cover min-[801px]:w-[170px]"
           />
           <div class="flex-1">
-            <template v-if="step === STEPS.greet || step === STEPS.ask">
-              <p
-                data-testid="spot-dialog-speaker"
-                class="text-elder-aux font-bold text-island-muted"
-              >
-                {{ speaker }}
-              </p>
-              <p data-testid="player-line" class="mt-1 text-elder-name font-extrabold">
-                {{ step === STEPS.greet ? spot.greeting : ASK }}
-              </p>
-            </template>
-            <p v-else class="text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
-
-            <template v-if="step === STEPS.answer && askedFish">
-              <div class="mt-1">
-                <p data-testid="npc-line" class="text-elder-body">{{ askedFish.speech }}</p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <button
-                    v-if="askedFish.has_detail"
-                    ref="whoSaidButton"
-                    type="button"
-                    data-testid="who-said"
-                    :class="actionButton"
-                    @click="detailOpen = true"
-                  >
-                    誰說的？
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="ask-another"
-                    :class="actionButton"
-                    @click="step = STEPS.pick"
-                  >
-                    問別條
-                  </button>
-                </div>
-              </div>
-            </template>
             <p
-              v-else-if="step === STEPS.hello"
-              data-testid="npc-line"
-              class="mt-1 text-elder-body font-bold"
+              v-if="isPlayerStep"
+              data-testid="spot-dialog-speaker"
+              class="text-elder-aux font-bold text-island-muted"
             >
-              {{ hello }}
+              {{ speaker }}
             </p>
-            <template v-else-if="step === STEPS.pick">
-              <p data-testid="npc-line" class="mt-1 text-elder-body font-bold">{{ WHICH_FISH }}</p>
-              <IslandFishPicker class="mt-3" :fish="fish" :heard="heard" @pick="ask" />
+            <p v-else class="text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
+            <!-- 字一個一個跑（規格修訂 3）；螢幕報讀器只讀這一行的整句 -->
+            <p data-testid="line-for-reader" class="sr-only" aria-live="polite">{{ line }}</p>
+            <p
+              :data-testid="isPlayerStep ? 'player-line' : 'npc-line'"
+              aria-hidden="true"
+              class="mt-1"
+              :class="lineClass"
+            >
+              {{ shownLine }}
+            </p>
+
+            <!-- 句子跑完才出現：③ 的照片、⑤ 的按鈕 -->
+            <template v-if="!typing">
+              <IslandFishPicker
+                v-if="step === STEPS.pick"
+                class="mt-3"
+                :fish="fish"
+                :heard="heard"
+                @pick="ask"
+              />
+              <div v-else-if="step === STEPS.answer && askedFish" class="mt-3 flex flex-wrap gap-2">
+                <button
+                  v-if="askedFish.has_detail"
+                  ref="whoSaidButton"
+                  type="button"
+                  data-testid="who-said"
+                  :class="actionButton"
+                  @click="detailOpen = true"
+                >
+                  誰說的？
+                </button>
+                <button
+                  type="button"
+                  data-testid="ask-another"
+                  :class="actionButton"
+                  @click="step = STEPS.pick"
+                >
+                  問別條
+                </button>
+              </div>
             </template>
           </div>
         </div>
@@ -115,7 +115,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import IslandFishPicker from '@/Components/Island/IslandFishPicker.vue'
 import ResultDetailDialog from '@/Components/Island/ResultDetailDialog.vue'
 
@@ -137,6 +137,8 @@ const emit = defineEmits(['activate', 'ask'])
 // 玩家問「這是什麼？」的族語
 const ASK = 'ikongo o ya?'
 const WHICH_FISH = '你想認識哪一條魚？'
+// 字一個一個跑時每個字的間隔（毫秒，規格修訂 3）
+const TYPING_INTERVAL_MS = 50
 // 對話的步驟：① 問好、② 你好、③ 選魚、④ 問、⑤ 講那條魚
 const STEPS = { greet: 'greet', hello: 'hello', pick: 'pick', ask: 'ask', answer: 'answer' }
 const actionButton =
@@ -157,15 +159,72 @@ const showsAskedPhoto = computed(
 const detailOpen = ref(false)
 const whoSaidButton = ref(null)
 
+// 這一步的那一句：①④ 玩家說、②③⑤ 家人說
+const isPlayerStep = computed(() => step.value === STEPS.greet || step.value === STEPS.ask)
+const line = computed(() => {
+  switch (step.value) {
+    case STEPS.greet:
+      return props.spot?.greeting ?? ''
+    case STEPS.hello:
+      return hello.value
+    case STEPS.pick:
+      return WHICH_FISH
+    case STEPS.ask:
+      return ASK
+    default:
+      return askedFish.value?.speech ?? ''
+  }
+})
+const lineClass = computed(() => {
+  if (isPlayerStep.value) return 'text-elder-name font-extrabold'
+  return step.value === STEPS.answer ? 'text-elder-body' : 'text-elder-body font-bold'
+})
+
+// ── 字一個一個跑（規格修訂 3）──
+const typedCount = ref(0)
+const typing = computed(() => typedCount.value < line.value.length)
+const shownLine = computed(() => line.value.slice(0, typedCount.value))
+let typingTimer = null
+
+function stopTyping() {
+  clearInterval(typingTimer)
+  typingTimer = null
+}
+
+function finishTyping() {
+  stopTyping()
+  typedCount.value = line.value.length
+}
+
+// 換一句就從頭跑；「減少動態效果」時整句直接出現
+function startTyping() {
+  stopTyping()
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  if (!props.open || reduced) {
+    typedCount.value = line.value.length
+    return
+  }
+  typedCount.value = 0
+  typingTimer = setInterval(() => {
+    typedCount.value += 1
+    if (!typing.value) stopTyping()
+  }, TYPING_INTERVAL_MS)
+}
+
+watch([line, () => props.open], startTyping, { immediate: true })
+onBeforeUnmount(stopTyping)
+
 function ask(id) {
   askedId.value = id
   step.value = STEPS.ask
   emit('ask', id)
 }
 
-// 空白鍵或點對話框空白的地方：有下一句就往下，沒有就關掉
+// 空白鍵或點對話框空白的地方：字還在跑就先整句顯示；否則有下一句就往下，沒有就關掉
 function next() {
-  if (step.value === STEPS.greet) {
+  if (typing.value) {
+    finishTyping()
+  } else if (step.value === STEPS.greet) {
     step.value = STEPS.hello
   } else if (step.value === STEPS.hello && props.fish.length > 0) {
     step.value = STEPS.pick

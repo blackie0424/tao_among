@@ -128,12 +128,15 @@ const walkInto = async (tribe) => {
 
 describe('Island/Home 地圖頁', () => {
   beforeEach(() => {
+    // 對話框的字一個一個跑（#216 規格修訂 3）用 setInterval；換成假的，由測試決定何時跑完
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     scene.createIslandScene.mockReset().mockReturnValue({ dispose: scene.dispose })
     scene.dispose.mockReset()
     window.history.replaceState({}, '', '/island')
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     mounted.splice(0).forEach((wrapper) => wrapper.unmount())
     vi.unstubAllGlobals()
   })
@@ -347,11 +350,23 @@ describe('Island/Home 地圖頁', () => {
     sceneOptions().onSpotChange(spot)
     await flushPromises()
   }
-  /** 按空白鍵（預設送到 window）；回傳事件，看有沒有擋掉瀏覽器原本的行為（捲動網頁） */
-  const pressSpace = async (target = window) => {
+  /** 對話框裡正在跑的字全部跑完（#216 規格修訂 3） */
+  const finishTyping = async () => {
+    vi.advanceTimersByTime(60_000)
+    await flushPromises()
+  }
+  /** 只按一次空白鍵（不等字跑完）；回傳事件，看有沒有擋掉瀏覽器原本的行為（捲動網頁） */
+  const pressSpaceOnce = async (target = window) => {
     const event = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true })
     target.dispatchEvent(event)
     await flushPromises()
+    return event
+  }
+  /** 等這一句的字跑完再按空白鍵（預設送到 window），按完也等新的一句跑完 */
+  const pressSpace = async (target = window) => {
+    await finishTyping()
+    const event = await pressSpaceOnce(target)
+    await finishTyping()
     return event
   }
   /** 點了目前範圍那一件的家人（3D 畫面回報） */
@@ -361,6 +376,12 @@ describe('Island/Home 地圖頁', () => {
   }
   const prompt = (wrapper) => wrapper.find('[data-testid="spot-prompt"]')
   const dialog = (wrapper) => wrapper.find('[data-testid="spot-dialog"]')
+  /** 等這一句的字跑完再點對話框空白的地方，點完也等新的一句跑完 */
+  const clickDialog = async (wrapper) => {
+    await finishTyping()
+    await dialog(wrapper).trigger('click')
+    await finishTyping()
+  }
   const mockTouch = (coarse) =>
     vi.stubGlobal('matchMedia', (query) => ({ matches: coarse && query === '(pointer: coarse)' }))
 
@@ -455,9 +476,9 @@ describe('Island/Home 地圖頁', () => {
       expect(dialog(wrapper).text()).toContain('kaka kong')
 
       // 這一件（iratay 第 3 戶 tagakal）沒有魚：① 問好 → ② 你好。這裡還沒有魚。→ 關掉
-      await dialog(wrapper).trigger('click')
+      await clickDialog(wrapper)
       expect(dialog(wrapper).exists()).toBe(true)
-      await dialog(wrapper).trigger('click')
+      await clickDialog(wrapper)
       expect(dialog(wrapper).exists()).toBe(false)
     })
 
@@ -506,7 +527,6 @@ describe('Island/Home 地圖頁', () => {
     /** 點照片（④ ikongo o ya?）再按一下到 ⑤ 家人講那條魚 */
     const pick = async (wrapper, index) => {
       await photos(wrapper)[index].trigger('click')
-      await flushPromises()
       await pressSpace()
     }
 
@@ -565,9 +585,9 @@ describe('Island/Home 地圖頁', () => {
       const wrapper = await openAt()
       expect(dialog(wrapper).get('[data-testid="next-hint"]').text()).toBe('點一下')
 
-      await dialog(wrapper).trigger('click')
+      await clickDialog(wrapper)
       expect(npcLine(wrapper)).toBe('阿海，你好')
-      await dialog(wrapper).trigger('click')
+      await clickDialog(wrapper)
       expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
     })
 
@@ -575,13 +595,13 @@ describe('Island/Home 地圖頁', () => {
       const wrapper = await openToPhotos()
 
       await photos(wrapper)[1].trigger('click')
-      await flushPromises()
+      await finishTyping()
       expect(playerLine(wrapper).text()).toBe('ikongo o ya?')
       expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/b.jpg')
       expect(dialog(wrapper).find('[data-testid="npc-line"]').exists()).toBe(false)
       expect(photos(wrapper)).toHaveLength(0)
 
-      await dialog(wrapper).trigger('click')
+      await clickDialog(wrapper)
       expect(npcLine(wrapper)).toBe(SPEECH_UNNAMED_IRATAY)
       expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/b.jpg')
       expect(playerLine(wrapper).exists()).toBe(false)
@@ -599,6 +619,80 @@ describe('Island/Home 地圖頁', () => {
       expect(npcLine(wrapper)).toBe(SPEECH_A_IRATAY)
       await pressSpace()
       expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    describe('文字慢慢跳出（規格修訂 3）', () => {
+      const visibleLine = (wrapper, id) => dialog(wrapper).get(`[data-testid="${id}"]`).text()
+
+      it('一個字一個字出現，每個字約 0.05 秒；螢幕報讀器一次讀整句', async () => {
+        const wrapper = await mountPage()
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+
+        expect(visibleLine(wrapper, 'player-line')).toBe('')
+        vi.advanceTimersByTime(300)
+        await flushPromises()
+        expect(visibleLine(wrapper, 'player-line')).toBe('akay k')
+        expect(dialog(wrapper).get('[data-testid="player-line"]').attributes('aria-hidden')).toBe(
+          'true'
+        )
+        expect(dialog(wrapper).get('[data-testid="line-for-reader"]').text()).toBe('akay kong')
+      })
+
+      it('字還在跑時按空白鍵：先整句顯示，不跳下一句；再按才往下', async () => {
+        const wrapper = await mountPage()
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+        vi.advanceTimersByTime(100)
+
+        await pressSpaceOnce()
+        expect(visibleLine(wrapper, 'player-line')).toBe('akay kong')
+
+        await pressSpaceOnce()
+        expect(dialog(wrapper).find('[data-testid="player-line"]').exists()).toBe(false)
+        expect(dialog(wrapper).get('[data-testid="line-for-reader"]').text()).toBe('阿海，你好')
+      })
+
+      it('字還在跑時點對話框：先整句顯示，不關掉', async () => {
+        const wrapper = await openToPhotos()
+        await photos(wrapper)[0].trigger('click')
+        await finishTyping()
+        await pressSpaceOnce()
+        vi.advanceTimersByTime(100)
+
+        await dialog(wrapper).trigger('click')
+        expect(visibleLine(wrapper, 'npc-line')).toBe(SPEECH_A_IRATAY)
+        expect(dialog(wrapper).exists()).toBe(true)
+      })
+
+      it('③ 的照片、⑤ 的按鈕在句子跑完後才出現', async () => {
+        const wrapper = await openAt()
+        await pressSpace()
+        await pressSpaceOnce()
+        expect(photos(wrapper)).toHaveLength(0)
+        await finishTyping()
+        expect(photos(wrapper)).toHaveLength(2)
+
+        await photos(wrapper)[0].trigger('click')
+        await finishTyping()
+        await pressSpaceOnce()
+        expect(dialog(wrapper).find('[data-testid="ask-another"]').exists()).toBe(false)
+        expect(whoSaid(wrapper).exists()).toBe(false)
+        await finishTyping()
+        expect(dialog(wrapper).find('[data-testid="ask-another"]').exists()).toBe(true)
+        expect(whoSaid(wrapper).exists()).toBe(true)
+      })
+
+      it('「減少動態效果」時不跑字，整句直接出現', async () => {
+        vi.stubGlobal('matchMedia', (query) => ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+        }))
+        const wrapper = await mountPage()
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+
+        expect(visibleLine(wrapper, 'player-line')).toBe('akay kong')
+      })
     })
 
     it('照片上不寫魚名，無障礙名稱是「第 n 條魚」，依地點清單的順序', async () => {
@@ -694,7 +788,7 @@ describe('Island/Home 地圖頁', () => {
       await pick(wrapper, 0)
 
       await dialog(wrapper).get('[data-testid="ask-another"]').trigger('click')
-      await flushPromises()
+      await finishTyping()
 
       expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
       expect(photos(wrapper)[0].text()).toContain('聽過了')
@@ -740,7 +834,7 @@ describe('Island/Home 地圖頁', () => {
       await pick(wrapper, 0)
       expect(dialog(wrapper).exists()).toBe(true)
 
-      await dialog(wrapper).trigger('click')
+      await clickDialog(wrapper)
       expect(dialog(wrapper).exists()).toBe(false)
     })
 
