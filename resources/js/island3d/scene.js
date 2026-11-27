@@ -22,6 +22,7 @@ import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
 import { createFrameClock } from './frameClock'
 import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
 import { householdObstacles, spotAt, spotKey } from './households'
+import { islandHeightField } from './terrainHeight'
 import { buildHouseholdSigns, buildHouseholds, buildLandmarks, showSigns } from './landmarkMeshes'
 import {
   clearInput,
@@ -33,7 +34,7 @@ import {
   stepMovement,
   tapGround,
 } from './movement'
-import { isTapBlocked, tapBlockers } from './occlusion'
+import { isBlockedByTerrain, isTapBlocked, tapBlockers } from './occlusion'
 import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
 import { createRouter } from './route'
 import { createTapMarker, markerScale, rejectTap, rejectedPointAt, tapOutcome } from './tapMarker'
@@ -190,7 +191,9 @@ function handleTap(state, point, camera) {
     return
   }
   const before = state.input
-  const blocked = isTapBlocked(camera.position, point, TAP_BLOCKERS)
+  const blocked =
+    isTapBlocked(camera.position, point, TAP_BLOCKERS) ||
+    isBlockedByTerrain(camera.position, point, islandHeightField())
   state.input = blocked ? before : tapGround(before, point, state.position, state.world)
   if (tapOutcome(before, state.input) === 'rejected') {
     state.marker = rejectTap(state.marker, point, state.elapsedSeconds)

@@ -1,10 +1,17 @@
 // 魚島 3D：把整座島不會動的部分畫出來（#200、#207、#212）——海、海邊的岩岸、陸地、部落格子與標示、
-// 公路、山、水田、船。
+// 公路、山（實際地形）、溪流、水田、船。
 // 位置都讀 islandMap.js；這個檔只管繪圖。
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { ISLAND_DECOR, ISLAND_MAP, mountainColor, roadSegments, tribeHexes } from './islandMap'
+import { ISLAND_DECOR, ISLAND_MAP, roadSegments, tribeHexes } from './islandMap'
 import { PADDY_COLORS, paddyShape } from './paddyShape'
+import {
+  RIVER_HALF_WIDTH,
+  heightAt,
+  islandHeightField,
+  islandRiverRuns,
+  terrainColor,
+} from './terrainHeight'
 
 const HEX_SIDES = 6
 const HEX_THICKNESS = 0.6
@@ -31,8 +38,12 @@ const STEM_LENGTH = 0.7
 const STEM_WIDTH = 0.03
 const STEM_TILT = 0.25
 const ROAD_LEVEL = 0.05
+// 地形網格比陸地高一點點；四個角都低於 TERRAIN_DRAW_MIN 的格子不畫，露出下面的陸地（#223）
+const TERRAIN_LIFT = 0.005
+const TERRAIN_DRAW_MIN = 0.03
+// 溪面比陸地高這麼多（加上地形高度）：比地形網格高 0.115、平地上 0.02 低於公路，公路蓋在溪上
+const RIVER_LIFT = 0.12
 const ROAD_JOINT_SEGMENTS = 16
-const MOUNTAIN_SIDES = 6
 const BOAT_LENGTH = 3
 const BOAT_BOB_HEIGHT = 0.06
 const BOAT_MODEL = '/island3d/boats/boat-fishing-small.glb'
@@ -52,6 +63,7 @@ const COLORS = {
   land: '#5fae73',
   beach: '#8c9196',
   road: '#ead9ae',
+  river: '#5fb4d6',
   labelBackground: '#ffffff',
   labelText: '#12394a',
 }
@@ -327,18 +339,94 @@ function buildRoads() {
   return group
 }
 
-/** 山：島中間的幾座圓錐，只是裝飾；越高顏色越深 */
-function buildMountains() {
-  const group = new THREE.Group()
-  ISLAND_DECOR.mountains.forEach(({ x, z, radius, height }) => {
-    const cone = flatMesh(
-      new THREE.ConeGeometry(radius, height, MOUNTAIN_SIDES),
-      mountainColor(height)
-    )
-    cone.position.set(x, LAND_LEVEL + height / 2, z)
-    group.add(cone)
+/**
+ * 山：整片地形網格（#223）。每個網格點一個頂點，畫在陸地高度＋TERRAIN_LIFT＋地形高度，顏色照高度；
+ * 每格沿 (行, 列) → (行＋1, 列＋1) 的對角線切兩個三角形，跟 heightAt 用的同一組。
+ */
+export function buildTerrainMesh(field) {
+  const { x0, z0, step, cols, rows, heights } = field
+  const vertexOf = new Map()
+  const positions = []
+  const colors = []
+  const indices = []
+  const vertex = (col, row) => {
+    const key = row * cols + col
+    if (!vertexOf.has(key)) {
+      const height = heights[key]
+      const color = new THREE.Color(terrainColor(height))
+      vertexOf.set(key, positions.length / 3)
+      positions.push(x0 + col * step, INLAND_LEVEL + TERRAIN_LIFT + height, z0 + row * step)
+      colors.push(color.r, color.g, color.b)
+    }
+    return vertexOf.get(key)
+  }
+  for (let row = 0; row < rows - 1; row += 1) {
+    for (let col = 0; col < cols - 1; col += 1) {
+      const corners = [
+        [col, row],
+        [col + 1, row],
+        [col + 1, row + 1],
+        [col, row + 1],
+      ]
+      if (corners.every(([c, r]) => heights[r * cols + c] < TERRAIN_DRAW_MIN)) {
+        continue
+      }
+      const [a, b, c, d] = corners.map(([cc, rr]) => vertex(cc, rr))
+      // 逆時針（從上面看）才朝上：上三角形 a c b、下三角形 a d c
+      indices.push(a, c, b, a, d, c)
+    }
+  }
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ vertexColors: true }))
+  mesh.name = 'terrain'
+  return mesh
+}
+
+/** 溪的一點往左右各 RIVER_HALF_WIDTH 的兩個點：方向取前後兩段的平均 */
+function riverEdges(run, i) {
+  const before = run[Math.max(0, i - 1)]
+  const after = run[Math.min(run.length - 1, i + 1)]
+  const length = Math.hypot(after.x - before.x, after.z - before.z)
+  const across = { x: -(after.z - before.z) / length, z: (after.x - before.x) / length }
+  return [1, -1].map((side) => ({
+    x: run[i].x + across.x * RIVER_HALF_WIDTH * side,
+    z: run[i].z + across.z * RIVER_HALF_WIDTH * side,
+  }))
+}
+
+/**
+ * 溪流：所有的溪合成一個網格（#223）。runs 是 islandRiverRuns 的結果；每個頂點的高度是
+ * 陸地高度＋那一點的地形高度（field）＋RIVER_LIFT。
+ */
+export function buildRivers(runs, field) {
+  const positions = []
+  const indices = []
+  runs.forEach((run) => {
+    const first = positions.length / 3
+    run.forEach((_, i) => {
+      riverEdges(run, i).forEach((edge) =>
+        positions.push(edge.x, INLAND_LEVEL + heightAt(field, edge) + RIVER_LIFT, edge.z)
+      )
+      if (i > 0) {
+        const [left, right] = [first + (i - 1) * 2, first + (i - 1) * 2 + 1]
+        indices.push(left, right, left + 2, left + 2, right, right + 2)
+      }
+    })
   })
-  return group
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  const mesh = new THREE.Mesh(
+    geometry,
+    new THREE.MeshLambertMaterial({ color: COLORS.river, side: THREE.DoubleSide })
+  )
+  mesh.name = 'rivers'
+  return mesh
 }
 
 function buildBoat(loader, { x, z, heading }) {
@@ -368,7 +456,9 @@ export function bobBoats(boats, elapsedSeconds) {
 export function buildTerrain(loader) {
   const group = new THREE.Group()
   const boats = ISLAND_DECOR.boats.map((boat) => buildBoat(loader, boat))
-  group.add(buildSea(), buildBeach(), buildInland(), buildRoads(), buildMountains())
+  const field = islandHeightField()
+  group.add(buildSea(), buildBeach(), buildInland(), buildRoads())
+  group.add(buildTerrainMesh(field), buildRivers(islandRiverRuns(field), field))
   group.add(buildPaddies(), ...boats)
   group.add(...ISLAND_MAP.tribes.flatMap(tribeHexes).map(buildHex))
   return { group, boats }

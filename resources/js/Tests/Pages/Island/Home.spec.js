@@ -219,11 +219,11 @@ describe('Island/Home 地圖頁', () => {
     expect(wrapper.text()).not.toContain('點部落，角色就會走過去')
   })
 
-  it('#207 3D 畫面下方標示地圖資料的來源（OpenStreetMap 的授權要求）', async () => {
+  it('#207 #223 3D 畫面下方標示地圖與地形資料的來源（授權要求）', async () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find('[data-testid="map-credit"]').text()).toBe(
-      '地圖資料 © OpenStreetMap contributors'
+      '地圖資料 © OpenStreetMap contributors；地形資料：U.S. Geological Survey（SRTM、GMTED2010）、NOAA（ETOPO1）'
     )
   })
 

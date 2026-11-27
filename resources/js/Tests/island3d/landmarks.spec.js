@@ -13,6 +13,7 @@ import {
   signHeightAbove,
   signsVisible,
 } from '@/island3d/landmarks'
+import { heightAt, islandHeightField } from '@/island3d/terrainHeight'
 import { createWalkable } from '@/island3d/walkable'
 
 const center = (code) => ISLAND_MAP.tribes.find((tribe) => tribe.code === code).center
@@ -316,12 +317,11 @@ describe('island3d/landmarks 6 個特色建築（#212 驗收條件 9、10）', (
     })
   })
 
-  it('山腳離每個地標至少 2', () => {
+  it('地標的佔地上沒有山：中心與四個角的地形高度都是 0（#223 驗收條件 2）', () => {
+    const field = islandHeightField()
     LANDMARKS.forEach((landmark) => {
-      ISLAND_DECOR.mountains.forEach((mountain) => {
-        expect(footprintGapToPoint(footprintCorners(landmark), mountain)).toBeGreaterThanOrEqual(
-          mountain.radius + 2
-        )
+      ;[landmark, ...footprintCorners(landmark)].forEach((point) => {
+        expect(heightAt(field, point)).toBe(0)
       })
     })
   })

@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
-import { ISLAND_DECOR } from '@/island3d/islandMap'
-import { footprintCorners, footprintGapToPoint } from '@/island3d/landmarks'
+import { hexVertices } from '@/island3d/hexBounds'
+import { ISLAND_DECOR, ISLAND_MAP, tribeHexes } from '@/island3d/islandMap'
+import { LANDMARKS, footprintCorners, footprintGapToPoint } from '@/island3d/landmarks'
 import { paddyShape } from '@/island3d/paddyShape'
-import { buildPaddies } from '@/island3d/terrain'
+import { INLAND_LEVEL, buildPaddies, buildRivers, buildTerrainMesh } from '@/island3d/terrain'
+import {
+  heightAt,
+  islandHeightField,
+  islandRiverRuns,
+  terrainColor,
+} from '@/island3d/terrainHeight'
 
 // 一株芋頭有 4 片葉子、4 根莖
 const LEAVES_PER_PLANT = 4
@@ -99,5 +106,107 @@ describe('island3d/terrain 水芋田合在一起畫（#211 驗收條件 13）', 
   it('沒有水田時不出錯，實例數是 0', () => {
     const empty = instancedByName(buildPaddies([]))
     Object.values(empty).forEach((mesh) => expect(mesh.count).toBe(0))
+  })
+})
+
+describe('island3d/terrain 地形網格（#223 驗收條件 1、2、3）', () => {
+  const field = islandHeightField()
+  const mesh = buildTerrainMesh(field)
+  const position = mesh.geometry.attributes.position
+  const color = mesh.geometry.attributes.color
+  const vertexAt = (i) => ({ x: position.getX(i), y: position.getY(i), z: position.getZ(i) })
+
+  it('一整片同一個網格：一個 Mesh、網格點共用頂點（有 index，頂點數不超過高度表的點數）', () => {
+    expect(mesh.isMesh).toBe(true)
+    expect(mesh.name).toBe('terrain')
+    expect(mesh.geometry.index.count).toBeGreaterThan(0)
+    expect(position.count).toBeLessThanOrEqual(field.cols * field.rows)
+  })
+
+  it('每個頂點畫在陸地高度＋0.005＋那一點的地形高度', () => {
+    for (let i = 0; i < position.count; i += 1) {
+      const vertex = vertexAt(i)
+      expect(vertex.y).toBeCloseTo(INLAND_LEVEL + 0.005 + heightAt(field, vertex), 4)
+    }
+  })
+
+  it('三角形跟「某點的高度」是同一組：每個三角形重心的高度＝heightAt', () => {
+    const index = mesh.geometry.index
+    for (let k = 0; k < index.count; k += 3 * 97) {
+      const [a, b, c] = [0, 1, 2].map((j) => vertexAt(index.getX(k + j)))
+      const centroid = { x: (a.x + b.x + c.x) / 3, z: (a.z + b.z + c.z) / 3 }
+      expect((a.y + b.y + c.y) / 3).toBeCloseTo(INLAND_LEVEL + 0.005 + heightAt(field, centroid), 5)
+    }
+  })
+
+  it('三角形朝上（法線 y > 0），從上面看得到', () => {
+    const index = mesh.geometry.index
+    for (let k = 0; k < index.count; k += 3 * 53) {
+      const [a, b, c] = [0, 1, 2].map((j) => new THREE.Vector3().copy(vertexAt(index.getX(k + j))))
+      const normal = new THREE.Vector3().crossVectors(b.clone().sub(a), c.clone().sub(a))
+      expect(normal.y).toBeGreaterThan(0)
+    }
+  })
+
+  it('頂點顏色照高度（terrainColor），平滑著色、照光線算明暗', () => {
+    for (let i = 0; i < position.count; i += 41) {
+      const expected = new THREE.Color(terrainColor(heightAt(field, vertexAt(i))))
+      expect(color.getX(i)).toBeCloseTo(expected.r, 5)
+      expect(color.getY(i)).toBeCloseTo(expected.g, 5)
+      expect(color.getZ(i)).toBeCloseTo(expected.b, 5)
+    }
+    expect(mesh.material.vertexColors).toBe(true)
+    expect(mesh.material.flatShading).toBe(false)
+    expect(mesh.material.isMeshLambertMaterial).toBe(true)
+  })
+})
+
+describe('island3d/terrain 溪流（#223 驗收條件 4）', () => {
+  const field = islandHeightField()
+  const rivers = buildRivers(islandRiverRuns(field), field)
+  const position = rivers.geometry.attributes.position
+  const vertexAt = (i) => ({ x: position.getX(i), y: position.getY(i), z: position.getZ(i) })
+  const polygons = [
+    ...ISLAND_MAP.tribes
+      .flatMap(tribeHexes)
+      .map((center) => hexVertices(ISLAND_MAP.hexRadius, center)),
+    ...[...ISLAND_DECOR.paddies, ...LANDMARKS].map(footprintCorners),
+  ]
+
+  it('所有的溪合成一個網格，水藍色 #5fb4d6', () => {
+    expect(rivers.isMesh).toBe(true)
+    expect(rivers.name).toBe('rivers')
+    expect(`#${rivers.material.color.getHexString()}`).toBe('#5fb4d6')
+  })
+
+  it('溪的每個頂點比那一點的地形網格高 0.115（＝陸地高度＋地形高度＋0.12）', () => {
+    for (let i = 0; i < position.count; i += 1) {
+      const vertex = vertexAt(i)
+      expect(vertex.y).toBeCloseTo(INLAND_LEVEL + heightAt(field, vertex) + 0.12, 4)
+    }
+  })
+
+  it('沒有頂點落在格子、水田、特色建築往外 1 單位內', () => {
+    for (let i = 0; i < position.count; i += 1) {
+      const vertex = vertexAt(i)
+      polygons.forEach((polygon) =>
+        expect(footprintGapToPoint(polygon, vertex)).toBeGreaterThanOrEqual(1 - 1e-6)
+      )
+    }
+  })
+
+  it('平地上的溪面（0.02）低於公路（0.05），公路蓋在溪上', () => {
+    const onFlat = Array.from({ length: position.count }, (_, i) => vertexAt(i)).filter(
+      (vertex) => heightAt(field, vertex) === 0
+    )
+    expect(onFlat.length).toBeGreaterThan(0)
+    onFlat.forEach((vertex) => expect(vertex.y).toBeLessThan(0.05))
+  })
+
+  it('寬 1.6：每一段的兩個邊相距 1.6', () => {
+    for (let i = 0; i < Math.min(position.count, 400); i += 2) {
+      const [left, right] = [vertexAt(i), vertexAt(i + 1)]
+      expect(Math.hypot(left.x - right.x, left.z - right.z)).toBeCloseTo(1.6, 5)
+    }
   })
 })

@@ -1,17 +1,19 @@
-// 魚島 3D：點畫面時，先點到的是不是山或船（#200 驗收條件 4：點山、海、船沒有反應）。
-// 不依賴 three.js。山與船都當成圓錐：山腳（船身）在地面、中心在 (x, z)、半徑 radius、高 height。
-// 做法：從鏡頭到「視線打到地面的那一點」這一段直線，只要有一處在某個圓錐裡，就是被它擋住。
+// 魚島 3D：點畫面時，先點到的是不是山或船（#200 驗收條件 4：點山、海、船沒有反應）。不依賴 three.js。
+// 做法：看從鏡頭到「視線打到地面的那一點」這一段直線——
+// 船當成圓錐（船身在地面、中心在 (x, z)、半徑 radius、高 height），直線有一處在圓錐裡就是被它擋住；
+// 山是地形（#223，terrainHeight.js），直線有一段比地形低超過 TERRAIN_TOLERANCE 就是被它擋住。
+import { heightAt } from './terrainHeight'
+
+// 直線比地形低不到這麼多（只是擦過山頂或山脊）不算擋住
+const TERRAIN_TOLERANCE = 0.01
 
 // 船當成這麼大的圓錐（比模型略大，點在船邊也算點到船）
 const BOAT_RADIUS = 2
 const BOAT_HEIGHT = 2.5
 
-/** 會擋住點擊的東西：decor（islandMap.js 的 ISLAND_DECOR）裡的每座山與每艘船 */
+/** 會擋住點擊的圓錐：decor（islandMap.js 的 ISLAND_DECOR）裡的每艘船 */
 export function tapBlockers(decor) {
-  return [
-    ...decor.mountains,
-    ...decor.boats.map(({ x, z }) => ({ x, z, radius: BOAT_RADIUS, height: BOAT_HEIGHT })),
-  ]
+  return decor.boats.map(({ x, z }) => ({ x, z, radius: BOAT_RADIUS, height: BOAT_HEIGHT }))
 }
 
 /**
@@ -46,4 +48,40 @@ function passesThroughCone(camera, ground, { x, z, radius, height }) {
  */
 export function isTapBlocked(camera, ground, blockers) {
   return blockers.some((cone) => passesThroughCone(camera, ground, cone))
+}
+
+/**
+ * 直線投影到地面後，穿過高度表的格線（x、z 方向）與每格的對角線的位置（t，0～1 之間，含兩端）。
+ * 相鄰兩個 t 之間，直線都在同一個三角形裡。
+ */
+function triangleBreaks(camera, ground, { x0, z0, step }) {
+  const u = (t) => (camera.x + (ground.x - camera.x) * t - x0) / step
+  const w = (t) => (camera.z + (ground.z - camera.z) * t - z0) / step
+  const families = [u, w, (t) => u(t) - w(t)]
+  const breaks = [0, 1]
+  families.forEach((value) => {
+    const [start, end] = [value(0), value(1)]
+    const [low, high] = start < end ? [start, end] : [end, start]
+    for (let k = Math.ceil(low); k <= high; k += 1) {
+      if (end !== start) {
+        breaks.push((k - start) / (end - start))
+      }
+    }
+  })
+  return breaks.sort((a, b) => a - b)
+}
+
+/**
+ * 從鏡頭 camera（{ x, y, z }）看向地面上的 ground（{ x, z }，y = 0）時，中間有沒有被地形 field
+ * （terrainHeight.js 的高度表）擋住。精確判定：三角形裡直線與地形的高度差是一次式，
+ * 所以只要檢查直線進出每個三角形的那幾點。
+ */
+export function isBlockedByTerrain(camera, ground, field) {
+  return triangleBreaks(camera, ground, field).some((t) => {
+    const point = {
+      x: camera.x + (ground.x - camera.x) * t,
+      z: camera.z + (ground.z - camera.z) * t,
+    }
+    return camera.y * (1 - t) < heightAt(field, point) - TERRAIN_TOLERANCE
+  })
 }
