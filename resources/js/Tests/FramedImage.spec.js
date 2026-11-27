@@ -83,3 +83,31 @@ describe('FramedImage', () => {
     expect(wrapper.get('[data-testid="frame"]').attributes('style') ?? '').toBe('')
   })
 })
+
+describe('FramedImage 圖片載入狀態', () => {
+  it('換照片後，新照片載入前維持預設樣子，載入後用新尺寸', async () => {
+    const wrapper = mountFramed({ framing: { x: 30, y: 60, zoom: 1.5, rotation: 0 } })
+    await loadPhoto(wrapper, 4000, 3000)
+    expect(wrapper.get('img').attributes('style')).toContain('absolute')
+
+    await wrapper.setProps({ src: '/q.jpg' })
+    expect(wrapper.get('img').attributes('style') ?? '').toBe('')
+
+    await loadPhoto(wrapper, 3000, 4000)
+    expect(parseFloat(wrapper.get('img').element.style.height)).toBeGreaterThan(100)
+  })
+
+  it('照片載入失敗後不套調整值，換成有效照片後恢復', async () => {
+    const wrapper = mountFramed({ framing: { x: 30, y: 60, zoom: 1.5, rotation: 90 } })
+    await loadPhoto(wrapper, 4000, 3000)
+
+    wrapper.getComponent({ name: 'LazyImage' }).vm.$emit('failed')
+    await loadPhoto(wrapper, 100, 100) // 預設圖載入後也會送出尺寸
+    expect(wrapper.get('img').attributes('style') ?? '').toBe('')
+    expect(wrapper.emitted('failed')).toHaveLength(1)
+
+    await wrapper.setProps({ src: '/ok.jpg' })
+    await loadPhoto(wrapper, 4000, 3000)
+    expect(wrapper.get('img').element.style.transform).toBe('rotate(90deg)')
+  })
+})
