@@ -99,7 +99,7 @@ interface StorageServiceInterface
     public function getContent(string $filePath): string;
 
     /**
-     * 直接寫入內容到指定路徑（用於覆蓋現有檔案，如旋轉後的圖片）
+     * 直接寫入內容到指定路徑（用於覆蓋現有檔案，或寫入備份等由程式產生的內容）
      *
      * @param string $filePath 完整路徑
      * @param string $content 檔案內容

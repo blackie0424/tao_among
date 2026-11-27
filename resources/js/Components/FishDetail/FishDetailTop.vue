@@ -5,12 +5,12 @@
     <div class="w-full relative overflow-hidden">
       <!-- 圖片區域：移除個別圓角，由外層容器控制。調整為 16:9 比例以完整呈現圖片 -->
       <div data-testid="fish-detail-photo" class="relative w-full aspect-video bg-paper-raised border border-rule-strong">
-        <LazyImage
+        <FramedImage
           :src="fish.display_image_url || fish.image_url"
           :alt="fish.name"
           wrapperClass="w-full h-full"
           imgClass="w-full h-full object-cover object-center"
-          :imgStyle="displayImgStyle"
+          :framing="fish.display_image_framing"
         />
       </div>
 
@@ -50,10 +50,9 @@
 <script setup>
 import Volume from '@/Components/UI/Volume.vue'
 import { pickSpellingRecordings, splitFishName } from '@/utils/fishSpellings'
-import LazyImage from '@/Components/UI/LazyImage.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import { usePage, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
-import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
 import { canAccessAudio } from '@/constants/roles'
 
 const props = defineProps({
@@ -84,10 +83,4 @@ const singleAudioUrl = computed(() => {
 })
 const showSingleAudio = computed(() => !!singleAudioUrl.value)
 
-const displayImgStyle = computed(() =>
-  buildImageDisplayStyle(
-    props.fish?.display_capture_record?.image_position,
-    props.fish?.display_capture_record?.image_scale,
-  )
-)
 </script>

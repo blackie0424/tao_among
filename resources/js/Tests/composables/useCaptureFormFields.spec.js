@@ -13,10 +13,9 @@ describe('useCaptureFormFields', () => {
     expect(form.notes).toBe('')
   })
 
-  it('無 initialData 時，image_position 預設 center、image_scale 預設 1', () => {
+  it('無 initialData 時，照片調整值是 null（沒調整）', () => {
     const { form } = useCaptureFormFields()
-    expect(form.image_position).toBe('center')
-    expect(form.image_scale).toBe(1)
+    expect(form.framing).toBeNull()
   })
 
   it('傳入 initialData 時，正確初始化欄位值', () => {
@@ -113,8 +112,7 @@ describe('useCaptureFormFields', () => {
       capture_method: 'mamasil',
       capture_date: '2026-06-01',
       notes: '天氣晴',
-      image_position: 'top',
-      image_scale: 1.5,
+      framing: { x: 30, y: 60, zoom: 1.5, rotation: 90 },
     })
     const data = buildFormData()
     expect(data).toEqual({
@@ -123,8 +121,20 @@ describe('useCaptureFormFields', () => {
       capture_method: 'mamasil',
       capture_date: '2026-06-01',
       notes: '天氣晴',
-      image_position: 'top',
-      image_scale: 1.5,
+      image_focus_x: 30,
+      image_focus_y: 60,
+      image_zoom: 1.5,
+      image_rotation: 90,
+    })
+  })
+
+  it('沒有調整值時，buildFormData 送出四個 null（等於還原）', () => {
+    const { buildFormData } = useCaptureFormFields()
+    expect(buildFormData()).toMatchObject({
+      image_focus_x: null,
+      image_focus_y: null,
+      image_zoom: null,
+      image_rotation: null,
     })
   })
 

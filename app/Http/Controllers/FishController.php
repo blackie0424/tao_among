@@ -26,8 +26,7 @@ class FishController extends Controller
         'name',
         'image_url',
         'display_image_url',
-        'display_image_position',
-        'display_image_scale',
+        'display_image_framing',
     ];
 
     /** 前端 `searchOptions` 的固定鍵（公開清單全部回空陣列） */

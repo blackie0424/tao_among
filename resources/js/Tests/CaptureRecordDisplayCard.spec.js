@@ -214,3 +214,17 @@ describe('紀錄編輯連結', () => {
     expect(mountCard({ fishId: 42 }).find('a').exists()).toBe(false)
   })
 })
+
+describe('捕獲紀錄展示卡照片調整值（#218）', () => {
+  it('把這筆紀錄的調整值傳給圖片框，框比例跟著照片', () => {
+    const framing = { x: 30, y: 60, zoom: 1.5, rotation: 90 }
+    const image = mountCard({ record: makeRecord({ framing }) }).getComponent({ name: 'FramedImage' })
+
+    expect(image.props('framing')).toEqual(framing)
+    expect(image.props('ratio')).toBe('photo')
+  })
+
+  it('沒調整時 framing 是空的', () => {
+    expect(mountCard().getComponent({ name: 'FramedImage' }).props('framing')).toBeFalsy()
+  })
+})

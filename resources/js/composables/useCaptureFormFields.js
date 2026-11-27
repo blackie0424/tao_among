@@ -1,4 +1,5 @@
 import { reactive, ref } from 'vue'
+import { framingToFields } from '@/composables/useImageFraming'
 
 /**
  * @param {object} initialData
@@ -10,8 +11,7 @@ export function useCaptureFormFields(initialData = {}) {
     capture_method: initialData.capture_method ?? '',
     capture_date: initialData.capture_date ?? '',
     notes: initialData.notes ?? '',
-    image_position: initialData.image_position ?? 'center',
-    image_scale: initialData.image_scale ?? 1,
+    framing: initialData.framing ?? null, // 照片調整值 { x, y, zoom, rotation }；null＝沒調整
   })
 
   const errors = ref({})
@@ -38,8 +38,7 @@ export function useCaptureFormFields(initialData = {}) {
       capture_method: form.capture_method,
       capture_date: form.capture_date,
       notes: form.notes,
-      image_position: form.image_position,
-      image_scale: form.image_scale,
+      ...framingToFields(form.framing),
     }
   }
 

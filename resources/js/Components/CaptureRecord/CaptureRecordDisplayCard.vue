@@ -60,9 +60,12 @@
       </div>
 
       <!-- 捕獲照片 -->
-      <LazyImage
+      <FramedImage
         :src="record.image_url"
         :alt="`${fishName} 捕獲紀錄 ${index + 1}`"
+        :framing="record.framing"
+        ratio="photo"
+        imgClass=""
         class="w-full h-auto object-cover border border-rule-strong"
       />
 
@@ -136,7 +139,7 @@
 
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import LazyImage from '@/Components/UI/LazyImage.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import { formatDate } from '@/utils/formatDate'
 
 defineProps({

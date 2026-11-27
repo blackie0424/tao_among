@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Validator;
 
 class CaptureRecordFieldValidator
 {
+    /** 照片調整值的四個欄位（魚身中心橫向、縱向、放大倍率、旋轉角度） */
+    public const FRAMING_FIELDS = ['image_focus_x', 'image_focus_y', 'image_zoom', 'image_rotation'];
+
     /**
      * @return array<string, string>
      */
@@ -31,8 +34,23 @@ class CaptureRecordFieldValidator
             'capture_date' => ['prohibited'],
             'notes' => ['nullable', 'string', 'max:65535'],
             'image_filename' => [$requireImageFilename ? 'required' : 'nullable', 'string'],
-            'image_position' => ['nullable', 'in:center,top,bottom,left,right'],
-            'image_scale' => ['nullable', 'numeric', 'min:0.8', 'max:2.0'],
+        ];
+    }
+
+    /**
+     * 照片調整值（魚身中心、放大、旋轉）：四個值要嘛全空、要嘛全有
+     *
+     * @return array<string, array<int, string>>
+     */
+    public function framingRules(): array
+    {
+        $together = fn (string $self) => 'required_with:'.implode(',', array_diff(self::FRAMING_FIELDS, [$self]));
+
+        return [
+            'image_focus_x' => ['nullable', 'numeric', 'between:0,100', $together('image_focus_x')],
+            'image_focus_y' => ['nullable', 'numeric', 'between:0,100', $together('image_focus_y')],
+            'image_zoom' => ['nullable', 'numeric', 'between:1,3', $together('image_zoom')],
+            'image_rotation' => ['nullable', 'integer', 'in:0,90,180,270', $together('image_rotation')],
         ];
     }
 
@@ -46,8 +64,6 @@ class CaptureRecordFieldValidator
             'capture_date' => 'required|date|before_or_equal:'.CaptureDate::today(),
             'notes' => 'nullable|string|max:65535',
             'image_filename' => $requireImageFilename ? 'required|string' : 'nullable|string',
-            'image_position' => 'nullable|in:center,top,bottom,left,right',
-            'image_scale' => 'nullable|numeric|min:0.8|max:2.0',
         ];
     }
 
@@ -70,10 +86,14 @@ class CaptureRecordFieldValidator
             'capture_date.before_or_equal' => '捕獲日期不能是未來日期',
             'notes.string' => '備註必須是文字格式',
             'notes.max' => '備註內容過長，請縮短至65535字元以內',
-            'image_position.in' => '圖片位置必須是有效的選項',
-            'image_scale.numeric' => '圖片縮放比例必須是數字',
-            'image_scale.min' => '圖片縮放比例最小為 0.8',
-            'image_scale.max' => '圖片縮放比例最大為 2.0',
+            'image_focus_x.between' => '魚身中心的橫向位置必須在 0 到 100 之間',
+            'image_focus_y.between' => '魚身中心的縱向位置必須在 0 到 100 之間',
+            'image_zoom.between' => '放大倍率必須在 1.0 到 3.0 之間',
+            'image_rotation.in' => '旋轉角度只能是 0、90、180、270',
+            'image_focus_x.required_with' => '照片調整的四個值必須一起提供',
+            'image_focus_y.required_with' => '照片調整的四個值必須一起提供',
+            'image_zoom.required_with' => '照片調整的四個值必須一起提供',
+            'image_rotation.required_with' => '照片調整的四個值必須一起提供',
             'session_id.required_without' => '請選擇情境',
             'session_id.exists' => '這個情境已不存在，請重新選擇',
             'session_id.prohibits' => '情境與舊資料只能擇一',
@@ -98,8 +118,10 @@ class CaptureRecordFieldValidator
             'capture_method' => '捕獲方式',
             'capture_date' => '捕獲日期',
             'notes' => '備註',
-            'image_position' => '圖片顯示位置',
-            'image_scale' => '圖片縮放比例',
+            'image_focus_x' => '魚身中心橫向位置',
+            'image_focus_y' => '魚身中心縱向位置',
+            'image_zoom' => '放大倍率',
+            'image_rotation' => '旋轉角度',
         ];
     }
 

@@ -69,20 +69,16 @@ it('rejects client supplied context fields', function (string $field) {
         ->and($validator->errors()->has($field))->toBeTrue();
 })->with(['tribe', 'location', 'capture_method', 'capture_date']);
 
-it('requires an image filename and validates optional image controls', function () {
+it('requires an image filename and has no photo adjustment fields when creating', function () {
     $session = CaptureSession::factory()->create();
     $request = new CaptureRecordRequest;
 
     $missing = Validator::make(['session_id' => $session->id], $request->rules());
-    $invalid = captureRecordCreateValidator([
-        'session_id' => $session->id,
-        'image_position' => 'diagonal',
-        'image_scale' => 3,
-    ]);
 
     expect($missing->errors()->has('image_filename'))->toBeTrue()
-        ->and($invalid->errors()->has('image_position'))->toBeTrue()
-        ->and($invalid->errors()->has('image_scale'))->toBeTrue();
+        ->and(array_keys($request->rules()))->not->toContain(
+            'image_position', 'image_scale', 'image_focus_x', 'image_focus_y', 'image_zoom', 'image_rotation'
+        );
 });
 
 it('keeps the legacy LINE validation profile unchanged', function () {

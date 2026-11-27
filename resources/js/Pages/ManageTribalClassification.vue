@@ -11,8 +11,9 @@
       <!-- 魚類資訊簡介 -->
       <div class="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div class="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-          <LazyImage
+          <FramedImage
             :src="fish.display_image_url || fish.image_url"
+            :framing="fish.display_image_framing"
             :alt="fish.name"
             wrapperClass="w-full h-full"
             imgClass="w-full h-full object-cover"
@@ -113,7 +114,7 @@
 import { reactive, computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
-import LazyImage from '@/Components/UI/LazyImage.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import { markFishStale } from '@/utils/fishListCache'
 
 const props = defineProps({

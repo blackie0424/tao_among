@@ -11,7 +11,7 @@ vi.mock('@inertiajs/vue3', () => ({
 vi.mock('@/Components/UI/ItemCard.vue', () => ({
   default: {
     name: 'ItemCard',
-    props: ['href', 'imageUrl', 'title', 'imageStyle', 'audioUrl', 'index'],
+    props: ['href', 'imageUrl', 'title', 'framing', 'audioUrl', 'index'],
     template: '<div data-testid="item-card" />',
   },
 }))

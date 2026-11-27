@@ -64,6 +64,9 @@ class FishNoteController extends BaseController
                 'id' => $noteId,
             ], '進階知識');
 
+            // 主圖紀錄要先載入，照片與調整值才會是同一張圖
+            $fish->loadMissing('displayCaptureRecord');
+
             $this->logOperation('Knowledge edit form accessed', [
                 'fish_id' => $fishId,
                 'note_id' => $noteId,
@@ -225,6 +228,8 @@ class FishNoteController extends BaseController
     {
         try {
             $fish = $this->findResourceOrFail(Fish::class, $id, '魚類');
+            // 主圖紀錄要先載入，照片與調整值才會是同一張圖
+            $fish->loadMissing('displayCaptureRecord');
             $fishWithImage = $this->fishService->assignImageUrls([$fish])[0];
 
             $this->logOperation('Knowledge create form accessed', [
@@ -238,6 +243,7 @@ class FishNoteController extends BaseController
                     'image' => $fishWithImage->image,
                     'image_url' => $fishWithImage->image_url,
                     'display_image_url' => $fishWithImage->display_image_url,
+                    'display_image_framing' => $fishWithImage->display_image_framing,
                 ],
                 'noteTypes' => $this->getNoteTypes(),
                 'tribes' => $this->getTribes(),

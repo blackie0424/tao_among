@@ -9,11 +9,13 @@ use App\Http\Requests\UpdateCaptureRecordRequest;
 use App\Models\CaptureRecord;
 use App\Models\Fish;
 use App\Services\CaptureRecordBatchService;
+use App\Services\CaptureRecordFieldValidator;
 use App\Services\CaptureRecordPresenter;
 use App\Services\FishService;
 use App\Services\LocationVisibilityService;
 use App\Traits\HasFishImageUrl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
@@ -176,9 +178,7 @@ class CaptureRecordController extends Controller
 
         $updateData = [
             'notes' => $validated['notes'] ?? null,
-            'image_position' => $validated['image_position'] ?? null,
-            'image_scale' => $validated['image_scale'] ?? null,
-        ];
+        ] + Arr::only($validated, CaptureRecordFieldValidator::FRAMING_FIELDS);
 
         if (! $record->session_id) {
             $updateData += [
@@ -202,6 +202,8 @@ class CaptureRecordController extends Controller
             }
 
             $updateData['image_path'] = $validated['image_filename'];
+            // 新照片的魚位置不同，舊的調整值一律清空
+            $updateData = array_merge($updateData, array_fill_keys(CaptureRecordFieldValidator::FRAMING_FIELDS, null));
         }
 
         $record->update($updateData);

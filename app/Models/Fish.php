@@ -26,7 +26,7 @@ class Fish extends Model
 
     protected $fillable = ['name', 'image', 'audio_filename', 'display_capture_record_id'];
 
-    protected $appends = ['image_url','audio_url', 'audio_duration', 'display_image_url'];
+    protected $appends = ['image_url','audio_url', 'audio_duration', 'display_image_url', 'display_image_framing'];
 
     protected static function booted()
     {
@@ -183,24 +183,36 @@ class Fish extends Model
     {
         return Attribute::make(
             get: function () {
-                // 優先：使用者選擇的捕獲紀錄圖片
-                if ($this->display_capture_record_id) {
-                    // 只在關聯已預載時才使用，避免 N+1 查詢
-                    if ($this->relationLoaded('displayCaptureRecord')) {
-                        $record = $this->displayCaptureRecord;
-                        
-                        // 確保紀錄存在且未被軟刪除
-                        if ($record && !$record->trashed()) {
-                            return $record->image_url;
-                        }
-                    }
-                    // 若未預載，回退使用 Fish 自己的圖片（避免 N+1）
-                }
-                
-                // 回退：使用 Fish 自己的圖片
-                return $this->image_url;
+                $record = $this->activeDisplayCaptureRecord();
+
+                return $record ? $record->image_url : $this->image_url;
             }
         );
+    }
+
+    /**
+     * 圖鑑主圖的照片調整值（魚身中心、放大、旋轉）
+     * 與 display_image_url 同源：只有照片取自主圖紀錄時才有值，回退到魚本身照片時一律是 null
+     */
+    protected function displayImageFraming(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->activeDisplayCaptureRecord()?->framing
+        );
+    }
+
+    /**
+     * 目前有效的圖鑑主圖紀錄：已選擇、關聯已預載（避免 N+1）、且未被軟刪除
+     */
+    private function activeDisplayCaptureRecord(): ?CaptureRecord
+    {
+        if (! $this->display_capture_record_id || ! $this->relationLoaded('displayCaptureRecord')) {
+            return null;
+        }
+
+        $record = $this->displayCaptureRecord;
+
+        return $record && ! $record->trashed() ? $record : null;
     }
 
 

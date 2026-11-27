@@ -63,7 +63,7 @@ import { usePage } from '@inertiajs/vue3'
 import LoadingBar from '@/Components/UI/LoadingBar.vue'
 import { getResponsiveImageUrls, isResponsiveWebp } from '@/composables/useResponsiveImage.js'
 
-const emit = defineEmits(['failed'])
+const emit = defineEmits(['failed', 'loaded'])
 
 const props = defineProps({
   src: String,
@@ -213,8 +213,11 @@ const finalSrc = computed(() => {
   return currentSrc.value
 })
 
-function onLoad() {
+function onLoad(event) {
   loading.value = false
+  // 通知照片原始寬高（調整照片的顯示規則只需要比例，webp 版本與原圖比例相同）
+  const img = event?.target
+  if (img?.naturalWidth) emit('loaded', { width: img.naturalWidth, height: img.naturalHeight })
   // 記錄已載入的圖片 URL 到快取
   if (props.src) {
     imageCache.add(props.src)

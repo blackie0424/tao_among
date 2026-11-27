@@ -4,7 +4,8 @@
     <div class="pt-16 space-y-6 max-w-2xl mx-auto">
       <div class="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100">
         <div class="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
-          <img :src="fish.display_image_url || fish.image_url" :alt="fish.name" class="w-full h-full object-contain" />
+          <FramedImage v-if="fish.display_image_framing" :src="fish.display_image_url || fish.image_url" :framing="fish.display_image_framing" :alt="fish.name" wrapperClass="w-full h-full" />
+          <img v-else :src="fish.display_image_url || fish.image_url" :alt="fish.name" class="w-full h-full object-contain" />
         </div>
         <div><p class="font-semibold text-gray-900">{{ fish.name }}</p><p class="text-xs text-gray-500">批次新增多筆捕獲紀錄</p></div>
       </div>
@@ -35,6 +36,7 @@ import { ref, computed } from 'vue'
 import { apiFetch } from '@/utils/apiFetch'
 import { router } from '@inertiajs/vue3'
 import FormActionBar from '@/Components/Global/FormActionBar.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import BatchCaptureImageUploader from '@/Components/CaptureRecord/BatchCaptureImageUploader.vue'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 

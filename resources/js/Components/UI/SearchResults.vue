@@ -65,8 +65,9 @@
         >
           <!-- 魚類圖片 -->
           <div class="aspect-w-16 aspect-h-9">
-            <LazyImage
-              :src="fish.image_url"
+            <FramedImage
+              :src="fish.display_image_url || fish.image_url"
+              :framing="fish.display_image_framing"
               :alt="fish.name"
               wrapperClass="w-full h-48 overflow-hidden rounded-t-lg bg-gray-100 dark:bg-gray-700"
               imgClass="w-full h-full object-cover"
@@ -196,7 +197,7 @@
 
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
-import LazyImage from '@/Components/UI/LazyImage.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import { formatDate } from '@/utils/formatDate'
 
 const props = defineProps({
