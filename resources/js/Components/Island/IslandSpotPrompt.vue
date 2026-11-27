@@ -4,8 +4,13 @@
        點橫條發出 activate，由上層切換 open。
        #216：對話一句一句來（規格修訂 1）：① 玩家問好 → ② 家人「{角色名}，你好」→ ③「你想認識哪一條魚？」＋照片
        → 點照片 ④ 玩家「ikongo o ya?」→ ⑤ 家人講那條魚。①②④ 按空白鍵或點對話框空白的地方是下一句，③⑤ 是關掉（發出 activate） -->
-  <div v-if="spot">
-    <div class="pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
+  <div>
+    <!-- 螢幕報讀器只讀這一行的整句（規格修訂 3）。這一行一直都在、對話框沒開時是空的，
+         打開後換成第一句，報讀器才會讀到（live region 要先存在，內容改變才會報讀） -->
+    <p data-testid="line-for-reader" class="sr-only" aria-live="polite">
+      {{ spot && open ? line : '' }}
+    </p>
+    <div v-if="spot" class="pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
       <div
         v-if="open"
         data-testid="spot-dialog"
@@ -39,8 +44,7 @@
               {{ speaker }}
             </p>
             <p v-else class="text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
-            <!-- 字一個一個跑（規格修訂 3）；螢幕報讀器只讀這一行的整句 -->
-            <p data-testid="line-for-reader" class="sr-only" aria-live="polite">{{ line }}</p>
+            <!-- 字一個一個跑（規格修訂 3），報讀器讀上面那一行整句 -->
             <p
               :data-testid="isPlayerStep ? 'player-line' : 'npc-line'"
               aria-hidden="true"
@@ -102,7 +106,7 @@
     </div>
 
     <ResultDetailDialog
-      v-if="detailOpen && askedFish"
+      v-if="spot && detailOpen && askedFish"
       :fish="askedFish"
       :tribe="tribe"
       :tribes="tribes"
@@ -181,9 +185,19 @@ const lineClass = computed(() => {
 })
 
 // ── 字一個一個跑（規格修訂 3）──
+// 以完整的字切開（擴充漢字、emoji 不會只出現半個）
+const segmenter =
+  typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter('zh-Hant', { granularity: 'grapheme' })
+    : null
+const lineCharacters = computed(() =>
+  segmenter
+    ? Array.from(segmenter.segment(line.value), (part) => part.segment)
+    : Array.from(line.value)
+)
 const typedCount = ref(0)
-const typing = computed(() => typedCount.value < line.value.length)
-const shownLine = computed(() => line.value.slice(0, typedCount.value))
+const typing = computed(() => typedCount.value < lineCharacters.value.length)
+const shownLine = computed(() => lineCharacters.value.slice(0, typedCount.value).join(''))
 let typingTimer = null
 
 function stopTyping() {
@@ -193,7 +207,7 @@ function stopTyping() {
 
 function finishTyping() {
   stopTyping()
-  typedCount.value = line.value.length
+  typedCount.value = lineCharacters.value.length
 }
 
 // 換一句就從頭跑；「減少動態效果」時整句直接出現
@@ -201,7 +215,7 @@ function startTyping() {
   stopTyping()
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
   if (!props.open || reduced) {
-    typedCount.value = line.value.length
+    typedCount.value = lineCharacters.value.length
     return
   }
   typedCount.value = 0

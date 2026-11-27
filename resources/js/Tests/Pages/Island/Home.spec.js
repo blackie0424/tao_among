@@ -74,7 +74,7 @@ const SPOT_FISH = {
 // 每個測試結束時拆掉頁面，免得前一個頁面的鍵盤監聽留在 window 上
 const mounted = []
 
-const mountPage = async () => {
+const mountPage = async (overrides = {}) => {
   const wrapper = mount(Home, {
     attachTo: document.body,
     props: {
@@ -92,6 +92,7 @@ const mountPage = async () => {
         processing_method: ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '我不知道'],
       },
       unknown_processing_method: '我不知道',
+      ...overrides,
     },
   })
   mounted.push(wrapper)
@@ -462,6 +463,7 @@ describe('Island/Home 地圖頁', () => {
       await reachSpot({ tribe: 'iratay', hex: 2, slot: 3 })
 
       await tapMember()
+      await finishTyping()
       expect(dialog(wrapper).text()).toContain('kaka kong')
 
       await tapMember()
@@ -473,6 +475,7 @@ describe('Island/Home 地圖頁', () => {
       await reachSpot({ tribe: 'iratay', hex: 2, slot: 3 })
 
       await prompt(wrapper).trigger('click')
+      await finishTyping()
       expect(dialog(wrapper).text()).toContain('kaka kong')
 
       // 這一件（iratay 第 3 戶 tagakal）沒有魚：① 問好 → ② 你好。這裡還沒有魚。→ 關掉
@@ -636,7 +639,41 @@ describe('Island/Home 地圖頁', () => {
         expect(dialog(wrapper).get('[data-testid="player-line"]').attributes('aria-hidden')).toBe(
           'true'
         )
-        expect(dialog(wrapper).get('[data-testid="line-for-reader"]').text()).toBe('akay kong')
+        expect(wrapper.get('[data-testid="line-for-reader"]').text()).toBe('akay kong')
+      })
+
+      it('報讀區域在打開對話框之前就在（空的），打開後同一個區域換成第一句，報讀器才會讀到第一句', async () => {
+        const wrapper = await mountPage()
+        const reader = wrapper.get('[data-testid="line-for-reader"]')
+        expect(reader.attributes('aria-live')).toBe('polite')
+        expect(reader.text()).toBe('')
+
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+
+        expect(wrapper.get('[data-testid="line-for-reader"]').element).toBe(reader.element)
+        expect(reader.text()).toBe('akay kong')
+        expect(dialog(wrapper).element.contains(reader.element)).toBe(false)
+
+        await reachSpot(null)
+        expect(wrapper.get('[data-testid="line-for-reader"]').element).toBe(reader.element)
+        expect(reader.text()).toBe('')
+      })
+
+      it('角色名有擴充漢字或 emoji 時，一次跑一個完整的字，不出現半個字', async () => {
+        const wrapper = await mountPage({ character: { name: '𠀋阿👨‍👩‍👧', tribe: 'yayo' } })
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+        await finishTyping()
+        await pressSpaceOnce()
+
+        const shown = []
+        for (let i = 0; i < 3; i += 1) {
+          vi.advanceTimersByTime(50)
+          await flushPromises()
+          shown.push(visibleLine(wrapper, 'npc-line'))
+        }
+        expect(shown).toEqual(['𠀋', '𠀋阿', '𠀋阿👨‍👩‍👧'])
       })
 
       it('字還在跑時按空白鍵：先整句顯示，不跳下一句；再按才往下', async () => {
@@ -650,7 +687,7 @@ describe('Island/Home 地圖頁', () => {
 
         await pressSpaceOnce()
         expect(dialog(wrapper).find('[data-testid="player-line"]').exists()).toBe(false)
-        expect(dialog(wrapper).get('[data-testid="line-for-reader"]').text()).toBe('阿海，你好')
+        expect(wrapper.get('[data-testid="line-for-reader"]').text()).toBe('阿海，你好')
       })
 
       it('字還在跑時點對話框：先整句顯示，不關掉', async () => {
