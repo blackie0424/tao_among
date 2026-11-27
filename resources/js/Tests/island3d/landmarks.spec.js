@@ -10,6 +10,7 @@ import {
   footprintsOverlap,
   shapeParts,
   signHeight,
+  signHeightAbove,
   signsVisible,
 } from '@/island3d/landmarks'
 import { createWalkable } from '@/island3d/walkable'
@@ -424,8 +425,14 @@ describe('island3d/landmarks 招牌的高度（#212 驗收條件 9）', () => {
     })
   })
 
-  it('固定數字的例子：籃球場最高的是 3.4 高的籃架柱子，招牌在 4.6', () => {
-    expect(signHeight(LANDMARKS.find((landmark) => landmark.sign === '籃球場'))).toBeCloseTo(4.6, 9)
+  it('手建零件的例子：最高的零件頂端在 2.5（中心 2、高 1），招牌在 3.7', () => {
+    const parts = [
+      { y: 0.5, height: 1 },
+      { y: 2, height: 1 },
+      { y: 1, height: 0.4 },
+    ]
+
+    expect(signHeightAbove(parts)).toBeCloseTo(3.7, 9)
   })
 
   it('每一個地標的招牌都比造型的每個零件高', () => {

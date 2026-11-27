@@ -51,6 +51,24 @@ describe('island3d/landmarkMeshes 零件形狀的原型（#211 驗收條件 7）
     })
   })
 
+  it('兩面坡屋頂：屋脊在正中間的最高處、沿著 x；底部的兩邊等高、在前後兩側', () => {
+    const positions = unitGeometry('gable').getAttribute('position')
+    const points = Array.from({ length: positions.count }, (_, i) =>
+      new THREE.Vector3().fromBufferAttribute(positions, i)
+    )
+    const ridge = points.filter((point) => point.y > 0.5 - EPSILON)
+    const eaves = points.filter((point) => point.y < -0.5 + EPSILON)
+
+    expect(ridge.length).toBeGreaterThan(0)
+    ridge.forEach((point) => expect(point.z).toBeCloseTo(0, 6))
+    expect(new Set(ridge.map((point) => point.x.toFixed(6)))).toEqual(
+      new Set(['-0.500000', '0.500000'])
+    )
+    // 底部只有前後兩條邊（z = ±0.5），沒有在中間的點
+    eaves.forEach((point) => expect(Math.abs(point.z)).toBeCloseTo(0.5, 6))
+    expect(new Set(eaves.map((point) => Math.sign(point.z)))).toEqual(new Set([-1, 1]))
+  })
+
   it('不認得的形狀當成盒子', () => {
     expect(unitGeometry('no-such-shape').type).toBe('BoxGeometry')
   })

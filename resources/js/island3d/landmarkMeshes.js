@@ -57,8 +57,11 @@ const UNIT_GEOMETRY = {
     fitUnitCube(
       new THREE.SphereGeometry(0.5, ROUND_SEGMENTS, DOME_RINGS, 0, Math.PI * 2, 0, Math.PI / 2)
     ),
-  // 三角柱：截面是三角形、屋脊沿著 x
-  gable: () => fitUnitCube(new THREE.CylinderGeometry(0.5, 0.5, 1, 3).rotateZ(Math.PI / 2)),
+  // 三角柱：CylinderGeometry 的三角截面頂點朝 +z；先把軸轉到 x，再繞 x 轉讓頂點朝上，屋脊就在正中間
+  gable: () =>
+    fitUnitCube(
+      new THREE.CylinderGeometry(0.5, 0.5, 1, 3).rotateZ(Math.PI / 2).rotateX(-Math.PI / 2)
+    ),
   umbrella: () => umbrellaPanels(0),
   'umbrella-alt': () => umbrellaPanels(1),
 }

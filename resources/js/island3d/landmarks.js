@@ -464,10 +464,14 @@ export function shapeParts(kind, width, depth) {
 // 招牌比造型的最高點再高這麼多，才不會被建物擋住
 const SIGN_GAP_ABOVE_SHAPE = 1.2
 
-/** 這個地標的招牌離地多高：程式拼的造型最高的地方再往上 SIGN_GAP_ABOVE_SHAPE */
+/** 招牌離地多高：零件（{ y 中心高度, height 高 }）最高的地方再往上 SIGN_GAP_ABOVE_SHAPE */
+export function signHeightAbove(parts) {
+  return Math.max(...parts.map((part) => part.y + part.height / 2)) + SIGN_GAP_ABOVE_SHAPE
+}
+
+/** 這個地標的招牌離地多高：用程式拼的造型的零件算 */
 export function signHeight({ kind, width, depth }) {
-  const tops = shapeParts(kind, width, depth).map((part) => part.y + part.height / 2)
-  return Math.max(...tops) + SIGN_GAP_ABOVE_SHAPE
+  return signHeightAbove(shapeParts(kind, width, depth))
 }
 
 // 鏡頭拉遠超過這個程度（zoom：0 最近、1 最遠）招牌就隱藏，只留部落標示
