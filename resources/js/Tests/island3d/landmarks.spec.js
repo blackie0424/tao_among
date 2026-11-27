@@ -9,6 +9,7 @@ import {
   footprintInside,
   footprintsOverlap,
   shapeParts,
+  signHeight,
   signsVisible,
 } from '@/island3d/landmarks'
 import { createWalkable } from '@/island3d/walkable'
@@ -32,11 +33,6 @@ const roadGap = (corners) =>
   Math.min(...roadSegments.map(([a, b]) => footprintGapToSegment(corners, a, b)))
 const find = (tribe, sign) =>
   LANDMARKS.find((landmark) => landmark.tribe === tribe && landmark.sign === sign)
-// 從部落中心看過去的方向：dx 往東為正、dz 往南為正
-const offset = (landmark) => ({
-  dx: landmark.x - center(landmark.tribe).x,
-  dz: landmark.z - center(landmark.tribe).z,
-})
 
 describe('island3d/landmarks 佔地的判斷（#207 驗收條件 6，手建的小例子）', () => {
   const square = (x, z, heading = 0) => ({ x, z, width: 2, depth: 2, heading })
@@ -146,31 +142,33 @@ describe('island3d/landmarks 佔地的判斷（#207 驗收條件 6，手建的�
   })
 })
 
-describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
-  it('剛好是這 17 個地標', () => {
-    expect(
-      LANDMARKS.map(({ tribe, sign, placement }) => `${tribe}/${sign}/${placement}`).sort()
-    ).toEqual(
-      [
-        'imowrod/郵局/in-hex',
-        'imowrod/衛生所/in-hex',
-        'imowrod/警察局/in-hex',
-        'imowrod/學校/roadside',
-        'iratay/文物館/in-hex',
-        'iratay/機場/roadside',
-        'yayo/農會/in-hex',
-        'yayo/學校/roadside',
-        'yayo/便利商店/roadside',
-        'yayo/超市/roadside',
-        'iraraley/學校/in-hex',
-        'iraraley/路邊攤/in-hex',
-        'iranmeilek/夜市/in-hex',
-        'iranmeilek/便利商店/in-hex',
-        'iranmeilek/警察局/in-hex',
-        'iranmeilek/學校/in-hex',
-        'ivalino/籃球場/in-hex',
-      ].sort()
+describe('island3d/landmarks 6 個特色建築（#212 驗收條件 9、10）', () => {
+  // 手寫的清單：[部落, 招牌, 位置 x, 位置 z, 佔地寬, 佔地深]
+  const expected = [
+    ['imowrod', '郵局', 31.9, 72.5, 8, 6],
+    ['yayo', '農會', -131.5, -41.9, 8, 6],
+    ['iranmeilek', '便利商店', 32.9, -39.9, 8, 6],
+    ['iraraley', '路邊攤', -72.6, -133.3, 6, 3],
+    ['ivalino', '籃球場', 39.7, 18.0, 12, 7],
+    ['iratay', '機場', -98.0, 26.0, 20, 8],
+  ]
+  const allHexes = ISLAND_MAP.tribes.flatMap((tribe) =>
+    tribe.hexes.map((at) => hexVertices(ISLAND_MAP.hexRadius, at))
+  )
+  /** 所有公路上離 point 最近的那一點 */
+  const nearestOnRoad = (point) =>
+    roadSegments
+      .map(([a, b]) => closestOnSegment(point, a, b))
+      .reduce((best, p) => (distanceBetween(p, point) < distanceBetween(best, point) ? p : best))
+  /** 造型最高的地方離地多高 */
+  const topOf = ({ kind, width, depth }) =>
+    Math.max(...shapeParts(kind, width, depth).map((part) => part.y + part.height / 2))
+
+  it('剛好是這 6 個：每個部落 1 個', () => {
+    expect(LANDMARKS.map(({ tribe, sign }) => `${tribe}/${sign}`).sort()).toEqual(
+      expected.map(([tribe, sign]) => `${tribe}/${sign}`).sort()
     )
+    expect(new Set(LANDMARKS.map((landmark) => landmark.tribe)).size).toBe(6)
   })
 
   it('每一項都有位置、朝向、大小、造型種類；模型檔這一步都不填', () => {
@@ -178,8 +176,6 @@ describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
       ;['x', 'z', 'heading', 'width', 'depth'].forEach((field) =>
         expect(Number.isFinite(landmark[field])).toBe(true)
       )
-      expect(landmark.width).toBeGreaterThan(0)
-      expect(landmark.depth).toBeGreaterThan(0)
       expect(typeof landmark.kind).toBe('string')
       expect(landmark.model).toBeNull()
     })
@@ -193,169 +189,104 @@ describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
     })
   })
 
-  describe('格子裡的地標', () => {
-    const inHex = LANDMARKS.filter((landmark) => landmark.placement === 'in-hex')
+  it('靠招牌辨識：6 個的招牌文字各不相同，造型種類也各不相同', () => {
+    expect(new Set(LANDMARKS.map((landmark) => landmark.sign)).size).toBe(6)
+    expect(new Set(LANDMARKS.map((landmark) => landmark.kind)).size).toBe(6)
+  })
 
-    it('整個佔地在所屬部落的格子內', () => {
-      inHex.forEach((landmark) => {
-        const hex = hexVertices(ISLAND_MAP.hexRadius, center(landmark.tribe))
-
-        expect(footprintInside(footprintCorners(landmark), hex)).toBe(true)
-      })
-    })
-
-    it('不壓到公路：整個佔地離每段公路的中線超過半寬', () => {
-      inHex.forEach((landmark) => {
-        expect(roadGap(footprintCorners(landmark))).toBeGreaterThan(ISLAND_MAP.roadHalfWidth)
-      })
-    })
-
-    it('靠邊放：佔地上最靠近格子中心的點離中心至少 7（中間留給 3 戶人家）', () => {
-      inHex.forEach((landmark) => {
-        const gap = footprintGapToPoint(footprintCorners(landmark), center(landmark.tribe))
-
-        expect(gap).toBeGreaterThanOrEqual(7)
-      })
-    })
-
-    it('紅頭：郵局、衛生所在東南（衛生所比郵局遠離中心）、警察局在西', () => {
-      const post = offset(find('imowrod', '郵局'))
-      const clinic = offset(find('imowrod', '衛生所'))
-      const police = offset(find('imowrod', '警察局'))
-
-      ;[post, clinic].forEach(({ dx, dz }) => {
-        expect(dx).toBeGreaterThan(0)
-        expect(dz).toBeGreaterThan(0)
-      })
-      expect(Math.hypot(clinic.dx, clinic.dz)).toBeGreaterThan(Math.hypot(post.dx, post.dz))
-      expect(police.dx).toBeLessThan(0)
-      expect(Math.abs(police.dz)).toBeLessThan(Math.abs(police.dx))
-    })
-
-    it('漁人：文物館在西南', () => {
-      const { dx, dz } = offset(find('iratay', '文物館'))
-
-      expect(dx).toBeLessThan(0)
-      expect(dz).toBeGreaterThan(0)
-    })
-
-    it('椰油：農會在北（往朗島的那一側）', () => {
-      const { dx, dz } = offset(find('yayo', '農會'))
-      const toIraraley = {
-        dx: center('iraraley').x - center('yayo').x,
-        dz: center('iraraley').z - center('yayo').z,
-      }
-
-      expect(dz).toBeLessThan(0)
-      expect(Math.abs(dx)).toBeLessThan(Math.abs(dz))
-      expect(dx * toIraraley.dx + dz * toIraraley.dz).toBeGreaterThan(0)
-    })
-
-    it('朗島：學校在東北、路邊攤在北（靠海）', () => {
-      const school = offset(find('iraraley', '學校'))
-      const stall = offset(find('iraraley', '路邊攤'))
-
-      expect(school.dx).toBeGreaterThan(0)
-      expect(school.dz).toBeLessThan(0)
-      expect(stall.dz).toBeLessThan(0)
-      expect(Math.abs(stall.dx)).toBeLessThan(Math.abs(stall.dz))
-    })
-
-    it('東清：夜市、便利商店在東，警察局在東南，學校在南', () => {
-      ;['夜市', '便利商店'].forEach((sign) => {
-        const { dx, dz } = offset(find('iranmeilek', sign))
-        expect(dx).toBeGreaterThan(0)
-        expect(Math.abs(dz)).toBeLessThan(dx)
-      })
-      const police = offset(find('iranmeilek', '警察局'))
-      expect(police.dx).toBeGreaterThan(0)
-      expect(police.dz).toBeGreaterThan(0)
-      const school = offset(find('iranmeilek', '學校'))
-      expect(school.dz).toBeGreaterThan(0)
-      expect(Math.abs(school.dx)).toBeLessThan(school.dz)
-    })
-
-    it('野銀：籃球場在靠山的那一側（比格子中心離海岸線更遠）', () => {
-      expect(coastGap(find('ivalino', '籃球場'))).toBeGreaterThan(coastGap(center('ivalino')))
+  it('佔地大小照手寫的表', () => {
+    expected.forEach(([tribe, sign, , , width, depth]) => {
+      expect(find(tribe, sign).width).toBe(width)
+      expect(find(tribe, sign).depth).toBe(depth)
     })
   })
 
-  describe('公路旁的地標', () => {
-    const roadside = LANDMARKS.filter((landmark) => landmark.placement === 'roadside')
-    const ring = ISLAND_MAP.roads[0].points
-    const loop = [...ring, ring[0]]
-    /** 沿環島公路（照公路的順序，從朗島出發）走到離 point 最近的地方有多遠 */
-    const along = (point) => {
-      let travelled = 0
-      let best = { gap: Infinity, at: 0 }
-      loop.slice(1).forEach((to, i) => {
-        const onRoad = closestOnSegment(point, loop[i], to)
-        const gap = distanceBetween(point, onRoad)
-        if (gap < best.gap) {
-          best = { gap, at: travelled + distanceBetween(loop[i], onRoad) }
-        }
-        travelled += distanceBetween(loop[i], to)
-      })
-      return best.at
-    }
+  it('平房類（郵局、農會、便利商店）牆加屋頂共 3.4 高：人物（1.7）的 2 倍', () => {
+    ;[
+      ['imowrod', '郵局'],
+      ['yayo', '農會'],
+      ['iranmeilek', '便利商店'],
+    ].forEach(([tribe, sign]) => expect(topOf(find(tribe, sign))).toBeCloseTo(3.4, 9))
+  })
 
-    it('整個佔地在可走範圍外、離路邊不超過 6、在所屬部落的格子外', () => {
-      roadside.forEach((landmark) => {
-        const corners = footprintCorners(landmark)
-        const gap = roadGap(corners) - ISLAND_MAP.roadHalfWidth
+  it('路邊攤的棚頂 2.2 高、機場的塔台 4.8 高', () => {
+    expect(topOf(find('iraraley', '路邊攤'))).toBeCloseTo(2.2, 9)
+    expect(topOf(find('iratay', '機場'))).toBeCloseTo(4.8, 9)
+  })
 
-        expect(gap).toBeGreaterThan(0)
-        expect(gap).toBeLessThanOrEqual(6)
-        ISLAND_MAP.tribes.forEach((tribe) => {
-          expect(footprintsOverlap(corners, hexVertices(ISLAND_MAP.hexRadius, tribe.center))).toBe(
-            false
-          )
-        })
-        corners.forEach((corner) => expect(walkable.isWalkable(corner)).toBe(false))
-      })
-    })
+  it('籃球場的籃框離地 3.0', () => {
+    const court = find('ivalino', '籃球場')
+    const rims = shapeParts(court.kind, court.width, court.depth).filter(
+      (part) => part.shape === 'ring'
+    )
 
-    // 環島公路的順序：朗島 → 東清 → 野銀 →（島的東南端）→ 西端接點 → 紅頭 → 漁人 → 椰油 → 回朗島
-    it('紅頭的學校：在紅頭往野銀（島的東南端）的那一段，橫貫公路接點之後', () => {
-      const junction = ISLAND_MAP.roads[1].points[0]
-      const school = along(find('imowrod', '學校'))
+    expect(rims).toHaveLength(2)
+    rims.forEach((rim) => expect(rim.y).toBeCloseTo(3.0, 9))
+  })
 
-      expect(school).toBeGreaterThan(along(center('ivalino')))
-      expect(school).toBeLessThan(along(junction))
-    })
-
-    it('機場：在漁人—椰油之間，靠漁人、靠海側', () => {
-      const airport = find('iratay', '機場')
-      const from = along(center('iratay'))
-      const to = along(center('yayo'))
-      const nearestOnRoad = loop
-        .slice(1)
-        .map((end, i) => closestOnSegment(airport, loop[i], end))
-        .reduce((a, b) => (distanceBetween(b, airport) < distanceBetween(a, airport) ? b : a))
-
-      expect(along(airport)).toBeGreaterThan(from)
-      expect(along(airport)).toBeLessThan((from + to) / 2)
-      expect(coastGap(airport)).toBeLessThan(coastGap(nearestOnRoad))
-    })
-
-    it('椰油的學校：在椰油—漁人之間，靠椰油', () => {
-      const from = along(center('iratay'))
-      const to = along(center('yayo'))
-
-      expect(along(find('yayo', '學校'))).toBeGreaterThan((from + to) / 2)
-      expect(along(find('yayo', '學校'))).toBeLessThan(to)
-    })
-
-    it('椰油的便利商店、超市：在椰油—朗島之間，超市比便利商店靠朗島', () => {
-      const store = along(find('yayo', '便利商店'))
-      const market = along(find('yayo', '超市'))
-
-      expect(store).toBeGreaterThan(along(center('yayo')))
-      expect(market).toBeGreaterThan(store)
+  it('位置照 chung 標的位置：離手寫的表不超過 2', () => {
+    expected.forEach(([tribe, sign, x, z]) => {
+      expect(distanceBetween(find(tribe, sign), { x, z })).toBeLessThanOrEqual(2)
     })
   })
 
-  it('地標的佔地彼此不重疊', () => {
+  it('整個佔地在可走範圍外：不壓公路、不壓 18 格的任何一格', () => {
+    LANDMARKS.forEach((landmark) => {
+      const corners = footprintCorners(landmark)
+
+      expect(roadGap(corners)).toBeGreaterThan(ISLAND_MAP.roadHalfWidth)
+      corners.forEach((corner) => expect(walkable.isWalkable(corner)).toBe(false))
+      allHexes.forEach((hex) => expect(footprintsOverlap(corners, hex)).toBe(false))
+    })
+  })
+
+  it('在公路邊：離路邊不超過 6', () => {
+    LANDMARKS.forEach((landmark) => {
+      const gap = roadGap(footprintCorners(landmark)) - ISLAND_MAP.roadHalfWidth
+
+      expect(gap).toBeLessThanOrEqual(6)
+    })
+  })
+
+  it('正面朝公路：正面的方向（朝向 0 是 +z）指向公路上最近的那一點，偏差不超過 15 度', () => {
+    LANDMARKS.forEach((landmark) => {
+      const toRoad = nearestOnRoad(landmark)
+      const along = distanceBetween(toRoad, landmark)
+      const facing =
+        (Math.sin(landmark.heading) * (toRoad.x - landmark.x) +
+          Math.cos(landmark.heading) * (toRoad.z - landmark.z)) /
+        along
+
+      expect(facing).toBeGreaterThan(Math.cos((15 * Math.PI) / 180))
+    })
+  })
+
+  it('離所屬部落最近一格的中心不超過 34', () => {
+    LANDMARKS.forEach((landmark) => {
+      const hexes = ISLAND_MAP.tribes.find((tribe) => tribe.code === landmark.tribe).hexes
+      const nearest = Math.min(...hexes.map((at) => distanceBetween(at, landmark)))
+
+      expect(nearest).toBeLessThanOrEqual(34)
+    })
+  })
+
+  it('機場在椰油往漁人的環島公路旁、靠海那一側（比公路上最近的點更靠近海岸線）', () => {
+    const airport = find('iratay', '機場')
+
+    expect(airport.x).toBeGreaterThan(center('yayo').x)
+    expect(airport.x).toBeLessThan(center('iratay').x)
+    expect(coastGap(airport)).toBeLessThan(coastGap(nearestOnRoad(airport)))
+  })
+
+  it('郵局在紅頭主格與第 2 格之間：離兩格的中心都比兩格之間的距離近', () => {
+    const [main, second] = ISLAND_MAP.tribes.find((tribe) => tribe.code === 'imowrod').hexes
+    const post = find('imowrod', '郵局')
+
+    expect(distanceBetween(post, main)).toBeLessThan(distanceBetween(main, second))
+    expect(distanceBetween(post, second)).toBeLessThan(distanceBetween(main, second))
+  })
+
+  it('彼此不重疊', () => {
     LANDMARKS.forEach((a, i) => {
       LANDMARKS.slice(i + 1).forEach((b) => {
         expect(footprintsOverlap(footprintCorners(a), footprintCorners(b))).toBe(false)
@@ -363,22 +294,18 @@ describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
     })
   })
 
-  it('地標不壓到山與水田', () => {
+  it('不壓到水芋田', () => {
+    expect(ISLAND_DECOR.paddies.length).toBeGreaterThan(0)
     LANDMARKS.forEach((landmark) => {
-      const corners = footprintCorners(landmark)
-
-      ISLAND_DECOR.mountains.forEach((mountain) => {
-        expect(footprintGapToPoint(corners, mountain)).toBeGreaterThan(mountain.radius)
-      })
       ISLAND_DECOR.paddies.forEach((paddy) => {
-        expect(footprintsOverlap(corners, footprintCorners(paddy))).toBe(false)
+        expect(footprintsOverlap(footprintCorners(landmark), footprintCorners(paddy))).toBe(false)
       })
     })
   })
 
-  it('整個佔地都在海岸線裡面', () => {
+  it('整個佔地在沙灘以內的陸地上', () => {
     LANDMARKS.forEach((landmark) => {
-      expect(footprintInside(footprintCorners(landmark), ISLAND_DECOR.coast)).toBe(true)
+      expect(footprintInside(footprintCorners(landmark), ISLAND_DECOR.inland)).toBe(true)
     })
   })
 
@@ -395,15 +322,6 @@ describe('island3d/landmarks 地標清單（#207 驗收條件 6）', () => {
 
 describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () => {
   const kinds = [...new Set(LANDMARKS.map((landmark) => landmark.kind))]
-
-  it('同一種招牌用同一種造型；不同招牌用不同造型', () => {
-    const kindOf = {}
-    LANDMARKS.forEach(({ sign, kind }) => {
-      kindOf[sign] ??= kind
-      expect(kind).toBe(kindOf[sign])
-    })
-    expect(new Set(Object.values(kindOf)).size).toBe(Object.keys(kindOf).length)
-  })
 
   it('每一種造型都有零件，零件有形狀、大小、位置、顏色', () => {
     kinds.forEach((kind) => {
@@ -427,10 +345,12 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
   })
 
   it('所有零件的地面投影都在佔地內，底部不低於地面', () => {
+    // 6 個特色建築實際用到的 4 種佔地
     const sizes = [
-      [4, 3],
-      [3, 2.4],
-      [10, 4],
+      [8, 6],
+      [6, 3],
+      [12, 7],
+      [20, 8],
     ]
     kinds.forEach((kind) => {
       sizes.forEach(([width, depth]) => {
@@ -444,7 +364,7 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
   })
 
   it('籃球場：畫線的地面加兩個籃框（左右各一個，各有柱子、籃板、離地的框）', () => {
-    const parts = shapeParts('court', 4, 2.6)
+    const parts = shapeParts('court', 12, 7)
     const rims = parts.filter((part) => part.shape === 'ring')
     const posts = parts.filter((part) => part.shape === 'post')
     const ground = parts.filter((part) => part.shape === 'plane')
@@ -463,6 +383,32 @@ describe('island3d/landmarks 程式拼的造型（#207 驗收條件 7）', () =>
 
   it('沒有這種造型：丟出錯誤，不默默畫成別的', () => {
     expect(() => shapeParts('no-such-kind', 4, 3)).toThrow()
+  })
+
+  it('#212 拿掉的地標，造型也一起拿掉', () => {
+    ;['clinic', 'police', 'school', 'museum', 'supermarket', 'night-market'].forEach((kind) => {
+      expect(() => shapeParts(kind, 4, 3)).toThrow()
+    })
+  })
+})
+
+describe('island3d/landmarks 招牌的高度（#212 驗收條件 9）', () => {
+  it('招牌在建物最高點的上方 1.2：平房 4.6、路邊攤 3.4、機場 6.0', () => {
+    const heightOf = (sign) => signHeight(LANDMARKS.find((landmark) => landmark.sign === sign))
+
+    expect(heightOf('郵局')).toBeCloseTo(4.6, 9)
+    expect(heightOf('路邊攤')).toBeCloseTo(3.4, 9)
+    expect(heightOf('機場')).toBeCloseTo(6.0, 9)
+  })
+
+  it('每一個地標的招牌都比造型的每個零件高', () => {
+    LANDMARKS.forEach((landmark) => {
+      const tops = shapeParts(landmark.kind, landmark.width, landmark.depth).map(
+        (part) => part.y + part.height / 2
+      )
+
+      expect(signHeight(landmark)).toBeGreaterThan(Math.max(...tops))
+    })
   })
 })
 

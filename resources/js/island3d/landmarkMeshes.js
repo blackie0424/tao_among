@@ -1,14 +1,13 @@
-// 魚島 3D：把部落的地標與招牌畫出來（#207）。地標先用程式拼的造型（landmarks.js 的零件），
+// 魚島 3D：把部落的地標與招牌畫出來（#207、#212）。地標先用程式拼的造型（landmarks.js 的零件），
 // 清單裡有填模型檔的，載入成功後換上，失敗就留著程式拼的。全部是裝飾，不擋路、不擋點擊。
 import * as THREE from 'three'
-import { LANDMARKS, shapeParts, signsVisible } from './landmarks'
+import { LANDMARKS, shapeParts, signHeight, signsVisible } from './landmarks'
 import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, flatMesh, labelTexture } from './terrain'
 
 // 四角錐的底是邊長 1 的正方形：ConeGeometry 的半徑是中心到頂點
 const PYRAMID_RADIUS = Math.SQRT1_2
 const PYRAMID_SIDES = 4
-// 招牌在地標上方這麼高、在畫面上這麼大（畫面高度的比例；比部落標示小）
-const SIGN_HEIGHT_ABOVE_GROUND = 3.4
+// 招牌在畫面上這麼大（畫面高度的比例；比部落標示小）
 const SIGN_SCREEN_HEIGHT = 0.03
 
 // 平放的圓框的原型：外徑 1、高 1。管子的半徑是外徑的這個比例
@@ -42,10 +41,10 @@ function buildShape({ kind, width, depth }) {
   return shape
 }
 
-/** 地標：先放程式拼的造型；有模型檔就載入，成功後換上，失敗留著程式拼的 */
+/** 地標：站在公路旁的陸地上。先放程式拼的造型；有模型檔就載入，成功後換上，失敗留著程式拼的 */
 function buildLandmark(loader, landmark) {
   const group = new THREE.Group()
-  group.position.set(landmark.x, landmark.placement === 'in-hex' ? 0 : INLAND_LEVEL, landmark.z)
+  group.position.set(landmark.x, INLAND_LEVEL, landmark.z)
   group.rotation.y = landmark.heading
   const shape = buildShape(landmark)
   group.add(shape)
@@ -65,15 +64,16 @@ function buildLandmark(loader, landmark) {
   return group
 }
 
-/** 招牌：地標上方的文字，永遠正面朝鏡頭；畫在部落標示之前，所以不會蓋住部落標示 */
-function buildSign({ sign, x, z }) {
+/** 招牌：地標最高點上方的文字，永遠正面朝鏡頭；畫在部落標示之前，所以不會蓋住部落標示 */
+function buildSign(landmark) {
+  const { sign, x, z } = landmark
   const material = new THREE.SpriteMaterial({
     map: labelTexture(sign),
     sizeAttenuation: false,
     depthTest: false,
   })
   const sprite = new THREE.Sprite(material)
-  sprite.position.set(x, SIGN_HEIGHT_ABOVE_GROUND, z)
+  sprite.position.set(x, INLAND_LEVEL + signHeight(landmark), z)
   sprite.scale.set(SIGN_SCREEN_HEIGHT * LABEL_ASPECT, SIGN_SCREEN_HEIGHT, 1)
   return sprite
 }

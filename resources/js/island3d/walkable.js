@@ -5,7 +5,7 @@
 // 是連續的一段。把每個形狀重疊的那一段算出來，看它們接起來有沒有蓋滿整條直線。
 // 直線上的位置用 0～1 表示（0 是起點、1 是終點），一段寫成 [開始, 結束]。
 import { clampToHex, closestOnSegment, hexVertices, isInsideHex } from './hexBounds'
-import { roadSegments } from './islandMap'
+import { roadSegments, tribeHexes } from './islandMap'
 
 // 剛好在邊上的點因為小數誤差會差一點點，差在這個範圍內都算在邊上
 const EDGE_TOLERANCE = 1e-9
@@ -119,7 +119,7 @@ function reachAlong(spans, slack) {
 /** 不可走的點拉回最近的可走位置：每個格子、每段公路各自最近的邊上那一點裡，取最近的 */
 function nearestEdgePoint(point, { hexRadius, roadHalfWidth, tribes }, roads) {
   const candidates = [
-    ...tribes.map(({ center }) => clampToHex(point, hexRadius, center)),
+    ...tribes.flatMap(tribeHexes).map((center) => clampToHex(point, hexRadius, center)),
     ...roads.map((road) => clampToRoad(point, road, roadHalfWidth)),
   ]
   return candidates.reduce((best, candidate) =>
@@ -145,14 +145,16 @@ function walkableSpans(from, to, hexes, roads, roadHalfWidth) {
  */
 export function createWalkable(map) {
   const { hexRadius, roadHalfWidth, tribes } = map
-  const hexes = tribes.map(({ center }) => hexVertices(hexRadius, center))
+  const hexes = tribes.flatMap(tribeHexes).map((center) => hexVertices(hexRadius, center))
   const roads = roadSegments(map).map((segment) => ({
     ...segment,
     corners: roadCorners(segment, roadHalfWidth),
   }))
 
   const tribeAt = (point) =>
-    tribes.find(({ center }) => isInsideHex(point, hexRadius, center))?.code ?? null
+    tribes.find((tribe) =>
+      tribeHexes(tribe).some((center) => isInsideHex(point, hexRadius, center))
+    )?.code ?? null
 
   const isOnRoad = (point) =>
     roads.some(

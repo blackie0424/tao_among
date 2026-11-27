@@ -397,7 +397,7 @@ function buildCamera(container) {
 }
 
 /**
- * 玩家一開始的狀態：站在 startTribe 部落格子的中心、沒有輸入、鏡頭沒轉且在最近的距離。
+ * 玩家一開始的狀態：站在 startTribe 部落主格的中心、沒有輸入、鏡頭沒轉且在最近的距離。
  * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落；
  * marker 是點地面的提示；elapsedSeconds 是開始到現在經過的秒數（每張畫面更新）
  */

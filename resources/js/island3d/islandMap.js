@@ -1,15 +1,21 @@
-// 魚島 3D：整座島的資料（#200、#207）——6 個部落格子的位置、兩條公路、走路速度，
+// 魚島 3D：整座島的資料（#200、#207、#212）——6 個部落各 3 格的位置、兩條公路、走路速度，
 // 以及海岸線、沙灘、山、水田、船。繪圖、可走範圍、找路都讀這一份。不依賴 three.js。
 // 座標是 three.js 的世界單位：x 越大越東、z 越大越南。
 //
 // 位置照蘭嶼的實際地圖（#207 規格修訂 1）：海岸線、公路、村落與山頂的位置取自 OpenStreetMap
 // （© OpenStreetMap contributors，ODbL），以北緯 22.045、東經 121.55 為原點，1 公里＝22.5 單位，
-// 換算、簡化後寫死在這裡；做法見 docs/design.md 8.8。
+// 換算、簡化後寫死在這裡；做法見 docs/design.md 8.8。#212 再整座放大（見 ISLAND_SCALE）。
+import { closestOnSegment } from './hexBounds'
 
-// 走路速度（每秒走多遠）：#199 的 2 倍
-export const WALK_SPEED = 5
+// 整座島的放大倍數（#212）：下面的座標是 #207 照實際地圖換算的數值，乘上這個倍數才是世界單位。
+// 格子、公路的寬度、人物不跟著放大，所以倍數越大，部落周圍的空間越多。
+export const ISLAND_SCALE = 1.5
 
-const point = ([x, z]) => ({ x, z })
+// 走路速度（每秒走多遠）：#207 是 5，跟著島放大，走一樣的路花一樣的時間
+const WALK_SPEED_BEFORE_SCALE = 5
+export const WALK_SPEED = WALK_SPEED_BEFORE_SCALE * ISLAND_SCALE
+
+const point = ([x, z]) => ({ x: x * ISLAND_SCALE, z: z * ISLAND_SCALE })
 
 // 環島公路：實際路線簡化成折線，順時針一圈。部落的格子中心也是折線上的點——
 // 部落都在海邊，格子中心從實際的村落位置往內陸挪到整個格子落在陸地上，公路跟著彎進來。
@@ -63,8 +69,8 @@ const RING_ROAD = [
   [-87.2, -87.3],
 ].map(point)
 
-// 橫貫公路：兩端接在部落外的環島公路上（比實際的接點往外移，下山後要再走一段才進部落），
-// 中間走紅頭與野銀兩個格子之間的山坳
+// 橫貫公路：兩端接在環島公路上，接點分別在紅頭第 2 格、野銀第 3 格裡（下山就進部落，#212），
+// 中間走紅頭與野銀之間的山坳
 const CROSS_ROAD = [
   [22.7, 57.5],
   [29.0, 46.0],
@@ -73,22 +79,64 @@ const CROSS_ROAD = [
   [32.7, 1.6],
 ].map(point)
 
-const tribe = (code, [x, z]) => ({ code, center: RING_ROAD.find((p) => p.x === x && p.z === z) })
+const HEX_RADIUS = 12
+// 相鄰兩格（共用一條邊）的中心距離
+const HEX_NEIGHBOR_DISTANCE = HEX_RADIUS * Math.sqrt(3)
+const DEGREES_TO_RADIANS = Math.PI / 180
+
+/**
+ * 和 center 這一格貼著同一條邊的鄰格中心。degrees 是那條邊的垂直方向（0 是 +x、90 是 +z）；
+ * slide 是沿著那條邊錯開多遠（0 是整條邊對齊；錯開後兩格仍貼著，只是共用的那一段變短）。
+ * 用算的不手寫座標：手寫的四捨五入會讓兩格之間留下一條走不過去的細縫。
+ */
+const neighborHex = (center, degrees, slide = 0) => {
+  const across = degrees * DEGREES_TO_RADIANS
+  const along = across - Math.PI / 2
+  return {
+    x: center.x + HEX_NEIGHBOR_DISTANCE * Math.cos(across) + slide * Math.cos(along),
+    z: center.z + HEX_NEIGHBOR_DISTANCE * Math.sin(across) + slide * Math.sin(along),
+  }
+}
+
+/**
+ * 一個部落：center 是主格的中心（環島公路上的點，[x, z] 是放大前的數值）；
+ * others(center) 回傳另外幾格的中心（世界單位）。hexes 是全部格子的中心，主格排第一。
+ */
+const tribe = (code, [x, z], others) => {
+  const scaled = point([x, z])
+  const center = RING_ROAD.find((p) => p.x === scaled.x && p.z === scaled.z)
+  return { code, center, hexes: [center, ...others(center)] }
+}
 
 /**
  * hexRadius 部落格子中心到頂點的距離；roadHalfWidth 公路中線到路邊的距離。
  * roads 的 points 是公路中線依序經過的點；closed 表示最後一點接回第一點。
  */
 export const ISLAND_MAP = {
-  hexRadius: 12,
+  hexRadius: HEX_RADIUS,
   roadHalfWidth: 2,
   tribes: [
-    tribe('iraraley', [-55.2, -81.9]), // 朗島
-    tribe('iranmeilek', [28.6, -35.8]), // 東清
-    tribe('ivalino', [36.0, 19.3]), // 野銀
-    tribe('imowrod', [12.1, 43.0]), // 紅頭
-    tribe('iratay', [-18.3, 39.2]), // 漁人
-    tribe('yayo', [-81.5, -14.2]), // 椰油
+    // 朗島：第 2 格貼著主格的西南邊，第 3 格在東邊的公路上
+    tribe('iraraley', [-55.2, -81.9], (main) => [neighborHex(main, 150), { x: -58.6, z: -129.7 }]),
+    // 東清
+    tribe('iranmeilek', [28.6, -35.8], (main) => [neighborHex(main, -30), { x: 41.9, z: -24.7 }]),
+    // 野銀
+    tribe('ivalino', [36.0, 19.3], (main) => [neighborHex(main, 30, 1.5), neighborHex(main, -90)]),
+    // 紅頭
+    tribe('imowrod', [12.1, 43.0], () => [
+      { x: 39.7, z: 86.9 },
+      { x: 56.7, z: 105.4 },
+    ]),
+    // 漁人
+    tribe('iratay', [-18.3, 39.2], () => [
+      { x: -52.5, z: 63.3 },
+      { x: -71.4, z: 36.3 },
+    ]),
+    // 椰油
+    tribe('yayo', [-81.5, -14.2], () => [
+      { x: -136.9, z: -58.0 },
+      { x: -109.5, z: 0.2 },
+    ]),
   ],
   roads: [
     // 環島公路：朗島 → 東清 → 野銀 → 島的東南端 → 紅頭 → 漁人 → 椰油 → 回朗島
@@ -98,6 +146,9 @@ export const ISLAND_MAP = {
   ],
 }
 
+/** 一個部落所有格子的中心；只有一格的地圖（測試用的小地圖）可以只寫 center */
+export const tribeHexes = (tribe) => tribe.hexes ?? [tribe.center]
+
 /** 地圖上所有公路的每一段：[{ from, to }] */
 export function roadSegments(map) {
   return map.roads.flatMap(({ points, closed }) => {
@@ -106,11 +157,24 @@ export function roadSegments(map) {
   })
 }
 
-/** 找路用的「路線點」：部落中心與公路的折點，同一個位置只算一次 */
+/** 公路上離 point 最近的點 */
+function nearestOnRoads(map, point) {
+  const gap = (other) => Math.hypot(other.x - point.x, other.z - point.z)
+  return roadSegments(map)
+    .map(({ from, to }) => closestOnSegment(point, from, to))
+    .reduce((best, candidate) => (gap(candidate) < gap(best) ? candidate : best))
+}
+
+/**
+ * 找路用的「路線點」：每個格子的中心、公路的折點，以及每個格子中心在公路上最近的那一點
+ * （格子不在折點上時，從格子中心要先走到這一點才上得了公路）。同一個位置只算一次。
+ */
 export function routePoints(map) {
+  const centers = map.tribes.flatMap(tribeHexes)
   const all = [
-    ...map.tribes.map((tribe) => tribe.center),
+    ...centers,
     ...map.roads.flatMap((road) => road.points),
+    ...(map.roads.length > 0 ? centers.map((center) => nearestOnRoads(map, center)) : []),
   ]
   return all.filter(
     (point, i) => all.findIndex((other) => other.x === point.x && other.z === point.z) === i
@@ -127,9 +191,10 @@ const COAST = [
   [-94.4, -14.6],
   [-94.3, -3.0],
   [-81.2, -0.0],
-  [-71.6, 18.2],
-  [-64.1, 17.5],
-  [-60.1, 20.8],
+  // 這 3 點比實際的海岸線再往外推（#212）：公路靠海那一側要放得下機場
+  [-76.0, 21.5],
+  [-66.0, 24.4],
+  [-58.0, 26.5],
   [-57.0, 30.9],
   [-35.0, 53.5],
   [-24.7, 55.7],
@@ -207,8 +272,15 @@ export function insetOutline(polygon, width) {
 }
 
 // 山的顏色由高度決定：這個高度以下最淺、這個高度以上最深，中間照比例
-const MOUNTAIN_LOW = { height: 8, color: [0x7d, 0xbb, 0x88] }
-const MOUNTAIN_HIGH = { height: 22, color: [0x2f, 0x7a, 0x45] }
+const MOUNTAIN_LOW = { height: 8 * ISLAND_SCALE, color: [0x7d, 0xbb, 0x88] }
+const MOUNTAIN_HIGH = { height: 22 * ISLAND_SCALE, color: [0x2f, 0x7a, 0x45] }
+
+/** 一座山：[x, z, 山腳半徑, 高度] 是放大前的數值，整座照比例放大 */
+const mountain = ([x, z, radius, height]) => ({
+  ...point([x, z]),
+  radius: radius * ISLAND_SCALE,
+  height: height * ISLAND_SCALE,
+})
 
 /** 山的顏色（#rrggbb）：越高越深、同高同色 */
 export function mountainColor(height) {
@@ -219,9 +291,8 @@ export function mountainColor(height) {
     .reduce((hex, channel) => hex + channel.toString(16).padStart(2, '0'), '#')
 }
 
-// 水田（芋頭田）的大小
+// 水田（芋頭田）的大小；位置直接寫世界單位（#212：#207 的位置放大後，壓到格子或離部落太遠的挪過）
 const PADDY = { width: 6, depth: 4 }
-const DEGREES_TO_RADIANS = Math.PI / 180
 const paddy = ([x, z, degrees], tribeCode) => ({
   ...(tribeCode ? { tribe: tribeCode } : {}),
   x,
@@ -242,39 +313,39 @@ export const ISLAND_DECOR = {
   inland: insetOutline(COAST, BEACH_WIDTH),
   mountains: [
     // 由高到低；最高的對應紅頭山
-    { x: -35.8, z: -20.0, radius: 14.1, height: 21.9 },
-    { x: -73.4, z: -33.9, radius: 7.0, height: 20.4 },
-    { x: -39.2, z: -51.9, radius: 13.2, height: 19.8 },
-    { x: 82.9, z: 86.6, radius: 10.6, height: 19.3 },
-    { x: 15.6, z: -72.1, radius: 10.7, height: 18.6 },
-    { x: -16.5, z: -36.9, radius: 12.3, height: 17.6 },
-    { x: 16.3, z: -0.5, radius: 7.7, height: 17.3 },
-    { x: -25.5, z: 17.7, radius: 8.8, height: 16.3 },
-    { x: 102.0, z: 63.2, radius: 5.8, height: 15.1 },
-    { x: 39.5, z: 39.4, radius: 7.0, height: 11.9 },
-    { x: -33.4, z: 28.0, radius: 5.9, height: 9.4 },
+    mountain([-35.8, -20.0, 14.1, 21.9]),
+    mountain([-73.4, -33.9, 7.0, 20.4]),
+    mountain([-39.2, -51.9, 13.2, 19.8]),
+    mountain([82.9, 86.6, 10.6, 19.3]),
+    mountain([15.6, -72.1, 10.7, 18.6]),
+    mountain([-16.5, -36.9, 12.3, 17.6]),
+    mountain([16.3, -0.5, 7.7, 17.3]),
+    mountain([-25.5, 17.7, 8.8, 16.3]),
+    mountain([102.0, 63.2, 5.8, 15.1]),
+    mountain([39.5, 39.4, 7.0, 11.9]),
+    mountain([-33.4, 28.0, 5.9, 9.4]),
   ],
   paddies: [
-    // 每個部落旁、靠山的那一側
-    paddy([-58.2, -65.2, 170], 'iraraley'),
-    paddy([15.6, -46.7, 50], 'iranmeilek'),
-    paddy([49.8, 30.9, -130], 'ivalino'),
-    paddy([15.1, 26.3, -10], 'imowrod'),
-    paddy([-12.5, 23.2, -20], 'iratay'),
-    paddy([-66.8, -22.7, -60], 'yayo'),
-    // 部落之間的環島公路旁、靠內陸的那一側
-    paddy([-15.7, -85.4, -172]),
-    paddy([31.5, -83.0, -162]),
-    paddy([62.2, 37.2, 152]),
-    paddy([91.3, 51.3, 155]),
-    paddy([90.8, 100.6, 15]),
-    paddy([54.7, 88.9, -37]),
-    paddy([-52.7, 12.7, -52]),
-    paddy([-84.2, -45.7, -110]),
+    // 每個部落旁、靠山的那一側（離那個部落的格子不超過 8）
+    paddy([-88.3, -98.8, 170], 'iraraley'),
+    paddy([29.4, -66.1, 50], 'iranmeilek'),
+    paddy([74.7, 52.8, -130], 'ivalino'),
+    paddy([22.6, 47.0, -10], 'imowrod'),
+    paddy([-19.3, 41.3, -20], 'iratay'),
+    paddy([-107.2, -31.0, -60], 'yayo'),
+    // 部落之間的環島公路旁、靠內陸的那一側：#207 的位置放大後原地不動
+    paddy([-23.5, -128.1, -172]),
+    paddy([47.3, -124.5, -162]),
+    paddy([93.3, 55.8, 152]),
+    paddy([136.9, 76.9, 155]),
+    paddy([136.2, 150.9, 15]),
+    paddy([82.1, 133.4, -37]),
+    paddy([-79.1, 19.0, -52]),
+    paddy([-126.3, -68.6, -110]),
   ],
   boats: [
-    { x: -103, z: 2, heading: Math.PI / 5 },
-    { x: 131, z: 74, heading: -Math.PI / 3 },
-    { x: -45, z: -104, heading: Math.PI },
+    { ...point([-103, 2]), heading: Math.PI / 5 },
+    { ...point([131, 74]), heading: -Math.PI / 3 },
+    { ...point([-45, -104]), heading: Math.PI },
   ],
 }

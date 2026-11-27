@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createWalkable } from '@/island3d/walkable'
-import { NOTCH_IN_HEX, NOTCH_ON_ROAD, THREE_TRIBE_MAP } from './testMaps'
+import { NOTCH_IN_HEX, NOTCH_ON_ROAD, THREE_TRIBE_MAP, TWIN_HEX_MAP, TWIN_SECOND } from './testMaps'
 
 const walkable = createWalkable(THREE_TRIBE_MAP)
 
@@ -107,5 +107,35 @@ describe('island3d/walkable 可走範圍（#200 驗收條件 3）', () => {
     expect(walkable.isWalkable(reached)).toBe(true)
     expect(walkable.tribeAt(reached)).toBe('west')
     expect(Math.hypot(reached.x - NOTCH_IN_HEX.x, reached.z - NOTCH_IN_HEX.z)).toBeLessThan(0.08)
+  })
+})
+
+describe('island3d/walkable 一個部落有好幾格（#212 驗收條件 4、5）', () => {
+  const twin = createWalkable(TWIN_HEX_MAP)
+
+  it('第 2 格裡也可以走，所在部落和主格一樣', () => {
+    expect(twin.isWalkable(TWIN_SECOND)).toBe(true)
+    expect(twin.tribeAt(TWIN_SECOND)).toBe('twin')
+    expect(twin.tribeAt({ x: 0, z: 0 })).toBe('twin')
+    // 第 2 格的最右邊（主格到不了的地方）
+    expect(twin.tribeAt({ x: 24, z: 8.66 })).toBe('twin')
+  })
+
+  it('兩格以外的地方不能走、不在任何部落', () => {
+    expect(twin.isWalkable({ x: 30, z: 8.66 })).toBe(false)
+    expect(twin.tribeAt({ x: 30, z: 8.66 })).toBeNull()
+  })
+
+  it('從主格中心到第 2 格中心：直走，穿過共用的邊，中間沒有縫', () => {
+    expect(twin.isStraightWalkable({ x: 0, z: 0 }, TWIN_SECOND)).toBe(true)
+    expect(twin.reachToward({ x: 0, z: 0 }, TWIN_SECOND)).toEqual(TWIN_SECOND)
+  })
+
+  it('走出第 2 格的點被拉回第 2 格的邊上，不是拉回主格', () => {
+    // 第 2 格的右頂點在 (25, 8.66)
+    const clamped = twin.clampToWalkable({ x: 40, z: 8.66 })
+
+    expect(clamped.x).toBeCloseTo(25, 2)
+    expect(clamped.z).toBeCloseTo(8.66, 2)
   })
 })
