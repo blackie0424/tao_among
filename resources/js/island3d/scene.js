@@ -17,6 +17,8 @@ import {
   zoomByPinch,
   zoomByWheel,
 } from './cameraRig'
+import { createFamily } from './familyMeshes'
+import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
 import { createFrameClock } from './frameClock'
 import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
 import { householdObstacles } from './households'
@@ -35,12 +37,9 @@ import { isTapBlocked, tapBlockers } from './occlusion'
 import { createQualityGovernor, initialQuality, pixelRatioFor, sampleFrame } from './quality'
 import { createRouter } from './route'
 import { createTapMarker, markerScale, rejectTap, rejectedPointAt, tapOutcome } from './tapMarker'
-import { bobBoats, buildTerrain, fitModel, flatMesh, sizeTribeLabels } from './terrain'
+import { bobBoats, buildTerrain, fitModel, sizeTribeLabels } from './terrain'
 import { createWalkable } from './walkable'
 
-const ACTOR_HEIGHT = 1.7
-// 動作切換的淡入淡出秒數
-const ACTION_FADE_SECONDS = 0.2
 // 整座島的範圍（海岸線以內）：鏡頭拉到最遠時對準它的中心、整個看得到
 const ISLAND_BOUNDS = boundingCircle(ISLAND_DECOR.coast)
 // 山與船：點到它們沒有反應，就算畫面上它們後面是可走的地面
@@ -69,9 +68,6 @@ const PLAYER_MODEL = '/island3d/characters/character-male-a.glb'
 const SKY_LIGHT_INTENSITY = 1.6
 const SUN_INTENSITY = 1.8
 const SUN_POSITION = { x: 6, y: 12, z: 8 }
-// 簡單人形的半徑與身體長度，各佔人物高度的比例
-const PLACEHOLDER_RADIUS_RATIO = 0.22
-const PLACEHOLDER_BODY_RATIO = 0.5
 
 const STATS_INTERVAL_MS = 500
 const MS_PER_SECOND = 1000
@@ -91,21 +87,6 @@ function buildLights(scene) {
   const sun = new THREE.DirectionalLight('#ffffff', SUN_INTENSITY)
   sun.position.set(SUN_POSITION.x, SUN_POSITION.y, SUN_POSITION.z)
   scene.add(sun)
-}
-
-/** 模型還沒載入（或載入失敗）時先用的簡單人形，走路照常 */
-function placeholderFigure(color) {
-  const figure = new THREE.Group()
-  const body = flatMesh(
-    new THREE.CapsuleGeometry(
-      ACTOR_HEIGHT * PLACEHOLDER_RADIUS_RATIO,
-      ACTOR_HEIGHT * PLACEHOLDER_BODY_RATIO
-    ),
-    color
-  )
-  body.position.y = ACTOR_HEIGHT / 2
-  figure.add(body)
-  return figure
 }
 
 /**
@@ -373,7 +354,7 @@ function trackQuality(renderer, governor, reportStats, now, frame) {
   }
 }
 
-/** 場景裡的東西：整座島（terrain.js）、地標（landmarkMeshes.js）、玩家、點地面的提示 */
+/** 場景裡的東西：整座島（terrain.js）、地標與家屋四件（landmarkMeshes.js）、家人（familyMeshes.js）、玩家、點地面的提示 */
 function buildWorld() {
   const loader = new GLTFLoader()
   const scene = new THREE.Scene()
@@ -382,10 +363,18 @@ function buildWorld() {
   const terrain = buildTerrain(loader)
   const landmarks = buildLandmarks(loader)
   const tapRings = createTapRings()
+  const family = createFamily(loader)
   buildLights(scene)
-  scene.add(terrain.group, landmarks.group, buildHouseholds(), player.group, tapRings.group)
+  scene.add(
+    terrain.group,
+    landmarks.group,
+    buildHouseholds(),
+    family.group,
+    player.group,
+    tapRings.group
+  )
   const { boats, labels } = terrain
-  return { scene, player, tapRings, boats, labels, signs: landmarks.signs }
+  return { scene, player, family, tapRings, boats, labels, signs: landmarks.signs }
 }
 
 function buildCamera(container) {
@@ -475,7 +464,7 @@ export function createIslandScene(container, options) {
   const governor = createQualityGovernor(level)
   const reportStats = createStatsReporter(onStats, governor)
   const camera = buildCamera(container)
-  const { scene, player, tapRings, boats, labels, signs } = buildWorld()
+  const { scene, player, family, tapRings, boats, labels, signs } = buildWorld()
   const state = createPlayerState(startTribe)
   const unwatchResize = watchResize(container, renderer, camera)
   const clock = createFrameClock()
@@ -489,6 +478,10 @@ export function createIslandScene(container, options) {
     }
     state.elapsedSeconds = frame.elapsedSeconds
     movePlayer(player, state, frame.deltaSeconds, onTribeChange)
+    family.update(frame.elapsedSeconds, frame.deltaSeconds, {
+      currentTribe: state.tribe,
+      reducedMotion,
+    })
     if (!reducedMotion) {
       bobBoats(boats, frame.elapsedSeconds)
     }

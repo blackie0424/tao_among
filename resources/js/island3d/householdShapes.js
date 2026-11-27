@@ -42,6 +42,9 @@ const ROCK = '#5f6266'
 const ROCK_DARK = '#55585c'
 const ROCK_FLAT = '#7c7f83'
 const BACKREST_Z = -0.75
+const MIDDLE_STONE_THICKNESS = 0.6
+/** 中間那塊立石的前緣（離佔地中線多遠，負的是往後）：akay 坐在它前面（#201 驗收條件 6） */
+export const BACKREST_FRONT_Z = BACKREST_Z + MIDDLE_STONE_THICKNESS / 2
 /** 立石：下面是方的、上面半圓（圓柱的軸朝前）；寬 width、高 height、厚 thickness */
 const uprightStone = (x, width, height, thickness, color) => [
   part('box', [width, height - width / 2, thickness], [x, BACKREST_Z], 0, color),
@@ -54,7 +57,7 @@ const flatStone = ([x, z], size) =>
   part('cylinder', [size, 0.06, size * 0.85], [x, z], 0, ROCK_FLAT)
 const PANANADENGAN = [
   ...uprightStone(-1.05, 0.85, 1.15, 0.55, ROCK),
-  ...uprightStone(0, 1.0, 1.3, 0.6, ROCK_DARK),
+  ...uprightStone(0, 1.0, 1.3, MIDDLE_STONE_THICKNESS, ROCK_DARK),
   ...uprightStone(1.05, 0.8, 0.95, 0.55, ROCK),
   ...[
     [[-1.3, 0.25], 0.7],
