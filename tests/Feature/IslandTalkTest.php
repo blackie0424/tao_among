@@ -52,7 +52,7 @@ it('帶 NPC、第 N／M 條與這條魚；順序同地點清單', function () {
     $first = talkProps($this);
     $second = talkProps($this, '?n=2');
 
-    expect($first['spot'])->toBe(['code' => 'main-house', 'name' => '主屋', 'npc' => '阿姨'])
+    expect($first['spot'])->toBe(['code' => 'main-house', 'name' => 'vahay', 'npc' => 'kaminan'])
         ->and($first['n'])->toBe(1)
         ->and($first['total'])->toBe(2)
         ->and($first['fish']['id'])->toBe($both->id)

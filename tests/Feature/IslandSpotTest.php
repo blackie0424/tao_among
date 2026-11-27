@@ -60,10 +60,10 @@ it('魚依編號除以 4 的餘數分到地點：餘 1 主屋、餘 2 靠背石�
 it('地點帶代碼、名稱與 NPC 稱呼', function () {
     $this->actingAs(spotPlayer());
 
-    expect(spotPageProps($this, 'main-house')['spot'])->toBe(['code' => 'main-house', 'name' => '主屋', 'npc' => '阿姨'])
-        ->and(spotPageProps($this, 'backrest-stone')['spot'])->toBe(['code' => 'backrest-stone', 'name' => '靠背石', 'npc' => '爺爺'])
-        ->and(spotPageProps($this, 'drying-yard')['spot'])->toBe(['code' => 'drying-yard', 'name' => '曬魚庭院', 'npc' => '叔叔'])
-        ->and(spotPageProps($this, 'pavilion')['spot'])->toBe(['code' => 'pavilion', 'name' => '涼亭', 'npc' => '年輕人']);
+    expect(spotPageProps($this, 'main-house')['spot'])->toBe(['code' => 'main-house', 'name' => 'vahay', 'npc' => 'kaminan'])
+        ->and(spotPageProps($this, 'backrest-stone')['spot'])->toBe(['code' => 'backrest-stone', 'name' => 'pananadengan', 'npc' => 'akay'])
+        ->and(spotPageProps($this, 'drying-yard')['spot'])->toBe(['code' => 'drying-yard', 'name' => 'zazawan', 'npc' => 'maran'])
+        ->and(spotPageProps($this, 'pavilion')['spot'])->toBe(['code' => 'pavilion', 'name' => 'tagakal', 'npc' => 'kaka']);
 });
 
 it('刪除或新增魚不會讓其他魚換地點；軟刪除的魚不出現', function () {
