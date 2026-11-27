@@ -87,13 +87,10 @@ describe('island3d/terrainHeight 收平地（#223 驗收條件 2）', () => {
 
   it('原始高度遠處比較低時照原始的：不要求離越遠越高', () => {
     // 公路在 x = 0；原始高度在 x = 16 是 100 公尺、x = 24 是 20 公尺
-    const field3 = heightField(
-      rawGrid({ meterAt: (x) => (x >= 20 ? 20 : 100) }),
-      {
-        zones: [{ segment: { from: { x: 0, z: -100 }, to: { x: 0, z: 100 }, halfWidth: 2 } }],
-        inland: BIG_LAND,
-      }
-    )
+    const field3 = heightField(rawGrid({ meterAt: (x) => (x >= 20 ? 20 : 100) }), {
+      zones: [{ segment: { from: { x: 0, z: -100 }, to: { x: 0, z: 100 }, halfWidth: 2 } }],
+      inland: BIG_LAND,
+    })
     expect(heightAt(field3, { x: 16, z: 0 })).toBeCloseTo(100 * UNITS_PER_METER, 5)
     expect(heightAt(field3, { x: 24, z: 0 })).toBeCloseTo(20 * UNITS_PER_METER, 5)
   })
@@ -124,7 +121,10 @@ describe('island3d/terrainHeight 收平地（#223 驗收條件 2）', () => {
     corners.forEach((corner, i) => {
       const next = corners[(i + 1) % corners.length]
       for (let t = 0; t <= 1; t += 0.05) {
-        const onEdge = { x: corner.x + (next.x - corner.x) * t, z: corner.z + (next.z - corner.z) * t }
+        const onEdge = {
+          x: corner.x + (next.x - corner.x) * t,
+          z: corner.z + (next.z - corner.z) * t,
+        }
         expect(heightAt(field5, onEdge)).toBe(0)
       }
     })
@@ -213,10 +213,14 @@ describe('island3d/terrainHeight 整座島的實際地形（#223 驗收條件 1�
   it('18 格的中心、頂點與邊上的點都是 0', () => {
     ISLAND_MAP.tribes.flatMap(tribeHexes).forEach((center) => {
       expect(heightAt(field, center)).toBe(0)
-      hexVertices(ISLAND_MAP.hexRadius, center).forEach((corner) => expect(heightAt(field, corner)).toBe(0))
+      hexVertices(ISLAND_MAP.hexRadius, center).forEach((corner) =>
+        expect(heightAt(field, corner)).toBe(0)
+      )
       for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 12) {
         const r = ISLAND_MAP.hexRadius * Math.cos(Math.PI / 6)
-        expect(heightAt(field, { x: center.x + Math.cos(angle) * r, z: center.z + Math.sin(angle) * r })).toBe(0)
+        expect(
+          heightAt(field, { x: center.x + Math.cos(angle) * r, z: center.z + Math.sin(angle) * r })
+        ).toBe(0)
       }
     })
   })

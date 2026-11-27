@@ -514,7 +514,11 @@ describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 �
         const corners = footprintCorners(paddy)
         const fromEdge = Math.min(
           ...hexesOf(paddy.tribe).map((at) =>
-            Math.min(...corners.map((corner) => distanceBetween(corner, clampToHex(corner, ISLAND_MAP.hexRadius, at))))
+            Math.min(
+              ...corners.map((corner) =>
+                distanceBetween(corner, clampToHex(corner, ISLAND_MAP.hexRadius, at))
+              )
+            )
           )
         )
         const fromRoad = Math.min(

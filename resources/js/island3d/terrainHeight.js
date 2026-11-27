@@ -39,7 +39,9 @@ export function flatZones({
   landmarks = LANDMARKS,
 } = {}) {
   return [
-    ...map.tribes.flatMap(tribeHexes).map((center) => ({ polygon: hexVertices(map.hexRadius, center) })),
+    ...map.tribes
+      .flatMap(tribeHexes)
+      .map((center) => ({ polygon: hexVertices(map.hexRadius, center) })),
     ...[...paddies, ...landmarks].map((item) => ({ polygon: footprintCorners(item) })),
     ...roadSegments(map).map(({ from, to }) => ({
       segment: { from, to, halfWidth: map.roadHalfWidth },
