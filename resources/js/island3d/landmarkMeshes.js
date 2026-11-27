@@ -2,13 +2,14 @@
 // 清單裡有填模型檔的，載入成功後換上，失敗就留著程式拼的。全部是裝飾，不擋路、不擋點擊。
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { HOUSEHOLD_KIND_ORDER, HOUSEHOLD_KINDS, HOUSEHOLDS, householdSigns } from './households'
 import { LANDMARKS, shapeParts, signHeight, signsVisible } from './landmarks'
 import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, labelTexture } from './terrain'
 
 // 四角錐的底是邊長 1 的正方形：ConeGeometry 的半徑是中心到頂點
 const PYRAMID_RADIUS = Math.SQRT1_2
 const PYRAMID_SIDES = 4
-// 招牌在畫面上這麼大（畫面高度的比例；比部落標示小）
+// 招牌在畫面上這麼大（畫面高度的比例）
 const SIGN_SCREEN_HEIGHT = 0.03
 
 // 平放的圓框：管子的半徑是外徑的這個比例
@@ -131,18 +132,21 @@ function buildLandmark(loader, landmark) {
   return group
 }
 
-/** 招牌：地標最高點上方的文字，永遠正面朝鏡頭；畫在部落標示之前，所以不會蓋住部落標示 */
-function buildSign(landmark) {
-  const { sign, x, z } = landmark
-  const material = new THREE.SpriteMaterial({
-    map: labelTexture(sign),
-    sizeAttenuation: false,
-    depthTest: false,
-  })
+/** 招牌的材質：文字貼圖，永遠正面朝鏡頭、大小不隨遠近改變、不被建物擋住 */
+const signMaterial = (text) =>
+  new THREE.SpriteMaterial({ map: labelTexture(text), sizeAttenuation: false, depthTest: false })
+
+/** 一塊招牌：放在 (x, 離地 height, z) */
+function signSprite(material, x, height, z) {
   const sprite = new THREE.Sprite(material)
-  sprite.position.set(x, INLAND_LEVEL + signHeight(landmark), z)
+  sprite.position.set(x, INLAND_LEVEL + height, z)
   sprite.scale.set(SIGN_SCREEN_HEIGHT * LABEL_ASPECT, SIGN_SCREEN_HEIGHT, 1)
   return sprite
+}
+
+/** 招牌：地標最高點上方的文字 */
+function buildSign(landmark) {
+  return signSprite(signMaterial(landmark.sign), landmark.x, signHeight(landmark), landmark.z)
 }
 
 /** 鏡頭拉遠超過門檻時把招牌藏起來（zoom：0 最近、1 最遠） */
@@ -160,4 +164,70 @@ export function buildLandmarks(loader, landmarks = LANDMARKS) {
   signs.add(...landmarks.map(buildSign))
   group.add(...landmarks.map((landmark) => buildLandmark(loader, landmark)), signs)
   return { group, signs }
+}
+
+// ── 家屋四件（#201）──
+// 同一種東西有 18 份：零件先合成一個網格（每個頂點帶零件的顏色），再用 InstancedMesh 一次畫完
+
+/** 一個零件的形體：原型縮放、移到位置，帶上顏色；只留位置、法線、顏色，合併時才對得上 */
+function coloredPart({ shape, axis, width, height, depth, x, y, z, color }) {
+  const unit = unitGeometry(shape, axis)
+  const geometry = (unit.index ? unit.toNonIndexed() : unit).scale(width, height, depth)
+  geometry.translate(x, y, z)
+  Object.keys(geometry.attributes)
+    .filter((name) => name !== 'position' && name !== 'normal')
+    .forEach((name) => geometry.deleteAttribute(name))
+  const { r, g, b } = new THREE.Color(color)
+  const count = geometry.getAttribute('position').count
+  const colors = Float32Array.from({ length: count * 3 }, (_, i) => [r, g, b][i % 3])
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  return geometry
+}
+
+/** 一種東西的原型：中心在原點、站在 y = 0、正面朝 +z */
+function householdGeometry(kind) {
+  const { width, depth } = HOUSEHOLD_KINDS[kind]
+  return mergeGeometries(shapeParts(kind, width, depth).map(coloredPart))
+}
+
+/** 18 戶的家屋四件：每種東西一個 InstancedMesh（名稱 household-種類），第 i 份是第 i 戶的那一件 */
+export function buildHouseholds(households = HOUSEHOLDS) {
+  const group = new THREE.Group()
+  const placement = new THREE.Object3D()
+  HOUSEHOLD_KIND_ORDER.forEach((kind, k) => {
+    const mesh = new THREE.InstancedMesh(
+      householdGeometry(kind),
+      new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+      households.length
+    )
+    mesh.name = `household-${kind}`
+    households.forEach(({ items }, i) => {
+      const item = items[k]
+      placement.position.set(item.x, INLAND_LEVEL, item.z)
+      placement.rotation.set(0, item.heading, 0)
+      placement.updateMatrix()
+      mesh.setMatrixAt(i, placement.matrix)
+    })
+    group.add(mesh)
+  })
+  return group
+}
+
+/**
+ * 四件上方的名稱招牌（#201 驗收條件 15）：名稱用後端給的地點清單 spots，做法和地標的招牌一樣，
+ * 同一個名稱共用一份材質。回傳招牌的群組（給 showSigns 用）
+ */
+export function buildHouseholdSigns(spots, households = HOUSEHOLDS) {
+  const materials = new Map()
+  const materialOf = (text) => {
+    if (!materials.has(text)) {
+      materials.set(text, signMaterial(text))
+    }
+    return materials.get(text)
+  }
+  const signs = new THREE.Group()
+  householdSigns(spots, households).forEach(({ text, x, z, height }) =>
+    signs.add(signSprite(materialOf(text), x, height, z))
+  )
+  return signs
 }

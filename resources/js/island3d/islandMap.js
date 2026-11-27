@@ -121,8 +121,8 @@ export const ISLAND_MAP = {
     tribe('iraraley', [-55.2, -81.9], (main) => [neighborHex(main, 150), { x: -58.6, z: -129.7 }]),
     // 東清
     tribe('iranmeilek', [28.6, -35.8], (main) => [neighborHex(main, -30), { x: 41.9, z: -24.7 }]),
-    // 野銀
-    tribe('ivalino', [36.0, 19.3], (main) => [neighborHex(main, 30, 1.5), neighborHex(main, -90)]),
+    // 野銀：第 3 格在東南邊的環島公路旁（#201 規格修訂 1：原本在橫貫公路的接點上，三條公路交會、家屋排不下）
+    tribe('ivalino', [36.0, 19.3], (main) => [neighborHex(main, 30, 1.5), { x: 90.9, z: 53.6 }]),
     // 紅頭
     tribe('imowrod', [12.1, 43.0], () => [
       { x: 39.7, z: 86.9 },
@@ -338,7 +338,7 @@ export const ISLAND_DECOR = {
     // 部落之間的環島公路旁、靠內陸的那一側
     paddy([-23.5, -128.1, -172], '3x3'),
     paddy([47.3, -124.5, -162], '1x3'),
-    paddy([93.3, 55.8, 152], '3x3'),
+    paddy([104.5, 63.0, 60], '3x3'),
     paddy([136.9, 76.9, 155], '1x3'),
     paddy([136.2, 150.9, 15], '3x3'),
     paddy([82.1, 133.4, -37], '1x3'),

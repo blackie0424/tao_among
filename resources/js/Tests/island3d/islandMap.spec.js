@@ -77,6 +77,14 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     ).toBeLessThan(60)
   })
 
+  it('野銀第 3 格在東南邊的環島公路旁 (90.9, 53.6)，原本那塊公路旁水田挪到 (104.5, 63)（#201 規格修訂 1）', () => {
+    expect(hexesOf('ivalino')[2]).toEqual({ x: 90.9, z: 53.6 })
+    expect(ISLAND_DECOR.paddies.some(({ x, z }) => x === 93.3 && z === 55.8)).toBe(false)
+    expect(ISLAND_DECOR.paddies.find(({ x, z }) => x === 104.5 && z === 63)).toMatchObject({
+      heading: (60 * Math.PI) / 180,
+    })
+  })
+
   it('18 格任兩格不重疊（共用一條邊不算）', () => {
     ALL_HEXES.forEach((a, i) => {
       ALL_HEXES.slice(i + 1).forEach((b) => {
@@ -284,8 +292,8 @@ describe('island3d/islandMap 格子放大與橫貫公路的接點（#207 驗收�
     {
       name: '東端',
       point: crossRoad.points.at(-1),
-      tribe: 'ivalino',
-      hexIndex: 2,
+      tribe: null,
+      hexIndex: null,
       between: ['iranmeilek', 'ivalino'],
     },
   ]
@@ -297,20 +305,28 @@ describe('island3d/islandMap 格子放大與橫貫公路的接點（#207 驗收�
       expect(at).toBeGreaterThan(ringCodes.indexOf(between[0]))
       expect(at).toBeLessThan(ringCodes.indexOf(between[1]))
     })
-
-    it(`${name}接點在${tribe === 'imowrod' ? '紅頭第 2 格' : '野銀第 3 格'}裡：下山就進部落（#212 驗收條件 3）`, () => {
-      expect(isInsideHex(point, ISLAND_MAP.hexRadius, hexesOf(tribe)[hexIndex])).toBe(true)
-      expect(walkable.tribeAt(point)).toBe(tribe)
-    })
   })
 
-  it('橫貫公路的路面只碰接點所在的那 2 格，不碰其他 16 格：每一段離格子都超過公路半寬', () => {
+  it('西端接點在紅頭第 2 格裡：下山就進部落（#212 驗收條件 3）', () => {
+    const [west] = junctions
+
+    expect(isInsideHex(west.point, ISLAND_MAP.hexRadius, hexesOf('imowrod')[1])).toBe(true)
+    expect(walkable.tribeAt(west.point)).toBe('imowrod')
+  })
+
+  it('東端接點不在任何格子裡：下山先接到環島公路，再走一小段才進野銀（#201 規格修訂 1）', () => {
+    const east = junctions.at(-1)
+
+    expect(walkable.tribeAt(east.point)).toBeNull()
+  })
+
+  it('橫貫公路的路面只碰紅頭第 2 格，不碰其他 17 格：每一段離格子都超過公路半寬（#201 規格修訂 1）', () => {
     const segments = crossRoad.points.slice(1).map((to, i) => [crossRoad.points[i], to])
     const isJunctionHex = ({ code, index }) =>
       junctions.some(({ tribe, hexIndex }) => tribe === code && hexIndex === index)
     const others = ALL_HEXES.filter((hex) => !isJunctionHex(hex))
 
-    expect(others).toHaveLength(16)
+    expect(others).toHaveLength(17)
     others.forEach(({ corners }) => {
       segments.forEach(([from, to]) => {
         const gap = Math.min(...edgesOf(corners).map(([a, b]) => segmentGap(from, to, a, b)))
@@ -737,7 +753,8 @@ describe('island3d/islandMap 每個部落 3 格（#212 驗收條件 2、3）', (
     ivalino: [
       [54.0, 29.0],
       [72.8, 38.0],
-      [54.0, 8.2],
+      // #201 規格修訂 1：從橫貫公路的接點 (54.0, 8.2) 移到東南邊的環島公路旁
+      [90.9, 53.6],
     ],
     imowrod: [
       [18.1, 64.5],
@@ -755,12 +772,11 @@ describe('island3d/islandMap 每個部落 3 格（#212 驗收條件 2、3）', (
       [-109.5, 0.2],
     ],
   }
-  // 貼著主格的 4 格：[部落, 第幾格, 沿著相貼的邊錯開多遠]
+  // 貼著主格的 3 格：[部落, 第幾格, 沿著相貼的邊錯開多遠]（野銀第 3 格在 #201 移走，不再貼著主格）
   const attached = [
     ['iraraley', 1, 0],
     ['iranmeilek', 1, 0],
     ['ivalino', 1, 1.5],
-    ['ivalino', 2, 0],
   ]
   const neighborDistance = 12 * Math.sqrt(3)
   const allRoadSegments = ISLAND_MAP.roads.flatMap(({ points, closed }) => {
@@ -804,14 +820,14 @@ describe('island3d/islandMap 每個部落 3 格（#212 驗收條件 2、3）', (
     )
   })
 
-  it('貼著主格的 4 格由主格算出：中心距離是半徑的 √3 倍再加上沿邊錯開的量，不是四捨五入的座標', () => {
+  it('貼著主格的 3 格由主格算出：中心距離是半徑的 √3 倍再加上沿邊錯開的量，不是四捨五入的座標', () => {
     attached.forEach(([code, index, slide]) => {
       const apart = distanceBetween(center(code), hexesOf(code)[index])
       expect(apart).toBeCloseTo(Math.hypot(neighborDistance, slide), 9)
     })
   })
 
-  it('整條邊對齊的 3 格：和主格各有兩個頂點重合，誤差在可走範圍的容許值（1e-9）內', () => {
+  it('整條邊對齊的 2 格：和主格各有兩個頂點重合，誤差在可走範圍的容許值（1e-9）內', () => {
     attached
       .filter(([, , slide]) => slide === 0)
       .forEach(([code, index]) => {

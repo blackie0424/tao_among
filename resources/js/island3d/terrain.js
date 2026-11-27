@@ -2,7 +2,6 @@
 // 公路、山、水田、船。
 // 位置都讀 islandMap.js；這個檔只管繪圖。
 import * as THREE from 'three'
-import { islandTribeLabel } from '@/constants/island'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { ISLAND_DECOR, ISLAND_MAP, mountainColor, roadSegments, tribeHexes } from './islandMap'
 import { PADDY_COLORS, paddyShape } from './paddyShape'
@@ -38,17 +37,12 @@ const BOAT_LENGTH = 3
 const BOAT_BOB_HEIGHT = 0.06
 const BOAT_MODEL = '/island3d/boats/boat-fishing-small.glb'
 
-// 部落標示：畫在一張小畫布上貼成看板，永遠正面朝鏡頭、大小不隨鏡頭遠近改變
+// 地標的招牌：畫在一張小畫布上貼成看板（部落標示在 #201 拿掉，所在部落改看左上角）
 const LABEL_CANVAS = { width: 512, height: 128 }
 // 標示的寬高比（招牌沿用同一張貼圖的比例）
 export const LABEL_ASPECT = LABEL_CANVAS.width / LABEL_CANVAS.height
 const LABEL_FONT = '800 56px system-ui, "PingFang TC", "Noto Sans TC", sans-serif'
 const LABEL_CORNER = 28
-// 看板高度佔畫面高度的比例大約是這個值 ÷ 0.83
-const LABEL_SCREEN_HEIGHT = 0.045
-const LABEL_HEIGHT_ABOVE_GROUND = 4.5
-// 鏡頭拉到最遠時看板縮成這個比例：整座島在畫面裡變小，看板太大會互相蓋住
-const LABEL_FAR_SCALE = 0.75
 
 // 顏色沿用魚島的色票（tailwind.config.js 的 island）；公路是沙色；
 // 海邊那一圈是岩岸的灰色（蘭嶼的海邊多是岩岸，不是白沙；也和公路的沙色分得開，#212）
@@ -293,7 +287,7 @@ function buildHex({ x, z }) {
   return hex
 }
 
-/** 標示的貼圖：白底圓角、深色字（部落標示與地標的招牌共用） */
+/** 招牌的貼圖：白底圓角、深色字 */
 export function labelTexture(text) {
   const canvas = document.createElement('canvas')
   canvas.width = LABEL_CANVAS.width
@@ -311,25 +305,6 @@ export function labelTexture(text) {
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   return texture
-}
-
-/** 部落主格上方的標示「族語（中文）」，每個部落 1 個：不被山擋住 */
-function buildTribeLabel({ code, center }) {
-  const material = new THREE.SpriteMaterial({
-    map: labelTexture(islandTribeLabel(code)),
-    sizeAttenuation: false,
-    depthTest: false,
-  })
-  const label = new THREE.Sprite(material)
-  label.position.set(center.x, LABEL_HEIGHT_ABOVE_GROUND, center.z)
-  label.renderOrder = 1
-  return label
-}
-
-/** 看板大小跟著鏡頭遠近：zoom 0（最近）是原本大小，1（最遠）縮到 LABEL_FAR_SCALE */
-export function sizeTribeLabels(labels, zoom) {
-  const height = LABEL_SCREEN_HEIGHT * (1 - (1 - LABEL_FAR_SCALE) * zoom)
-  labels.forEach((label) => label.scale.set(height * LABEL_ASPECT, height, 1))
 }
 
 /** 公路：每一段是一塊長方形，折點補一個圓，形狀和可走範圍一致 */
@@ -389,17 +364,12 @@ export function bobBoats(boats, elapsedSeconds) {
   })
 }
 
-/**
- * 整座島不會動的部分。回傳 { group 要加進場景的東西, boats 船（給 bobBoats 用）,
- * labels 部落標示（給 sizeTribeLabels 用） }
- */
+/** 整座島不會動的部分。回傳 { group 要加進場景的東西, boats 船（給 bobBoats 用） } */
 export function buildTerrain(loader) {
   const group = new THREE.Group()
   const boats = ISLAND_DECOR.boats.map((boat) => buildBoat(loader, boat))
-  const labels = ISLAND_MAP.tribes.map(buildTribeLabel)
   group.add(buildSea(), buildBeach(), buildInland(), buildRoads(), buildMountains())
-  group.add(buildPaddies(), ...boats, ...labels)
+  group.add(buildPaddies(), ...boats)
   group.add(...ISLAND_MAP.tribes.flatMap(tribeHexes).map(buildHex))
-  sizeTribeLabels(labels, 0)
-  return { group, boats, labels }
+  return { group, boats }
 }

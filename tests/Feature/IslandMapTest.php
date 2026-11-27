@@ -395,10 +395,10 @@ it('#189 部落頁是家屋：依序帶四個地點的代碼、名稱、NPC 稱�
             ->where('tribe', 'iratay')
             ->missing('fish')
             ->where('spots', [
-                ['code' => 'main-house', 'name' => '主屋', 'npc' => '阿姨', 'with_result' => 0, 'total' => 0],
-                ['code' => 'backrest-stone', 'name' => '靠背石', 'npc' => '爺爺', 'with_result' => 0, 'total' => 0],
-                ['code' => 'drying-yard', 'name' => '曬魚庭院', 'npc' => '叔叔', 'with_result' => 0, 'total' => 0],
-                ['code' => 'pavilion', 'name' => '涼亭', 'npc' => '年輕人', 'with_result' => 0, 'total' => 0],
+                ['code' => 'main-house', 'name' => 'vahay', 'npc' => 'kaminan', 'with_result' => 0, 'total' => 0],
+                ['code' => 'backrest-stone', 'name' => 'pananadengan', 'npc' => 'akay', 'with_result' => 0, 'total' => 0],
+                ['code' => 'drying-yard', 'name' => 'zazawan', 'npc' => 'maran', 'with_result' => 0, 'total' => 0],
+                ['code' => 'pavilion', 'name' => 'tagakal', 'npc' => 'kaka', 'with_result' => 0, 'total' => 0],
             ]));
 });
 
@@ -514,4 +514,28 @@ it('#200 沒記過位置、角色自己的部落不在清單裡：所在部落�
     $this->actingAs(islandPlayer('taipei'))
         ->get('/island')
         ->assertInertia(fn ($page) => $page->where('current_tribe', 'ivalino'));
+});
+
+// #201 AC 10、12：每戶四個地點的名稱、稱呼、問好語（進魚島時一次給；規格修訂 2 不帶 X/Y）
+const ISLAND_HOUSEHOLD_SPOTS = [
+    ['code' => 'main-house', 'name' => 'vahay', 'npc' => 'kaminan', 'greeting' => 'kaminan kong'],
+    ['code' => 'backrest-stone', 'name' => 'pananadengan', 'npc' => 'akay', 'greeting' => 'akay kong'],
+    ['code' => 'drying-yard', 'name' => 'zazawan', 'npc' => 'maran', 'greeting' => 'maran kong'],
+    ['code' => 'pavilion', 'name' => 'tagakal', 'npc' => 'kaka', 'greeting' => 'kaka kong'],
+];
+
+it('#201 /island 帶 6 個部落 × 12 個地點：依序第 1～3 戶，每戶 vahay、pananadengan、zazawan、tagakal，族語名稱、稱呼、問好語，不帶 X/Y', function () {
+    Fish::factory()->create(['id' => 1]);
+    $this->actingAs(islandPlayer());
+
+    $spots = $this->get('/island')->assertOk()->inertiaProps()['spots'];
+
+    expect(array_keys($spots))->toEqualCanonicalizing(ISLAND_TRIBES);
+    $expected = collect([1, 2, 3])->flatMap(fn ($household) => array_map(
+        fn ($spot) => ['household' => $household, ...$spot],
+        ISLAND_HOUSEHOLD_SPOTS
+    ))->all();
+    foreach (ISLAND_TRIBES as $tribe) {
+        expect($spots[$tribe])->toBe($expected);
+    }
 });

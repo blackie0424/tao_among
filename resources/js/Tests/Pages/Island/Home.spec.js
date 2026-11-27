@@ -15,14 +15,35 @@ vi.mock('@/island3d/scene', () => ({ createIslandScene: scene.createIslandScene 
 
 import Home from '@/Pages/Island/Home.vue'
 
+const SPOT_NAMES = [
+  ['main-house', 'vahay', 'kaminan'],
+  ['backrest-stone', 'pananadengan', 'akay'],
+  ['drying-yard', 'zazawan', 'maran'],
+  ['pavilion', 'tagakal', 'kaka'],
+]
+/** 一個部落的 12 個地點（3 戶 × 4） */
+const tribeSpots = () =>
+  [1, 2, 3].flatMap((household) =>
+    SPOT_NAMES.map(([code, name, npc]) => ({ household, code, name, npc, greeting: `${npc} kong` }))
+  )
+
+// 每個測試結束時拆掉頁面，免得前一個頁面的鍵盤監聽留在 window 上
+const mounted = []
+
 const mountPage = async () => {
   const wrapper = mount(Home, {
+    attachTo: document.body,
     props: {
       character: { name: '阿海', tribe: 'yayo' },
       tribes: ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'],
       current_tribe: 'iratay',
+      spots: {
+        iratay: tribeSpots(),
+        ivalino: tribeSpots(),
+      },
     },
   })
+  mounted.push(wrapper)
   await flushPromises()
   return wrapper
 }
@@ -62,6 +83,7 @@ describe('Island/Home 地圖頁', () => {
   })
 
   afterEach(() => {
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
     vi.unstubAllGlobals()
   })
 
@@ -75,7 +97,7 @@ describe('Island/Home 地圖頁', () => {
   it('3D 格子上標示的是目前所在部落，不是角色自己的部落', async () => {
     const wrapper = await mountPage()
 
-    expect(wrapper.get('[data-testid="world-tribe"]').text()).toBe('iratay（漁人）')
+    expect(wrapper.get('[data-testid="world-tribe"]').text()).toBe('iratay')
   })
 
   it('3D 畫在頁面的畫布區塊裡，畫得出來時不顯示「無法顯示」', async () => {
@@ -162,7 +184,7 @@ describe('Island/Home 地圖頁', () => {
 
     await walkInto('ivalino')
 
-    expect(wrapper.get('[data-testid="world-tribe"]').text()).toBe('ivalino（野銀）')
+    expect(wrapper.get('[data-testid="world-tribe"]').text()).toBe('ivalino')
     expect(valueOf(wrapper, '你現在在')).toBe('ivalino（野銀）')
     expect(valueOf(wrapper, '你的部落')).toBe('yayo（椰油）')
   })
@@ -267,5 +289,140 @@ describe('Island/Home 地圖頁', () => {
     expect(wrapper.text()).toContain('用方向鍵走路，或點地面走過去')
     expect(wrapper.text()).toContain('拖曳畫面轉鏡頭')
     expect(wrapper.text()).toContain('滾輪或雙指拉遠拉近')
+  })
+
+  describe('#201 走近的提示與問好', () => {
+    /** 角色走進或離開某一件的範圍（3D 畫面回報）；slot 0～3 依序是 vahay、pananadengan、zazawan、tagakal */
+    const reachSpot = async (spot) => {
+      sceneOptions().onSpotChange(spot)
+      await flushPromises()
+    }
+    /** 按空白鍵；回傳事件，看有沒有擋掉瀏覽器原本的行為（捲動網頁） */
+    const pressSpace = async () => {
+      const event = new KeyboardEvent('keydown', { key: ' ', cancelable: true })
+      window.dispatchEvent(event)
+      await flushPromises()
+      return event
+    }
+    /** 點了目前範圍那一件的家人（3D 畫面回報） */
+    const tapMember = async () => {
+      sceneOptions().onMemberTap()
+      await flushPromises()
+    }
+    const prompt = (wrapper) => wrapper.find('[data-testid="spot-prompt"]')
+    const dialog = (wrapper) => wrapper.find('[data-testid="spot-dialog"]')
+    const mockTouch = (coarse) =>
+      vi.stubGlobal('matchMedia', (query) => ({ matches: coarse && query === '(pointer: coarse)' }))
+
+    it('後端給的地點清單傳給 3D 畫面（四件上方的招牌用後端的名稱）', async () => {
+      const wrapper = await mountPage()
+
+      expect(sceneOptions().spots).toEqual(wrapper.props('spots'))
+    })
+
+    it('左上角的所在部落只顯示族語', async () => {
+      const wrapper = await mountPage()
+
+      expect(wrapper.get('[data-testid="world-tribe"]').text()).toBe('iratay')
+    })
+
+    it('走進第 2 戶 pananadengan 的範圍：下緣只顯示稱呼「akay」與「按空白鍵」，不顯示地點名稱與筆數（規格修訂 2）', async () => {
+      const wrapper = await mountPage()
+
+      await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
+
+      expect(prompt(wrapper).text()).toContain('akay')
+      expect(prompt(wrapper).text()).toContain('按空白鍵')
+      expect(prompt(wrapper).text()).not.toContain('pananadengan')
+      expect(prompt(wrapper).text()).not.toContain('有結果')
+      expect(prompt(wrapper).text()).not.toContain('Enter')
+    })
+
+    it('觸控裝置寫「點一下對方」', async () => {
+      mockTouch(true)
+      const wrapper = await mountPage()
+
+      await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
+
+      expect(prompt(wrapper).text()).toContain('點一下對方')
+      expect(prompt(wrapper).text()).not.toContain('按空白鍵')
+    })
+
+    it('離開範圍：提示消失', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
+
+      await reachSpot(null)
+
+      expect(prompt(wrapper).exists()).toBe(false)
+    })
+
+    it('按空白鍵：對話框出現，左上角是玩家的角色名，內容是「akay kong」，網頁不捲動；再按一次就關掉', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
+
+      const event = await pressSpace()
+      expect(event.defaultPrevented).toBe(true)
+      expect(dialog(wrapper).get('[data-testid="spot-dialog-speaker"]').text()).toBe('阿海')
+      expect(dialog(wrapper).text()).toContain('akay kong')
+      expect(prompt(wrapper).exists()).toBe(false)
+
+      await pressSpace()
+      expect(dialog(wrapper).exists()).toBe(false)
+      expect(prompt(wrapper).exists()).toBe(true)
+    })
+
+    it('Enter 不再開對話框', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+      await flushPromises()
+
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    it('點那位家人：打開對話框；再點一次關掉', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 2, slot: 3 })
+
+      await tapMember()
+      expect(dialog(wrapper).text()).toContain('kaka kong')
+
+      await tapMember()
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    it('點提示橫條打開對話框，點對話框關掉', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 2, slot: 3 })
+
+      await prompt(wrapper).trigger('click')
+      expect(dialog(wrapper).text()).toContain('kaka kong')
+
+      await dialog(wrapper).trigger('click')
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    it('對話框開著時離開範圍：對話框一起關掉', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 0, slot: 0 })
+      await pressSpace()
+
+      await reachSpot(null)
+
+      expect(dialog(wrapper).exists()).toBe(false)
+      expect(prompt(wrapper).exists()).toBe(false)
+    })
+
+    it('沒有提示時按空白鍵：沒有反應，也不擋瀏覽器原本的行為', async () => {
+      const wrapper = await mountPage()
+
+      const event = await pressSpace()
+
+      expect(event.defaultPrevented).toBe(false)
+      expect(dialog(wrapper).exists()).toBe(false)
+      expect(prompt(wrapper).exists()).toBe(false)
+    })
   })
 })

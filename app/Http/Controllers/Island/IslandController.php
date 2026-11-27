@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -34,7 +35,31 @@ class IslandController extends Controller
             'character' => $this->characterProps($character),
             'tribes' => config('fish_options.tribes'),
             'current_tribe' => $this->currentTribe($request, $character),
+            'spots' => $this->householdSpotsByTribe(),
         ]);
+    }
+
+    /** 3D 魚島（#201）：6 個部落 × 12 個地點（3 戶 × 4 個地點）的名稱、稱呼與問好語，打開 /island 時一次給。 */
+    private function householdSpotsByTribe(): array
+    {
+        return collect(config('fish_options.tribes'))
+            ->mapWithKeys(fn (string $tribe) => [$tribe => IslandSpot::householdProps()])
+            ->all();
+    }
+
+    /** 這個部落依「編號除以 4 的餘數」（地點）分組的魚條數（total）與有結果的條數（with_result），以餘數為鍵 */
+    private function spotCounts(string $tribe): Collection
+    {
+        $idColumn = (new Fish)->qualifyColumn('id');
+        [$hasResult, $bindings] = FishTribeResponse::islandHasResultSql($tribe, $idColumn);
+
+        return Fish::query()
+            ->selectRaw("{$idColumn} % ? as remainder", [IslandSpot::COUNT])
+            ->selectRaw('count(*) as total')
+            ->selectRaw("sum(case when {$hasResult} then 1 else 0 end) as with_result", $bindings)
+            ->groupBy('remainder')
+            ->get()
+            ->keyBy('remainder');
     }
 
     /**
@@ -62,15 +87,7 @@ class IslandController extends Controller
         $character = $this->characterOf($request);
         $this->rememberLocation($request, $character, $tribe);
 
-        $idColumn = (new Fish)->qualifyColumn('id');
-        [$hasResult, $bindings] = FishTribeResponse::islandHasResultSql($tribe, $idColumn);
-        $counts = Fish::query()
-            ->selectRaw("{$idColumn} % ? as remainder", [IslandSpot::COUNT])
-            ->selectRaw('count(*) as total')
-            ->selectRaw("sum(case when {$hasResult} then 1 else 0 end) as with_result", $bindings)
-            ->groupBy('remainder')
-            ->get()
-            ->keyBy('remainder');
+        $counts = $this->spotCounts($tribe);
         $spots = array_map(fn (array $spot) => [
             ...IslandSpot::props($spot),
             'with_result' => (int) ($counts[$spot['remainder']]->with_result ?? 0),

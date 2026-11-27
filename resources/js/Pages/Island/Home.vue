@@ -7,7 +7,22 @@
       <p class="rounded-island bg-white px-3 py-1.5 text-elder-aux">{{ character.name }}</p>
     </template>
 
-    <IslandWorld :tribe="currentTribe" @tribe-change="enterTribe" />
+    <div class="relative">
+      <IslandWorld
+        :tribe="currentTribe"
+        :spots="spots"
+        @tribe-change="enterTribe"
+        @spot-change="reachSpot"
+        @member-tap="toggleDialog"
+      />
+      <IslandSpotPrompt
+        :spot="currentSpot"
+        :open="dialogOpen"
+        :speaker="character.name"
+        :touch="isTouch"
+        @activate="toggleDialog"
+      />
+    </div>
     <p class="mt-2 px-1 text-elder-aux text-island-muted">
       用方向鍵走路，或點地面走過去；拖曳畫面轉鏡頭，滾輪或雙指拉遠拉近
     </p>
@@ -34,16 +49,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import IslandWorld from '@/Components/Island/IslandWorld.vue'
+import IslandSpotPrompt from '@/Components/Island/IslandSpotPrompt.vue'
 import { islandTribeLabel } from '@/constants/island'
 
 const props = defineProps({
   character: { type: Object, required: true },
   tribes: { type: Array, required: true },
   current_tribe: { type: String, required: true },
+  // 每個部落 12 個地點（3 戶 × 4 件）的名稱、稱呼、問好語（#201）
+  spots: { type: Object, required: true },
 })
 
 const LOCATION_URL = '/island/location'
@@ -75,6 +93,39 @@ async function rememberLocation(tribe) {
     rememberLocation(next)
   }
 }
+
+// ── 走近的提示與問好（#201）──
+// 每戶 4 件，spots 依戶、再依件排：第 hex 格那一戶的第 slot 件是第 hex × 4 + slot 筆
+const SPOTS_PER_HOUSEHOLD = 4
+const reachedSpot = ref(null)
+const dialogOpen = ref(false)
+const currentSpot = computed(() => {
+  const spot = reachedSpot.value
+  return spot && props.spots[spot.tribe][spot.hex * SPOTS_PER_HOUSEHOLD + spot.slot]
+})
+const isTouch = window.matchMedia?.('(pointer: coarse)').matches ?? false
+
+function reachSpot(spot) {
+  reachedSpot.value = spot
+  dialogOpen.value = false
+}
+
+function toggleDialog() {
+  if (currentSpot.value) {
+    dialogOpen.value = !dialogOpen.value
+  }
+}
+
+// 電腦按空白鍵開關對話框（規格修訂 2）；有提示時不讓空白鍵捲動網頁，沒有提示時照瀏覽器原本的行為
+function onKeydown(event) {
+  if (event.key === ' ' && currentSpot.value) {
+    event.preventDefault()
+    toggleDialog()
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 function enterTribe(tribe) {
   currentTribe.value = tribe

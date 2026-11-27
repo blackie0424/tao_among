@@ -13,6 +13,8 @@ const EDGE_TOLERANCE = 1e-9
 const SPAN_TOLERANCE = EDGE_TOLERANCE / 2
 // 直線和邊幾乎平行時不算交點
 const PARALLEL_LIMIT = 1e-12
+// 擋路的東西往內縮這麼多才算擋住：剛好在邊上的點可以站，也可以沿著邊、往外走（#201）
+const OBSTACLE_SHRINK = -EDGE_TOLERANCE
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z)
 const copy = (point) => ({ x: point.x, z: point.z })
@@ -21,8 +23,11 @@ const pointAt = (from, to, t) => ({
   z: from.z + (to.z - from.z) * t,
 })
 
-/** 直線 from–to 和凸多邊形重疊的那一段；沒有重疊是 null。vertices 的順序和 hexVertices 相同 */
-function spanInPolygon(from, to, vertices) {
+/**
+ * 直線 from–to 和凸多邊形重疊的那一段；沒有重疊是 null。vertices 的順序和 hexVertices 相同。
+ * tolerance 是邊往外放寬多少（負的是往內縮）
+ */
+function spanInPolygon(from, to, vertices, tolerance = SPAN_TOLERANCE) {
   let start = 0
   let end = 1
   for (let i = 0; i < vertices.length; i++) {
@@ -34,12 +39,12 @@ function spanInPolygon(from, to, vertices) {
     const side = edgeX * (from.z - a.z) - edgeZ * (from.x - a.x)
     const slope = edgeX * (to.z - from.z) - edgeZ * (to.x - from.x)
     if (Math.abs(slope) < PARALLEL_LIMIT) {
-      if (side < -SPAN_TOLERANCE) {
+      if (side < -tolerance) {
         return null
       }
       continue
     }
-    const crossing = (-SPAN_TOLERANCE - side) / slope
+    const crossing = (-tolerance - side) / slope
     if (slope > 0) {
       start = Math.max(start, crossing)
     } else {
@@ -127,6 +132,31 @@ function nearestEdgePoint(point, { hexRadius, roadHalfWidth, tribes }, roads) {
   )
 }
 
+/** 點是否在凸多邊形的裡面（不含邊上） */
+function isInsideObstacle(point, vertices) {
+  return vertices.every((a, i) => {
+    const b = vertices[(i + 1) % vertices.length]
+    return (b.x - a.x) * (point.z - a.z) - (b.z - a.z) * (point.x - a.x) > -OBSTACLE_SHRINK
+  })
+}
+
+/** 擋路的東西裡的點推到它最近的邊上 */
+function pushOutOfObstacle(point, vertices) {
+  return vertices
+    .map((a, i) => closestOnSegment(point, a, vertices[(i + 1) % vertices.length]))
+    .reduce((best, candidate) =>
+      distance(candidate, point) < distance(best, point) ? candidate : best
+    )
+}
+
+/** 直線從起點往終點走，最早在哪裡（0～1）撞到擋路的東西；不會撞到是 1。只擦過邊、長度是 0 的不算 */
+function firstBlock(from, to, obstacles, slack) {
+  return obstacles
+    .map((vertices) => spanInPolygon(from, to, vertices, OBSTACLE_SHRINK))
+    .filter((span) => span !== null && span[1] - span[0] > slack)
+    .reduce((first, [start]) => Math.min(first, start), 1)
+}
+
 /** 直線 from–to 和每個格子、每段公路重疊的那一段（沒有重疊的不列） */
 function walkableSpans(from, to, hexes, roads, roadHalfWidth) {
   return [
@@ -135,15 +165,32 @@ function walkableSpans(from, to, hexes, roads, roadHalfWidth) {
   ].filter(Boolean)
 }
 
+/** 回傳 tribeAt(point)：這一點在哪個部落格子裡（代碼）；不在任何格子裡是 null */
+function tribeLocator(tribes, hexRadius) {
+  return (point) =>
+    tribes.find((tribe) =>
+      tribeHexes(tribe).some((center) => isInsideHex(point, hexRadius, center))
+    )?.code ?? null
+}
+
+/** 點是否在任何一段公路上（中線加路寬） */
+function isOnAnyRoad(point, roads, roadHalfWidth) {
+  return roads.some(
+    ({ from, to }) =>
+      distance(point, closestOnSegment(point, from, to)) <= roadHalfWidth + EDGE_TOLERANCE
+  )
+}
+
 /**
- * 回傳這張地圖的可走範圍判斷：
+ * 回傳這張地圖的可走範圍判斷。obstacles 是擋路的東西（凸多邊形的頂點，順序和 hexVertices 相同；#201 的家屋四件），
+ * 裡面不能走、邊上可以：
  * - isWalkable(point) 這一點能不能走
  * - clampToWalkable(point) 可走的點原樣回傳；不可走的點拉回最近的可走位置
  * - tribeAt(point) 這一點在哪個部落格子裡（代碼）；不在任何格子裡是 null
  * - isStraightWalkable(from, to) 兩點之間的直線是否整段可走
  * - reachToward(from, to) 從 from 往 to 直走，最遠走得到的那一點（整段可走就是 to）
  */
-export function createWalkable(map) {
+export function createWalkable(map, obstacles = []) {
   const { hexRadius, roadHalfWidth, tribes } = map
   const hexes = tribes.flatMap(tribeHexes).map((center) => hexVertices(hexRadius, center))
   const roads = roadSegments(map).map((segment) => ({
@@ -151,21 +198,21 @@ export function createWalkable(map) {
     corners: roadCorners(segment, roadHalfWidth),
   }))
 
-  const tribeAt = (point) =>
-    tribes.find((tribe) =>
-      tribeHexes(tribe).some((center) => isInsideHex(point, hexRadius, center))
-    )?.code ?? null
+  const tribeAt = tribeLocator(tribes, hexRadius)
+  const isOnRoad = (point) => isOnAnyRoad(point, roads, roadHalfWidth)
+  const blockingAt = (point) => obstacles.find((vertices) => isInsideObstacle(point, vertices))
 
-  const isOnRoad = (point) =>
-    roads.some(
-      ({ from, to }) =>
-        distance(point, closestOnSegment(point, from, to)) <= roadHalfWidth + EDGE_TOLERANCE
-    )
+  const isWalkable = (point) =>
+    (tribeAt(point) !== null || isOnRoad(point)) && blockingAt(point) === undefined
 
-  const isWalkable = (point) => tribeAt(point) !== null || isOnRoad(point)
-
-  const clampToWalkable = (point) =>
-    isWalkable(point) ? copy(point) : nearestEdgePoint(point, map, roads)
+  const clampToWalkable = (point) => {
+    if (isWalkable(point)) {
+      return copy(point)
+    }
+    const obstacle = blockingAt(point)
+    const pushed = obstacle && pushOutOfObstacle(point, obstacle)
+    return pushed && isWalkable(pushed) ? pushed : nearestEdgePoint(point, map, roads)
+  }
 
   /** 從 from 往 to 直走最遠能到直線的哪裡（0～1）；from 不可走是 null */
   const reachFraction = (from, to) => {
@@ -173,8 +220,9 @@ export function createWalkable(map) {
     if (length === 0) {
       return isWalkable(from) ? 1 : null
     }
-    const spans = walkableSpans(from, to, hexes, roads, roadHalfWidth)
-    return reachAlong(spans, SPAN_TOLERANCE / length)
+    const slack = SPAN_TOLERANCE / length
+    const reach = reachAlong(walkableSpans(from, to, hexes, roads, roadHalfWidth), slack)
+    return reach === null ? null : Math.min(reach, firstBlock(from, to, obstacles, slack))
   }
 
   const isStraightWalkable = (from, to) => (reachFraction(from, to) ?? 0) >= 1

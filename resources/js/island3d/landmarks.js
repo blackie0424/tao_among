@@ -1,6 +1,8 @@
 // 魚島 3D：部落的地標（#207、#212）——清單、佔地的判斷、程式拼的造型、招牌什麼時候顯示。
 // 全部是裝飾，放在可走範圍外（公路邊、格子外），走不進去。不依賴 three.js。
 import { closestOnSegment } from './hexBounds'
+import { HOUSEHOLD_SHAPES } from './householdShapes'
+import { part, scaledTo } from './shapeKit'
 
 // ── 佔地：以位置為中心、依朝向旋轉的長方形 ──
 
@@ -170,30 +172,12 @@ const RED = '#d9363e'
 const WHITE = '#ffffff'
 const PLASTIC_BLUE = '#2f6fd0'
 
-/** 一個零件（公尺） */
-const part = (shape, size, at, base, color, extra = {}) => ({
-  shape,
-  size,
-  at,
-  base,
-  color,
-  ...(shape === 'cylinder' ? { axis: 'y' } : {}),
-  ...extra,
-})
 const glass = (size, at, base) =>
   part('box', size, at, base, GLASS.color, { opacity: GLASS.opacity })
 const wheel = (axis, diameter, thickness, at) => {
   const size = axis === 'x' ? [thickness, diameter, diameter] : [diameter, diameter, thickness]
   return part('cylinder', size, at, 0, WHEEL_COLOR, { axis })
 }
-
-/** 把公尺寫的零件換算成設計佔地 width × depth 的比例 */
-const scaledTo = (width, depth, parts) =>
-  parts.map(({ size, at, ...rest }) => ({
-    ...rest,
-    size: [size[0] / width, size[1], size[2] / depth],
-    at: [at[0] / width, at[1] / depth],
-  }))
 
 /** 塑膠椅：椅面加四隻腳 */
 const STOOL_SEAT_HEIGHT = 0.42
@@ -434,6 +418,7 @@ const SHAPES = {
   airport: scaledTo(20, 8, AIRPORT),
   court: scaledTo(12, 7, COURT),
   stall: scaledTo(6, 3, STALL),
+  ...HOUSEHOLD_SHAPES,
 }
 
 /**
@@ -474,7 +459,7 @@ export function signHeight({ kind, width, depth }) {
   return signHeightAbove(shapeParts(kind, width, depth))
 }
 
-// 鏡頭拉遠超過這個程度（zoom：0 最近、1 最遠）招牌就隱藏，只留部落標示
+// 鏡頭拉遠超過這個程度（zoom：0 最近、1 最遠）招牌就隱藏
 const SIGN_HIDE_ZOOM = 0.5
 
 export function signsVisible(zoom) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
-import { unitGeometry } from '@/island3d/landmarkMeshes'
+import { buildHouseholds, unitGeometry } from '@/island3d/landmarkMeshes'
+import { HOUSEHOLD_KINDS, HOUSEHOLD_KIND_ORDER, HOUSEHOLDS } from '@/island3d/households'
 
 // 零件的形狀（和 landmarks.spec.js 的 PART_SHAPES 一樣）
 const SHAPES = [
@@ -71,5 +72,48 @@ describe('island3d/landmarkMeshes 零件形狀的原型（#211 驗收條件 7）
 
   it('不認得的形狀當成盒子', () => {
     expect(unitGeometry('no-such-shape').type).toBe('BoxGeometry')
+  })
+})
+
+describe('island3d/landmarkMeshes 家屋四件（#201 驗收條件 1）', () => {
+  const group = buildHouseholds()
+  const meshOf = (kind) => group.children.find((child) => child.name === `household-${kind}`)
+
+  it('每一種東西合成一個 InstancedMesh，18 戶各一份', () => {
+    HOUSEHOLD_KIND_ORDER.forEach((kind) => {
+      const mesh = meshOf(kind)
+
+      expect(mesh).toBeInstanceOf(THREE.InstancedMesh)
+      expect(mesh.count).toBe(HOUSEHOLDS.length)
+      expect(mesh.geometry.getAttribute('color')).toBeDefined()
+    })
+  })
+
+  it('原型的大小在佔地裡、站在地上；第 i 份放在第 i 戶那一件的位置與朝向', () => {
+    const matrix = new THREE.Matrix4()
+    const position = new THREE.Vector3()
+    const rotation = new THREE.Quaternion()
+    const scale = new THREE.Vector3()
+    HOUSEHOLD_KIND_ORDER.forEach((kind, k) => {
+      const mesh = meshOf(kind)
+      const { width, depth } = HOUSEHOLD_KINDS[kind]
+      const { min, max } = boundsOf(mesh.geometry)
+
+      expect(Math.max(-min.x, max.x)).toBeLessThanOrEqual(width / 2 + EPSILON)
+      expect(Math.max(-min.z, max.z)).toBeLessThanOrEqual(depth / 2 + EPSILON)
+      expect(min.y).toBeGreaterThanOrEqual(-EPSILON)
+      HOUSEHOLDS.forEach((household, i) => {
+        const item = household.items[k]
+        mesh.getMatrixAt(i, matrix)
+        matrix.decompose(position, rotation, scale)
+        // 矩陣是 32 位元浮點數，比到小數第 4 位
+        const turned = new THREE.Euler().setFromQuaternion(rotation, 'YXZ')
+
+        expect(position.x).toBeCloseTo(item.x, 4)
+        expect(position.z).toBeCloseTo(item.z, 4)
+        expect(Math.cos(turned.y)).toBeCloseTo(Math.cos(item.heading), 4)
+        expect(Math.sin(turned.y)).toBeCloseTo(Math.sin(item.heading), 4)
+      })
+    })
   })
 })
