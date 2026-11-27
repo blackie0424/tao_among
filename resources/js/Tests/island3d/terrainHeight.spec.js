@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { hexVertices } from '@/island3d/hexBounds'
 import { ISLAND_DECOR, ISLAND_MAP, roadSegments, tribeHexes } from '@/island3d/islandMap'
 import { LANDMARKS, footprintCorners } from '@/island3d/landmarks'
-import { TERRAIN_RAW } from '@/island3d/terrainData'
+import { RIVERS, TERRAIN_RAW } from '@/island3d/terrainData'
 import {
   COAST_WIDTH,
   FLAT_MARGIN,
@@ -12,6 +12,10 @@ import {
   heightAt,
   heightField,
   islandHeightField,
+  rawMetersAt,
+  riverLines,
+  riverRuns,
+  terrainColor,
 } from '@/island3d/terrainHeight'
 
 // 1 公尺換成世界單位（1 公里＝33.75 單位），再乘上誇大倍數 1.5
@@ -293,5 +297,129 @@ describe('island3d/terrainHeight 整座島的實際地形（#223 驗收條件 1�
     const zones = flatZones()
     expect(zones.filter((zone) => zone.polygon)).toHaveLength(18 + 14 + LANDMARKS.length)
     expect(zones.filter((zone) => zone.segment)).toHaveLength(roadSegments(ISLAND_MAP).length)
+  })
+})
+
+describe('island3d/terrainHeight 顏色（#223 驗收條件 3）', () => {
+  // 亮度用 RGB 加總比較（顏色是 #rrggbb）
+  const brightness = (hex) =>
+    [1, 3, 5].reduce((sum, i) => sum + parseInt(hex.slice(i, i + 2), 16), 0)
+
+  it('高度 0 是陸地的綠 #5fae73，最高處（535 公尺換算＝約 27.08）是深綠 #1f5e33，更高也是深綠', () => {
+    expect(terrainColor(0)).toBe('#5fae73')
+    expect(terrainColor(535 * UNITS_PER_METER)).toBe('#1f5e33')
+    expect(terrainColor(40)).toBe('#1f5e33')
+  })
+
+  it('越高越深、同高同色', () => {
+    expect(brightness(terrainColor(20))).toBeLessThan(brightness(terrainColor(10)))
+    expect(brightness(terrainColor(10))).toBeLessThan(brightness(terrainColor(5)))
+    expect(terrainColor(12.3)).toBe(terrainColor(12.3))
+  })
+
+  it('中間照高度等比例漸層：一半高度是兩色的中間（四捨五入）', () => {
+    // (0x5f + 0x1f) / 2 = 0x3f、(0xae + 0x5e) / 2 = 0x86、(0x73 + 0x33) / 2 = 0x53
+    expect(terrainColor((535 * UNITS_PER_METER) / 2)).toBe('#3f8653')
+  })
+})
+
+describe('island3d/terrainHeight 溪流（#223 驗收條件 4）', () => {
+  const NAMES = [
+    '日托那溪',
+    '朗島東溪',
+    '朗島西溪',
+    '東清北溪',
+    '東清溪',
+    '椰油南溪',
+    '椰油溪',
+    '漁人溪',
+    '紅頭溪',
+    '野銀溪',
+    '龍門溪',
+  ]
+  const lines = riverLines()
+
+  it('11 條有名字的溪，名字齊全', () => {
+    expect(lines.map((line) => line.name).sort()).toEqual([...NAMES].sort())
+  })
+
+  it('14 段接成 11 條：同名的段頭尾相接，接成一條連續的折線（相鄰兩點不超過 8）', () => {
+    expect(RIVERS).toHaveLength(14)
+    lines.forEach((line) => {
+      const segments = RIVERS.filter((river) => river.name === line.name)
+      const pointCount = segments.reduce((sum, river) => sum + river.points.length, 0)
+      expect(line.points).toHaveLength(pointCount - (segments.length - 1))
+      line.points.slice(1).forEach((point, i) => {
+        expect(
+          Math.hypot(point.x - line.points[i].x, point.z - line.points[i].z)
+        ).toBeLessThanOrEqual(8)
+      })
+    })
+  })
+
+  it('由上游往下游：上游端的原始高度高於下游端，下游端 ≤ 20 公尺（靠海）', () => {
+    lines.forEach((line) => {
+      const upstream = rawMetersAt(line.points[0])
+      const downstream = rawMetersAt(line.points[line.points.length - 1])
+      expect({ name: line.name, flowsDown: upstream > downstream }).toEqual({
+        name: line.name,
+        flowsDown: true,
+      })
+      expect(downstream).toBeLessThanOrEqual(20)
+    })
+  })
+
+  // 手建：一條由西往東的直溪 (-30, 0) → (30, 0)，每 5 單位一點（資料裡相鄰兩點不超過 8）；高度表全平
+  const flat = heightField(rawGrid({ meterAt: () => 0 }), { zones: [], inland: BIG_LAND })
+  const straight = Array.from({ length: 13 }, (_, i) => ({ x: -30 + i * 5, z: 0 }))
+  // 原點一個邊長 6 的正方形（像格子或佔地）
+  const square = [
+    { x: -3, z: -3 },
+    { x: 3, z: -3 },
+    { x: 3, z: 3 },
+    { x: -3, z: 3 },
+  ]
+
+  it('每 0.8 單位補一點，高度是那一點的地形高度', () => {
+    const [run] = riverRuns(straight, { field: flat, cut: [], coast: BIG_LAND })
+    // 每段 5 單位切成 7 小段（5 / 0.8 進位），12 段 → 85 點
+    expect(run.length).toBe(85)
+    run.slice(1).forEach((point, i) => {
+      expect(Math.hypot(point.x - run[i].x, point.z - run[i].z)).toBeLessThanOrEqual(0.8 + 1e-9)
+    })
+    run.forEach((point) => expect(point.height).toBe(0))
+  })
+
+  it('穿過格子或佔地：往外 1 單位（加上半寬 0.8）內那段不畫，進出的兩端照樣畫', () => {
+    const runs = riverRuns(straight, { field: flat, cut: [square], coast: BIG_LAND })
+    expect(runs).toHaveLength(2)
+    runs.flat().forEach((point) => {
+      expect(Math.abs(point.x) - 3).toBeGreaterThan(1 + 0.8)
+    })
+    expect(runs[0][0]).toMatchObject({ x: -30, z: 0 })
+    expect(runs[1][runs[1].length - 1]).toMatchObject({ x: 30, z: 0 })
+  })
+
+  it('海岸線外不畫', () => {
+    const coast = [
+      { x: -100, z: -100 },
+      { x: 10, z: -100 },
+      { x: 10, z: 100 },
+      { x: -100, z: 100 },
+    ]
+    const runs = riverRuns(straight, { field: flat, cut: [], coast })
+    expect(runs).toHaveLength(1)
+    runs[0].forEach((point) => expect(point.x).toBeLessThan(10))
+  })
+
+  it('相鄰兩點超過 8 單位（資料跳點）那段不畫', () => {
+    const jump = [
+      { x: -30, z: 0 },
+      { x: -25, z: 0 },
+      { x: 25, z: 0 },
+      { x: 30, z: 0 },
+    ]
+    const runs = riverRuns(jump, { field: flat, cut: [], coast: BIG_LAND })
+    expect(runs).toHaveLength(2)
   })
 })

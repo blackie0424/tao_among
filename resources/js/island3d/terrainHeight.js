@@ -1,11 +1,11 @@
 // 魚島 3D：島中間的地形（#223）——由實際地形的原始高度，收出部落格子、公路、水田、特色建築周圍的平地，
-// 再提供「某點有多高」。繪圖、點擊判定都讀這一份。不依賴 three.js。
+// 再提供「某點有多高」、地形的顏色、溪流的路線。繪圖、點擊判定都讀這一份。不依賴 three.js。
 // 高度表每格固定沿 (行, 列) → (行＋1, 列＋1) 的對角線切成兩個三角形；「某點有多高」用那個點所在三角形的
 // 三個頂點內插，跟畫出來的網格是同一組三角形，所以查到的高度就是畫出來的表面。
 import { closestOnSegment, hexVertices } from './hexBounds'
 import { ISLAND_DECOR, ISLAND_MAP, ISLAND_SCALE, roadSegments, tribeHexes } from './islandMap'
 import { LANDMARKS, footprintCorners, footprintGapToPoint, isInPolygon } from './landmarks'
-import { TERRAIN_RAW } from './terrainData'
+import { RIVERS, TERRAIN_RAW } from './terrainData'
 
 // 高度照實際換算再誇大這麼多倍，手機上才看得出起伏
 export const TERRAIN_EXAGGERATION = 1.5
@@ -123,4 +123,136 @@ let islandField = null
 export function islandHeightField() {
   islandField ??= heightField(TERRAIN_RAW, { zones: flatZones(), inland: ISLAND_DECOR.inland })
   return islandField
+}
+
+// ── 顏色：越高越深 ──
+
+// 高度 0 是陸地的綠（terrain.js 的 COLORS.land），最高處是深綠
+const TERRAIN_COLORS = { low: [0x5f, 0xae, 0x73], high: [0x1f, 0x5e, 0x33] }
+// 最高處：島上最高的原始高度（紅頭山一帶約 535 公尺）換算的高度
+const TOP_METERS = 535
+const TERRAIN_TOP = TOP_METERS * UNITS_PER_METER
+
+/** 地形在這個高度的顏色（#rrggbb）：照高度在兩色之間等比例漸層，最高處以上都是深綠 */
+export function terrainColor(height) {
+  const t = Math.min(1, Math.max(0, height / TERRAIN_TOP))
+  return TERRAIN_COLORS.low
+    .map((low, i) => Math.round(low + (TERRAIN_COLORS.high[i] - low) * t))
+    .reduce((hex, channel) => hex + channel.toString(16).padStart(2, '0'), '#')
+}
+
+// ── 溪流 ──
+
+// 溪的折線每這麼長補一點，高度跟著地形，溪才平順
+const RIVER_STEP = 0.8
+// 溪的半寬（寬 1.6）
+export const RIVER_HALF_WIDTH = 0.8
+// 中線離格子、水田、特色建築這麼近就不畫（往外 1 單位，再加半寬，溪的兩邊也不會碰到）
+const RIVER_CLEARANCE = 1 + RIVER_HALF_WIDTH
+// 相鄰兩點超過這麼遠是資料跳點，那段不畫
+const RIVER_MAX_GAP = 8
+
+/** 原始高度表在這一點的公尺數（取最近的網格點）；表外是 0 */
+export function rawMetersAt({ x, z }, raw = TERRAIN_RAW) {
+  const col = Math.round((x - raw.x0) / raw.step)
+  const row = Math.round((z - raw.z0) / raw.step)
+  if (col < 0 || row < 0 || col >= raw.cols || row >= raw.rows) {
+    return 0
+  }
+  return raw.meters[row * raw.cols + col]
+}
+
+const samePoint = (a, b) => a.x === b.x && a.z === b.z
+const toPoints = (points) => points.map(([x, z]) => ({ x, z }))
+
+/** 同名的段頭尾相接成一條：每次找一段的頭或尾跟目前這條的頭或尾是同一點，接上去 */
+function joinSegments(segments) {
+  const rest = segments.map(toPoints)
+  let line = rest.shift()
+  while (rest.length) {
+    const i = rest.findIndex((segment) =>
+      [segment[0], segment[segment.length - 1]].some(
+        (end) => samePoint(end, line[0]) || samePoint(end, line[line.length - 1])
+      )
+    )
+    const [segment] = rest.splice(i, 1)
+    const forward =
+      samePoint(segment[0], line[line.length - 1]) ||
+      samePoint(segment[segment.length - 1], line[0])
+    const piece = forward ? segment : [...segment].reverse()
+    line = samePoint(piece[0], line[line.length - 1])
+      ? [...line, ...piece.slice(1)]
+      : [...piece.slice(0, -1), ...line]
+  }
+  return line
+}
+
+/** 11 條溪：[{ name, points 由上游到下游 }]；同名的段接成一條，原始高度高的那一端當上游 */
+export function riverLines(rivers = RIVERS) {
+  const names = [...new Set(rivers.map((river) => river.name))]
+  return names.map((name) => {
+    const line = joinSegments(
+      rivers.filter((river) => river.name === name).map((river) => river.points)
+    )
+    const downhill = rawMetersAt(line[0]) >= rawMetersAt(line[line.length - 1])
+    return { name, points: downhill ? line : [...line].reverse() }
+  })
+}
+
+/** 折線每 RIVER_STEP 補一點；相鄰兩點超過 RIVER_MAX_GAP 的地方插一個 null（斷開） */
+function densify(points) {
+  const dense = [points[0]]
+  points.slice(1).forEach((to, i) => {
+    const from = points[i]
+    const length = distance(from, to)
+    if (length > RIVER_MAX_GAP) {
+      dense.push(null, to)
+      return
+    }
+    const pieces = Math.max(1, Math.ceil(length / RIVER_STEP))
+    for (let k = 1; k <= pieces; k += 1) {
+      dense.push({
+        x: from.x + ((to.x - from.x) * k) / pieces,
+        z: from.z + ((to.z - from.z) * k) / pieces,
+      })
+    }
+  })
+  return dense
+}
+
+/**
+ * 一條溪要畫的幾段：[[{ x, z, height 那一點的地形高度 }]]。
+ * 中線離 cut 裡任一圈頂點（格子、水田、特色建築）不到 RIVER_CLEARANCE、在 coast 外、或資料跳點的地方斷開。
+ */
+export function riverRuns(points, { field, cut, coast }) {
+  const keep = (point) =>
+    point !== null &&
+    isInPolygon(point, coast) &&
+    cut.every((polygon) => footprintGapToPoint(polygon, point) > RIVER_CLEARANCE)
+  const runs = []
+  let run = []
+  densify(points).forEach((point) => {
+    if (keep(point)) {
+      run.push({ ...point, height: heightAt(field, point) })
+      return
+    }
+    if (run.length > 1) {
+      runs.push(run)
+    }
+    run = []
+  })
+  if (run.length > 1) {
+    runs.push(run)
+  }
+  return runs
+}
+
+/** 整座島要畫的溪：11 條溪各自的幾段，避開 18 格、14 處水田、6 個特色建築，海岸線外不畫 */
+export function islandRiverRuns(field = islandHeightField()) {
+  const cut = flatZones()
+    .filter((zone) => zone.polygon)
+    .map((zone) => zone.polygon)
+  return riverLines().flatMap((line) =>
+    riverRuns(line.points, { field, cut, coast: ISLAND_DECOR.coast })
+  )
 }
