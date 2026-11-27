@@ -70,7 +70,6 @@
           <IslandFishPicker class="mt-3" :fish="fish" :heard="heard" @pick="ask" />
         </template>
         <p
-          v-if="waitsForNext"
           data-testid="next-hint"
           class="mt-2 text-right text-elder-aux font-bold text-island-accent"
         >
@@ -141,14 +140,6 @@ const askedId = ref(null)
 const askedFish = computed(() => props.fish.find((item) => item.id === askedId.value) ?? null)
 const detailOpen = ref(false)
 const whoSaidButton = ref(null)
-
-// 還有下一句的步驟（①②④；沒有魚時 ② 之後就關掉）
-const waitsForNext = computed(
-  () =>
-    step.value === STEPS.greet ||
-    step.value === STEPS.ask ||
-    (step.value === STEPS.hello && props.fish.length > 0)
-)
 
 function ask(id) {
   askedId.value = id

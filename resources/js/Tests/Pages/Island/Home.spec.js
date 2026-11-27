@@ -529,6 +529,37 @@ describe('Island/Home 地圖頁', () => {
       expect(photos(wrapper)).toHaveLength(2)
     })
 
+    it('每一步句子右下角都有提示：有魚的 ③、⑤ 與沒有魚的 ② 也有（電腦「按空白鍵」）', async () => {
+      const hint = (wrapper) => dialog(wrapper).get('[data-testid="next-hint"]').text()
+      const wrapper = await openToPhotos()
+      expect(hint(wrapper)).toBe('按空白鍵')
+
+      await pick(wrapper, 0)
+      expect(npcLine(wrapper)).toBe(SPEECH_A_IRATAY)
+      expect(hint(wrapper)).toBe('按空白鍵')
+
+      await reachSpot({ tribe: 'iratay', hex: 0, slot: 2 })
+      await pressSpace()
+      await pressSpace()
+      expect(npcLine(wrapper)).toBe('阿海，你好。這裡還沒有魚。')
+      expect(hint(wrapper)).toBe('按空白鍵')
+    })
+
+    it('觸控裝置：③、⑤ 與沒有魚的 ② 的提示寫「點一下」', async () => {
+      mockTouch(true)
+      const hint = (wrapper) => dialog(wrapper).get('[data-testid="next-hint"]').text()
+      const wrapper = await openToPhotos()
+      expect(hint(wrapper)).toBe('點一下')
+
+      await pick(wrapper, 0)
+      expect(hint(wrapper)).toBe('點一下')
+
+      await reachSpot({ tribe: 'iratay', hex: 0, slot: 2 })
+      await pressSpace()
+      await pressSpace()
+      expect(hint(wrapper)).toBe('點一下')
+    })
+
     it('觸控裝置：提示寫「點一下」，點對話框就是下一句', async () => {
       mockTouch(true)
       const wrapper = await openAt()
