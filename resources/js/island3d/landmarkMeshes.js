@@ -1,8 +1,9 @@
 // 魚島 3D：把部落的地標與招牌畫出來（#207、#212）。地標先用程式拼的造型（landmarks.js 的零件），
 // 清單裡有填模型檔的，載入成功後換上，失敗就留著程式拼的。全部是裝飾，不擋路、不擋點擊。
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { LANDMARKS, shapeParts, signHeight, signsVisible } from './landmarks'
-import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, flatMesh, labelTexture } from './terrain'
+import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, labelTexture } from './terrain'
 
 // 四角錐的底是邊長 1 的正方形：ConeGeometry 的半徑是中心到頂點
 const PYRAMID_RADIUS = Math.SQRT1_2
@@ -10,28 +11,91 @@ const PYRAMID_SIDES = 4
 // 招牌在畫面上這麼大（畫面高度的比例；比部落標示小）
 const SIGN_SCREEN_HEIGHT = 0.03
 
-// 平放的圓框的原型：外徑 1、高 1。管子的半徑是外徑的這個比例
+// 平放的圓框：管子的半徑是外徑的這個比例
 const RING_TUBE = 0.1
 const RING_TUBE_SIDES = 6
 const RING_SEGMENTS = 16
+// 圓柱、半球繞一圈分這麼多段（4 的倍數，寬與深才會剛好是 1）
+const ROUND_SEGMENTS = 12
+const DOME_RINGS = 4
+// 陽傘：一圈 8 瓣，兩組各 4 瓣交錯
+const UMBRELLA_PANELS = 8
+
+/** 把形體平移、縮放到剛好填滿邊長 1、中心在原點的方塊 */
+function fitUnitCube(geometry) {
+  geometry.computeBoundingBox()
+  const { min, max } = geometry.boundingBox
+  const size = max.clone().sub(min)
+  const center = max.clone().add(min).multiplyScalar(0.5)
+  return geometry
+    .translate(-center.x, -center.y, -center.z)
+    .scale(1 / size.x, 1 / size.y, 1 / size.z)
+}
+
+/** 陽傘的一組瓣（first 是 0 或 1：從第幾瓣開始，每隔一瓣取一瓣），尖端朝上 */
+function umbrellaPanels(first) {
+  const panelAngle = (Math.PI * 2) / UMBRELLA_PANELS
+  const panels = Array.from(
+    { length: UMBRELLA_PANELS / 2 },
+    (_, i) => new THREE.ConeGeometry(0.5, 1, 1, 1, true, (first + i * 2) * panelAngle, panelAngle)
+  )
+  return fitUnitCube(mergeGeometries(panels))
+}
 
 /** 各種形狀邊長 1 的原型；沒列到的（盒子、平面、柱子）都是長方體 */
 const UNIT_GEOMETRY = {
   roof: () => new THREE.ConeGeometry(PYRAMID_RADIUS, 1, PYRAMID_SIDES).rotateY(Math.PI / 4),
-  // TorusGeometry 立在 x–y 平面、厚度是管子的直徑：先把厚度拉成 1，再放平
+  // TorusGeometry 立在 x–y 平面：放平後拉成剛好邊長 1（管子是六角形，不拉的話厚度只有約 0.87）
   ring: () =>
-    new THREE.TorusGeometry(0.5 - RING_TUBE, RING_TUBE, RING_TUBE_SIDES, RING_SEGMENTS)
-      .scale(1, 1, 1 / (RING_TUBE * 2))
-      .rotateX(Math.PI / 2),
+    fitUnitCube(
+      new THREE.TorusGeometry(0.5 - RING_TUBE, RING_TUBE, RING_TUBE_SIDES, RING_SEGMENTS).rotateX(
+        Math.PI / 2
+      )
+    ),
+  cylinder: () => new THREE.CylinderGeometry(0.5, 0.5, 1, ROUND_SEGMENTS),
+  dome: () =>
+    fitUnitCube(
+      new THREE.SphereGeometry(0.5, ROUND_SEGMENTS, DOME_RINGS, 0, Math.PI * 2, 0, Math.PI / 2)
+    ),
+  // 三角柱：截面是三角形、屋脊沿著 x
+  gable: () => fitUnitCube(new THREE.CylinderGeometry(0.5, 0.5, 1, 3).rotateZ(Math.PI / 2)),
+  umbrella: () => umbrellaPanels(0),
+  'umbrella-alt': () => umbrellaPanels(1),
+}
+
+// 圓柱的軸從 y 轉到 x 或 z
+const TURN_AXIS = {
+  x: (geometry) => geometry.rotateZ(Math.PI / 2),
+  y: (geometry) => geometry,
+  z: (geometry) => geometry.rotateX(Math.PI / 2),
+}
+
+/** 這種形狀邊長 1、中心在原點的原型；axis 是圓柱的軸朝哪一邊（預設 y） */
+export function unitGeometry(shape, axis = 'y') {
+  const geometry = UNIT_GEOMETRY[shape]?.() ?? new THREE.BoxGeometry(1, 1, 1)
+  return TURN_AXIS[axis](geometry)
+}
+
+// 陽傘是沒有底的錐面，從下面看也要畫得出來
+const DOUBLE_SIDED = new Set(['umbrella', 'umbrella-alt'])
+
+/** 零件的材質：有 opacity 的是半透明（玻璃） */
+function partMaterial({ shape, color, opacity }) {
+  return new THREE.MeshLambertMaterial({
+    color,
+    flatShading: true,
+    side: DOUBLE_SIDED.has(shape) ? THREE.DoubleSide : THREE.FrontSide,
+    ...(opacity === undefined ? {} : { transparent: true, opacity }),
+  })
 }
 
 /** 一個零件：原型縮放成零件的寬、高、深 */
-function buildPart({ shape, width, height, depth, x, y, z, color }) {
-  const geometry = UNIT_GEOMETRY[shape]?.() ?? new THREE.BoxGeometry(1, 1, 1)
-  const part = flatMesh(geometry, color)
-  part.scale.set(width, height, depth)
-  part.position.set(x, y, z)
-  return part
+function buildPart(part) {
+  const { shape, axis, width, height, depth, x, y, z } = part
+  const mesh = new THREE.Mesh(unitGeometry(shape, axis), partMaterial(part))
+  mesh.scale.set(width, height, depth)
+  mesh.position.set(x, y, z)
+  return mesh
 }
 
 /** 程式拼的造型，中心在原點、站在 y = 0 */

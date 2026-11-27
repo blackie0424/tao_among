@@ -151,105 +151,302 @@ export const LANDMARKS = [
 ]
 
 // ── 程式拼的造型 ──
-// 零件用佔地的比例寫（0～1），所以不論佔地多大，零件都在佔地裡。
-// 形狀：box 盒子、roof 屋頂（四角錐）、plane 貼地的平面、post 柱子、ring 平放的圓框。
-// 每個零件：shape 形狀、[寬, 高, 深]（寬與深是佔地的比例、高是實際高度）、[x, z]（離佔地中心的比例）、顏色。
-// 高度和人物（1.7）合比例（#212）：平房約兩個人高。
+// 每種造型照 chung 選的樣品（#211）用公尺寫在它的設計佔地上，換算成佔地的比例（0～1），
+// 所以不論佔地多大，零件都在佔地裡。零件都不旋轉（和佔地的邊平行），寬、高、深就是它佔的範圍。
+// 形狀：box 盒子、roof 屋頂（四角錐）、plane 貼地的平面、post 柱子、ring 平放的圓框、
+// cylinder 圓柱（axis 是軸朝哪一邊：x、y、z，預設 y）、dome 半球（圓頂朝上）、
+// gable 兩面坡屋頂（屋脊沿著寬）、umbrella／umbrella-alt 陽傘的兩組瓣（交錯，配兩種顏色）。
+// 每個零件：shape、size [寬, 高, 深]、at [x, z]（離佔地中心）、base 底部離地多高、color；
+// 可以再加 axis（圓柱）、opacity（半透明，玻璃用）。
+// 高度和人物（1.7）合比例：平房最高處約人物的 2 倍。
 
-const WALL_HEIGHT = 2.4
-const ROOF_HEIGHT = 1
-const FLAT = 0.06
-const POST_WIDTH = 0.04
-// 路邊攤：柱子撐著一片棚子，棚頂比人高一點
-const STALL_POST_HEIGHT = 2
-const STALL_CANOPY_THICKNESS = 0.2
-// 籃球場：籃框離地的高度、籃板、柱子
+const FLAT = 0.05
+const LINE = 0.02
+const GLASS = { color: '#bfe8f5', opacity: 0.55 }
+const WHEEL_COLOR = '#333333'
+const WOOD = '#9a6b3f'
+const WOOD_DARK = '#6e4a2a'
+const RED = '#d9363e'
+const WHITE = '#ffffff'
+const PLASTIC_BLUE = '#2f6fd0'
+
+/** 一個零件（公尺） */
+const part = (shape, size, at, base, color, extra = {}) => ({
+  shape,
+  size,
+  at,
+  base,
+  color,
+  ...(shape === 'cylinder' ? { axis: 'y' } : {}),
+  ...extra,
+})
+const glass = (size, at, base) =>
+  part('box', size, at, base, GLASS.color, { opacity: GLASS.opacity })
+const wheel = (axis, diameter, thickness, at) => {
+  const size = axis === 'x' ? [thickness, diameter, diameter] : [diameter, diameter, thickness]
+  return part('cylinder', size, at, 0, WHEEL_COLOR, { axis })
+}
+
+/** 把公尺寫的零件換算成設計佔地 width × depth 的比例 */
+const scaledTo = (width, depth, parts) =>
+  parts.map(({ size, at, ...rest }) => ({
+    ...rest,
+    size: [size[0] / width, size[1], size[2] / depth],
+    at: [at[0] / width, at[1] / depth],
+  }))
+
+/** 塑膠椅：椅面加四隻腳 */
+const STOOL_SEAT_HEIGHT = 0.42
+const stool = ([x, z], color) => [
+  part('box', [0.4, 0.06, 0.4], [x, z], STOOL_SEAT_HEIGHT, color),
+  ...[
+    [-1, -1],
+    [1, -1],
+    [1, 1],
+    [-1, 1],
+  ].map(([sx, sz]) =>
+    part('box', [0.05, STOOL_SEAT_HEIGHT, 0.05], [x + sx * 0.16, z + sz * 0.16], 0, color)
+  ),
+]
+
+// 朗島路邊攤（6 × 3）：左邊兩輪木推車（玻璃櫃、紅白條紋棚子），右邊大陽傘、折疊桌、塑膠椅
+const CART_X = -1.5
+const CART_Z = -0.3
+const CANOPY_HEIGHT = 2.3
+const CANOPY_STRIPES = 8
+const CANOPY_WIDTH = 2.5
+const UMBRELLA_X = 1.5
+const STALL = [
+  part('box', [2.2, 0.8, 1.0], [CART_X, CART_Z], 0.35, WOOD),
+  part('box', [2.3, 0.08, 1.1], [CART_X, CART_Z], 1.15, WOOD_DARK),
+  glass([1.8, 0.55, 0.8], [CART_X, CART_Z], 1.23),
+  wheel('x', 0.7, 0.08, [CART_X - 1.15, CART_Z + 0.15]),
+  wheel('x', 0.7, 0.08, [CART_X + 1.15, CART_Z + 0.15]),
+  ...[-1, 1].flatMap((sx) =>
+    [-1, 1].map((sz) =>
+      part(
+        'post',
+        [0.06, CANOPY_HEIGHT, 0.06],
+        [CART_X + sx * 1.05, CART_Z + sz * 0.45],
+        0,
+        '#cccccc'
+      )
+    )
+  ),
+  ...Array.from({ length: CANOPY_STRIPES }, (_, i) =>
+    part(
+      'box',
+      [CANOPY_WIDTH / CANOPY_STRIPES, 0.06, 1.5],
+      [CART_X - CANOPY_WIDTH / 2 + ((i + 0.5) * CANOPY_WIDTH) / CANOPY_STRIPES, CART_Z],
+      CANOPY_HEIGHT,
+      i % 2 ? WHITE : RED
+    )
+  ),
+  // 保麗龍箱
+  part('box', [0.6, 0.4, 0.4], [-2.6, 0.9], 0, WHITE),
+  part('box', [0.6, 0.4, 0.4], [-2.6, 0.9], 0.4, WHITE),
+  // 大陽傘
+  part('cylinder', [0.08, 1.9, 0.08], [UMBRELLA_X, 0], 0, '#dddddd'),
+  part('umbrella', [2.6, 0.7, 2.6], [UMBRELLA_X, 0], 1.85, RED),
+  part('umbrella-alt', [2.6, 0.7, 2.6], [UMBRELLA_X, 0], 1.85, WHITE),
+  part('box', [0.9, 0.05, 0.9], [UMBRELLA_X, 0], 0.7, '#f2f2f2'),
+  ...stool([0.7, 0.9], RED),
+  ...stool([2.3, 0.9], RED),
+  ...stool([UMBRELLA_X, -1.0], PLASTIC_BLUE),
+]
+
+// 郵筒：底座、圓柱身、半球頂、黑色投信口
+const MAILBOX_BODY = 1.0
+const mailbox = ([x, z], color) => [
+  part('box', [0.72, 0.1, 0.72], [x, z], 0, '#555555'),
+  part('cylinder', [0.64, MAILBOX_BODY, 0.64], [x, z], 0.1, color),
+  part('dome', [0.64, 0.32, 0.64], [x, z], 0.1 + MAILBOX_BODY, color),
+  part('box', [0.3, 0.05, 0.05], [x, z + 0.32], 0.85, '#222222'),
+]
+
+// 紅頭郵局（8 × 6）：白色平房、綠色屋簷帶與雨遮、玻璃門窗，門前紅綠郵筒，旁邊旗桿
+const POST_GREEN = '#1f8a4c'
+const POST_WALL = 2.5
+const POST_OFFICE = [
+  part('box', [6.6, POST_WALL, 3.6], [0, -1.0], 0, '#f5f3ea'),
+  part('box', [7.0, 0.5, 4.0], [0, -1.0], POST_WALL, POST_GREEN),
+  part('box', [6.6, 0.15, 3.6], [0, -1.0], POST_WALL + 0.5, '#e8e5da'),
+  part('box', [3.0, 0.12, 1.2], [0, 1.4], 2.2, POST_GREEN),
+  glass([2.4, 2.0, 0.08], [0, 0.84], 0),
+  part('box', [0.08, 2.0, 0.1], [0, 0.86], 0, '#888888'),
+  glass([1.3, 1.1, 0.08], [-2.4, 0.84], 0.9),
+  glass([1.3, 1.1, 0.08], [2.4, 0.84], 0.9),
+  ...mailbox([2.2, 2.3], RED),
+  ...mailbox([3.1, 2.3], POST_GREEN),
+  part('post', [0.08, 3.7, 0.08], [-3.3, 2.3], 0, '#cccccc'),
+  part('box', [0.9, 0.55, 0.03], [-2.8, 2.3], 3.1, WHITE),
+  part('box', [0.3, 0.3, 0.04], [-2.95, 2.3], 3.32, '#1f5fbf'),
+]
+
+// 麻袋：躺著的圓柱
+const sack = (at, base) => part('cylinder', [0.6, 0.4, 0.4], at, base, '#e9dcb5', { axis: 'x' })
+const SHUTTER_SLATS = 8
+
+// 椰油農會（8 × 6）：淺黃倉庫、綠色兩面坡屋頂、鐵捲門、門前麻袋堆、載麻袋的白色小貨車
+const WAREHOUSE_WALL = 2.5
+const TRUCK_Z = 2.2
+const FARMERS = [
+  part('box', [7, WAREHOUSE_WALL, 4.0], [0, -0.9], 0, '#efe3b8'),
+  part('gable', [7.4, 1.0, 4.2], [0, -0.85], WAREHOUSE_WALL, '#3f8a3a'),
+  part('box', [2.6, 2.1, 0.08], [-1.6, 1.14], 0, '#9aa3ab'),
+  ...Array.from({ length: SHUTTER_SLATS }, (_, i) =>
+    part('box', [2.6, 0.04, 0.1], [-1.6, 1.2], 0.2 + i * 0.24, '#7d868f')
+  ),
+  glass([1.6, 1.8, 0.08], [1.9, 1.14], 0),
+  sack([0.4, 1.7], 0),
+  sack([1.0, 1.7], 0),
+  sack([1.6, 1.7], 0),
+  sack([0.7, 1.7], 0.4),
+  sack([1.3, 1.7], 0.4),
+  // 小貨車：車斗朝 +x、車頭朝 -x
+  part('box', [1.8, 0.45, 1.1], [-1.0, TRUCK_Z], 0.35, '#d9d9d9'),
+  part('box', [1.0, 1.0, 1.1], [-2.4, TRUCK_Z], 0.35, WHITE),
+  glass([0.05, 0.4, 1.0], [-2.92, TRUCK_Z], 0.85),
+  ...[-2.4, -0.5].flatMap((x) =>
+    [-1, 1].map((side) => wheel('z', 0.5, 0.08, [x, TRUCK_Z + side * 0.58]))
+  ),
+  sack([-1.3, TRUCK_Z], 0.8),
+  sack([-0.7, TRUCK_Z], 0.8),
+]
+
+// 漁人機場（20 × 8）：後面是跑道（中線、兩端斑馬線）與小飛機，前面是航站、塔台、風向袋
+const RUNWAY_Z = -2.1
+const RUNWAY_DASHES = 9
+const ZEBRA_STRIPES = 5
+const TERMINAL_BLUE = '#2f6fb0'
+const TOWER_SHAFT = 4.0
+const PLANE_X = -4
+const SOCK_SEGMENTS = 4
+const AIRPORT = [
+  part('plane', [20, FLAT, 3.6], [0, RUNWAY_Z], 0, '#55595e'),
+  ...Array.from({ length: RUNWAY_DASHES }, (_, i) =>
+    part('plane', [1.0, LINE, 0.15], [-8 + i * 2, RUNWAY_Z], FLAT, WHITE)
+  ),
+  ...[-1, 1].flatMap((end) =>
+    Array.from({ length: ZEBRA_STRIPES }, (_, k) =>
+      part('plane', [0.8, LINE, 0.25], [end * 9.3, RUNWAY_Z - 1.3 + k * 0.65], FLAT, WHITE)
+    )
+  ),
+  // 航站
+  part('box', [6, 2.6, 2.6], [3, 2.3], 0, '#eef1f4'),
+  part('box', [6.2, 0.25, 2.8], [3, 2.3], 2.6, TERMINAL_BLUE),
+  glass([4.5, 1.4, 0.08], [3, 3.64], 0.6),
+  // 塔台
+  part('box', [1.0, TOWER_SHAFT, 1.0], [-1.2, 2.4], 0, '#dfe4ea'),
+  glass([1.6, 0.9, 1.6], [-1.2, 2.4], TOWER_SHAFT),
+  part('box', [1.8, 0.15, 1.8], [-1.2, 2.4], TOWER_SHAFT + 0.9, TERMINAL_BLUE),
+  // 風向袋：柱子加一節節變細的橘白圓柱
+  part('post', [0.06, 3, 0.06], [-7, 1.2], 0, '#999999'),
+  ...Array.from({ length: SOCK_SEGMENTS }, (_, k) => {
+    const diameter = 0.36 - k * 0.06
+    return part(
+      'cylinder',
+      [0.35, diameter, diameter],
+      [-6.8 + k * 0.35, 1.2],
+      2.9 - diameter / 2,
+      k % 2 ? WHITE : '#e8590c',
+      { axis: 'x' }
+    )
+  }),
+  // 小飛機：機身、藍色腰線、機身上方的主翼、尾翼、兩具引擎與螺旋槳、輪子
+  part('cylinder', [4.4, 0.9, 0.9], [PLANE_X, RUNWAY_Z], 0.45, WHITE, { axis: 'x' }),
+  part('box', [4.0, 0.12, 0.92], [PLANE_X, RUNWAY_Z], 0.75, TERMINAL_BLUE),
+  part('box', [0.7, 0.08, 3.6], [PLANE_X + 0.2, RUNWAY_Z], 1.35, WHITE),
+  part('box', [0.4, 1.0, 0.08], [PLANE_X - 2.0, RUNWAY_Z], 0.9, TERMINAL_BLUE),
+  part('box', [0.5, 0.06, 1.6], [PLANE_X - 2.0, RUNWAY_Z], 1.85, WHITE),
+  ...[-1, 1].flatMap((side) => [
+    part('cylinder', [0.8, 0.36, 0.36], [PLANE_X + 0.4, RUNWAY_Z + side * 1.1], 1.0, '#dddddd', {
+      axis: 'x',
+    }),
+    part('box', [0.04, 0.9, 0.08], [PLANE_X + 0.85, RUNWAY_Z + side * 1.1], 0.73, WHEEL_COLOR),
+  ]),
+  ...[-1, 1].map((side) => wheel('z', 0.36, 0.08, [PLANE_X + 0.2, RUNWAY_Z + side * 0.5])),
+]
+
+/** 機車（車頭朝 +z）：兩個輪子、車身、黑色坐墊、龍頭 */
+const scooter = ([x, z], color) => [
+  wheel('x', 0.4, 0.08, [x, z - 0.45]),
+  wheel('x', 0.4, 0.08, [x, z + 0.45]),
+  part('box', [0.35, 0.35, 0.9], [x, z - 0.05], 0.25, color),
+  part('box', [0.3, 0.12, 0.55], [x, z - 0.15], 0.6, '#222222'),
+  part('box', [0.08, 0.6, 0.08], [x, z + 0.4], 0.4, '#555555'),
+  part('box', [0.6, 0.06, 0.06], [x, z + 0.4], 1.0, '#555555'),
+]
+
+// 東清超商（8 × 6）：白色方盒、由下往上綠橘紅三條色帶、落地玻璃、門口停機車
+const STORE_WALL = 3.1
+const STORE_BAND_BASE = 2.2
+const STORE_BAND_STEP = 0.25
+const STORE = [
+  part('box', [7, STORE_WALL, 3.8], [0, -1.0], 0, '#fafafa'),
+  ...['#1f8a4c', '#f08c00', RED].map((color, i) =>
+    part('box', [7.06, 0.22, 3.86], [0, -1.0], STORE_BAND_BASE + i * STORE_BAND_STEP, color)
+  ),
+  glass([6.2, 2.0, 0.08], [0, 0.94], 0.05),
+  ...[-1.6, 0, 1.6].map((x) => part('box', [0.06, 2.0, 0.1], [x, 0.96], 0.05, '#bbbbbb')),
+  part('box', [7.0, 0.12, 0.9], [0, 1.35], 2.05, '#e6e6e6'),
+  ...scooter([-2.6, 2.2], '#2f6fb0'),
+  ...scooter([-1.8, 2.2], RED),
+  ...scooter([-1.0, 2.2], WHITE),
+]
+
+// 野銀籃球場（12 × 7）：紅色外框、綠色場地、白線與中圈、兩邊禁區、兩個籃架、場邊長椅
 const RIM_HEIGHT = 3
 const RIM_THICKNESS = 0.06
-const BACKBOARD_HEIGHT = 0.9
-const HOOP_POST_HEIGHT = 3.5
-// 機場：航站與塔台
-const TERMINAL_HEIGHT = 2.6
-const TOWER_HEIGHT = 4.8
-
-/** 房子：一個方盒加屋頂 */
-const house = (wall, roof) => [
-  { shape: 'box', size: [0.9, WALL_HEIGHT, 0.8], at: [0, 0], color: wall },
-  { shape: 'roof', size: [1, ROOF_HEIGHT, 0.9], at: [0, 0], base: WALL_HEIGHT, color: roof },
-]
-
-/** 小攤：四根柱子加一片棚子，中心在佔地寬度的 at 比例處 */
-const stall = (at, canopy) => [
-  ...[-1, 1].flatMap((side) =>
-    [-1, 1].map((front) => ({
-      shape: 'post',
-      size: [POST_WIDTH, STALL_POST_HEIGHT, POST_WIDTH],
-      at: [at + side * 0.1, front * 0.3],
-      color: '#8a6a4a',
-    }))
-  ),
-  {
-    shape: 'box',
-    size: [0.28, STALL_CANOPY_THICKNESS, 0.8],
-    at: [at, 0],
-    base: STALL_POST_HEIGHT,
-    color: canopy,
-  },
-]
-
-/** 籃球架（side 是 -1 左、1 右）：柱子、籃板、朝場內伸出去的橘色框 */
+const HOOP_POST_HEIGHT = 3.4
+const COURT_LINE_LEVEL = 0.06
+/** 籃架（side 是 -1 左、1 右）：柱子、橫桿、白籃板、朝場內伸出去的橘色框 */
 const hoop = (side) => [
-  {
-    shape: 'post',
-    size: [POST_WIDTH, HOOP_POST_HEIGHT, POST_WIDTH],
-    at: [side * 0.45, 0],
-    color: '#6b7280',
-  },
-  {
-    shape: 'box',
-    size: [0.03, BACKBOARD_HEIGHT, 0.3],
-    at: [side * 0.42, 0],
-    base: RIM_HEIGHT - RIM_THICKNESS / 2,
-    color: '#ffffff',
-  },
-  {
-    shape: 'ring',
-    size: [0.1, RIM_THICKNESS, 0.16],
-    at: [side * 0.35, 0],
-    base: RIM_HEIGHT - RIM_THICKNESS / 2,
-    color: '#e8590c',
-  },
+  part('post', [0.12, HOOP_POST_HEIGHT, 0.12], [side * 5.8, 0], 0, '#6b7280'),
+  part('box', [0.6, 0.1, 0.1], [side * 5.55, 0], 3.25, '#6b7280'),
+  part('box', [0.06, 0.9, 1.5], [side * 5.25, 0], 2.5, WHITE),
+  part(
+    'ring',
+    [0.5, RIM_THICKNESS, 0.5],
+    [side * 4.95, 0],
+    RIM_HEIGHT - RIM_THICKNESS / 2,
+    '#e8590c'
+  ),
+]
+const COURT = [
+  part('plane', [12, 0.04, 7], [0, 0], 0, '#c0392b'),
+  part('plane', [11, FLAT, 6], [0, 0], 0.005, '#2f8f5f'),
+  part('plane', [11, LINE, 0.08], [0, -3], COURT_LINE_LEVEL, WHITE),
+  part('plane', [11, LINE, 0.08], [0, 3], COURT_LINE_LEVEL, WHITE),
+  ...[-5.5, 0, 5.5].map((x) => part('plane', [0.08, LINE, 6], [x, 0], COURT_LINE_LEVEL, WHITE)),
+  part('ring', [2.0, LINE, 2.0], [0, 0], COURT_LINE_LEVEL, WHITE),
+  ...[-1, 1].map((side) => part('plane', [2.4, LINE, 2.0], [side * 4.3, 0], 0.055, '#c97a3a')),
+  ...hoop(-1),
+  ...hoop(1),
+  part('box', [2.4, 0.08, 0.4], [0, 3.2], 0.45, WOOD),
+  ...[-1, 1].map((side) => part('box', [0.08, 0.45, 0.08], [side, 3.2], 0, '#555555')),
 ]
 
 const SHAPES = {
-  'post-office': house('#f3f1e7', '#3f8f5f'),
-  farmers: house('#f1ead2', '#7a9a3a'),
-  store: house('#f7f7f7', '#f0a030'),
-  airport: [
-    { shape: 'plane', size: [1, FLAT, 0.45], at: [0, -0.25], color: '#5c6166' },
-    { shape: 'plane', size: [0.9, FLAT, 0.04], at: [0, -0.25], base: FLAT, color: '#ffffff' },
-    { shape: 'box', size: [0.3, TERMINAL_HEIGHT, 0.3], at: [0.3, 0.3], color: '#e6e9ee' },
-    { shape: 'box', size: [0.08, TOWER_HEIGHT, 0.2], at: [0.1, 0.3], color: '#cfd5dd' },
-  ],
-  court: [
-    { shape: 'plane', size: [1, FLAT, 1], at: [0, 0], color: '#c9764a' },
-    { shape: 'plane', size: [0.02, FLAT, 0.9], at: [0, 0], base: FLAT, color: '#ffffff' },
-    ...hoop(-1),
-    ...hoop(1),
-  ],
-  stall: [...stall(-0.25, '#e07a3f'), ...stall(0.25, '#3f8fd0')],
+  'post-office': scaledTo(8, 6, POST_OFFICE),
+  farmers: scaledTo(8, 6, FARMERS),
+  store: scaledTo(8, 6, STORE),
+  airport: scaledTo(20, 8, AIRPORT),
+  court: scaledTo(12, 7, COURT),
+  stall: scaledTo(6, 3, STALL),
 }
 
 /**
  * kind 這種造型在寬 width、深 depth 的佔地上的零件：
- * [{ shape, width, height, depth 零件的大小, x, z 離佔地中心, y 零件中心的高度, color }]
+ * [{ shape, width, height, depth 零件的大小, x, z 離佔地中心, y 零件中心的高度, color,
+ *    axis 圓柱的軸（有才有）, opacity 半透明（有才有） }]
  */
 export function shapeParts(kind, width, depth) {
   const parts = SHAPES[kind]
   if (!parts) {
     throw new Error(`魚島 3D：沒有「${kind}」這種地標造型`)
   }
-  return parts.map(({ shape, size, at, base = 0, color }) => ({
+  return parts.map(({ shape, size, at, base = 0, color, ...extra }) => ({
     shape,
     width: size[0] * width,
     height: size[1],
@@ -258,6 +455,7 @@ export function shapeParts(kind, width, depth) {
     z: at[1] * depth,
     y: base + size[1] / 2,
     color,
+    ...extra,
   }))
 }
 
