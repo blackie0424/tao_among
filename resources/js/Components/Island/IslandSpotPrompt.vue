@@ -185,43 +185,15 @@ const lineClass = computed(() => {
 })
 
 // ── 字一個一個跑（規格修訂 3）──
-// 不支援 Intl.Segmenter 的瀏覽器：把要接在前一個字後面的碼位併回去
-// （結合符號、零寬連接符與它後面那個、變體選擇符、膚色、標籤字元；國旗是兩個區域指示符一組）
-const JOINS_PREVIOUS =
-  /^(?:\p{M}|\u200D|[\uFE00-\uFE0F]|[\u{1F3FB}-\u{1F3FF}]|[\u{E0020}-\u{E007F}])$/u
-const REGIONAL_INDICATOR = /^[\u{1F1E6}-\u{1F1FF}]$/u
-const ZERO_WIDTH_JOINER = '\u200D'
 
-function splitCharacters(text) {
-  const characters = []
-  let joinNext = false
-  let flagOpen = false
-  for (const codePoint of text) {
-    if (characters.length > 0 && (joinNext || JOINS_PREVIOUS.test(codePoint))) {
-      characters[characters.length - 1] += codePoint
-      joinNext = codePoint === ZERO_WIDTH_JOINER
-      flagOpen = false
-    } else if (flagOpen && REGIONAL_INDICATOR.test(codePoint)) {
-      characters[characters.length - 1] += codePoint
-      flagOpen = false
-    } else {
-      characters.push(codePoint)
-      joinNext = false
-      flagOpen = REGIONAL_INDICATOR.test(codePoint)
-    }
-  }
-  return characters
-}
-
-// 以完整的字切開（擴充漢字、emoji 不會只出現半個）
+// 以完整的字切開（擴充漢字、emoji、分解的韓文字不會只出現半個）；
+// 瀏覽器不支援 Intl.Segmenter 時無法確定怎樣算一個字，就不跑字、整句直接出現
 const segmenter =
   typeof Intl.Segmenter === 'function'
     ? new Intl.Segmenter('zh-Hant', { granularity: 'grapheme' })
     : null
 const lineCharacters = computed(() =>
-  segmenter
-    ? Array.from(segmenter.segment(line.value), (part) => part.segment)
-    : splitCharacters(line.value)
+  segmenter ? Array.from(segmenter.segment(line.value), (part) => part.segment) : [line.value]
 )
 const typedCount = ref(0)
 const typing = computed(() => typedCount.value < lineCharacters.value.length)
@@ -242,7 +214,7 @@ function finishTyping() {
 function startTyping() {
   stopTyping()
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-  if (!props.open || reduced) {
+  if (!props.open || reduced || !segmenter) {
     typedCount.value = lineCharacters.value.length
     return
   }
