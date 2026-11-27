@@ -15,8 +15,8 @@ export const PADDY_COLORS = {
 export const PADDY_LAYOUTS = {
   '2x2': [2, 2],
   '3x3': [3, 3],
-  '1x3': [3, 1],
-  '2x3': [3, 2],
+  '1x3': [1, 3],
+  '2x3': [2, 3],
 }
 
 // 一小塊田的大小、小塊之間的田埂、外圍留的寬

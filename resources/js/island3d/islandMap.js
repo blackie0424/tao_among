@@ -343,7 +343,7 @@ export const ISLAND_DECOR = {
     paddy([136.2, 150.9, 15], '3x3'),
     paddy([82.1, 133.4, -37], '1x3'),
     paddy([-79.3, 18.6, -62], '3x3'),
-    paddy([-126.3, -68.6, -65], '1x3'),
+    paddy([-126.3, -68.6, -125], '1x3'),
   ],
   boats: [
     { ...point([-103, 2]), heading: Math.PI / 5 },

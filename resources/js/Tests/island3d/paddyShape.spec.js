@@ -18,8 +18,8 @@ describe('island3d/paddyShape 拼法與佔地（#211 驗收條件 11，規格修
     expect(PADDY_LAYOUTS).toEqual({
       '2x2': [2, 2],
       '3x3': [3, 3],
-      '1x3': [3, 1],
-      '2x3': [3, 2],
+      '1x3': [1, 3],
+      '2x3': [2, 3],
     })
   })
 
@@ -28,8 +28,20 @@ describe('island3d/paddyShape 拼法與佔地（#211 驗收條件 11，規格修
     expect(paddySize([2, 2]).depth).toBeCloseTo(5.8 + 0.6, 9)
     expect(paddySize([3, 3]).width).toBeCloseTo(13.2 + 0.6, 9)
     expect(paddySize([3, 3]).depth).toBeCloseTo(9.0 + 0.6, 9)
-    expect(paddySize([3, 1]).depth).toBeCloseTo(2.6 + 0.6, 9)
+    // 1×3：寬 1 塊、深 3 排；2×3：寬 2 塊、深 3 排（審查：寬 × 深的塊數）
+    expect(paddySize([1, 3]).width).toBeCloseTo(4 + 0.6, 9)
+    expect(paddySize([1, 3]).depth).toBeCloseTo(9.0 + 0.6, 9)
+    expect(paddySize([2, 3]).width).toBeCloseTo(8.6 + 0.6, 9)
+    expect(paddySize([2, 3]).depth).toBeCloseTo(9.0 + 0.6, 9)
   })
+})
+
+it('每種拼法的小塊數與排數照寬 × 深：1×3 有 3 排、2×3 每排 2 塊共 3 排', () => {
+  const rowsOf = (layout) => new Set(paddyShape(layout).fields.map((field) => field.row)).size
+  const columnsOf = (layout) => new Set(paddyShape(layout).fields.map((field) => field.column)).size
+
+  expect([columnsOf(PADDY_LAYOUTS['1x3']), rowsOf(PADDY_LAYOUTS['1x3'])]).toEqual([1, 3])
+  expect([columnsOf(PADDY_LAYOUTS['2x3']), rowsOf(PADDY_LAYOUTS['2x3'])]).toEqual([2, 3])
 })
 
 describe.each(Object.entries(PADDY_LAYOUTS))(
