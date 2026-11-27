@@ -72,6 +72,30 @@ describe('island3d/terrain 水芋田合在一起畫（#211 驗收條件 13）', 
     })
   })
 
+  it('畫出來的水面高過同一層的土頂、低過上一層的土頂（#211 驗收條件 11，審查 1）', () => {
+    const heightsOf = (name) => {
+      const mesh = group.getObjectByName(name)
+      const positions = mesh.geometry.getAttribute('position')
+      const ys = new Set()
+      for (let i = 0; i < positions.count; i++) {
+        ys.add(positions.getY(i).toFixed(6))
+      }
+      return [...ys].map(Number).sort((a, b) => a - b)
+    }
+    // 土：最底下一個高度加上 3 層的土頂；水：3 層的水面（14 塊田一樣大，高度相同）
+    const [, ...soilTops] = heightsOf('paddy-soil')
+    const waters = heightsOf('paddy-water')
+
+    expect(soilTops).toHaveLength(3)
+    expect(waters).toHaveLength(3)
+    waters.forEach((water, i) => {
+      expect(water).toBeGreaterThan(soilTops[i])
+      if (i + 1 < soilTops.length) {
+        expect(water).toBeLessThan(soilTops[i + 1])
+      }
+    })
+  })
+
   it('沒有水田時不出錯，實例數是 0', () => {
     const empty = instancedByName(buildPaddies([]))
     Object.values(empty).forEach((mesh) => expect(mesh.count).toBe(0))

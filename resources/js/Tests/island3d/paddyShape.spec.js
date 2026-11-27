@@ -35,7 +35,7 @@ describe('island3d/paddyShape 梯田（#211 驗收條件 11）', () => {
     })
   })
 
-  it('每層有水面，水面在那一層裡、比那一層的土高', () => {
+  it('每層有水面，水面在那一層裡、比那一層的土頂高', () => {
     shape.terraces.forEach((terrace) => {
       const { water } = terrace
       expect(water.width).toBeGreaterThan(0)
@@ -46,7 +46,8 @@ describe('island3d/paddyShape 梯田（#211 驗收條件 11）', () => {
       expect(inside({ x: water.x + water.width / 2, z: water.z + water.depth / 2 }, terrace)).toBe(
         true
       )
-      expect(water.level).toBeGreaterThan(terrace.level)
+      expect(water.level).toBeGreaterThan(terrace.soilTop)
+      expect(terrace.soilTop).toBeGreaterThan(terrace.level)
     })
   })
 

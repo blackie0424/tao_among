@@ -20,8 +20,6 @@ const LAND_THICKNESS = 0.6
 export const INLAND_LEVEL = LAND_LEVEL + 0.02
 // 水田再高一點點，才不會和陸地疊在同一層
 const PADDY_LEVEL = INLAND_LEVEL + 0.03
-// 水芋田最低一層的土有這麼厚（往後每層再加上梯田的高度差）
-const PADDY_SOIL_THICKNESS = 0.04
 // 一株芋頭：4 片心形葉子斜插在短莖上（樣品的比例，大小再乘上每株的 scale）
 const TARO_LEAVES = 4
 const LEAF_OFFSET = 0.18
@@ -180,12 +178,9 @@ function taroMatrices(paddy, plant) {
 function paddyPieces(paddy) {
   const matrix = paddyMatrix(paddy)
   const { terraces, stones, taro } = paddyShape(paddy.width, paddy.depth)
-  const soil = terraces.map(({ z, width, depth, level }) => {
-    const height = level + PADDY_SOIL_THICKNESS
-    return new THREE.BoxGeometry(width, height, depth)
-      .translate(0, height / 2, z)
-      .applyMatrix4(matrix)
-  })
+  const soil = terraces.map(({ z, width, depth, soilTop }) =>
+    new THREE.BoxGeometry(width, soilTop, depth).translate(0, soilTop / 2, z).applyMatrix4(matrix)
+  )
   const water = terraces.map(({ water: surface }) =>
     new THREE.PlaneGeometry(surface.width, surface.depth)
       .rotateX(-Math.PI / 2)
@@ -226,8 +221,13 @@ function instanced(name, geometry, material, items, colorOf) {
 }
 
 /** 很多個形體合成一個網格；沒有形體就不畫 */
-function mergedMesh(geometries, color) {
-  return geometries.length ? [flatMesh(mergeGeometries(geometries), color)] : []
+function mergedMesh(name, geometries, color) {
+  if (!geometries.length) {
+    return []
+  }
+  const mesh = flatMesh(mergeGeometries(geometries), color)
+  mesh.name = name
+  return [mesh]
 }
 
 /** 所有的水芋田（預設是 islandMap.js 的 14 塊），回傳一個 group */
@@ -238,8 +238,8 @@ export function buildPaddies(paddies = ISLAND_DECOR.paddies) {
   const lambert = (options) => new THREE.MeshLambertMaterial({ flatShading: true, ...options })
   const group = new THREE.Group()
   group.add(
-    ...mergedMesh(all('soil'), PADDY_COLORS.soil),
-    ...mergedMesh(all('water'), PADDY_COLORS.water),
+    ...mergedMesh('paddy-soil', all('soil'), PADDY_COLORS.soil),
+    ...mergedMesh('paddy-water', all('water'), PADDY_COLORS.water),
     instanced(
       'paddy-stones',
       new THREE.BoxGeometry(1, 1, 1),

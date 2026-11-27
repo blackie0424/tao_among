@@ -12,8 +12,10 @@ export const PADDY_COLORS = {
 const TERRACES = 3
 // 每往後（-z）一層高這麼多
 const TERRACE_STEP = 0.15
-// 水面比那一層的土高這麼一點點
-const WATER_LIFT = 0.03
+// 最低一層的土有這麼厚（往後每層再加上梯田的高度差）
+const SOIL_THICKNESS = 0.04
+// 水面比那一層的土頂高這麼一點點，才不會被土蓋住
+const WATER_LIFT = 0.01
 // 水面左右留的田埂寬
 const SIDE_RIDGE = 0.25
 // 石頭田埂：一排的深度、每顆的間距、大小
@@ -46,6 +48,7 @@ function terraceAt(i, width, depth) {
   const terraceDepth = depth / TERRACES
   const z = depth / 2 - (i + 0.5) * terraceDepth
   const level = i * TERRACE_STEP
+  const soilTop = level + SOIL_THICKNESS
   const waterDepth = terraceDepth - STONE_ROW_DEPTH
   return {
     x: 0,
@@ -53,12 +56,13 @@ function terraceAt(i, width, depth) {
     width,
     depth: terraceDepth,
     level,
+    soilTop,
     water: {
       x: 0,
       z: z - STONE_ROW_DEPTH / 2,
       width: width - SIDE_RIDGE * 2,
       depth: waterDepth,
-      level: level + WATER_LIFT,
+      level: soilTop + WATER_LIFT,
     },
   }
 }
@@ -103,7 +107,7 @@ function taroIn(terrace, index, random) {
 
 /**
  * 寬 width、深 depth 的水田（以中心為原點）：
- * { terraces: [{ x, z, width, depth, level, water: { x, z, width, depth, level } }]（0 最低）,
+ * { terraces: [{ x, z, width, depth, level 這一層的高度, soilTop 土頂, water: { x, z, width, depth, level } }]（0 最低）,
  *   stones: [{ terrace, x, z, level 底部高度, width, height, depth, color }],
  *   taro: [{ terrace, x, z, level 站的高度, scale 大小, turn 朝向（弧度） }] }
  */
