@@ -19,7 +19,8 @@ import {
 } from './cameraRig'
 import { createFrameClock } from './frameClock'
 import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
-import { buildLandmarks, showSigns } from './landmarkMeshes'
+import { householdObstacles } from './households'
+import { buildHouseholds, buildLandmarks, showSigns } from './landmarkMeshes'
 import {
   clearInput,
   createMovementInput,
@@ -382,7 +383,7 @@ function buildWorld() {
   const landmarks = buildLandmarks(loader)
   const tapRings = createTapRings()
   buildLights(scene)
-  scene.add(terrain.group, landmarks.group, player.group, tapRings.group)
+  scene.add(terrain.group, landmarks.group, buildHouseholds(), player.group, tapRings.group)
   const { boats, labels } = terrain
   return { scene, player, tapRings, boats, labels, signs: landmarks.signs }
 }
@@ -402,7 +403,8 @@ function buildCamera(container) {
  * marker 是點地面的提示；elapsedSeconds 是開始到現在經過的秒數（每張畫面更新）
  */
 function createPlayerState(startTribe) {
-  const walkable = createWalkable(ISLAND_MAP)
+  // 家屋四件擋路（#201）
+  const walkable = createWalkable(ISLAND_MAP, householdObstacles())
   const { center } = ISLAND_MAP.tribes.find((tribe) => tribe.code === startTribe)
   return {
     input: createMovementInput(),

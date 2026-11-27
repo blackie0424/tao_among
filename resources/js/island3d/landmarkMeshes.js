@@ -2,6 +2,7 @@
 // 清單裡有填模型檔的，載入成功後換上，失敗就留著程式拼的。全部是裝飾，不擋路、不擋點擊。
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { HOUSEHOLD_KIND_ORDER, HOUSEHOLD_KINDS, HOUSEHOLDS } from './households'
 import { LANDMARKS, shapeParts, signHeight, signsVisible } from './landmarks'
 import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, labelTexture } from './terrain'
 
@@ -160,4 +161,51 @@ export function buildLandmarks(loader, landmarks = LANDMARKS) {
   signs.add(...landmarks.map(buildSign))
   group.add(...landmarks.map((landmark) => buildLandmark(loader, landmark)), signs)
   return { group, signs }
+}
+
+// ── 家屋四件（#201）──
+// 同一種東西有 18 份：零件先合成一個網格（每個頂點帶零件的顏色），再用 InstancedMesh 一次畫完
+
+/** 一個零件的形體：原型縮放、移到位置，帶上顏色；只留位置、法線、顏色，合併時才對得上 */
+function coloredPart({ shape, axis, width, height, depth, x, y, z, color }) {
+  const unit = unitGeometry(shape, axis)
+  const geometry = (unit.index ? unit.toNonIndexed() : unit).scale(width, height, depth)
+  geometry.translate(x, y, z)
+  Object.keys(geometry.attributes)
+    .filter((name) => name !== 'position' && name !== 'normal')
+    .forEach((name) => geometry.deleteAttribute(name))
+  const { r, g, b } = new THREE.Color(color)
+  const count = geometry.getAttribute('position').count
+  const colors = Float32Array.from({ length: count * 3 }, (_, i) => [r, g, b][i % 3])
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  return geometry
+}
+
+/** 一種東西的原型：中心在原點、站在 y = 0、正面朝 +z */
+function householdGeometry(kind) {
+  const { width, depth } = HOUSEHOLD_KINDS[kind]
+  return mergeGeometries(shapeParts(kind, width, depth).map(coloredPart))
+}
+
+/** 18 戶的家屋四件：每種東西一個 InstancedMesh（名稱 household-種類），第 i 份是第 i 戶的那一件 */
+export function buildHouseholds(households = HOUSEHOLDS) {
+  const group = new THREE.Group()
+  const placement = new THREE.Object3D()
+  HOUSEHOLD_KIND_ORDER.forEach((kind, k) => {
+    const mesh = new THREE.InstancedMesh(
+      householdGeometry(kind),
+      new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+      households.length
+    )
+    mesh.name = `household-${kind}`
+    households.forEach(({ items }, i) => {
+      const item = items[k]
+      placement.position.set(item.x, INLAND_LEVEL, item.z)
+      placement.rotation.set(0, item.heading, 0)
+      placement.updateMatrix()
+      mesh.setMatrixAt(i, placement.matrix)
+    })
+    group.add(mesh)
+  })
+  return group
 }
