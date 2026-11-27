@@ -15,7 +15,7 @@
         class="relative"
         :class="isFish ? 'h-[190px] border border-rule-strong' : 'h-[170px]'"
       >
-        <LazyImage
+        <FramedImage
           :src="imageUrl"
           :alt="title"
           :imgIndex="index"
@@ -25,7 +25,7 @@
               : 'w-full h-[170px] flex items-center justify-center bg-gray-100'
           "
           imgClass="w-full h-full object-cover"
-          :imgStyle="imageStyle"
+          :framing="framing"
           @failed="imageFailed = true"
         />
       </div>
@@ -62,7 +62,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import LazyImage from '@/Components/UI/LazyImage.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import Volume from '@/Components/UI/Volume.vue'
 
 const props = defineProps({
@@ -78,9 +78,9 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  imageStyle: {
+  framing: {
     type: Object,
-    default: () => ({}),
+    default: null,
   },
   audioUrl: {
     type: String,

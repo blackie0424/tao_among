@@ -168,3 +168,15 @@ describe('FishDetailTop 依拼字播放（#159 AC 26）', () => {
     expect(wrapper.find('[data-testid="volume"]').exists()).toBe(false)
   })
 })
+
+describe('FishDetailTop 照片調整值（#218）', () => {
+  const framing = { x: 30, y: 60, zoom: 1.5, rotation: 90 }
+
+  it('把圖鑑主圖的調整值傳給圖片框；沒有時是 null', () => {
+    const adjusted = mount(FishDetailTop, { props: { fish: { id: 1, name: '飛魚', image_url: '/a.jpg', display_image_framing: framing } } })
+    const plain = mount(FishDetailTop, { props: { fish: { id: 2, name: '飛魚', image_url: '/a.jpg' } } })
+
+    expect(adjusted.getComponent({ name: 'FramedImage' }).props('framing')).toEqual(framing)
+    expect(plain.getComponent({ name: 'FramedImage' }).props('framing')).toBeFalsy()
+  })
+})

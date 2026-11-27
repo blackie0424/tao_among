@@ -2,12 +2,12 @@
   <div class="bg-white rounded-lg shadow-md overflow-visible relative">
     <!-- 捕獲照片 -->
     <div class="aspect-w-16 aspect-h-12 bg-gray-100 relative overflow-hidden rounded-t-lg">
-      <LazyImage
+      <FramedImage
         :src="recordImageUrl"
         :alt="`${record.tribe} 捕獲紀錄`"
         wrapperClass="w-full h-48 bg-gray-100"
         imgClass="w-full h-full object-cover"
-        :imgStyle="recordImgStyle"
+        :framing="record.framing"
       />
 
       <!-- 當前主圖標記 -->
@@ -96,11 +96,10 @@
 </template>
 
 <script setup>
-import LazyImage from '@/Components/UI/LazyImage.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import OverflowMenu from '@/Components/UI/OverflowMenu.vue'
 import ImageRotateModal from '@/Components/UI/ImageRotateModal.vue'
 import { computed, ref } from 'vue'
-import { buildImageDisplayStyle } from '@/composables/useImageDisplayStyle'
 import { router } from '@inertiajs/vue3'
 import { markFishStale } from '@/utils/fishListCache'
 import { formatDate, formatDateTime } from '@/utils/formatDate'
@@ -154,10 +153,6 @@ function setAsDisplayImage() {
 const recordImageUrl = computed(() => {
   return rotatedImageUrl.value || props.record.image_url || '/images/default-capture.png'
 })
-
-const recordImgStyle = computed(() =>
-  buildImageDisplayStyle(props.record.image_position, props.record.image_scale)
-)
 
 function onRotated(newUrl) {
   rotatedImageUrl.value = newUrl
