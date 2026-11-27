@@ -676,6 +676,25 @@ describe('Island/Home 地圖頁', () => {
         expect(shown).toEqual(['𠀋', '𠀋阿', '𠀋阿👨‍👩‍👧'])
       })
 
+      it('瀏覽器不支援 Intl.Segmenter 時也一次跑一個完整的字：組合 emoji、膚色、變體選擇符、國旗、結合符號', async () => {
+        vi.stubGlobal('Intl', { ...Intl, Segmenter: undefined })
+        // 最後是 e 加上結合重音符號（兩個碼位）
+        const name = '👨‍👩‍👧👍🏽❤️🇹🇼e\u0301'
+        const wrapper = await mountPage({ character: { name, tribe: 'yayo' } })
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+        await finishTyping()
+        await pressSpaceOnce()
+
+        const shown = []
+        for (let i = 0; i < 5; i += 1) {
+          vi.advanceTimersByTime(50)
+          await flushPromises()
+          shown.push(visibleLine(wrapper, 'npc-line'))
+        }
+        expect(shown).toEqual(['👨‍👩‍👧', '👨‍👩‍👧👍🏽', '👨‍👩‍👧👍🏽❤️', '👨‍👩‍👧👍🏽❤️🇹🇼', '👨‍👩‍👧👍🏽❤️🇹🇼e\u0301'])
+      })
+
       it('字還在跑時按空白鍵：先整句顯示，不跳下一句；再按才往下', async () => {
         const wrapper = await mountPage()
         await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
