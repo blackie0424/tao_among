@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampToHex, closestOnSegment, hexVertices, isInsideHex } from '@/island3d/hexBounds'
+import { closestOnSegment, hexVertices, isInsideHex } from '@/island3d/hexBounds'
 import {
   ISLAND_DECOR,
   ISLAND_MAP,
@@ -17,7 +17,7 @@ import {
 import { PADDY_LAYOUTS, paddySize } from '@/island3d/paddyShape'
 import { createRouter } from '@/island3d/route'
 import { createWalkable } from '@/island3d/walkable'
-import { heightAt, islandHeightField } from '@/island3d/terrainHeight'
+import { heightAt, islandHeightField, riverLines } from '@/island3d/terrainHeight'
 
 const center = (code) => ISLAND_MAP.tribes.find((tribe) => tribe.code === code).center
 /** 一個部落的 3 格中心：主格、第 2 格、第 3 格 */
@@ -77,16 +77,8 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     ).toBeLessThan(60)
   })
 
-  it('野銀第 3 格在東南邊的環島公路旁 (90.9, 53.6)（#201 規格修訂 1）；它東邊那塊水田是野銀的、原本的公路旁水田往東挪到 (151.1, 85.3)（#223 規格修訂 1）', () => {
+  it('野銀第 3 格在東南邊的環島公路旁 (90.9, 53.6)（#201 規格修訂 1；水田位置在 #223 規格修訂 2 改成溪旁）', () => {
     expect(hexesOf('ivalino')[2]).toEqual({ x: 90.9, z: 53.6 })
-    expect(ISLAND_DECOR.paddies.some(({ x, z }) => x === 93.3 && z === 55.8)).toBe(false)
-    expect(ISLAND_DECOR.paddies.find(({ x, z }) => x === 104.4 && z === 60)).toMatchObject({
-      tribe: 'ivalino',
-    })
-    expect(ISLAND_DECOR.paddies.find(({ x, z }) => x === 151.1 && z === 85.3)).toMatchObject({
-      layout: PADDY_LAYOUTS['3x3'],
-      heading: (155 * Math.PI) / 180,
-    })
   })
 
   it('18 格任兩格不重疊（共用一條邊不算）', () => {
@@ -463,10 +455,8 @@ describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 �
     })
   })
 
-  describe('水田（#207 驗收條件 5、#212 驗收條件 11）', () => {
+  describe('水田（#207 驗收條件 5、#212 驗收條件 11、#223 驗收條件 6 規格修訂 2）', () => {
     const paddies = ISLAND_DECOR.paddies
-    const beside = paddies.filter((paddy) => paddy.tribe)
-    const alongRoad = paddies.filter((paddy) => !paddy.tribe)
     // 靠山＝離海岸線更遠
     const fartherInland = (from, to) => coastGap(to) > coastGap(from)
     const ringSegments = [...ringRoad.points, ringRoad.points[0]]
@@ -476,14 +466,14 @@ describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 �
       ringSegments
         .map(([a, b]) => closestOnSegment(point, a, b))
         .reduce((best, p) => (distanceBetween(p, point) < distanceBetween(best, point) ? p : best))
-
-    it('每個部落旁各 1 塊，另外公路旁 6～10 塊', () => {
-      expect(beside.map((paddy) => paddy.tribe).sort()).toEqual(
-        ['imowrod', 'iranmeilek', 'iraraley', 'iratay', 'ivalino', 'yayo'].sort()
-      )
-      expect(alongRoad.length).toBeGreaterThanOrEqual(6)
-      expect(alongRoad.length).toBeLessThanOrEqual(10)
-    })
+    /** 佔地離一條溪的中線多近 */
+    const riverGap = (corners, { points }) =>
+      Math.min(...points.slice(1).map((to, i) => footprintGapToSegment(corners, points[i], to)))
+    /** 佔地最靠近的那條溪：{ name, gap } */
+    const nearestRiver = (paddy) =>
+      riverLines()
+        .map((line) => ({ name: line.name, gap: riverGap(footprintCorners(paddy), line) }))
+        .reduce((best, river) => (river.gap < best.gap ? river : best))
 
     it('一共 14 處，大小照拼法（#211 規格修訂 1）', () => {
       expect(paddies).toHaveLength(14)
@@ -493,43 +483,47 @@ describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 �
       })
     })
 
-    it('拼法照表：部落旁 2×2 或 2×3、公路旁 3×3 與 1×3 交錯，4 種都有出現（#211 驗收條件 14）', () => {
-      const byTribe = Object.fromEntries(beside.map((paddy) => [paddy.tribe, paddy.layout]))
-      expect(byTribe).toEqual({
-        iraraley: PADDY_LAYOUTS['2x2'],
-        iranmeilek: PADDY_LAYOUTS['2x3'],
-        ivalino: PADDY_LAYOUTS['2x2'],
-        imowrod: PADDY_LAYOUTS['2x3'],
-        iratay: PADDY_LAYOUTS['2x2'],
-        yayo: PADDY_LAYOUTS['2x3'],
-      })
-      expect(alongRoad.map((paddy) => paddy.layout)).toEqual(
-        [0, 1, 2, 3, 4, 5, 6, 7].map((i) => PADDY_LAYOUTS[i % 2 ? '1x3' : '3x3'])
-      )
-      expect(new Set(paddies.map((paddy) => paddy.layout.join('x'))).size).toBe(4)
+    it('拼法組合：2×2、2×3 各 3 塊，3×3、1×3 各 4 塊（#211 驗收條件 14）', () => {
+      const count = (name) => paddies.filter((paddy) => paddy.layout === PADDY_LAYOUTS[name]).length
+      expect({
+        '2x2': count('2x2'),
+        '2x3': count('2x3'),
+        '3x3': count('3x3'),
+        '1x3': count('1x3'),
+      }).toEqual({ '2x2': 3, '2x3': 3, '3x3': 4, '1x3': 4 })
     })
 
-    it('部落旁的在格子外、環島公路靠內陸那一側、佔地離路邊 0～2、離該部落任一格的邊不超過 8（#223 驗收條件 6）', () => {
-      beside.forEach((paddy) => {
+    it('每塊在溪旁：佔地離最近那條溪的中線 1.8～4、離所有溪都超過 1.8', () => {
+      paddies.forEach((paddy) => {
         const corners = footprintCorners(paddy)
-        const fromEdge = Math.min(
-          ...hexesOf(paddy.tribe).map((at) =>
-            Math.min(
-              ...corners.map((corner) =>
-                distanceBetween(corner, clampToHex(corner, ISLAND_MAP.hexRadius, at))
-              )
-            )
-          )
-        )
+        const { gap } = nearestRiver(paddy)
+
+        expect(gap).toBeLessThanOrEqual(4)
+        riverLines().forEach((line) => {
+          expect(riverGap(corners, line)).toBeGreaterThan(1.8)
+        })
+      })
+    })
+
+    it('一條溪最多 2 塊；朗島西溪不放', () => {
+      const perRiver = {}
+      paddies.forEach((paddy) => {
+        const { name } = nearestRiver(paddy)
+        perRiver[name] = (perRiver[name] ?? 0) + 1
+      })
+      Object.values(perRiver).forEach((n) => expect(n).toBeLessThanOrEqual(2))
+      expect(perRiver['朗島西溪']).toBeUndefined()
+    })
+
+    it('在環島公路靠山的那一側（比公路上最近的點離海岸線更遠）、佔地離路邊不超過 20', () => {
+      paddies.forEach((paddy) => {
+        const corners = footprintCorners(paddy)
         const fromRoad = Math.min(
           ...ringSegments.map(([a, b]) => footprintGapToSegment(corners, a, b))
         )
 
-        expect(walkable.tribeAt(paddy)).toBeNull()
         expect(fartherInland(nearestOnRing(paddy), paddy)).toBe(true)
-        expect(fromRoad).toBeGreaterThan(ISLAND_MAP.roadHalfWidth)
-        expect(fromRoad).toBeLessThanOrEqual(ISLAND_MAP.roadHalfWidth + 2)
-        expect(fromEdge).toBeLessThanOrEqual(8)
+        expect(fromRoad - ISLAND_MAP.roadHalfWidth).toBeLessThanOrEqual(20)
       })
     })
 
@@ -538,15 +532,6 @@ describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 �
         LANDMARKS.forEach((landmark) => {
           expect(footprintsOverlap(footprintCorners(paddy), footprintCorners(landmark))).toBe(false)
         })
-      })
-    })
-
-    it('公路旁的在環島公路靠內陸的那一側（比公路上最近的點離海岸線更遠）、離路邊不超過 8', () => {
-      alongRoad.forEach((paddy) => {
-        const onRoad = nearestOnRing(paddy)
-
-        expect(fartherInland(onRoad, paddy)).toBe(true)
-        expect(distanceBetween(paddy, onRoad) - ISLAND_MAP.roadHalfWidth).toBeLessThanOrEqual(8)
       })
     })
 

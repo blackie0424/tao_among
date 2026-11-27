@@ -12,6 +12,7 @@ import {
   heightAt,
   heightField,
   islandHeightField,
+  islandRiverRuns,
   rawMetersAt,
   riverLines,
   riverRuns,
@@ -421,5 +422,16 @@ describe('island3d/terrainHeight 溪流（#223 驗收條件 4）', () => {
     ]
     const runs = riverRuns(jump, { field: flat, cut: [], coast: BIG_LAND })
     expect(runs).toHaveLength(2)
+  })
+
+  it('水田不切斷溪：整座島的溪跟只避開格子與特色建築時畫得一樣（#223 規格修訂 2）', () => {
+    const field = islandHeightField()
+    const withoutPaddies = flatZones({ paddies: [] })
+      .filter((zone) => zone.polygon)
+      .map((zone) => zone.polygon)
+    const expected = lines.flatMap((line) =>
+      riverRuns(line.points, { field, cut: withoutPaddies, coast: ISLAND_DECOR.coast })
+    )
+    expect(islandRiverRuns(field)).toEqual(expected)
   })
 })
