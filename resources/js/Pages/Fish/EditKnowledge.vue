@@ -7,6 +7,7 @@
       :tribes="tribes"
       :fishName="fish.name"
       :fishImage="fish.display_image_url || fish.image_url"
+      :fishFraming="fish.display_image_framing"
       @submit="onFormSubmit"
       ref="formRef"
     />

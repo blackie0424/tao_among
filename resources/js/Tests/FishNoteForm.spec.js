@@ -193,3 +193,27 @@ describe('FishNoteForm', () => {
     })
   })
 })
+
+describe('FishNoteForm 魚圖調整值（#218）', () => {
+  const props = {
+    tribes: ['ivalino'],
+    noteTypes: ['生態習性'],
+    fishName: 'Test Fish',
+    fishImage: 'test-image.jpg',
+  }
+
+  it('沒有調整值：維持原本的魚圖樣式', () => {
+    const wrapper = mount(FishNoteForm, { props })
+
+    expect(wrapper.find('[data-testid="fish-framed-image"]').exists()).toBe(false)
+    expect(wrapper.find('.fish-image-wrapper').exists()).toBe(true)
+  })
+
+  it('有調整值：用調整值顯示魚圖', () => {
+    const framing = { x: 30, y: 60, zoom: 1.5, rotation: 90 }
+    const wrapper = mount(FishNoteForm, { props: { ...props, fishFraming: framing } })
+
+    expect(wrapper.find('.fish-image-wrapper').exists()).toBe(false)
+    expect(wrapper.getComponent({ name: 'FramedImage' }).props('framing')).toEqual(framing)
+  })
+})

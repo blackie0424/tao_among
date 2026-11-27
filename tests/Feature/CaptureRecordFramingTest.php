@@ -263,7 +263,7 @@ it('編輯頁帶出這筆紀錄的調整值', function () {
 
 // ── AC 6：各頁的魚都帶主圖與同一張圖的調整值 ─────────────────
 
-it('批次新增頁、部落分類管理頁、搜尋頁的魚帶主圖與同一張圖的調整值', function (string $url, string $path) {
+it('批次新增頁、部落分類管理頁、搜尋頁、新增進階知識頁的魚帶主圖與同一張圖的調整值', function (string $url, string $path) {
     [$fish] = fishWithDisplayRecord();
     $editor = User::factory()->lineEditor()->create();
     $expected = ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90];
@@ -276,4 +276,18 @@ it('批次新增頁、部落分類管理頁、搜尋頁的魚帶主圖與同一�
     '批次新增捕獲紀錄' => ['/fish/{id}/capture-records/batch-create', 'fish.display_image_framing'],
     '部落分類管理' => ['/fish/{id}/tribal-classifications/create', 'fish.display_image_framing'],
     '搜尋' => ['/search?name=', 'fishs.0.display_image_framing'],
+    '新增進階知識' => ['/fish/{id}/knowledge/create', 'fish.display_image_framing'],
 ]);
+
+it('編輯進階知識頁的魚帶主圖與同一張圖的調整值', function () {
+    [$fish] = fishWithDisplayRecord();
+    $editor = User::factory()->lineEditor()->create();
+    $note = $fish->notes()->create(['note' => '備註', 'note_type' => '生態習性', 'locate' => 'ivalino']);
+
+    $this->actingAs($editor)->get("/fish/{$fish->id}/knowledge/{$note->id}/edit")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Fish/EditKnowledge')
+            ->where('fish.display_image_framing', ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90])
+        );
+});

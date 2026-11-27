@@ -2,7 +2,16 @@
   <form @submit.prevent class="space-y-4">
     <!-- 魚類提醒 -->
     <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+      <!-- 有調整值：cover＋調整值（4:3 框）；沒有：維持原本的 contain -->
+      <div
+        v-if="fishFraming"
+        data-testid="fish-framed-image"
+        class="mx-auto mb-6 aspect-[4/3] w-full max-w-[30rem] overflow-hidden rounded-xl shadow-md"
+      >
+        <FramedImage :src="fishImage" :alt="fishName" :framing="fishFraming" wrapperClass="w-full h-full" />
+      </div>
       <LazyImage
+        v-else
         :src="fishImage"
         :alt="fishName"
         wrapperClass="fish-image-wrapper"
@@ -174,6 +183,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import LazyImage from '@/Components/UI/LazyImage.vue'
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import { useFormValidation, validationRules } from '@/composables/useFormValidation.js'
 
 const props = defineProps({
@@ -182,6 +192,7 @@ const props = defineProps({
   tribes: Array,
   fishName: String,
   fishImage: String,
+  fishFraming: { type: Object, default: null }, // 圖鑑主圖的照片調整值
 })
 
 const isEditMode = computed(() => props.initialData !== null)
