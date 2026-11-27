@@ -104,17 +104,19 @@ export function createFamily(loader, members = familyMembers()) {
   group.add(...figures.map((figure) => figure.group))
   const cache = new Map()
 
+  /** 某款模型載入後，換給用這款的每一位家人 */
+  const dressEveryone = (model, gltf) => {
+    fitModel(gltf.scene, ACTOR_HEIGHT, 'y')
+    members.forEach((member, i) => {
+      if (member.look.model === model) {
+        figures[i].dress(dressedCopy(gltf, member.look.palette, cache), gltf.animations)
+      }
+    })
+  }
   new Set(members.map((member) => member.look.model)).forEach((model) =>
     loader.load(
       MODEL_URL(model),
-      (gltf) => {
-        fitModel(gltf.scene, ACTOR_HEIGHT, 'y')
-        members.forEach((member, i) => {
-          if (member.look.model === model) {
-            figures[i].dress(dressedCopy(gltf, member.look.palette, cache), gltf.animations)
-          }
-        })
-      },
+      (gltf) => dressEveryone(model, gltf),
       undefined,
       (error) => console.warn(`魚島 3D：家人模型 ${model} 載入失敗，改用簡單人形`, error)
     )
