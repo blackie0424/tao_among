@@ -16,6 +16,7 @@
         @member-tap="toggleDialog"
       />
       <IslandSpotPrompt
+        ref="spotPrompt"
         :spot="currentSpot"
         :open="dialogOpen"
         :speaker="character.name"
@@ -111,6 +112,7 @@ async function rememberLocation(tribe) {
 const SPOTS_PER_HOUSEHOLD = 4
 const reachedSpot = ref(null)
 const dialogOpen = ref(false)
+const spotPrompt = ref(null)
 const currentSpot = computed(() => {
   const spot = reachedSpot.value
   return spot && props.spots[spot.tribe][spot.hex * SPOTS_PER_HOUSEHOLD + spot.slot]
@@ -150,7 +152,8 @@ function toggleDialog() {
   }
 }
 
-// 電腦按空白鍵開關對話框（規格修訂 2）；有提示時不讓空白鍵捲動網頁，沒有提示時照瀏覽器原本的行為。
+// 電腦按空白鍵開對話框（規格修訂 2）；開著時是下一句、最後一句再按就關掉（#216 規格修訂 1）。
+// 有提示時不讓空白鍵捲動網頁，沒有提示時照瀏覽器原本的行為。
 // 焦點在對話框或細節視窗裡時不攔，空白鍵照那顆按鈕的行為（#216）
 function focusInDialog() {
   return Boolean(document.activeElement?.closest?.('[data-island-dialog], [role="dialog"]'))
@@ -159,7 +162,11 @@ function focusInDialog() {
 function onKeydown(event) {
   if (event.key === ' ' && currentSpot.value && !focusInDialog()) {
     event.preventDefault()
-    toggleDialog()
+    if (dialogOpen.value) {
+      spotPrompt.value.next()
+    } else {
+      toggleDialog()
+    }
   }
 }
 

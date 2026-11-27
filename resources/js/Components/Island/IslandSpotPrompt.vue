@@ -1,8 +1,9 @@
 <template>
   <!-- 魚島 3D（#201）：走近家屋某一件時，畫面下緣的提示橫條；打開後是對話框。
        spot 是這一件的資料（名稱、稱呼、問好語）；橫條只顯示稱呼與操作說明，地點名稱在建物上方的招牌（規格修訂 2）。
-       點橫條或對話框空白的地方發出 activate，由上層切換 open。
-       #216：對話框裡玩家問好、家人回「{角色名}，你好」並列出這個地點的魚照片；點照片＝問「ikongo o ya?」，家人講那條魚 -->
+       點橫條發出 activate，由上層切換 open。
+       #216：對話一句一句來（規格修訂 1）：① 玩家問好 → ② 家人「{角色名}，你好」→ ③「你想認識哪一條魚？」＋照片
+       → 點照片 ④ 玩家「ikongo o ya?」→ ⑤ 家人講那條魚。①②④ 按空白鍵或點對話框空白的地方是下一句，③⑤ 是關掉（發出 activate） -->
   <div v-if="spot">
     <div class="pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
       <div
@@ -12,13 +13,17 @@
         class="pointer-events-auto w-full max-w-3xl rounded-island bg-white px-4 py-3 text-left shadow-lg"
         @click="onDialogClick"
       >
-        <p data-testid="spot-dialog-speaker" class="text-elder-aux font-bold text-island-muted">
-          {{ speaker }}
-        </p>
-        <p class="mt-1 text-elder-name font-extrabold">{{ askedFish ? ASK : spot.greeting }}</p>
+        <template v-if="step === STEPS.greet || step === STEPS.ask">
+          <p data-testid="spot-dialog-speaker" class="text-elder-aux font-bold text-island-muted">
+            {{ speaker }}
+          </p>
+          <p data-testid="player-line" class="mt-1 text-elder-name font-extrabold">
+            {{ step === STEPS.greet ? spot.greeting : ASK }}
+          </p>
+        </template>
+        <p v-else class="text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
 
-        <p class="mt-3 text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
-        <template v-if="askedFish">
+        <template v-if="step === STEPS.answer && askedFish">
           <div class="mt-1 flex flex-col gap-3 min-[801px]:flex-row min-[801px]:items-start">
             <img
               data-testid="asked-photo"
@@ -45,7 +50,7 @@
                   type="button"
                   data-testid="ask-another"
                   :class="actionButton"
-                  @click="askedId = null"
+                  @click="step = STEPS.pick"
                 >
                   問別條
                 </button>
@@ -53,16 +58,24 @@
             </div>
           </div>
         </template>
-        <template v-else>
-          <p data-testid="npc-line" class="mt-1 text-elder-body font-bold">{{ hello }}</p>
-          <IslandFishPicker
-            v-if="fish.length"
-            class="mt-3"
-            :fish="fish"
-            :heard="heard"
-            @pick="ask"
-          />
+        <p
+          v-else-if="step === STEPS.hello"
+          data-testid="npc-line"
+          class="mt-1 text-elder-body font-bold"
+        >
+          {{ hello }}
+        </p>
+        <template v-else-if="step === STEPS.pick">
+          <p data-testid="npc-line" class="mt-1 text-elder-body font-bold">{{ WHICH_FISH }}</p>
+          <IslandFishPicker class="mt-3" :fish="fish" :heard="heard" @pick="ask" />
         </template>
+        <p
+          v-if="waitsForNext"
+          data-testid="next-hint"
+          class="mt-2 text-right text-elder-aux font-bold text-island-accent"
+        >
+          {{ touch ? '點一下' : '按空白鍵' }}
+        </p>
       </div>
       <button
         v-else
@@ -111,6 +124,9 @@ const emit = defineEmits(['activate', 'ask'])
 
 // 玩家問「這是什麼？」的族語
 const ASK = 'ikongo o ya?'
+const WHICH_FISH = '你想認識哪一條魚？'
+// 對話的步驟：① 問好、② 你好、③ 選魚、④ 問、⑤ 講那條魚
+const STEPS = { greet: 'greet', hello: 'hello', pick: 'pick', ask: 'ask', answer: 'answer' }
 const actionButton =
   'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold'
 
@@ -120,29 +136,54 @@ const hello = computed(() =>
   props.fish.length ? `${props.speaker}，你好` : `${props.speaker}，你好。這裡還沒有魚。`
 )
 
+const step = ref(STEPS.greet)
 const askedId = ref(null)
 const askedFish = computed(() => props.fish.find((item) => item.id === askedId.value) ?? null)
 const detailOpen = ref(false)
 const whoSaidButton = ref(null)
 
+// 還有下一句的步驟（①②④；沒有魚時 ② 之後就關掉）
+const waitsForNext = computed(
+  () =>
+    step.value === STEPS.greet ||
+    step.value === STEPS.ask ||
+    (step.value === STEPS.hello && props.fish.length > 0)
+)
+
 function ask(id) {
   askedId.value = id
+  step.value = STEPS.ask
   emit('ask', id)
 }
 
-// 關掉對話框或換到別的地方：下次從問好重新開始
+// 空白鍵或點對話框空白的地方：有下一句就往下，沒有就關掉
+function next() {
+  if (step.value === STEPS.greet) {
+    step.value = STEPS.hello
+  } else if (step.value === STEPS.hello && props.fish.length > 0) {
+    step.value = STEPS.pick
+  } else if (step.value === STEPS.ask) {
+    step.value = STEPS.answer
+  } else {
+    emit('activate')
+  }
+}
+defineExpose({ next })
+
+// 關掉對話框或換到別的地方：下次從 ① 重新開始
 watch(
   () => [props.open, props.spot],
   () => {
+    step.value = STEPS.greet
     askedId.value = null
     detailOpen.value = false
   }
 )
 
-// 點對話框空白的地方關掉（#201）；點裡面的按鈕不算
+// 點裡面的按鈕不算
 function onDialogClick(event) {
   if (!event.target.closest('button')) {
-    emit('activate')
+    next()
   }
 }
 
