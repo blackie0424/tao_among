@@ -7,8 +7,7 @@ namespace App\Support;
  * 新增或刪除魚不會讓其他魚換地點。地點、NPC 稱呼與順序由 chung 確認。
  *
  * #201：每個部落 3 戶，每戶這四個地點，名稱、稱呼、問好語用族語（chung 確認）。
- * 魚依編號除以 12 的餘數分到戶與地點：1～4 第 1 戶、5～8 第 2 戶、9～11 與 0 第 3 戶，
- * 每戶依下面的順序；地點的種類仍等於編號除以 4 的餘數，所以舊平面頁的地點不變。
+ * 魚分到戶與地點的規則寫在 docs/design.md 3.5，留給「面板：讀取」用。
  */
 final class IslandSpot
 {
@@ -17,9 +16,6 @@ final class IslandSpot
 
     /** 每個部落幾戶（#201） */
     public const HOUSEHOLDS = 3;
-
-    /** 分到戶與地點用的除數＝戶數 × 地點數 */
-    public const HOUSEHOLD_DIVISOR = self::HOUSEHOLDS * self::COUNT;
 
     /** 依畫面順序；remainder＝魚編號除以 COUNT 的餘數 */
     private const SPOTS = [
@@ -54,18 +50,17 @@ final class IslandSpot
     }
 
     /**
-     * 3 戶 × 4 個地點，依戶、再依地點的順序（#201）：
-     * 每筆是地點加上 household（第幾戶，1 起算）與 remainder（編號除以 HOUSEHOLD_DIVISOR 的餘數）。
+     * 3D 魚島給畫面的地點（#201）：3 戶 × 4 個地點，依戶、再依地點的順序；
+     * 每筆是 household（第幾戶，1 起算）、代碼、名稱、稱呼、問好語。
      *
-     * @return list<array{household: int, code: string, name: string, npc: string, greeting: string, remainder: int}>
+     * @return list<array{household: int, code: string, name: string, npc: string, greeting: string}>
      */
-    public static function householdSpots(): array
+    public static function householdProps(): array
     {
         $spots = [];
         foreach (range(1, self::HOUSEHOLDS) as $household) {
-            foreach (self::SPOTS as $position => $spot) {
-                $remainder = (($household - 1) * self::COUNT + $position + 1) % self::HOUSEHOLD_DIVISOR;
-                $spots[] = ['household' => $household, ...$spot, 'remainder' => $remainder];
+            foreach (self::SPOTS as $spot) {
+                $spots[] = ['household' => $household, ...self::props($spot), 'greeting' => $spot['greeting']];
             }
         }
 

@@ -21,8 +21,8 @@ import { createFamily } from './familyMeshes'
 import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
 import { createFrameClock } from './frameClock'
 import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
-import { householdObstacles, spotAt } from './households'
-import { buildHouseholds, buildLandmarks, showSigns } from './landmarkMeshes'
+import { householdObstacles, spotAt, spotKey } from './households'
+import { buildHouseholdSigns, buildHouseholds, buildLandmarks, showSigns } from './landmarkMeshes'
 import {
   clearInput,
   createMovementInput,
@@ -138,8 +138,8 @@ function createActor(loader, url, color) {
   }
 }
 
-/** 畫面上的一點（clientX、clientY）對到地面（y = 0）的哪裡；沒對到地面時回傳 null */
-function groundPointAt({ x, y }, renderer, camera) {
+/** 從鏡頭穿過畫面上一點（clientX、clientY）的射線 */
+function rayThrough({ x, y }, renderer, camera) {
   const rect = renderer.domElement.getBoundingClientRect()
   const pointer = new THREE.Vector2(
     ((x - rect.left) / rect.width) * 2 - 1,
@@ -147,7 +147,12 @@ function groundPointAt({ x, y }, renderer, camera) {
   )
   const raycaster = new THREE.Raycaster()
   raycaster.setFromCamera(pointer, camera)
-  const hit = raycaster.ray.intersectPlane(
+  return raycaster
+}
+
+/** 畫面上的一點（clientX、clientY）對到地面（y = 0）的哪裡；沒對到地面時回傳 null */
+function groundPointAt(point, renderer, camera) {
+  const hit = rayThrough(point, renderer, camera).ray.intersectPlane(
     new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
     new THREE.Vector3()
   )
@@ -201,7 +206,7 @@ function applyGesture(state, effect, renderer, camera) {
     state.rig = rotateCamera(state.rig, effect.deltaX, effect.deltaY)
   } else if (effect.type === 'zoom') {
     state.rig = zoomByPinch(state.rig, effect.scale, rangeOf(camera, state.rig))
-  } else {
+  } else if (!state.tapMember(rayThrough(effect, renderer, camera))) {
     handleTap(state, groundPointAt(effect, renderer, camera), camera)
   }
 }
@@ -364,16 +369,25 @@ function buildWorld() {
   const landmarks = buildLandmarks(loader)
   const tapRings = createTapRings()
   const family = createFamily(loader)
+  const householdSigns = buildHouseholdSigns()
   buildLights(scene)
   scene.add(
     terrain.group,
     landmarks.group,
     buildHouseholds(),
+    householdSigns,
     family.group,
     player.group,
     tapRings.group
   )
-  return { scene, player, family, tapRings, boats: terrain.boats, signs: landmarks.signs }
+  return {
+    scene,
+    player,
+    family,
+    tapRings,
+    boats: terrain.boats,
+    signs: [landmarks.signs, householdSigns],
+  }
 }
 
 function buildCamera(container) {
@@ -388,7 +402,7 @@ function buildCamera(container) {
 /** 角色走進或離開某一件的範圍時呼叫 onSpotChange（{ tribe, hex, slot } 或 null）（#201） */
 function reportSpot(state, onSpotChange) {
   const spot = spotAt(state.position)
-  const key = spot && `${spot.tribe}#${spot.hex}#${spot.slot}`
+  const key = spotKey(spot)
   if (key !== state.spotKey) {
     state.spotKey = key
     onSpotChange(spot)
@@ -409,7 +423,7 @@ function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChang
     bobBoats(boats, frame.elapsedSeconds)
   }
   followPlayer(camera, state)
-  showSigns(signs, state.rig.zoom)
+  signs.forEach((group) => showSigns(group, state.rig.zoom))
   tapRings.update(state, camera)
 }
 
@@ -432,6 +446,8 @@ function createPlayerState(startTribe) {
     elapsedSeconds: 0,
     tribe: startTribe,
     spotKey: null,
+    // 點到目前範圍那一件的家人時回傳 true（開對話、不走過去）；在 createIslandScene 接上
+    tapMember: () => false,
   }
 }
 
@@ -477,7 +493,8 @@ function movePlayer(player, state, deltaSeconds, onTribeChange) {
  *   reducedMotion 系統設定「減少動態效果」,
  *   onStats({ level, framesPerSecond }),
  *   onTribeChange(部落代碼) 角色走進另一個部落的格子時呼叫,
- *   onSpotChange({ tribe, hex, slot } 或 null) 角色走進或離開某一件的範圍時呼叫（#201）
+ *   onSpotChange({ tribe, hex, slot } 或 null) 角色走進或離開某一件的範圍時呼叫（#201）,
+ *   onMemberTap() 點到目前範圍那一件的家人時呼叫（#201 規格修訂 2）
  * }
  * 回傳 { dispose } 給離開頁面時停掉。
  */
@@ -488,6 +505,7 @@ export function createIslandScene(container, options) {
     onStats = () => {},
     onTribeChange = () => {},
     onSpotChange = () => {},
+    onMemberTap = () => {},
   } = options
   const level = initialQuality({ width: window.innerWidth, userAgent: navigator.userAgent })
   const renderer = buildRenderer(container, level)
@@ -496,6 +514,13 @@ export function createIslandScene(container, options) {
   const camera = buildCamera(container)
   const world = buildWorld()
   const state = createPlayerState(startTribe)
+  state.tapMember = (raycaster) => {
+    const tapped = state.spotKey !== null && world.family.isTapped(raycaster, state.spotKey)
+    if (tapped) {
+      onMemberTap()
+    }
+    return tapped
+  }
   const unwatchResize = watchResize(container, renderer, camera)
   const clock = createFrameClock()
   // 失焦或切分頁時暫停時鐘：回來的第一張重新開始，不把離開的時間算進去

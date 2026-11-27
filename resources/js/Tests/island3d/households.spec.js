@@ -4,7 +4,9 @@ import {
   HOUSEHOLD_KIND_ORDER,
   HOUSEHOLDS,
   householdObstacles,
+  householdSigns,
   spotAt,
+  spotKey,
 } from '@/island3d/households'
 import { ISLAND_DECOR, ISLAND_MAP, roadSegments, tribeHexes } from '@/island3d/islandMap'
 import { closestOnSegment, hexVertices, isInsideHex } from '@/island3d/hexBounds'
@@ -13,6 +15,7 @@ import {
   footprintCorners,
   footprintGapToPoint,
   footprintGapToSegment,
+  shapeParts,
 } from '@/island3d/landmarks'
 import { createWalkable } from '@/island3d/walkable'
 import { createRouter } from '@/island3d/route'
@@ -243,5 +246,32 @@ describe('island3d/households 角色在哪一件的範圍裡（#201 驗收條件
     })
     expect(spotAt({ x: zone.x + zone.radius + 0.01, z: zone.z })).toBeNull()
     expect(spotAt(hexCenterOf(household))).toBeNull()
+  })
+})
+
+describe('island3d/households 四件上方的名稱招牌（#201 驗收條件 15）', () => {
+  it('72 塊招牌：寫族語名稱，在那一件中心的正上方、比造型最高點高', () => {
+    const signs = householdSigns()
+
+    expect(signs).toHaveLength(72)
+    HOUSEHOLDS.flatMap(({ items }) => items).forEach((item, i) => {
+      const top = Math.max(
+        ...shapeParts(item.kind, item.width, item.depth).map((part) => part.y + part.height / 2)
+      )
+      expect(signs[i]).toMatchObject({ text: item.kind, x: item.x, z: item.z })
+      expect(signs[i].height).toBeGreaterThan(top)
+    })
+  })
+})
+
+describe('island3d/households 範圍的代號（#201 驗收條件 11）', () => {
+  it('同一戶同一件的代號一樣，不同的就不一樣；沒有範圍是 null', () => {
+    expect(spotKey({ tribe: 'ivalino', hex: 2, slot: 1 })).toBe(
+      spotKey({ tribe: 'ivalino', hex: 2, slot: 1 })
+    )
+    expect(spotKey({ tribe: 'ivalino', hex: 2, slot: 1 })).not.toBe(
+      spotKey({ tribe: 'ivalino', hex: 1, slot: 1 })
+    )
+    expect(spotKey(null)).toBeNull()
   })
 })

@@ -1,7 +1,7 @@
 <template>
   <!-- 魚島 3D（#199、#200）：畫面由 island3d/scene.js 畫在 stage 裡；這個元件只管載入、標示與說明文字。
        tribe 是目前所在部落：一開始決定角色站在哪，之後由上層依 tribe-change 更新；
-       角色走進或離開家屋某一件的範圍時發出 spot-change（#201） -->
+       角色走進或離開家屋某一件的範圍時發出 spot-change、點到那一件的家人時發出 member-tap（#201） -->
   <div class="relative overflow-hidden rounded-island bg-island-sea">
     <p
       v-if="unsupported"
@@ -44,8 +44,9 @@ const props = defineProps({
   tribe: { type: String, required: true },
 })
 // tribe-change：角色走進另一個部落的格子，帶那個部落的代碼（左上角只顯示族語，#201）；
-// spot-change：角色走進某一件的範圍帶 { tribe, hex, slot }，離開帶 null
-const emit = defineEmits(['tribe-change', 'spot-change'])
+// spot-change：角色走進某一件的範圍帶 { tribe, hex, slot }，離開帶 null；
+// member-tap：點到目前範圍那一件的家人（規格修訂 2）
+const emit = defineEmits(['tribe-change', 'spot-change', 'member-tap'])
 
 const QUALITY_NAMES = { high: '高', medium: '中', low: '低' }
 
@@ -73,6 +74,7 @@ onMounted(async () => {
       reducedMotion: prefersReducedMotion(),
       onTribeChange: (tribe) => emit('tribe-change', tribe),
       onSpotChange: (spot) => emit('spot-change', spot),
+      onMemberTap: () => emit('member-tap'),
       onStats: (next) => (stats.value = next),
     })
   } catch (error) {

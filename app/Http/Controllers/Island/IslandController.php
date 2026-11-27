@@ -39,33 +39,22 @@ class IslandController extends Controller
         ]);
     }
 
-    /**
-     * 3D 魚島（#201）：6 個部落 × 12 個地點（3 戶 × 4 個地點）的 X/Y，打開 /island 時一次給。
-     * X＝這一戶這個地點在這個部落有結果的魚條數，Y＝分到這裡、未軟刪除的魚條數。
-     */
+    /** 3D 魚島（#201）：6 個部落 × 12 個地點（3 戶 × 4 個地點）的名稱、稱呼與問好語，打開 /island 時一次給。 */
     private function householdSpotsByTribe(): array
     {
-        return collect(config('fish_options.tribes'))->mapWithKeys(function (string $tribe) {
-            $counts = $this->spotCounts($tribe, IslandSpot::HOUSEHOLD_DIVISOR);
-
-            return [$tribe => array_map(fn (array $spot) => [
-                'household' => $spot['household'],
-                ...IslandSpot::props($spot),
-                'greeting' => $spot['greeting'],
-                'with_result' => (int) ($counts[$spot['remainder']]->with_result ?? 0),
-                'total' => (int) ($counts[$spot['remainder']]->total ?? 0),
-            ], IslandSpot::householdSpots())];
-        })->all();
+        return collect(config('fish_options.tribes'))
+            ->mapWithKeys(fn (string $tribe) => [$tribe => IslandSpot::householdProps()])
+            ->all();
     }
 
-    /** 這個部落依「編號除以 $divisor 的餘數」分組的魚條數（total）與有結果的條數（with_result），以餘數為鍵 */
-    private function spotCounts(string $tribe, int $divisor): Collection
+    /** 這個部落依「編號除以 4 的餘數」（地點）分組的魚條數（total）與有結果的條數（with_result），以餘數為鍵 */
+    private function spotCounts(string $tribe): Collection
     {
         $idColumn = (new Fish)->qualifyColumn('id');
         [$hasResult, $bindings] = FishTribeResponse::islandHasResultSql($tribe, $idColumn);
 
         return Fish::query()
-            ->selectRaw("{$idColumn} % ? as remainder", [$divisor])
+            ->selectRaw("{$idColumn} % ? as remainder", [IslandSpot::COUNT])
             ->selectRaw('count(*) as total')
             ->selectRaw("sum(case when {$hasResult} then 1 else 0 end) as with_result", $bindings)
             ->groupBy('remainder')
@@ -98,7 +87,7 @@ class IslandController extends Controller
         $character = $this->characterOf($request);
         $this->rememberLocation($request, $character, $tribe);
 
-        $counts = $this->spotCounts($tribe, IslandSpot::COUNT);
+        $counts = $this->spotCounts($tribe);
         $spots = array_map(fn (array $spot) => [
             ...IslandSpot::props($spot),
             'with_result' => (int) ($counts[$spot['remainder']]->with_result ?? 0),

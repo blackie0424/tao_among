@@ -12,6 +12,9 @@ const PALETTE_ROWS = 4
 const TRIANGLE_CORNERS = 3
 // 簡單人形的顏色（模型載入前）
 const PLACEHOLDER_COLOR = '#8a6d4b'
+// 點家人的判斷範圍：比人物略大的看不見的圓柱，手機上比較好點
+const HIT_RADIUS = 0.6
+const HIT_HEIGHT = ACTOR_HEIGHT + 0.2
 // 用到的動作：走動的家人 idle、walk；akay 的坐姿
 const CLIPS = ['idle', 'walk', 'sit', 'wheelchair-look-left', 'wheelchair-look-right']
 
@@ -57,19 +60,33 @@ function dressedCopy(gltf, palette, cache) {
   return figure
 }
 
+/** 點家人用的圓柱：不畫出來，只給射線判斷 */
+function hitArea() {
+  const area = new THREE.Mesh(
+    new THREE.CylinderGeometry(HIT_RADIUS, HIT_RADIUS, HIT_HEIGHT),
+    new THREE.MeshBasicMaterial({ visible: false })
+  )
+  area.position.y = HIT_HEIGHT / 2
+  return area
+}
+
 /** 一位家人：先放簡單人形，模型載入後換上；play(pose) 切換動作 */
 function createMemberFigure() {
   const group = new THREE.Group()
-  group.add(placeholderFigure(PLACEHOLDER_COLOR))
+  const figure = new THREE.Group()
+  const hit = hitArea()
+  figure.add(placeholderFigure(PLACEHOLDER_COLOR))
+  group.add(figure, hit)
   let mixer = null
   let actions = null
   let current = null
   return {
     group,
-    dress(figure, animations) {
-      group.clear()
-      group.add(figure)
-      mixer = new THREE.AnimationMixer(figure)
+    hit,
+    dress(model, animations) {
+      figure.clear()
+      figure.add(model)
+      mixer = new THREE.AnimationMixer(model)
       actions = Object.fromEntries(
         CLIPS.map((name) => [
           name,
@@ -95,7 +112,8 @@ function createMemberFigure() {
 }
 
 /**
- * 72 位家人。回傳 { group 要加進場景的東西, update(seconds, deltaSeconds, { currentTribe, reducedMotion }) }。
+ * 72 位家人。回傳 { group 要加進場景的東西, update(seconds, deltaSeconds, { currentTribe, reducedMotion }),
+ *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey） }。
  * 只有所在部落的家人走動、換姿勢、更新動畫；其他部落的停在範圍中心（akay 正面坐），換完動作就不再更新。
  */
 export function createFamily(loader, members = familyMembers()) {
@@ -124,6 +142,10 @@ export function createFamily(loader, members = familyMembers()) {
 
   return {
     group,
+    isTapped(raycaster, spot) {
+      const i = members.findIndex((member) => member.spot === spot)
+      return i !== -1 && raycaster.intersectObject(figures[i].hit).length > 0
+    },
     update(seconds, deltaSeconds, { currentTribe, reducedMotion }) {
       members.forEach((member, i) => {
         const active = member.tribe === currentTribe

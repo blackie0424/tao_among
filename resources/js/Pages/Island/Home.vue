@@ -8,7 +8,12 @@
     </template>
 
     <div class="relative">
-      <IslandWorld :tribe="currentTribe" @tribe-change="enterTribe" @spot-change="reachSpot" />
+      <IslandWorld
+        :tribe="currentTribe"
+        @tribe-change="enterTribe"
+        @spot-change="reachSpot"
+        @member-tap="toggleDialog"
+      />
       <IslandSpotPrompt
         :spot="currentSpot"
         :open="dialogOpen"
@@ -54,7 +59,7 @@ const props = defineProps({
   character: { type: Object, required: true },
   tribes: { type: Array, required: true },
   current_tribe: { type: String, required: true },
-  // 每個部落 12 個地點（3 戶 × 4 件）的名稱、稱呼、問好語與 X/Y，打開頁面那一刻的值（#201）
+  // 每個部落 12 個地點（3 戶 × 4 件）的名稱、稱呼、問好語（#201）
   spots: { type: Object, required: true },
 })
 
@@ -110,8 +115,10 @@ function toggleDialog() {
   }
 }
 
+// 電腦按空白鍵開關對話框（規格修訂 2）；有提示時不讓空白鍵捲動網頁，沒有提示時照瀏覽器原本的行為
 function onKeydown(event) {
-  if (event.key === 'Enter') {
+  if (event.key === ' ' && currentSpot.value) {
+    event.preventDefault()
     toggleDialog()
   }
 }

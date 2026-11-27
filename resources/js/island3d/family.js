@@ -1,5 +1,5 @@
 // 魚島 3D：每戶的四位家人（#201 驗收條件 5–8）——誰、長什麼樣子、在哪裡、什麼姿勢。不依賴 three.js。
-import { HOUSEHOLDS } from './households'
+import { HOUSEHOLDS, spotKey } from './households'
 import { BACKREST_FRONT_Z } from './householdShapes'
 import { wanderPosition } from './wander'
 
@@ -136,7 +136,7 @@ function seatOf(stones, heading) {
 }
 
 /**
- * 72 位家人：{ tribe, hex 第幾格, kind 在哪一件, role 稱呼, look 外觀, zone 範圍, heading 這一戶的朝向,
+ * 72 位家人：{ tribe, hex 第幾格, kind 在哪一件, spot 那一件範圍的代號（spotKey）, role 稱呼, look 外觀, zone 範圍, heading 這一戶的朝向,
  *   index 第幾位（錯開用）, route 走動路線（akay 沒有）, seat 坐的位置（只有 akay） }
  */
 export function familyMembers(households = HOUSEHOLDS) {
@@ -148,6 +148,7 @@ export function familyMembers(households = HOUSEHOLDS) {
         tribe,
         hex,
         kind: item.kind,
+        spot: spotKey({ tribe, hex, slot: k }),
         role,
         look: FAMILY_LOOKS[hex][role],
         zone: item.zone,

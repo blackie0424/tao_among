@@ -21,14 +21,14 @@ const SPOT_NAMES = [
   ['drying-yard', 'zazawan', 'maran'],
   ['pavilion', 'tagakal', 'kaka'],
 ]
-/** 一個部落的 12 個地點（3 戶 × 4）；counts[i] 是第 i 個的 [X, Y]，沒給是 [0, 0] */
-const tribeSpots = (counts = {}) =>
-  [1, 2, 3].flatMap((household, h) =>
-    SPOT_NAMES.map(([code, name, npc], k) => {
-      const [withResult, total] = counts[h * 4 + k] ?? [0, 0]
-      return { household, code, name, npc, greeting: `${npc} kong`, with_result: withResult, total }
-    })
+/** 一個部落的 12 個地點（3 戶 × 4） */
+const tribeSpots = () =>
+  [1, 2, 3].flatMap((household) =>
+    SPOT_NAMES.map(([code, name, npc]) => ({ household, code, name, npc, greeting: `${npc} kong` }))
   )
+
+// 每個測試結束時拆掉頁面，免得前一個頁面的鍵盤監聽留在 window 上
+const mounted = []
 
 const mountPage = async () => {
   const wrapper = mount(Home, {
@@ -38,11 +38,12 @@ const mountPage = async () => {
       tribes: ['ivalino', 'iranmeilek', 'imowrod', 'iratay', 'yayo', 'iraraley'],
       current_tribe: 'iratay',
       spots: {
-        iratay: tribeSpots({ 5: [3, 16], 6: [0, 15] }),
+        iratay: tribeSpots(),
         ivalino: tribeSpots(),
       },
     },
   })
+  mounted.push(wrapper)
   await flushPromises()
   return wrapper
 }
@@ -82,6 +83,7 @@ describe('Island/Home 地圖頁', () => {
   })
 
   afterEach(() => {
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
     vi.unstubAllGlobals()
   })
 
@@ -295,8 +297,16 @@ describe('Island/Home 地圖頁', () => {
       sceneOptions().onSpotChange(spot)
       await flushPromises()
     }
-    const pressEnter = async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    /** 按空白鍵；回傳事件，看有沒有擋掉瀏覽器原本的行為（捲動網頁） */
+    const pressSpace = async () => {
+      const event = new KeyboardEvent('keydown', { key: ' ', cancelable: true })
+      window.dispatchEvent(event)
+      await flushPromises()
+      return event
+    }
+    /** 點了目前範圍那一件的家人（3D 畫面回報） */
+    const tapMember = async () => {
+      sceneOptions().onMemberTap()
       await flushPromises()
     }
     const prompt = (wrapper) => wrapper.find('[data-testid="spot-prompt"]')
@@ -310,36 +320,26 @@ describe('Island/Home 地圖頁', () => {
       expect(wrapper.get('[data-testid="world-tribe"]').text()).toBe('iratay')
     })
 
-    it('走進第 2 戶 pananadengan 的範圍：下緣出現地點 · 稱呼、X/Y 有結果、按 Enter', async () => {
+    it('走進第 2 戶 pananadengan 的範圍：下緣只顯示稱呼「akay」與「按空白鍵」，不顯示地點名稱與筆數（規格修訂 2）', async () => {
       const wrapper = await mountPage()
 
       await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
 
-      expect(prompt(wrapper).text()).toContain('pananadengan · akay')
-      expect(prompt(wrapper).text()).toContain('3/16 有結果')
-      expect(prompt(wrapper).text()).toContain('按 Enter')
+      expect(prompt(wrapper).text()).toContain('akay')
+      expect(prompt(wrapper).text()).toContain('按空白鍵')
+      expect(prompt(wrapper).text()).not.toContain('pananadengan')
+      expect(prompt(wrapper).text()).not.toContain('有結果')
+      expect(prompt(wrapper).text()).not.toContain('Enter')
     })
 
-    it('X＝0、Y＞0 照寫 0/Y；Y＝0 寫「這裡還沒有魚」，不寫 0/0', async () => {
-      const wrapper = await mountPage()
-
-      await reachSpot({ tribe: 'iratay', hex: 1, slot: 2 })
-      expect(prompt(wrapper).text()).toContain('0/15 有結果')
-
-      await reachSpot({ tribe: 'ivalino', hex: 0, slot: 0 })
-      expect(prompt(wrapper).text()).toContain('vahay · kaminan')
-      expect(prompt(wrapper).text()).toContain('這裡還沒有魚')
-      expect(prompt(wrapper).text()).not.toContain('0/0')
-    })
-
-    it('觸控裝置寫「點一下」', async () => {
+    it('觸控裝置寫「點一下對方」', async () => {
       mockTouch(true)
       const wrapper = await mountPage()
 
       await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
 
-      expect(prompt(wrapper).text()).toContain('點一下')
-      expect(prompt(wrapper).text()).not.toContain('按 Enter')
+      expect(prompt(wrapper).text()).toContain('點一下對方')
+      expect(prompt(wrapper).text()).not.toContain('按空白鍵')
     })
 
     it('離開範圍：提示消失', async () => {
@@ -351,18 +351,40 @@ describe('Island/Home 地圖頁', () => {
       expect(prompt(wrapper).exists()).toBe(false)
     })
 
-    it('按 Enter：對話框出現，左上角是玩家的角色名，內容是「akay kong」；再按一次就關掉', async () => {
+    it('按空白鍵：對話框出現，左上角是玩家的角色名，內容是「akay kong」，網頁不捲動；再按一次就關掉', async () => {
       const wrapper = await mountPage()
       await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
 
-      await pressEnter()
+      const event = await pressSpace()
+      expect(event.defaultPrevented).toBe(true)
       expect(dialog(wrapper).get('[data-testid="spot-dialog-speaker"]').text()).toBe('阿海')
       expect(dialog(wrapper).text()).toContain('akay kong')
       expect(prompt(wrapper).exists()).toBe(false)
 
-      await pressEnter()
+      await pressSpace()
       expect(dialog(wrapper).exists()).toBe(false)
       expect(prompt(wrapper).exists()).toBe(true)
+    })
+
+    it('Enter 不再開對話框', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+      await flushPromises()
+
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    it('點那位家人：打開對話框；再點一次關掉', async () => {
+      const wrapper = await mountPage()
+      await reachSpot({ tribe: 'iratay', hex: 2, slot: 3 })
+
+      await tapMember()
+      expect(dialog(wrapper).text()).toContain('kaka kong')
+
+      await tapMember()
+      expect(dialog(wrapper).exists()).toBe(false)
     })
 
     it('點提示橫條打開對話框，點對話框關掉', async () => {
@@ -379,7 +401,7 @@ describe('Island/Home 地圖頁', () => {
     it('對話框開著時離開範圍：對話框一起關掉', async () => {
       const wrapper = await mountPage()
       await reachSpot({ tribe: 'iratay', hex: 0, slot: 0 })
-      await pressEnter()
+      await pressSpace()
 
       await reachSpot(null)
 
@@ -387,11 +409,12 @@ describe('Island/Home 地圖頁', () => {
       expect(prompt(wrapper).exists()).toBe(false)
     })
 
-    it('沒有提示時按 Enter 沒有反應', async () => {
+    it('沒有提示時按空白鍵：沒有反應，也不擋瀏覽器原本的行為', async () => {
       const wrapper = await mountPage()
 
-      await pressEnter()
+      const event = await pressSpace()
 
+      expect(event.defaultPrevented).toBe(false)
       expect(dialog(wrapper).exists()).toBe(false)
       expect(prompt(wrapper).exists()).toBe(false)
     })

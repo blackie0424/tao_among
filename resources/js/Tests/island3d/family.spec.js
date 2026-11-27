@@ -10,7 +10,7 @@ import {
   familyMembers,
   memberPlacement,
 } from '@/island3d/family'
-import { HOUSEHOLDS } from '@/island3d/households'
+import { HOUSEHOLDS, spotKey } from '@/island3d/households'
 import { footprintCorners, footprintGapToPoint } from '@/island3d/landmarks'
 
 const MEMBERS = familyMembers()
@@ -44,6 +44,17 @@ describe('island3d/family 每戶四位家人（#201 驗收條件 5）', () => {
       expect(look.maran).toEqual({ model: 'male-b', palette: hex })
       expect(look.akay).toEqual({ model: 'male-e', palette: hex })
       expect(look.kaka).toEqual({ model: 'male-f', palette: hex })
+    })
+  })
+
+  it('每位家人記得自己在哪個範圍：和 spotAt 回報的代號一樣（點家人開對話用）', () => {
+    MEMBERS.forEach((member) => {
+      const household = HOUSEHOLDS.find(
+        ({ tribe, hex }) => tribe === member.tribe && hex === member.hex
+      )
+      const slot = household.items.findIndex((item) => item.kind === member.kind)
+
+      expect(member.spot).toBe(spotKey({ tribe: member.tribe, hex: member.hex, slot }))
     })
   })
 

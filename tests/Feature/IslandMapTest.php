@@ -516,7 +516,7 @@ it('#200 沒記過位置、角色自己的部落不在清單裡：所在部落�
         ->assertInertia(fn ($page) => $page->where('current_tribe', 'ivalino'));
 });
 
-// #201 AC 10、12：每戶四個地點的 X/Y（進魚島時一次給）
+// #201 AC 10、12：每戶四個地點的名稱、稱呼、問好語（進魚島時一次給；規格修訂 2 不帶 X/Y）
 const ISLAND_HOUSEHOLD_SPOTS = [
     ['code' => 'main-house', 'name' => 'vahay', 'npc' => 'kaminan', 'greeting' => 'kaminan kong'],
     ['code' => 'backrest-stone', 'name' => 'pananadengan', 'npc' => 'akay', 'greeting' => 'akay kong'],
@@ -524,76 +524,18 @@ const ISLAND_HOUSEHOLD_SPOTS = [
     ['code' => 'pavilion', 'name' => 'tagakal', 'npc' => 'kaka', 'greeting' => 'kaka kong'],
 ];
 
-function islandHomeSpots($test): array
-{
-    return $test->get('/island')->assertOk()->inertiaProps()['spots'];
-}
-
-/** 這個部落第 $household 戶（1～3）、地點代碼 $code 的那一筆 */
-function householdSpot(array $spots, string $tribe, int $household, string $code): array
-{
-    return collect($spots[$tribe])->first(fn ($spot) => $spot['household'] === $household && $spot['code'] === $code);
-}
-
-it('#201 /island 帶 6 個部落 × 12 個地點：依序第 1～3 戶，每戶 vahay、pananadengan、zazawan、tagakal，族語名稱、稱呼、問好語；沒有魚時 X、Y 都是 0', function () {
+it('#201 /island 帶 6 個部落 × 12 個地點：依序第 1～3 戶，每戶 vahay、pananadengan、zazawan、tagakal，族語名稱、稱呼、問好語，不帶 X/Y', function () {
+    Fish::factory()->create(['id' => 1]);
     $this->actingAs(islandPlayer());
 
-    $spots = islandHomeSpots($this);
+    $spots = $this->get('/island')->assertOk()->inertiaProps()['spots'];
 
     expect(array_keys($spots))->toEqualCanonicalizing(ISLAND_TRIBES);
     $expected = collect([1, 2, 3])->flatMap(fn ($household) => array_map(
-        fn ($spot) => ['household' => $household, ...$spot, 'with_result' => 0, 'total' => 0],
+        fn ($spot) => ['household' => $household, ...$spot],
         ISLAND_HOUSEHOLD_SPOTS
     ))->all();
     foreach (ISLAND_TRIBES as $tribe) {
         expect($spots[$tribe])->toBe($expected);
     }
-});
-
-it('#201 魚依編號除以 12 的餘數分到戶與地點：1～4 第 1 戶、5～8 第 2 戶、9～11 與 0 第 3 戶；X 只算這個部落有結果的，軟刪除不算', function () {
-    foreach ([1, 13, 5, 4, 12, 24, 25] as $id) {
-        Fish::factory()->create(['id' => $id]);
-    }
-    Fish::find(25)->delete();
-    islandResults(Fish::find(1), 'yayo', [['oyod', '剝皮']]);
-    islandResults(Fish::find(12), 'iratay', [['oyod', '剝皮']]);
-    $this->actingAs(islandPlayer());
-
-    $spots = islandHomeSpots($this);
-
-    expect(householdSpot($spots, 'yayo', 1, 'main-house'))->toMatchArray(['with_result' => 1, 'total' => 2])
-        ->and(householdSpot($spots, 'iratay', 1, 'main-house'))->toMatchArray(['with_result' => 0, 'total' => 2])
-        ->and(householdSpot($spots, 'yayo', 2, 'main-house'))->toMatchArray(['with_result' => 0, 'total' => 1])
-        ->and(householdSpot($spots, 'yayo', 1, 'pavilion'))->toMatchArray(['with_result' => 0, 'total' => 1])
-        ->and(householdSpot($spots, 'yayo', 3, 'pavilion'))->toMatchArray(['with_result' => 0, 'total' => 2])
-        ->and(householdSpot($spots, 'iratay', 3, 'pavilion'))->toMatchArray(['with_result' => 1, 'total' => 2])
-        ->and(householdSpot($spots, 'yayo', 3, 'main-house'))->toMatchArray(['with_result' => 0, 'total' => 0]);
-});
-
-it('#201 舊平面頁的地點不變：同一種地點 3 戶的 X、Y 加起來等於部落頁那個地點的 X、Y', function () {
-    foreach ([1, 5, 9, 13, 2, 12] as $id) {
-        Fish::factory()->create(['id' => $id]);
-    }
-    islandResults(Fish::find(5), 'yayo', [['oyod', '剝皮']]);
-    $this->actingAs(islandPlayer());
-
-    $spots = islandHomeSpots($this);
-    $flat = collect(tribePageProps($this, 'yayo')['spots'])->keyBy('code');
-
-    foreach (ISLAND_HOUSEHOLD_SPOTS as ['code' => $code]) {
-        $households = collect([1, 2, 3])->map(fn ($household) => householdSpot($spots, 'yayo', $household, $code));
-        expect($households->sum('total'))->toBe($flat[$code]['total'])
-            ->and($households->sum('with_result'))->toBe($flat[$code]['with_result']);
-    }
-    expect($flat['main-house'])->toMatchArray(['with_result' => 1, 'total' => 4]);
-});
-
-it('#201 數字是打開那一刻的值：有人新增回答後，重新打開才變', function () {
-    Fish::factory()->create(['id' => 2]);
-    $this->actingAs(islandPlayer());
-    expect(householdSpot(islandHomeSpots($this), 'yayo', 1, 'backrest-stone'))->toMatchArray(['with_result' => 0, 'total' => 1]);
-
-    islandResults(Fish::find(2), 'yayo', [['oyod', '剝皮']]);
-
-    expect(householdSpot(islandHomeSpots($this), 'yayo', 1, 'backrest-stone'))->toMatchArray(['with_result' => 1, 'total' => 1]);
 });

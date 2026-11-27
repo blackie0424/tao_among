@@ -7,7 +7,7 @@
 // 格子中心到公路、到每個範圍中心的直線離每一件至少 0.5；vahay 最靠山（其他三件比它前面至少 2）。
 // 朗島第 2 格旁邊沒有公路，另外讓主格中心到第 2 格中心的直線也離每一件至少 0.5（從主格走得過去）。
 // 下面的位置由一次性的試算腳本照這些規則找出來，不在 repo 裡（同 #212 的做法）。
-import { footprintCorners } from './landmarks'
+import { footprintCorners, shapeParts, signHeightAbove } from './landmarks'
 
 const DEGREES_TO_RADIANS = Math.PI / 180
 
@@ -170,4 +170,24 @@ export function spotAt(point, households = HOUSEHOLDS) {
     }
   }
   return null
+}
+
+/** 範圍的代號（比較是不是同一戶同一件用）；沒有範圍是 null */
+export function spotKey(spot) {
+  return spot && `${spot.tribe}#${spot.hex}#${spot.slot}`
+}
+
+/**
+ * 四件上方的名稱招牌（#201 驗收條件 15，規格修訂 2）：{ text 族語名稱, x, z 那一件的中心, height 離地多高 }，
+ * 依戶、再依件排；高度照特色建築招牌的做法，在造型最高點上方
+ */
+export function householdSigns(households = HOUSEHOLDS) {
+  return households.flatMap(({ items }) =>
+    items.map(({ kind, x, z, width, depth }) => ({
+      text: kind,
+      x,
+      z,
+      height: signHeightAbove(shapeParts(kind, width, depth)),
+    }))
+  )
 }

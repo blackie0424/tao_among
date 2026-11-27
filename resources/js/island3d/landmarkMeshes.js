@@ -2,7 +2,7 @@
 // 清單裡有填模型檔的，載入成功後換上，失敗就留著程式拼的。全部是裝飾，不擋路、不擋點擊。
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { HOUSEHOLD_KIND_ORDER, HOUSEHOLD_KINDS, HOUSEHOLDS } from './households'
+import { HOUSEHOLD_KIND_ORDER, HOUSEHOLD_KINDS, HOUSEHOLDS, householdSigns } from './households'
 import { LANDMARKS, shapeParts, signHeight, signsVisible } from './landmarks'
 import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, labelTexture } from './terrain'
 
@@ -132,18 +132,21 @@ function buildLandmark(loader, landmark) {
   return group
 }
 
-/** 招牌：地標最高點上方的文字，永遠正面朝鏡頭 */
-function buildSign(landmark) {
-  const { sign, x, z } = landmark
-  const material = new THREE.SpriteMaterial({
-    map: labelTexture(sign),
-    sizeAttenuation: false,
-    depthTest: false,
-  })
+/** 招牌的材質：文字貼圖，永遠正面朝鏡頭、大小不隨遠近改變、不被建物擋住 */
+const signMaterial = (text) =>
+  new THREE.SpriteMaterial({ map: labelTexture(text), sizeAttenuation: false, depthTest: false })
+
+/** 一塊招牌：放在 (x, 離地 height, z) */
+function signSprite(material, x, height, z) {
   const sprite = new THREE.Sprite(material)
-  sprite.position.set(x, INLAND_LEVEL + signHeight(landmark), z)
+  sprite.position.set(x, INLAND_LEVEL + height, z)
   sprite.scale.set(SIGN_SCREEN_HEIGHT * LABEL_ASPECT, SIGN_SCREEN_HEIGHT, 1)
   return sprite
+}
+
+/** 招牌：地標最高點上方的文字 */
+function buildSign(landmark) {
+  return signSprite(signMaterial(landmark.sign), landmark.x, signHeight(landmark), landmark.z)
 }
 
 /** 鏡頭拉遠超過門檻時把招牌藏起來（zoom：0 最近、1 最遠） */
@@ -208,4 +211,17 @@ export function buildHouseholds(households = HOUSEHOLDS) {
     group.add(mesh)
   })
   return group
+}
+
+/**
+ * 四件上方的族語名稱招牌（#201 驗收條件 15）：做法和地標的招牌一樣，同一個名稱共用一份材質。
+ * 回傳招牌的群組（給 showSigns 用）
+ */
+export function buildHouseholdSigns(households = HOUSEHOLDS) {
+  const materials = new Map(HOUSEHOLD_KIND_ORDER.map((kind) => [kind, signMaterial(kind)]))
+  const signs = new THREE.Group()
+  householdSigns(households).forEach(({ text, x, z, height }) =>
+    signs.add(signSprite(materials.get(text), x, height, z))
+  )
+  return signs
 }
