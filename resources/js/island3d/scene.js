@@ -386,6 +386,24 @@ function buildCamera(container) {
   )
 }
 
+/** 每張畫面要更新的東西：玩家、家人、船、鏡頭、標示與招牌、點地面的提示 */
+function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange }) {
+  const { player, family, tapRings, boats, labels, signs } = world
+  state.elapsedSeconds = frame.elapsedSeconds
+  movePlayer(player, state, frame.deltaSeconds, onTribeChange)
+  family.update(frame.elapsedSeconds, frame.deltaSeconds, {
+    currentTribe: state.tribe,
+    reducedMotion,
+  })
+  if (!reducedMotion) {
+    bobBoats(boats, frame.elapsedSeconds)
+  }
+  followPlayer(camera, state)
+  sizeTribeLabels(labels, state.rig.zoom)
+  showSigns(signs, state.rig.zoom)
+  tapRings.update(state, camera)
+}
+
 /**
  * 玩家一開始的狀態：站在 startTribe 部落主格的中心、沒有輸入、鏡頭沒轉且在最近的距離。
  * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落；
@@ -464,7 +482,7 @@ export function createIslandScene(container, options) {
   const governor = createQualityGovernor(level)
   const reportStats = createStatsReporter(onStats, governor)
   const camera = buildCamera(container)
-  const { scene, player, family, tapRings, boats, labels, signs } = buildWorld()
+  const world = buildWorld()
   const state = createPlayerState(startTribe)
   const unwatchResize = watchResize(container, renderer, camera)
   const clock = createFrameClock()
@@ -476,20 +494,8 @@ export function createIslandScene(container, options) {
     if (frame === null) {
       return // 分頁在背景：不移動、不繪圖
     }
-    state.elapsedSeconds = frame.elapsedSeconds
-    movePlayer(player, state, frame.deltaSeconds, onTribeChange)
-    family.update(frame.elapsedSeconds, frame.deltaSeconds, {
-      currentTribe: state.tribe,
-      reducedMotion,
-    })
-    if (!reducedMotion) {
-      bobBoats(boats, frame.elapsedSeconds)
-    }
-    followPlayer(camera, state)
-    sizeTribeLabels(labels, state.rig.zoom)
-    showSigns(signs, state.rig.zoom)
-    tapRings.update(state, camera)
-    renderer.render(scene, camera)
+    advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange })
+    renderer.render(world.scene, camera)
     trackQuality(renderer, governor, reportStats, now, frame)
   })
 

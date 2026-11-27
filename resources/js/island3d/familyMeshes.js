@@ -1,7 +1,7 @@
 // 魚島 3D：把 72 位家人畫出來（#201 驗收條件 5–8）——載入人物模型、換衣服配色、依 family.js 擺位置與播動作。
 import * as THREE from 'three'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { PALETTE_SWAPS, familyMembers, memberPlacement } from './family'
+import { PALETTE_SWAPS, animationSeconds, familyMembers, memberPlacement } from './family'
 import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
 import { fitModel } from './terrain'
 
@@ -135,8 +135,14 @@ export function createFamily(loader, members = familyMembers()) {
         figure.group.position.set(position.x, 0, position.z)
         figure.group.rotation.y = heading
         const changed = figure.play(pose)
-        // 不在所在部落的：換動作時一次跑完淡入淡出，之後停住
-        figure.advance(active ? deltaSeconds : changed ? ACTION_FADE_SECONDS : 0)
+        figure.advance(
+          animationSeconds(deltaSeconds, {
+            active,
+            reducedMotion,
+            changed,
+            fadeSeconds: ACTION_FADE_SECONDS,
+          })
+        )
       })
     },
   }

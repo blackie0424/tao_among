@@ -206,3 +206,17 @@ export function memberPlacement(member, seconds, { active, reducedMotion = false
     pose: moving ? 'walk' : 'idle',
   }
 }
+
+/**
+ * 這張畫面動畫要往前推多少秒：只有所在部落、而且沒有「減少動態效果」才照實際經過的秒數播；
+ * 其他的只在換動作的那一張一次跑完淡入淡出（fadeSeconds），之後停住不動。
+ */
+export function animationSeconds(
+  deltaSeconds,
+  { active, reducedMotion = false, changed, fadeSeconds }
+) {
+  if (active && !reducedMotion) {
+    return deltaSeconds
+  }
+  return changed ? fadeSeconds : 0
+}

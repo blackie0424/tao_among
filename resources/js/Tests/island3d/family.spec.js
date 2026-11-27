@@ -6,6 +6,7 @@ import {
   PALETTE_SWAPS,
   SKIN_AND_HAIR_CELLS,
   akayPose,
+  animationSeconds,
   familyMembers,
   memberPlacement,
 } from '@/island3d/family'
@@ -151,5 +152,27 @@ describe('island3d/family 家人在哪裡（#201 驗收條件 6–8）', () => {
       })
     )
     MOMENTS.forEach((seconds) => expect(akayPose(seconds, 2, { active: false })).toBe('sit'))
+  })
+})
+
+describe('island3d/family 動畫什麼時候播（#201 驗收條件 7、8）', () => {
+  const fade = { fadeSeconds: 0.2 }
+
+  it('所在部落、沒有減少動態效果：照實際經過的秒數播', () => {
+    expect(animationSeconds(0.016, { active: true, changed: false, ...fade })).toBe(0.016)
+  })
+
+  it('減少動態效果：換動作那一張跑完淡入淡出，之後不再往前推（站著或坐著不動）', () => {
+    expect(
+      animationSeconds(0.016, { active: true, reducedMotion: true, changed: true, ...fade })
+    ).toBe(0.2)
+    expect(
+      animationSeconds(0.016, { active: true, reducedMotion: true, changed: false, ...fade })
+    ).toBe(0)
+  })
+
+  it('換到別的部落：原部落的家人換動作那一張跑完淡入淡出，之後停住', () => {
+    expect(animationSeconds(0.016, { active: false, changed: true, ...fade })).toBe(0.2)
+    expect(animationSeconds(0.016, { active: false, changed: false, ...fade })).toBe(0)
   })
 })
