@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { createWalkable } from '@/island3d/walkable'
-import { NOTCH_IN_HEX, NOTCH_ON_ROAD, THREE_TRIBE_MAP, TWIN_HEX_MAP, TWIN_SECOND } from './testMaps'
+import { footprintCorners } from '@/island3d/landmarks'
+import {
+  NOTCH_IN_HEX,
+  NOTCH_ON_ROAD,
+  ONE_HEX_MAP,
+  THREE_TRIBE_MAP,
+  TWIN_HEX_MAP,
+  TWIN_SECOND,
+} from './testMaps'
 
 const walkable = createWalkable(THREE_TRIBE_MAP)
 
@@ -137,5 +145,42 @@ describe('island3d/walkable 一個部落有好幾格（#212 驗收條件 4、5�
 
     expect(clamped.x).toBeCloseTo(25, 2)
     expect(clamped.z).toBeCloseTo(8.66, 2)
+  })
+})
+
+describe('island3d/walkable 擋路的東西（#201 驗收條件 3）', () => {
+  // 只有一個半徑 10 的格子；格子裡一個 3 × 2 的東西，x 從 2 到 5、z 從 -1 到 1
+  const BLOCK = footprintCorners({ x: 3.5, z: 0, width: 3, depth: 2, heading: 0 })
+  const blocked = createWalkable(ONE_HEX_MAP, [BLOCK])
+
+  it('東西裡面不能走，旁邊和邊上可以走', () => {
+    expect(blocked.isWalkable({ x: 3.5, z: 0 })).toBe(false)
+    expect(blocked.isWalkable({ x: 1, z: 0 })).toBe(true)
+    expect(blocked.isWalkable({ x: 2, z: 0 })).toBe(true)
+  })
+
+  it('直直走向東西：停在東西的邊上', () => {
+    const reached = blocked.reachToward({ x: 0, z: 0 }, { x: 8, z: 0 })
+
+    expect(reached.x).toBeCloseTo(2, 5)
+    expect(reached.z).toBeCloseTo(0, 5)
+    expect(blocked.isStraightWalkable({ x: 0, z: 0 }, { x: 8, z: 0 })).toBe(false)
+  })
+
+  it('從東西旁邊經過、從邊上往外走都可以', () => {
+    expect(blocked.isStraightWalkable({ x: 0, z: 3 }, { x: 8, z: 3 })).toBe(true)
+    expect(blocked.isStraightWalkable({ x: 2, z: 0 }, { x: -3, z: 0 })).toBe(true)
+  })
+
+  it('落在東西裡的點被推到最近的邊上', () => {
+    const clamped = blocked.clampToWalkable({ x: 2.3, z: 0 })
+
+    expect(clamped.x).toBeCloseTo(2, 5)
+    expect(clamped.z).toBeCloseTo(0, 5)
+    expect(blocked.isWalkable(clamped)).toBe(true)
+  })
+
+  it('沒有給擋路的東西時和原本一樣', () => {
+    expect(createWalkable(ONE_HEX_MAP).isWalkable({ x: 3.5, z: 0 })).toBe(true)
   })
 })
