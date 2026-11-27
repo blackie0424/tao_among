@@ -111,18 +111,9 @@ function createMemberFigure() {
   }
 }
 
-/**
- * 72 位家人。回傳 { group 要加進場景的東西, update(seconds, deltaSeconds, { currentTribe, reducedMotion }),
- *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey） }。
- * 只有所在部落的家人走動、換姿勢、更新動畫；其他部落的停在範圍中心（akay 正面坐），換完動作就不再更新。
- */
-export function createFamily(loader, members = familyMembers()) {
-  const group = new THREE.Group()
-  const figures = members.map(() => createMemberFigure())
-  group.add(...figures.map((figure) => figure.group))
+/** 每款模型載入一次，載入後換給用這款的每一位家人（同一個形體＋配色共用） */
+function loadModels(loader, members, figures) {
   const cache = new Map()
-
-  /** 某款模型載入後，換給用這款的每一位家人 */
   const dressEveryone = (model, gltf) => {
     fitModel(gltf.scene, ACTOR_HEIGHT, 'y')
     members.forEach((member, i) => {
@@ -139,6 +130,18 @@ export function createFamily(loader, members = familyMembers()) {
       (error) => console.warn(`魚島 3D：家人模型 ${model} 載入失敗，改用簡單人形`, error)
     )
   )
+}
+
+/**
+ * 72 位家人。回傳 { group 要加進場景的東西, update(seconds, deltaSeconds, { currentTribe, reducedMotion }),
+ *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey） }。
+ * 只有所在部落的家人走動、換姿勢、更新動畫；其他部落的停在範圍中心（akay 正面坐），換完動作就不再更新。
+ */
+export function createFamily(loader, members = familyMembers()) {
+  const group = new THREE.Group()
+  const figures = members.map(() => createMemberFigure())
+  group.add(...figures.map((figure) => figure.group))
+  loadModels(loader, members, figures)
 
   return {
     group,

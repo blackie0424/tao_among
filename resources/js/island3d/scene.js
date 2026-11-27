@@ -409,6 +409,17 @@ function reportSpot(state, onSpotChange) {
   }
 }
 
+/** 點家人：點到目前範圍那一件的家人就呼叫 onMemberTap 並回傳 true（不走過去），否則回傳 false */
+function memberTapper(state, family, onMemberTap) {
+  return (raycaster) => {
+    const tapped = state.spotKey !== null && family.isTapped(raycaster, state.spotKey)
+    if (tapped) {
+      onMemberTap()
+    }
+    return tapped
+  }
+}
+
 /** 每張畫面要更新的東西：玩家、家人、船、鏡頭、標示與招牌、點地面的提示 */
 function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange }) {
   const { player, family, tapRings, boats, signs } = world
@@ -514,13 +525,7 @@ export function createIslandScene(container, options) {
   const camera = buildCamera(container)
   const world = buildWorld()
   const state = createPlayerState(startTribe)
-  state.tapMember = (raycaster) => {
-    const tapped = state.spotKey !== null && world.family.isTapped(raycaster, state.spotKey)
-    if (tapped) {
-      onMemberTap()
-    }
-    return tapped
-  }
+  state.tapMember = memberTapper(state, world.family, onMemberTap)
   const unwatchResize = watchResize(container, renderer, camera)
   const clock = createFrameClock()
   // 失焦或切分頁時暫停時鐘：回來的第一張重新開始，不把離開的時間算進去
