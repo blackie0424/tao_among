@@ -4,7 +4,6 @@ import CaptureRecordCard from '@/Components/CaptureRecord/CaptureRecordCard.vue'
 
 vi.mock('@/Components/UI/LazyImage.vue', () => ({ default: { template: '<img />', props: ['src', 'alt'] } }))
 vi.mock('@/Components/UI/OverflowMenu.vue', () => ({ default: { template: '<div />' } }))
-vi.mock('@/Components/UI/ImageRotateModal.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@inertiajs/vue3', () => ({ router: { put: vi.fn() } }))
 
 function mountCard(sessionNotes, framing = null) {
@@ -18,8 +17,6 @@ function mountCard(sessionNotes, framing = null) {
         location: '測試灣',
         capture_method: '釣魚',
         image_url: null,
-        image_position: null,
-        image_scale: null,
         notes: '單筆備註',
         session_notes: sessionNotes,
         framing,

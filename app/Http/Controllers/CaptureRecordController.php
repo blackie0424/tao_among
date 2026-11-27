@@ -178,8 +178,6 @@ class CaptureRecordController extends Controller
 
         $updateData = [
             'notes' => $validated['notes'] ?? null,
-            'image_position' => $validated['image_position'] ?? null,
-            'image_scale' => $validated['image_scale'] ?? null,
         ] + Arr::only($validated, CaptureRecordFieldValidator::FRAMING_FIELDS);
 
         if (! $record->session_id) {

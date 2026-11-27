@@ -32,8 +32,6 @@ class UpdateCaptureRecordRequest extends FormRequest
             'capture_date' => ['prohibited'],
             'notes' => ['nullable', 'string', 'max:65535'],
             'image_filename' => ['nullable', 'string'],
-            'image_position' => ['nullable', 'in:center,top,bottom,left,right'],
-            'image_scale' => ['nullable', 'numeric', 'min:0.8', 'max:2.0'],
         ] + $validator->framingRules();
     }
 

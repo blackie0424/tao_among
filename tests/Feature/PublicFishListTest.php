@@ -10,8 +10,6 @@ uses(RefreshDatabase::class);
 
 const PUBLIC_ITEM_KEYS = [
     'display_image_framing',
-    'display_image_position',
-    'display_image_scale',
     'display_image_url',
     'id',
     'image_url',

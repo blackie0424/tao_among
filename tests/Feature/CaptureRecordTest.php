@@ -87,8 +87,6 @@ describe('CaptureRecord Model', function () {
             'capture_method',
             'capture_date',
             'notes',
-            'image_position',
-            'image_scale',
             'image_focus_x',
             'image_focus_y',
             'image_zoom',

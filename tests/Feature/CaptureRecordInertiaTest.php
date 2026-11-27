@@ -305,7 +305,7 @@ describe('Capture Record Inertia Endpoints', function () {
         $response->assertStatus(404);
     });
 
-    it('can update capture record image_position and image_scale', function () {
+    it('can update capture record photo framing', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create([
@@ -319,8 +319,10 @@ describe('Capture Record Inertia Endpoints', function () {
             'location' => 'Original Location',
             'capture_method' => '網捕',
             'capture_date' => '2024-01-15',
-            'image_position' => 'top',
-            'image_scale' => 1.5,
+            'image_focus_x' => 30,
+            'image_focus_y' => 60,
+            'image_zoom' => 1.5,
+            'image_rotation' => 90,
         ];
 
         $response = $this->actingAs($user)->put("/fish/{$fish->id}/capture-records/{$captureRecord->id}", $updateData);
@@ -329,12 +331,14 @@ describe('Capture Record Inertia Endpoints', function () {
 
         $this->assertDatabaseHas('capture_records', [
             'id' => $captureRecord->id,
-            'image_position' => 'top',
-            'image_scale' => 1.5,
+            'image_focus_x' => 30,
+            'image_focus_y' => 60,
+            'image_zoom' => 1.5,
+            'image_rotation' => 90,
         ]);
     });
 
-    it('validates image_position when updating capture record', function () {
+    it('validates photo framing when updating capture record', function () {
         $user = User::factory()->create();
         $fish = Fish::factory()->create();
         $captureRecord = CaptureRecord::factory()->create(['fish_id' => $fish->id]);
@@ -344,11 +348,14 @@ describe('Capture Record Inertia Endpoints', function () {
             'location' => 'Test Location',
             'capture_method' => '網捕',
             'capture_date' => '2024-01-15',
-            'image_position' => 'invalid_position',
+            'image_focus_x' => 50,
+            'image_focus_y' => 50,
+            'image_zoom' => 9,
+            'image_rotation' => 0,
         ]);
 
         $response->assertStatus(302)
-            ->assertSessionHasErrors(['image_position']);
+            ->assertSessionHasErrors(['image_zoom']);
     });
 
     it('includes tribes options in all pages', function () {

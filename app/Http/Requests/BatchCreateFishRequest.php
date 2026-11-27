@@ -10,7 +10,7 @@ class BatchCreateFishRequest extends FormRequest
     public function rules(): array
     {
         $sessionRules = app(CaptureRecordFieldValidator::class)->webSessionCreateRules(false);
-        unset($sessionRules['image_filename'], $sessionRules['image_position'], $sessionRules['image_scale']);
+        unset($sessionRules['image_filename']);
 
         return [...$sessionRules, ...[
             'name' => ['nullable', 'string', 'max:255'],

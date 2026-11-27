@@ -21,8 +21,6 @@ class CaptureRecord extends Model
         'capture_method',
         'capture_date',
         'notes',
-        'image_position',
-        'image_scale',
         'image_focus_x',
         'image_focus_y',
         'image_zoom',
@@ -31,7 +29,6 @@ class CaptureRecord extends Model
 
     protected $casts = [
         'capture_date' => 'date',
-        'image_scale' => 'float',
         'image_focus_x' => 'float',
         'image_focus_y' => 'float',
         'image_zoom' => 'float',

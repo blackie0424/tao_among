@@ -256,7 +256,7 @@ class FishSearchService implements FishSearchServiceInterface
             ->select($selects)
             ->with([
                 'tribalClassifications:id,fish_id,tribe,food_category',
-                'displayCaptureRecord:id,image_path,image_position,image_scale,image_focus_x,image_focus_y,image_zoom,image_rotation',
+                'displayCaptureRecord:id,image_path,image_focus_x,image_focus_y,image_zoom,image_rotation',
             ])
             ->find($id);
 
@@ -270,8 +270,6 @@ class FishSearchService implements FishSearchServiceInterface
             'image_url' => $fish->image_url,
             'display_image_url' => $fish->display_image_url,
             'display_image_framing' => $fish->display_image_framing,
-            'display_image_position' => $fish->displayCaptureRecord?->image_position ?? null,
-            'display_image_scale' => $fish->displayCaptureRecord?->image_scale ?? null,
             'audio_url' => $fish->audio_url,
             'tribal_classifications' => $fish->tribalClassifications->map(fn ($tc) => [
                 'tribe' => $tc->tribe,
@@ -608,7 +606,7 @@ class FishSearchService implements FishSearchServiceInterface
         return Fish::query()
             ->select($selects)
             ->with([
-                'displayCaptureRecord:id,image_path,image_position,image_scale,image_focus_x,image_focus_y,image_zoom,image_rotation', // 預載圖鑑主圖關聯
+                'displayCaptureRecord:id,image_path,image_focus_x,image_focus_y,image_zoom,image_rotation', // 預載圖鑑主圖關聯
             ]);
     }
 
@@ -652,8 +650,6 @@ class FishSearchService implements FishSearchServiceInterface
             'image_url' => $f->image_url,
             'display_image_url' => $f->display_image_url, // 優先使用圖鑑主圖
             'display_image_framing' => $f->display_image_framing,
-            'display_image_position' => $f->displayCaptureRecord?->image_position ?? null,
-            'display_image_scale' => $f->displayCaptureRecord?->image_scale ?? null,
             'audio_url' => $f->audio_url, // 透過模型 accessor 轉換為完整播放連結
         ];
     }

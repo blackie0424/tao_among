@@ -158,7 +158,7 @@ it('keeps linked context immutable and keeps legacy records editable', function 
         ->assertSessionHasErrors('tribe');
     expect($linked->fresh()->tribe)->toBe('ivalino');
 
-    $this->put("/fish/{$fishA->id}/capture-records/{$linked->id}", ['notes' => '新備註', 'image_scale' => 1.2])
+    $this->put("/fish/{$fishA->id}/capture-records/{$linked->id}", ['notes' => '新備註', 'image_focus_x' => 50, 'image_focus_y' => 50, 'image_zoom' => 1.2, 'image_rotation' => 0])
         ->assertRedirect();
     expect($linked->fresh()->notes)->toBe('新備註');
 

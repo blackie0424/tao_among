@@ -122,7 +122,7 @@ it('invalid forms return errors without success', function ($method, $url, $form
 })->with([
     ['put', '/fish/114/name', '/fish/114/edit', ['name' => ''], 'name'],
     ['post', '/fish/114/tribal-classifications', '/fish/114/tribal-classifications/create', [], 'classifications'],
-    ['put', '/fish/114/capture-records/8', '/fish/114/capture-records/8/edit', ['image_scale' => 5], 'image_scale'],
+    ['put', '/fish/114/capture-records/8', '/fish/114/capture-records/8/edit', ['image_zoom' => 5], 'image_zoom'],
     ['put', '/fish/114/audio/8', '/fish/114/audio/8/edit', ['tribe' => ''], 'tribe'],
     ['post', '/fish/114/reference-knowledge', '/fish/114/reference-knowledge/create', [], 'content'],
     ['put', '/fish/114/reference-knowledge/8', '/fish/114/reference-knowledge/8/edit', ['content' => ''], 'content'],

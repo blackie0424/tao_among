@@ -34,8 +34,6 @@ class CaptureRecordFieldValidator
             'capture_date' => ['prohibited'],
             'notes' => ['nullable', 'string', 'max:65535'],
             'image_filename' => [$requireImageFilename ? 'required' : 'nullable', 'string'],
-            'image_position' => ['nullable', 'in:center,top,bottom,left,right'],
-            'image_scale' => ['nullable', 'numeric', 'min:0.8', 'max:2.0'],
         ];
     }
 
@@ -66,8 +64,6 @@ class CaptureRecordFieldValidator
             'capture_date' => 'required|date|before_or_equal:'.CaptureDate::today(),
             'notes' => 'nullable|string|max:65535',
             'image_filename' => $requireImageFilename ? 'required|string' : 'nullable|string',
-            'image_position' => 'nullable|in:center,top,bottom,left,right',
-            'image_scale' => 'nullable|numeric|min:0.8|max:2.0',
         ];
     }
 
@@ -90,10 +86,6 @@ class CaptureRecordFieldValidator
             'capture_date.before_or_equal' => '捕獲日期不能是未來日期',
             'notes.string' => '備註必須是文字格式',
             'notes.max' => '備註內容過長，請縮短至65535字元以內',
-            'image_position.in' => '圖片位置必須是有效的選項',
-            'image_scale.numeric' => '圖片縮放比例必須是數字',
-            'image_scale.min' => '圖片縮放比例最小為 0.8',
-            'image_scale.max' => '圖片縮放比例最大為 2.0',
             'image_focus_x.between' => '魚身中心的橫向位置必須在 0 到 100 之間',
             'image_focus_y.between' => '魚身中心的縱向位置必須在 0 到 100 之間',
             'image_zoom.between' => '放大倍率必須在 1.0 到 3.0 之間',
@@ -126,8 +118,6 @@ class CaptureRecordFieldValidator
             'capture_method' => '捕獲方式',
             'capture_date' => '捕獲日期',
             'notes' => '備註',
-            'image_position' => '圖片顯示位置',
-            'image_scale' => '圖片縮放比例',
             'image_focus_x' => '魚身中心橫向位置',
             'image_focus_y' => '魚身中心縱向位置',
             'image_zoom' => '放大倍率',

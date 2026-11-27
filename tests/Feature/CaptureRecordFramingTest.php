@@ -291,3 +291,14 @@ it('編輯進階知識頁的魚帶主圖與同一張圖的調整值', function (
             ->where('fish.display_image_framing', ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90])
         );
 });
+
+// ── AC 7：舊旋轉功能（覆蓋原圖）已移除 ───────────────────────
+
+it('舊的旋轉網址不存在', function (string $url) {
+    $editor = User::factory()->lineEditor()->create();
+
+    $this->actingAs($editor, 'sanctum')->postJson($url, ['degrees' => 90])->assertNotFound();
+})->with([
+    '魚' => ['/prefix/api/fish/1/image/rotate'],
+    '捕獲紀錄' => ['/prefix/api/fish/1/capture-records/1/image/rotate'],
+]);
