@@ -63,6 +63,22 @@ it('只給其中幾個值一律驗證失敗且不存', function (array $payload,
     '有值但旋轉是 null' => [['image_focus_x' => 50, 'image_focus_y' => 50, 'image_zoom' => 1, 'image_rotation' => null], 'image_rotation'],
 ]);
 
+it('已有完整值時只送部分欄位（含 null、空字串）驗證失敗，四個值不變', function (array $payload) {
+    [$editor, $fish, $record] = framingRecord([
+        'image_focus_x' => 20, 'image_focus_y' => 30, 'image_zoom' => 2, 'image_rotation' => 90,
+    ]);
+
+    $this->actingAs($editor)->put(framingUrl($fish, $record), $payload)->assertSessionHasErrors();
+
+    $fresh = $record->fresh();
+    expect($fresh->framing)->toBe(['x' => 20.0, 'y' => 30.0, 'zoom' => 2.0, 'rotation' => 90]);
+})->with([
+    '只送橫向 null' => [['image_focus_x' => null]],
+    '只送橫向空字串' => [['image_focus_x' => '']],
+    '四個欄位裡三個 null' => [['image_focus_x' => null, 'image_focus_y' => null, 'image_zoom' => null]],
+    '只送旋轉 null' => [['image_rotation' => null]],
+]);
+
 it('超出範圍或旋轉不是 0/90/180/270 驗證失敗', function (string $field, mixed $value) {
     [$editor, $fish, $record] = framingRecord();
     $payload = ['image_focus_x' => 50, 'image_focus_y' => 50, 'image_zoom' => 1.5, 'image_rotation' => 0];
