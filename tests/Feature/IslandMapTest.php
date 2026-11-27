@@ -539,3 +539,142 @@ it('#201 /island 帶 6 個部落 × 12 個地點：依序第 1～3 戶，每戶 
         expect($spots[$tribe])->toBe($expected);
     }
 });
+
+// #216 AC 1、2：打開 /island 時一次帶 6 個部落各 12 個地點的魚、家人說的話、有沒有可以看的說法
+
+/** $people＝[分類, 食用] 的清單，每一項由不同的人回答（null＝不答這題）。 */
+function panelAnswers(Fish $fish, string $tribe, array $people): void
+{
+    foreach ($people as [$category, $method]) {
+        FishTribeResponse::create([
+            'user_id' => User::factory()->create()->id,
+            'fish_id' => $fish->id,
+            'tribe' => $tribe,
+            'food_category' => $category,
+            'processing_method' => $method,
+        ]);
+    }
+}
+
+/** 某部落第 $index 個地點（第 hex 戶 × 4 ＋ 第 slot 件）列出的魚編號，依序 */
+function panelSpotIds(array $props, string $tribe, int $index): array
+{
+    return array_column($props['spot_fish'][$tribe][$index], 'id');
+}
+
+/** 某部落某條魚的那一筆（家人說的話、有沒有可以看的說法） */
+function panelEntry(array $props, string $tribe, int $fishId): array
+{
+    foreach ($props['spot_fish'][$tribe] as $spot) {
+        foreach ($spot as $entry) {
+            if ($entry['id'] === $fishId) {
+                return $entry;
+            }
+        }
+    }
+    throw new RuntimeException("{$tribe} 沒有 {$fishId} 號魚");
+}
+
+it('#216 每個部落 12 個地點：編號除以 12 餘 1～4 第 1 戶、5～8 第 2 戶、9～11 與 0 第 3 戶，每戶依序 vahay、pananadengan、zazawan、tagakal；軟刪除不列', function () {
+    foreach ([1, 2, 4, 5, 9, 11, 12, 13, 24] as $id) {
+        Fish::factory()->create(['id' => $id]);
+    }
+    Fish::factory()->create(['id' => 25])->delete();
+    $this->actingAs(islandPlayer());
+
+    $props = $this->get('/island')->assertOk()->inertiaProps();
+
+    foreach (ISLAND_TRIBES as $tribe) {
+        expect($props['spot_fish'][$tribe])->toHaveCount(12)
+            ->and(panelSpotIds($props, $tribe, 0))->toBe([1, 13])   // 第 1 戶 vahay
+            ->and(panelSpotIds($props, $tribe, 1))->toBe([2])       // 第 1 戶 pananadengan
+            ->and(panelSpotIds($props, $tribe, 2))->toBe([])        // 第 1 戶 zazawan
+            ->and(panelSpotIds($props, $tribe, 3))->toBe([4])       // 第 1 戶 tagakal
+            ->and(panelSpotIds($props, $tribe, 4))->toBe([5])       // 第 2 戶 vahay
+            ->and(panelSpotIds($props, $tribe, 8))->toBe([9])       // 第 3 戶 vahay
+            ->and(panelSpotIds($props, $tribe, 10))->toBe([11])     // 第 3 戶 zazawan
+            ->and(panelSpotIds($props, $tribe, 11))->toBe([12, 24]); // 第 3 戶 tagakal
+    }
+    expect(array_column($props['island_fish'], 'id'))->toEqualCanonicalizing([1, 2, 4, 5, 9, 11, 12, 13, 24]);
+});
+
+it('#216 地點裡的順序照這個部落：兩題都有結果 → 一題 → 都沒有，同組回答多的在前，再依編號；別的部落各自排', function () {
+    $none = Fish::factory()->create(['id' => 1]);
+    $one = Fish::factory()->create(['id' => 13]);
+    $both = Fish::factory()->create(['id' => 25]);
+    $bothMore = Fish::factory()->create(['id' => 37]);
+    panelAnswers($one, 'iratay', [['oyod', null]]);
+    panelAnswers($both, 'iratay', [['oyod', '去魚鱗']]);
+    panelAnswers($bothMore, 'iratay', [['oyod', '去魚鱗'], ['rahet', '剝皮']]);
+    panelAnswers($none, 'yayo', [['oyod', '去魚鱗']]);
+    $this->actingAs(islandPlayer());
+
+    $props = $this->get('/island')->inertiaProps();
+
+    expect(panelSpotIds($props, 'iratay', 0))->toBe([37, 25, 13, 1])
+        ->and(panelSpotIds($props, 'yayo', 0))->toBe([1, 13, 25, 37]);
+});
+
+it('#216 每條魚帶一次編號、照片、魚名（還沒有名字為空）與各部落結果人數', function () {
+    $named = Fish::factory()->create(['id' => 1, 'name' => '魚A']);
+    Fish::factory()->create(['id' => 2, 'name' => FishTribeResponse::UNNAMED_FISH_NAME]);
+    panelAnswers($named, 'iratay', [['oyod', '去魚鱗'], ['oyod', '剝皮']]);
+    $this->actingAs(islandPlayer());
+
+    $props = $this->get('/island')->inertiaProps();
+    $fish = collect($props['island_fish'])->keyBy('id');
+
+    expect($fish[1]['name'])->toBe('魚A')
+        ->and($fish[1]['image_url'])->toBe($named->fresh()->display_image_url)
+        ->and($fish[2]['name'])->toBeNull()
+        ->and($fish[1]['results']['food_category']['iratay'])->toBe([['value' => 'oyod', 'count' => 2]])
+        ->and($props['result_options'])->toBe(FishTribeResponse::islandResultOptions())
+        ->and($props['unknown_processing_method'])->toBe(FishTribeResponse::unknownProcessingMethod());
+});
+
+it('#216 家人說的話用這一戶所在部落的回答，不加問句、不加「這裡的魚都講完了。」；有回答的部落可以看誰說的，沒有的不行', function () {
+    $fish = Fish::factory()->create(['id' => 1, 'name' => '魚A']);
+    panelAnswers($fish, 'iratay', [['oyod', '去魚鱗'], ['oyod', '去魚鱗'], ['rahet', '剝皮']]);
+    $this->actingAs(islandPlayer());
+
+    $props = $this->get('/island')->inertiaProps();
+
+    expect(panelEntry($props, 'iratay', 1))->toBe([
+        'id' => 1,
+        'speech' => '這是 魚A。我們 iratay 多數人說它是 oyod；多數人說抓回來去魚鱗吃。',
+        'has_detail' => true,
+    ])->and(panelEntry($props, 'yayo', 1))->toBe([
+        'id' => 1,
+        'speech' => '這是 魚A。我們 yayo 還沒有分類的答案；怎麼處理還沒有答案。',
+        'has_detail' => false,
+    ]);
+});
+
+it('#216 平手、「不食用」、還沒有名字', function () {
+    $tied = Fish::factory()->create(['id' => 1, 'name' => '魚A']);
+    panelAnswers($tied, 'iratay', [['oyod', '不食用'], ['rahet', '剝皮']]);
+    Fish::factory()->create(['id' => 2, 'name' => FishTribeResponse::UNNAMED_FISH_NAME]);
+    $this->actingAs(islandPlayer());
+
+    $props = $this->get('/island')->inertiaProps();
+
+    expect(panelEntry($props, 'iratay', 1)['speech'])->toBe('這是 魚A。我們 iratay 有人說它是 oyod，也有一樣多人說是 rahet；怎麼處理，有人說剝皮吃，也有一樣多人說不吃。')
+        ->and(panelEntry($props, 'iratay', 2)['speech'])->toBe('這是 這條還沒有名字的魚。我們 iratay 還沒有分類的答案；怎麼處理還沒有答案。');
+});
+
+it('#216 只有一題有回答也可以看誰說的；只有「我不知道」、空值、清單外的值不算', function () {
+    $categoryOnly = Fish::factory()->create(['id' => 1, 'name' => '魚A']);
+    $methodOnly = Fish::factory()->create(['id' => 2, 'name' => '魚B']);
+    $unknownOnly = Fish::factory()->create(['id' => 3, 'name' => '魚C']);
+    panelAnswers($categoryOnly, 'iratay', [['oyod', null]]);
+    panelAnswers($methodOnly, 'iratay', [[null, '剝皮']]);
+    panelAnswers($unknownOnly, 'iratay', [[null, '我不知道'], ['', ''], ['?', '尚未紀錄'], ['OYOD', '去魚鱗 ']]);
+    $this->actingAs(islandPlayer());
+
+    $props = $this->get('/island')->inertiaProps();
+
+    expect(panelEntry($props, 'iratay', 1)['has_detail'])->toBeTrue()
+        ->and(panelEntry($props, 'iratay', 2)['has_detail'])->toBeTrue()
+        ->and(panelEntry($props, 'iratay', 3)['has_detail'])->toBeFalse()
+        ->and(panelEntry($props, 'iratay', 3)['speech'])->toBe('這是 魚C。我們 iratay 還沒有分類的答案；怎麼處理還沒有答案。');
+});

@@ -36,7 +36,44 @@ class IslandController extends Controller
             'tribes' => config('fish_options.tribes'),
             'current_tribe' => $this->currentTribe($request, $character),
             'spots' => $this->householdSpotsByTribe(),
+            ...$this->householdFishProps(),
+            'result_options' => FishTribeResponse::islandResultOptions(),
+            'unknown_processing_method' => FishTribeResponse::unknownProcessingMethod(),
         ]);
+    }
+
+    /**
+     * 3D 魚島的對話（#216）：打開 /island 時一次給。
+     * island_fish：每條魚一次（編號、照片、魚名、各部落結果人數，給細節視窗）；
+     * spot_fish：每個部落 12 個地點（順序同 spots），各列這個地點的魚（順序同地點清單）、家人說的話、有沒有可以看的說法。
+     */
+    private function householdFishProps(): array
+    {
+        $fishes = Fish::with('displayCaptureRecord')->orderBy('id')->get();
+        $counts = FishTribeResponse::islandResultCounts($fishes->pluck('id')->all());
+        $names = $fishes->mapWithKeys(fn (Fish $fish) => [$fish->id => $fish->name])->all();
+        $spotFish = [];
+        foreach (config('fish_options.tribes') as $tribe) {
+            $spotFish[$tribe] = array_fill(0, IslandSpot::HOUSEHOLDS * IslandSpot::COUNT, []);
+            foreach ($this->islandOrderQuery($tribe)->pluck('id') as $id) {
+                [$categories, $methods] = $this->majorities($counts[$id] ?? null, $tribe);
+                $spotFish[$tribe][IslandSpot::householdIndexOf($id)][] = [
+                    'id' => $id,
+                    'speech' => IslandNpcSpeech::say($this->displayName($names[$id]), $tribe, $categories, $methods, null, false),
+                    'has_detail' => $categories !== [] || $methods !== [],
+                ];
+            }
+        }
+
+        return [
+            'island_fish' => $fishes->map(fn (Fish $fish) => [
+                'id' => $fish->id,
+                'name' => $this->displayName($fish->name),
+                'image_url' => $fish->display_image_url,
+                'results' => $counts[$fish->id] ?? ['food_category' => [], 'processing_method' => []],
+            ])->values(),
+            'spot_fish' => $spotFish,
+        ];
     }
 
     /** 3D 魚島（#201）：6 個部落 × 12 個地點（3 戶 × 4 個地點）的名稱、稱呼與問好語，打開 /island 時一次給。 */
@@ -148,13 +185,8 @@ class IslandController extends Controller
     private function talkFishProps(Fish $fish, string $tribe, bool $isLast): array
     {
         $counts = FishTribeResponse::islandResultCounts([$fish->id])[$fish->id] ?? null;
-        $unknown = FishTribeResponse::unknownProcessingMethod();
-        $categories = IslandNpcSpeech::leaders($counts['food_category'][$tribe] ?? []);
-        $methods = IslandNpcSpeech::leaders(array_values(array_filter(
-            $counts['processing_method'][$tribe] ?? [],
-            fn (array $choice) => $choice['value'] !== $unknown,
-        )));
-        $name = $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name;
+        [$categories, $methods] = $this->majorities($counts, $tribe);
+        $name = $this->displayName($fish->name);
         $ask = FishTribeResponse::islandQuestionToAsk($fish->name, $categories !== [], $methods !== []);
 
         return [
@@ -167,6 +199,31 @@ class IslandController extends Controller
             ],
             'speech' => IslandNpcSpeech::say($name, $tribe, $categories, $methods, $ask, $isLast),
         ];
+    }
+
+    /**
+     * NPC 要講的多數（#189）：這個部落分類、處理方式筆數最多的選項（平手全部列出）；處理方式不算「我不知道」。
+     *
+     * @param  array|null  $counts  islandResultCounts 裡這條魚的那一筆，沒有人答為 null
+     * @return array{0: list<string>, 1: list<string>} [分類的多數, 處理方式的多數]，沒結果的那一題為空
+     */
+    private function majorities(?array $counts, string $tribe): array
+    {
+        $unknown = FishTribeResponse::unknownProcessingMethod();
+
+        return [
+            IslandNpcSpeech::leaders($counts['food_category'][$tribe] ?? []),
+            IslandNpcSpeech::leaders(array_values(array_filter(
+                $counts['processing_method'][$tribe] ?? [],
+                fn (array $choice) => $choice['value'] !== $unknown,
+            ))),
+        ];
+    }
+
+    /** 畫面上的魚名：還沒有名字的魚為 null */
+    private function displayName(?string $name): ?string
+    {
+        return $name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $name;
     }
 
     /** @return array{code: string, name: string, npc: string, remainder: int} 部落或地點不在清單裡時 404 */
@@ -187,16 +244,25 @@ class IslandController extends Controller
     {
         $idColumn = (new Fish)->qualifyColumn('id');
         [$hasResult, $hasResultBindings] = FishTribeResponse::islandHasResultSql($tribe, $idColumn);
+
+        return $this->islandOrderQuery($tribe)
+            ->with('displayCaptureRecord')
+            ->selectRaw("{$hasResult} as has_island_result", $hasResultBindings)
+            ->whereRaw("{$idColumn} % ? = ?", [IslandSpot::COUNT, $spotDefinition['remainder']]);
+    }
+
+    /** 全部的魚依地點清單與 NPC 的順序（見 spotFishQuery）；3D 魚島（#216）再依編號分到 12 個地點。 */
+    private function islandOrderQuery(string $tribe): Builder
+    {
+        $idColumn = (new Fish)->qualifyColumn('id');
         $order = FishTribeResponse::islandSpotOrderSql($tribe, $idColumn);
 
-        return Fish::with('displayCaptureRecord')
+        return Fish::query()
             ->select('*')
-            ->selectRaw("{$hasResult} as has_island_result", $hasResultBindings)
             ->selectRaw("{$order['has_food_category'][0]} as island_has_food_category", $order['has_food_category'][1])
             ->selectRaw("{$order['has_processing_method'][0]} as island_has_processing_method", $order['has_processing_method'][1])
             ->selectRaw("{$order['answered'][0]} as island_answered", $order['answered'][1])
             ->selectRaw("{$order['response_count'][0]} as island_response_count", $order['response_count'][1])
-            ->whereRaw("{$idColumn} % ? = ?", [IslandSpot::COUNT, $spotDefinition['remainder']])
             ->orderByDesc('island_answered')
             ->orderByDesc('island_response_count')
             ->orderBy('id');
@@ -213,7 +279,7 @@ class IslandController extends Controller
             'unknown_processing_method' => FishTribeResponse::unknownProcessingMethod(),
             'fish' => $page->getCollection()->map(fn (Fish $fish) => [
                 'id' => $fish->id,
-                'name' => $fish->name === FishTribeResponse::UNNAMED_FISH_NAME ? null : $fish->name,
+                'name' => $this->displayName($fish->name),
                 'image_url' => $fish->display_image_url,
                 'results' => $fish->has_island_result ? $counts[$fish->id] : null,
                 'ask' => FishTribeResponse::islandQuestionToAsk($fish->name, (bool) $fish->island_has_food_category, (bool) $fish->island_has_processing_method),
