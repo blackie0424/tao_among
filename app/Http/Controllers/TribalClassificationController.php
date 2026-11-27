@@ -27,7 +27,7 @@ class TribalClassificationController extends Controller
      */
     public function createPage($fishId)
     {
-        $fish = Fish::with('tribalClassifications')->findOrFail($fishId);
+        $fish = Fish::with(['tribalClassifications', 'displayCaptureRecord'])->findOrFail($fishId);
 
         // 使用 Trait 處理圖片 URL
         $fishWithImage = $this->assignFishImage($fish);

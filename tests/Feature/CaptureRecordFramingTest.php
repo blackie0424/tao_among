@@ -260,3 +260,20 @@ it('編輯頁帶出這筆紀錄的調整值', function () {
             ->where('record.framing', ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90])
         );
 });
+
+// ── AC 6：各頁的魚都帶主圖與同一張圖的調整值 ─────────────────
+
+it('批次新增頁、部落分類管理頁、搜尋頁的魚帶主圖與同一張圖的調整值', function (string $url, string $path) {
+    [$fish] = fishWithDisplayRecord();
+    $editor = User::factory()->lineEditor()->create();
+    $expected = ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90];
+    $url = str_replace('{id}', (string) $fish->id, $url);
+
+    $this->actingAs($editor)->get($url)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where($path, $expected));
+})->with([
+    '批次新增捕獲紀錄' => ['/fish/{id}/capture-records/batch-create', 'fish.display_image_framing'],
+    '部落分類管理' => ['/fish/{id}/tribal-classifications/create', 'fish.display_image_framing'],
+    '搜尋' => ['/search?name=', 'fishs.0.display_image_framing'],
+]);

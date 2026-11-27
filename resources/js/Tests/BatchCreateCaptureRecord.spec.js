@@ -175,3 +175,22 @@ it('第一步返回 tab，第二步返回照片步驟，送出期間不離頁', 
   await wrapper.get('[data-testid="back"]').trigger('click')
   expect(router.visit).not.toHaveBeenCalled()
 })
+
+describe('批次新增頁魚圖（#218）', () => {
+  const mountPage = (fish) =>
+    mount(BatchCreateCaptureRecord, { props: { ...defaultProps, fish }, global: { stubs: { FramedImage: { name: 'FramedImage', props: ['src', 'framing'], template: '<img data-testid="framed" />' } } } })
+
+  it('沒有調整值：維持原本的 contain', () => {
+    const wrapper = mountPage({ id: 4, name: '測試魚', display_image_url: 'fish.jpg', display_image_framing: null })
+
+    expect(wrapper.find('[data-testid="framed"]').exists()).toBe(false)
+    expect(wrapper.get('img[alt="測試魚"]').classes()).toContain('object-contain')
+  })
+
+  it('有調整值：改用 cover＋調整值', () => {
+    const framing = { x: 30, y: 60, zoom: 1.5, rotation: 90 }
+    const wrapper = mountPage({ id: 4, name: '測試魚', display_image_url: 'fish.jpg', display_image_framing: framing })
+
+    expect(wrapper.getComponent({ name: 'FramedImage' }).props('framing')).toEqual(framing)
+  })
+})

@@ -68,11 +68,12 @@
             :href="`/fish/${fish.id}?tab=audio`"
             class="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition"
           >
-            <img
+            <FramedImage
               v-if="fish.image_url"
-              :src="fish.image_url"
+              :src="fish.display_image_url || fish.image_url"
+              :framing="fish.display_image_framing"
               :alt="fish.name"
-              class="w-10 h-10 object-cover rounded-lg shrink-0"
+              wrapperClass="w-10 h-10 rounded-lg shrink-0"
             />
             <div v-else class="w-10 h-10 bg-gray-100 rounded-lg shrink-0" />
             <span class="text-sm text-gray-800 flex-1 truncate">{{ fish.name }}</span>
@@ -133,11 +134,12 @@
             :href="`/fish/${fish.id}`"
             class="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition"
           >
-            <img
+            <FramedImage
               v-if="fish.image_url"
-              :src="fish.image_url"
+              :src="fish.display_image_url || fish.image_url"
+              :framing="fish.display_image_framing"
               :alt="fish.name"
-              class="w-10 h-10 object-cover rounded-lg shrink-0"
+              wrapperClass="w-10 h-10 rounded-lg shrink-0"
             />
             <div v-else class="w-10 h-10 bg-gray-100 rounded-lg shrink-0" />
             <span class="text-sm text-gray-800 flex-1 truncate">{{ fish.name }}</span>
@@ -153,6 +155,7 @@
 </template>
 
 <script setup>
+import FramedImage from '@/Components/UI/FramedImage.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import FishAppLayout from '@/Layouts/FishAppLayout.vue'
 
