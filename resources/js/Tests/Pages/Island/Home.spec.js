@@ -27,10 +27,54 @@ const tribeSpots = () =>
     SPOT_NAMES.map(([code, name, npc]) => ({ household, code, name, npc, greeting: `${npc} kong` }))
   )
 
+// #216：手建的魚與每個部落 12 個地點列的魚（第 hex 戶 × 4 ＋ 第 slot 件）
+const ISLAND_FISH = [
+  {
+    id: 1,
+    name: '魚K',
+    image_url: '/k.jpg',
+    results: { food_category: {}, processing_method: {} },
+  },
+  {
+    id: 2,
+    name: '魚A',
+    image_url: '/a.jpg',
+    results: { food_category: { iratay: [{ value: 'oyod', count: 2 }] }, processing_method: {} },
+  },
+  {
+    id: 14,
+    name: null,
+    image_url: '/b.jpg',
+    results: { food_category: {}, processing_method: {} },
+  },
+]
+const SPEECH_A_IRATAY = '這是 魚A。我們 iratay 多數人說它是 oyod；怎麼處理還沒有答案。'
+const SPEECH_UNNAMED_IRATAY =
+  '這是 這條還沒有名字的魚。我們 iratay 還沒有分類的答案；怎麼處理還沒有答案。'
+const SPEECH_A_IVALINO = '這是 魚A。我們 ivalino 還沒有分類的答案；怎麼處理還沒有答案。'
+/** 一個部落的 12 個地點，$filled 是 { 第幾筆: [魚] } */
+const tribeSpotFish = (filled) => Array.from({ length: 12 }, (_, index) => filled[index] ?? [])
+const SPOT_FISH = {
+  iratay: tribeSpotFish({
+    0: [
+      {
+        id: 1,
+        speech: '這是 魚K。我們 iratay 還沒有分類的答案；怎麼處理還沒有答案。',
+        has_detail: false,
+      },
+    ],
+    1: [
+      { id: 2, speech: SPEECH_A_IRATAY, has_detail: true },
+      { id: 14, speech: SPEECH_UNNAMED_IRATAY, has_detail: false },
+    ],
+  }),
+  ivalino: tribeSpotFish({ 1: [{ id: 2, speech: SPEECH_A_IVALINO, has_detail: false }] }),
+}
+
 // 每個測試結束時拆掉頁面，免得前一個頁面的鍵盤監聽留在 window 上
 const mounted = []
 
-const mountPage = async () => {
+const mountPage = async (overrides = {}) => {
   const wrapper = mount(Home, {
     attachTo: document.body,
     props: {
@@ -41,6 +85,14 @@ const mountPage = async () => {
         iratay: tribeSpots(),
         ivalino: tribeSpots(),
       },
+      island_fish: ISLAND_FISH,
+      spot_fish: SPOT_FISH,
+      result_options: {
+        food_category: ['oyod', 'rahet', 'kakanen no rarakeh'],
+        processing_method: ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '我不知道'],
+      },
+      unknown_processing_method: '我不知道',
+      ...overrides,
     },
   })
   mounted.push(wrapper)
@@ -77,12 +129,15 @@ const walkInto = async (tribe) => {
 
 describe('Island/Home 地圖頁', () => {
   beforeEach(() => {
+    // 對話框的字一個一個跑（#216 規格修訂 3）用 setInterval；換成假的，由測試決定何時跑完
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     scene.createIslandScene.mockReset().mockReturnValue({ dispose: scene.dispose })
     scene.dispose.mockReset()
     window.history.replaceState({}, '', '/island')
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     mounted.splice(0).forEach((wrapper) => wrapper.unmount())
     vi.unstubAllGlobals()
   })
@@ -291,29 +346,47 @@ describe('Island/Home 地圖頁', () => {
     expect(wrapper.text()).toContain('滾輪或雙指拉遠拉近')
   })
 
-  describe('#201 走近的提示與問好', () => {
-    /** 角色走進或離開某一件的範圍（3D 畫面回報）；slot 0～3 依序是 vahay、pananadengan、zazawan、tagakal */
-    const reachSpot = async (spot) => {
-      sceneOptions().onSpotChange(spot)
-      await flushPromises()
-    }
-    /** 按空白鍵；回傳事件，看有沒有擋掉瀏覽器原本的行為（捲動網頁） */
-    const pressSpace = async () => {
-      const event = new KeyboardEvent('keydown', { key: ' ', cancelable: true })
-      window.dispatchEvent(event)
-      await flushPromises()
-      return event
-    }
-    /** 點了目前範圍那一件的家人（3D 畫面回報） */
-    const tapMember = async () => {
-      sceneOptions().onMemberTap()
-      await flushPromises()
-    }
-    const prompt = (wrapper) => wrapper.find('[data-testid="spot-prompt"]')
-    const dialog = (wrapper) => wrapper.find('[data-testid="spot-dialog"]')
-    const mockTouch = (coarse) =>
-      vi.stubGlobal('matchMedia', (query) => ({ matches: coarse && query === '(pointer: coarse)' }))
+  /** 角色走進或離開某一件的範圍（3D 畫面回報）；slot 0～3 依序是 vahay、pananadengan、zazawan、tagakal */
+  const reachSpot = async (spot) => {
+    sceneOptions().onSpotChange(spot)
+    await flushPromises()
+  }
+  /** 對話框裡正在跑的字全部跑完（#216 規格修訂 3） */
+  const finishTyping = async () => {
+    vi.advanceTimersByTime(60_000)
+    await flushPromises()
+  }
+  /** 只按一次空白鍵（不等字跑完）；回傳事件，看有沒有擋掉瀏覽器原本的行為（捲動網頁） */
+  const pressSpaceOnce = async (target = window) => {
+    const event = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true })
+    target.dispatchEvent(event)
+    await flushPromises()
+    return event
+  }
+  /** 等這一句的字跑完再按空白鍵（預設送到 window），按完也等新的一句跑完 */
+  const pressSpace = async (target = window) => {
+    await finishTyping()
+    const event = await pressSpaceOnce(target)
+    await finishTyping()
+    return event
+  }
+  /** 點了目前範圍那一件的家人（3D 畫面回報） */
+  const tapMember = async () => {
+    sceneOptions().onMemberTap()
+    await flushPromises()
+  }
+  const prompt = (wrapper) => wrapper.find('[data-testid="spot-prompt"]')
+  const dialog = (wrapper) => wrapper.find('[data-testid="spot-dialog"]')
+  /** 等這一句的字跑完再點對話框空白的地方，點完也等新的一句跑完 */
+  const clickDialog = async (wrapper) => {
+    await finishTyping()
+    await dialog(wrapper).trigger('click')
+    await finishTyping()
+  }
+  const mockTouch = (coarse) =>
+    vi.stubGlobal('matchMedia', (query) => ({ matches: coarse && query === '(pointer: coarse)' }))
 
+  describe('#201 走近的提示與問好', () => {
     it('後端給的地點清單傳給 3D 畫面（四件上方的招牌用後端的名稱）', async () => {
       const wrapper = await mountPage()
 
@@ -357,7 +430,7 @@ describe('Island/Home 地圖頁', () => {
       expect(prompt(wrapper).exists()).toBe(false)
     })
 
-    it('按空白鍵：對話框出現，左上角是玩家的角色名，內容是「akay kong」，網頁不捲動；再按一次就關掉', async () => {
+    it('按空白鍵：對話框出現，左上角是玩家的角色名，內容是「akay kong」，網頁不捲動；一句一句按到最後再按就關掉（#216 規格修訂 1）', async () => {
       const wrapper = await mountPage()
       await reachSpot({ tribe: 'iratay', hex: 1, slot: 1 })
 
@@ -367,6 +440,9 @@ describe('Island/Home 地圖頁', () => {
       expect(dialog(wrapper).text()).toContain('akay kong')
       expect(prompt(wrapper).exists()).toBe(false)
 
+      // 這一件（iratay 第 2 戶 pananadengan）沒有魚：② 你好。這裡還沒有魚。→ 關掉（有魚時見 #216 的測試）
+      await pressSpace()
+      expect(dialog(wrapper).exists()).toBe(true)
       await pressSpace()
       expect(dialog(wrapper).exists()).toBe(false)
       expect(prompt(wrapper).exists()).toBe(true)
@@ -387,20 +463,25 @@ describe('Island/Home 地圖頁', () => {
       await reachSpot({ tribe: 'iratay', hex: 2, slot: 3 })
 
       await tapMember()
+      await finishTyping()
       expect(dialog(wrapper).text()).toContain('kaka kong')
 
       await tapMember()
       expect(dialog(wrapper).exists()).toBe(false)
     })
 
-    it('點提示橫條打開對話框，點對話框關掉', async () => {
+    it('點提示橫條打開對話框，點對話框一句一句往下，到最後一句再點就關掉（#216 規格修訂 1）', async () => {
       const wrapper = await mountPage()
       await reachSpot({ tribe: 'iratay', hex: 2, slot: 3 })
 
       await prompt(wrapper).trigger('click')
+      await finishTyping()
       expect(dialog(wrapper).text()).toContain('kaka kong')
 
-      await dialog(wrapper).trigger('click')
+      // 這一件（iratay 第 3 戶 tagakal）沒有魚：① 問好 → ② 你好。這裡還沒有魚。→ 關掉
+      await clickDialog(wrapper)
+      expect(dialog(wrapper).exists()).toBe(true)
+      await clickDialog(wrapper)
       expect(dialog(wrapper).exists()).toBe(false)
     })
 
@@ -423,6 +504,439 @@ describe('Island/Home 地圖頁', () => {
       expect(event.defaultPrevented).toBe(false)
       expect(dialog(wrapper).exists()).toBe(false)
       expect(prompt(wrapper).exists()).toBe(false)
+    })
+  })
+
+  describe('#216 問好後家人回應、選魚的照片、家人講那條魚', () => {
+    const photos = (wrapper) => dialog(wrapper).findAll('[data-testid="fish-photo"]')
+    const npcLine = (wrapper) => dialog(wrapper).get('[data-testid="npc-line"]').text()
+    const playerLine = (wrapper) => dialog(wrapper).find('[data-testid="player-line"]')
+    const whoSaid = (wrapper) => dialog(wrapper).find('[data-testid="who-said"]')
+    const detail = (wrapper) => wrapper.find('[role="dialog"]')
+    /** 走到第 1 戶的 pananadengan（iratay 列魚A、沒有名字的魚）並打開對話框（停在 ① 玩家問好） */
+    const openAt = async (spot = { tribe: 'iratay', hex: 0, slot: 1 }) => {
+      const wrapper = await mountPage()
+      await reachSpot(spot)
+      await pressSpace()
+      return wrapper
+    }
+    /** 打開對話框並按到 ③「你想認識哪一條魚？」＋照片 */
+    const openToPhotos = async (spot) => {
+      const wrapper = await openAt(spot)
+      await pressSpace()
+      await pressSpace()
+      return wrapper
+    }
+    /** 點照片（④ ikongo o ya?）再按一下到 ⑤ 家人講那條魚 */
+    const pick = async (wrapper, index) => {
+      await photos(wrapper)[index].trigger('click')
+      await pressSpace()
+    }
+
+    it('一句一句來：① 只有玩家的問好語 → ② 只有家人「阿海，你好」→ ③ 家人「你想認識哪一條魚？」才出現照片；句子右下角提示「按空白鍵」', async () => {
+      const wrapper = await openAt()
+      expect(playerLine(wrapper).text()).toBe('akay kong')
+      expect(dialog(wrapper).find('[data-testid="npc-line"]').exists()).toBe(false)
+      expect(photos(wrapper)).toHaveLength(0)
+      expect(dialog(wrapper).get('[data-testid="next-hint"]').text()).toBe('按空白鍵')
+
+      await pressSpace()
+      expect(npcLine(wrapper)).toBe('阿海，你好')
+      expect(playerLine(wrapper).exists()).toBe(false)
+      expect(photos(wrapper)).toHaveLength(0)
+      expect(dialog(wrapper).text()).not.toContain('akay kong')
+
+      await pressSpace()
+      expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
+      expect(dialog(wrapper).text()).not.toContain('阿海，你好')
+      expect(photos(wrapper)).toHaveLength(2)
+    })
+
+    it('每一步句子右下角都有提示：有魚的 ③、⑤ 與沒有魚的 ② 也有（電腦「按空白鍵」）', async () => {
+      const hint = (wrapper) => dialog(wrapper).get('[data-testid="next-hint"]').text()
+      const wrapper = await openToPhotos()
+      expect(hint(wrapper)).toBe('按空白鍵')
+
+      await pick(wrapper, 0)
+      expect(npcLine(wrapper)).toBe(SPEECH_A_IRATAY)
+      expect(hint(wrapper)).toBe('按空白鍵')
+
+      await reachSpot({ tribe: 'iratay', hex: 0, slot: 2 })
+      await pressSpace()
+      await pressSpace()
+      expect(npcLine(wrapper)).toBe('阿海，你好。這裡還沒有魚。')
+      expect(hint(wrapper)).toBe('按空白鍵')
+    })
+
+    it('觸控裝置：③、⑤ 與沒有魚的 ② 的提示寫「點一下」', async () => {
+      mockTouch(true)
+      const hint = (wrapper) => dialog(wrapper).get('[data-testid="next-hint"]').text()
+      const wrapper = await openToPhotos()
+      expect(hint(wrapper)).toBe('點一下')
+
+      await pick(wrapper, 0)
+      expect(hint(wrapper)).toBe('點一下')
+
+      await reachSpot({ tribe: 'iratay', hex: 0, slot: 2 })
+      await pressSpace()
+      await pressSpace()
+      expect(hint(wrapper)).toBe('點一下')
+    })
+
+    it('觸控裝置：提示寫「點一下」，點對話框就是下一句', async () => {
+      mockTouch(true)
+      const wrapper = await openAt()
+      expect(dialog(wrapper).get('[data-testid="next-hint"]').text()).toBe('點一下')
+
+      await clickDialog(wrapper)
+      expect(npcLine(wrapper)).toBe('阿海，你好')
+      await clickDialog(wrapper)
+      expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
+    })
+
+    it('點照片：④ 玩家「ikongo o ya?」＋剛才選的那條魚的照片（規格修訂 2），再按一下 ⑤ 家人才講那條魚', async () => {
+      const wrapper = await openToPhotos()
+
+      await photos(wrapper)[1].trigger('click')
+      await finishTyping()
+      expect(playerLine(wrapper).text()).toBe('ikongo o ya?')
+      expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/b.jpg')
+      expect(dialog(wrapper).find('[data-testid="npc-line"]').exists()).toBe(false)
+      expect(photos(wrapper)).toHaveLength(0)
+
+      await clickDialog(wrapper)
+      expect(npcLine(wrapper)).toBe(SPEECH_UNNAMED_IRATAY)
+      expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/b.jpg')
+      expect(playerLine(wrapper).exists()).toBe(false)
+    })
+
+    it('③ 照片那一步、⑤ 講魚那一步：空白鍵關掉對話框', async () => {
+      const wrapper = await openToPhotos()
+      await pressSpace()
+      expect(dialog(wrapper).exists()).toBe(false)
+
+      await pressSpace()
+      await pressSpace()
+      await pressSpace()
+      await pick(wrapper, 0)
+      expect(npcLine(wrapper)).toBe(SPEECH_A_IRATAY)
+      await pressSpace()
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    describe('文字慢慢跳出（規格修訂 3）', () => {
+      const visibleLine = (wrapper, id) => dialog(wrapper).get(`[data-testid="${id}"]`).text()
+
+      it('一個字一個字出現，每個字約 0.05 秒；螢幕報讀器一次讀整句', async () => {
+        const wrapper = await mountPage()
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+
+        expect(visibleLine(wrapper, 'player-line')).toBe('')
+        vi.advanceTimersByTime(300)
+        await flushPromises()
+        expect(visibleLine(wrapper, 'player-line')).toBe('akay k')
+        expect(dialog(wrapper).get('[data-testid="player-line"]').attributes('aria-hidden')).toBe(
+          'true'
+        )
+        expect(wrapper.get('[data-testid="line-for-reader"]').text()).toBe('akay kong')
+      })
+
+      it('報讀區域在打開對話框之前就在（空的），打開後同一個區域換成第一句，報讀器才會讀到第一句', async () => {
+        const wrapper = await mountPage()
+        const reader = wrapper.get('[data-testid="line-for-reader"]')
+        expect(reader.attributes('aria-live')).toBe('polite')
+        expect(reader.text()).toBe('')
+
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+
+        expect(wrapper.get('[data-testid="line-for-reader"]').element).toBe(reader.element)
+        expect(reader.text()).toBe('akay kong')
+        expect(dialog(wrapper).element.contains(reader.element)).toBe(false)
+
+        await reachSpot(null)
+        expect(wrapper.get('[data-testid="line-for-reader"]').element).toBe(reader.element)
+        expect(reader.text()).toBe('')
+      })
+
+      it('角色名有擴充漢字或 emoji 時，一次跑一個完整的字，不出現半個字', async () => {
+        const wrapper = await mountPage({ character: { name: '𠀋阿👨‍👩‍👧', tribe: 'yayo' } })
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+        await finishTyping()
+        await pressSpaceOnce()
+
+        const shown = []
+        for (let i = 0; i < 3; i += 1) {
+          vi.advanceTimersByTime(50)
+          await flushPromises()
+          shown.push(visibleLine(wrapper, 'npc-line'))
+        }
+        expect(shown).toEqual(['𠀋', '𠀋阿', '𠀋阿👨‍👩‍👧'])
+      })
+
+      it('瀏覽器不支援 Intl.Segmenter（不能確定怎樣算一個完整的字）時不跑字，整句直接出現，不會出現半個字', async () => {
+        vi.stubGlobal('Intl', { ...Intl, Segmenter: undefined })
+        // 分解的韓文字（兩個碼位一個字）、組合 emoji、e 加結合重音符號
+        const name = '\u1100\u1161👨‍👩‍👧e\u0301'
+        const wrapper = await mountPage({ character: { name, tribe: 'yayo' } })
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+        expect(visibleLine(wrapper, 'player-line')).toBe('akay kong')
+
+        await pressSpaceOnce()
+        expect(visibleLine(wrapper, 'npc-line')).toBe(`${name}，你好`)
+      })
+
+      it('字還在跑時按空白鍵：先整句顯示，不跳下一句；再按才往下', async () => {
+        const wrapper = await mountPage()
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+        vi.advanceTimersByTime(100)
+
+        await pressSpaceOnce()
+        expect(visibleLine(wrapper, 'player-line')).toBe('akay kong')
+
+        await pressSpaceOnce()
+        expect(dialog(wrapper).find('[data-testid="player-line"]').exists()).toBe(false)
+        expect(wrapper.get('[data-testid="line-for-reader"]').text()).toBe('阿海，你好')
+      })
+
+      it('字還在跑時點對話框：先整句顯示，不關掉', async () => {
+        const wrapper = await openToPhotos()
+        await photos(wrapper)[0].trigger('click')
+        await finishTyping()
+        await pressSpaceOnce()
+        vi.advanceTimersByTime(100)
+
+        await dialog(wrapper).trigger('click')
+        expect(visibleLine(wrapper, 'npc-line')).toBe(SPEECH_A_IRATAY)
+        expect(dialog(wrapper).exists()).toBe(true)
+      })
+
+      it('③ 的照片、⑤ 的按鈕在句子跑完後才出現', async () => {
+        const wrapper = await openAt()
+        await pressSpace()
+        await pressSpaceOnce()
+        expect(photos(wrapper)).toHaveLength(0)
+        await finishTyping()
+        expect(photos(wrapper)).toHaveLength(2)
+
+        await photos(wrapper)[0].trigger('click')
+        await finishTyping()
+        await pressSpaceOnce()
+        expect(dialog(wrapper).find('[data-testid="ask-another"]').exists()).toBe(false)
+        expect(whoSaid(wrapper).exists()).toBe(false)
+        await finishTyping()
+        expect(dialog(wrapper).find('[data-testid="ask-another"]').exists()).toBe(true)
+        expect(whoSaid(wrapper).exists()).toBe(true)
+      })
+
+      it('「減少動態效果」時不跑字，整句直接出現', async () => {
+        vi.stubGlobal('matchMedia', (query) => ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+        }))
+        const wrapper = await mountPage()
+        await reachSpot({ tribe: 'iratay', hex: 0, slot: 1 })
+        await pressSpaceOnce()
+
+        expect(visibleLine(wrapper, 'player-line')).toBe('akay kong')
+      })
+    })
+
+    it('照片上不寫魚名，無障礙名稱是「第 n 條魚」，依地點清單的順序', async () => {
+      const wrapper = await openToPhotos()
+
+      expect(photos(wrapper).map((photo) => photo.attributes('aria-label'))).toEqual([
+        '第 1 條魚',
+        '第 2 條魚',
+      ])
+      expect(photos(wrapper).map((photo) => photo.get('img').attributes('src'))).toEqual([
+        '/a.jpg',
+        '/b.jpg',
+      ])
+      expect(dialog(wrapper).text()).not.toContain('魚A')
+    })
+
+    it('vahay 用 kaminan 的問好語，列的是 vahay 的魚', async () => {
+      const wrapper = await openAt({ tribe: 'iratay', hex: 0, slot: 0 })
+      expect(playerLine(wrapper).text()).toBe('kaminan kong')
+
+      await pressSpace()
+      await pressSpace()
+      expect(photos(wrapper).map((photo) => photo.get('img').attributes('src'))).toEqual(['/k.jpg'])
+    })
+
+    it('這個地點沒有魚：② 家人說「阿海，你好。這裡還沒有魚。」，不列照片；再按就關掉', async () => {
+      const wrapper = await openAt({ tribe: 'iratay', hex: 0, slot: 2 })
+
+      await pressSpace()
+      expect(npcLine(wrapper)).toBe('阿海，你好。這裡還沒有魚。')
+      expect(photos(wrapper)).toHaveLength(0)
+
+      await pressSpace()
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    it('家人講那條魚、旁邊放那條魚的照片；有可以看的說法才出現「誰說的？」；沒有「我來說」', async () => {
+      const wrapper = await openToPhotos()
+
+      await pick(wrapper, 0)
+
+      expect(npcLine(wrapper)).toBe(SPEECH_A_IRATAY)
+      expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/a.jpg')
+      expect(whoSaid(wrapper).exists()).toBe(true)
+      expect(photos(wrapper)).toHaveLength(0)
+      expect(wrapper.text()).not.toContain('我來說')
+      expect(wrapper.find('a[href*="/fish/"]').exists()).toBe(false)
+    })
+
+    it('沒有可以看的說法的魚：不出現「誰說的？」', async () => {
+      const wrapper = await openToPhotos()
+
+      await pick(wrapper, 1)
+
+      expect(npcLine(wrapper)).toBe(SPEECH_UNNAMED_IRATAY)
+      expect(whoSaid(wrapper).exists()).toBe(false)
+    })
+
+    it('「誰說的？」打開細節視窗（所在部落是這一戶的部落），沒有「我也來說」；Escape 只關細節視窗，焦點回到「誰說的？」', async () => {
+      const wrapper = await openToPhotos()
+      await pick(wrapper, 0)
+
+      await whoSaid(wrapper).trigger('click')
+      await flushPromises()
+      expect(detail(wrapper).exists()).toBe(true)
+      expect(detail(wrapper).find('[data-current="true"]').text()).toContain('iratay')
+      expect(wrapper.find('[data-testid="answer-link"]').exists()).toBe(false)
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await flushPromises()
+      expect(detail(wrapper).exists()).toBe(false)
+      expect(dialog(wrapper).exists()).toBe(true)
+      expect(document.activeElement).toBe(whoSaid(wrapper).element)
+    })
+
+    it('細節視窗開著時：空白鍵不關對話框；走出範圍時細節視窗與對話框一起關掉', async () => {
+      const wrapper = await openToPhotos()
+      await pick(wrapper, 0)
+      await whoSaid(wrapper).trigger('click')
+      await flushPromises()
+
+      await pressSpace(document.activeElement)
+      expect(detail(wrapper).exists()).toBe(true)
+      expect(dialog(wrapper).exists()).toBe(true)
+
+      await reachSpot(null)
+      expect(detail(wrapper).exists()).toBe(false)
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    it('「問別條」回到 ③（不重複問好），剛才問過的照片標「聽過了」，沒問過的不標', async () => {
+      const wrapper = await openToPhotos()
+      await pick(wrapper, 0)
+
+      await dialog(wrapper).get('[data-testid="ask-another"]').trigger('click')
+      await finishTyping()
+
+      expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
+      expect(photos(wrapper)[0].text()).toContain('聽過了')
+      expect(photos(wrapper)[1].text()).not.toContain('聽過了')
+    })
+
+    it('關掉再打開：從 ① 重新開始，「聽過了」保留；走到另一個部落同一件：列那個部落的魚、說那個部落的話，「聽過了」分開記', async () => {
+      const wrapper = await openToPhotos()
+      await pick(wrapper, 0)
+
+      await pressSpace()
+      await pressSpace()
+      expect(playerLine(wrapper).text()).toBe('akay kong')
+      await pressSpace()
+      await pressSpace()
+      expect(photos(wrapper)[0].text()).toContain('聽過了')
+
+      await reachSpot({ tribe: 'ivalino', hex: 0, slot: 1 })
+      await pressSpace()
+      await pressSpace()
+      await pressSpace()
+      expect(photos(wrapper)).toHaveLength(1)
+      expect(photos(wrapper)[0].text()).not.toContain('聽過了')
+      await pick(wrapper, 0)
+      expect(npcLine(wrapper)).toBe(SPEECH_A_IVALINO)
+      expect(whoSaid(wrapper).exists()).toBe(false)
+    })
+
+    it('焦點在對話框裡的按鈕上：空白鍵是按那顆按鈕，不關對話框、這一頁不攔', async () => {
+      const wrapper = await openToPhotos()
+      const photo = photos(wrapper)[0].element
+      photo.focus()
+
+      const event = await pressSpace(photo)
+
+      expect(event.defaultPrevented).toBe(false)
+      expect(dialog(wrapper).exists()).toBe(true)
+    })
+
+    it('點照片不會關掉對話框；⑤ 點對話框空白的地方關掉（#201）', async () => {
+      const wrapper = await openToPhotos()
+
+      await pick(wrapper, 0)
+      expect(dialog(wrapper).exists()).toBe(true)
+
+      await clickDialog(wrapper)
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    describe('照片列的箭頭（電腦）', () => {
+      /** 假裝照片列有 $total 寬、看得到 $visible、已捲到 $left（jsdom 不排版） */
+      const layout = async (wrapper, { visible, total, left }) => {
+        const strip = dialog(wrapper).get('[data-testid="fish-strip"]')
+        Object.defineProperty(strip.element, 'clientWidth', { configurable: true, value: visible })
+        Object.defineProperty(strip.element, 'scrollWidth', { configurable: true, value: total })
+        strip.element.scrollLeft = left
+        strip.element.scrollBy = vi.fn()
+        await strip.trigger('scroll')
+        return strip
+      }
+      const arrow = (wrapper, side) => dialog(wrapper).find(`[data-testid="strip-${side}"]`)
+
+      it('在最左邊：只顯示右箭頭；按右箭頭往右捲一個畫面寬（平滑）', async () => {
+        const wrapper = await openToPhotos()
+        const strip = await layout(wrapper, { visible: 300, total: 900, left: 0 })
+
+        expect(arrow(wrapper, 'prev').exists()).toBe(false)
+        await arrow(wrapper, 'next').trigger('click')
+        expect(strip.element.scrollBy).toHaveBeenCalledWith({ left: 300, behavior: 'smooth' })
+      })
+
+      it('捲到最右邊：只顯示左箭頭；按左箭頭往左捲一個畫面寬', async () => {
+        const wrapper = await openToPhotos()
+        const strip = await layout(wrapper, { visible: 300, total: 900, left: 600 })
+
+        expect(arrow(wrapper, 'next').exists()).toBe(false)
+        await arrow(wrapper, 'prev').trigger('click')
+        expect(strip.element.scrollBy).toHaveBeenCalledWith({ left: -300, behavior: 'smooth' })
+      })
+
+      it('全部看得到：兩邊都沒有箭頭', async () => {
+        const wrapper = await openToPhotos()
+        await layout(wrapper, { visible: 300, total: 300, left: 0 })
+
+        expect(arrow(wrapper, 'prev').exists()).toBe(false)
+        expect(arrow(wrapper, 'next').exists()).toBe(false)
+      })
+
+      it('「減少動態效果」時捲動不用平滑動畫', async () => {
+        vi.stubGlobal('matchMedia', (query) => ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+        }))
+        const wrapper = await openToPhotos()
+        const strip = await layout(wrapper, { visible: 300, total: 900, left: 0 })
+
+        await arrow(wrapper, 'next').trigger('click')
+        expect(strip.element.scrollBy).toHaveBeenCalledWith({ left: 300, behavior: 'auto' })
+      })
     })
   })
 })

@@ -16,11 +16,19 @@
         @member-tap="toggleDialog"
       />
       <IslandSpotPrompt
+        ref="spotPrompt"
         :spot="currentSpot"
         :open="dialogOpen"
         :speaker="character.name"
         :touch="isTouch"
+        :tribe="reachedSpot?.tribe ?? currentTribe"
+        :fish="currentSpotFish"
+        :heard="currentHeard"
+        :tribes="tribes"
+        :result-options="result_options"
+        :unknown-processing-method="unknown_processing_method"
         @activate="toggleDialog"
+        @ask="markHeard"
       />
     </div>
     <p class="mt-2 px-1 text-elder-aux text-island-muted">
@@ -62,6 +70,11 @@ const props = defineProps({
   current_tribe: { type: String, required: true },
   // 每個部落 12 個地點（3 戶 × 4 件）的名稱、稱呼、問好語（#201）
   spots: { type: Object, required: true },
+  // #216：每條魚一次（編號、照片、魚名、各部落結果人數）；每個部落 12 個地點列的魚（編號、家人說的話、有沒有可以看的說法）
+  island_fish: { type: Array, required: true },
+  spot_fish: { type: Object, required: true },
+  result_options: { type: Object, required: true },
+  unknown_processing_method: { type: String, required: true },
 })
 
 const LOCATION_URL = '/island/location'
@@ -99,11 +112,34 @@ async function rememberLocation(tribe) {
 const SPOTS_PER_HOUSEHOLD = 4
 const reachedSpot = ref(null)
 const dialogOpen = ref(false)
+const spotPrompt = ref(null)
 const currentSpot = computed(() => {
   const spot = reachedSpot.value
   return spot && props.spots[spot.tribe][spot.hex * SPOTS_PER_HOUSEHOLD + spot.slot]
 })
 const isTouch = window.matchMedia?.('(pointer: coarse)').matches ?? false
+
+// ── 對話裡的魚（#216）──
+const fishById = new Map(props.island_fish.map((fish) => [fish.id, fish]))
+const currentSpotFish = computed(() => {
+  const spot = reachedSpot.value
+  const entries = spot
+    ? (props.spot_fish[spot.tribe]?.[spot.hex * SPOTS_PER_HOUSEHOLD + spot.slot] ?? [])
+    : []
+  return entries.map((entry) => ({ ...fishById.get(entry.id), ...entry }))
+})
+
+// 「聽過了」只記在這次打開的頁面，依部落分開
+const heardByTribe = ref({})
+const currentHeard = computed(() => new Set(heardByTribe.value[reachedSpot.value?.tribe] ?? []))
+
+function markHeard(id) {
+  const tribe = reachedSpot.value.tribe
+  heardByTribe.value = {
+    ...heardByTribe.value,
+    [tribe]: [...(heardByTribe.value[tribe] ?? []), id],
+  }
+}
 
 function reachSpot(spot) {
   reachedSpot.value = spot
@@ -116,11 +152,21 @@ function toggleDialog() {
   }
 }
 
-// 電腦按空白鍵開關對話框（規格修訂 2）；有提示時不讓空白鍵捲動網頁，沒有提示時照瀏覽器原本的行為
+// 電腦按空白鍵開對話框（規格修訂 2）；開著時是下一句、最後一句再按就關掉（#216 規格修訂 1）。
+// 有提示時不讓空白鍵捲動網頁，沒有提示時照瀏覽器原本的行為。
+// 焦點在對話框或細節視窗裡時不攔，空白鍵照那顆按鈕的行為（#216）
+function focusInDialog() {
+  return Boolean(document.activeElement?.closest?.('[data-island-dialog], [role="dialog"]'))
+}
+
 function onKeydown(event) {
-  if (event.key === ' ' && currentSpot.value) {
+  if (event.key === ' ' && currentSpot.value && !focusInDialog()) {
     event.preventDefault()
-    toggleDialog()
+    if (dialogOpen.value) {
+      spotPrompt.value.next()
+    } else {
+      toggleDialog()
+    }
   }
 }
 
