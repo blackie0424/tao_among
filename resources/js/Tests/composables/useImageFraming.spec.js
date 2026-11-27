@@ -100,3 +100,66 @@ describe('useImageFraming 顯示規則', () => {
     expect(framedImageStyle(layout(4000, 3000, 320, 180, null)).transform).toBe('none')
   })
 })
+
+import { dragFraming, effectiveCenter, framingToFields, rotateFraming, zoomFraming } from '@/composables/useImageFraming'
+
+describe('編輯器：拖曳、放大、旋轉', () => {
+  const photo = { width: 4000, height: 3000 }
+  const frame = { width: 320, height: 240 } // 4:3 調整框
+
+  it('effectiveCenter：置中 1.0x 的中心是 50/50；中心被夾限時回報實際在框中央的點', () => {
+    expect(effectiveCenter(computeFramedLayout({ photoWidth: 4000, photoHeight: 3000, frameWidth: 320, frameHeight: 240, framing: null }))).toEqual({ x: 50, y: 50 })
+
+    // 1.0x、框 320×180：縱向只有 240 的照片，中心 0% 會被夾限，實際中央在照片 37.5%
+    const clamped = computeFramedLayout({ photoWidth: 4000, photoHeight: 3000, frameWidth: 320, frameHeight: 180, framing: { x: 50, y: 0, zoom: 1, rotation: 0 } })
+    expect(effectiveCenter(clamped).y).toBeCloseTo(37.5)
+  })
+
+  it('拖曳：2.0x 時手指往右拖 100px，魚身中心往左移（顯示 640px 寬，移 100/640＝15.625%）', () => {
+    const next = dragFraming({ x: 50, y: 50, zoom: 2, rotation: 0 }, photo, frame, 100, 0)
+
+    expect(next.x).toBeCloseTo(34.38, 1)
+    expect(next.y).toBe(50)
+    expect(next.zoom).toBe(2)
+  })
+
+  it('拖曳到照片邊緣：寫回夾限後的實際中心，不會超出可移動範圍', () => {
+    const next = dragFraming({ x: 50, y: 50, zoom: 2, rotation: 0 }, photo, frame, 5000, 0)
+
+    // 2.0x 時框只能看到照片寬度的一半，中心最左只能到 25%
+    expect(next.x).toBeCloseTo(25)
+  })
+
+  it('1.0x 時沒有可移動空間的方向，拖曳不改變', () => {
+    const next = dragFraming(null, photo, frame, 80, 80)
+
+    expect(next).toEqual({ x: 50, y: 50, zoom: 1, rotation: 0 })
+  })
+
+  it('放大保持框中央的點不動，並夾在 1.0～3.0', () => {
+    const at = { x: 30, y: 50, zoom: 2, rotation: 0 }
+    const centerBefore = effectiveCenter(computeFramedLayout({ photoWidth: 4000, photoHeight: 3000, frameWidth: 320, frameHeight: 240, framing: at }))
+
+    const zoomed = zoomFraming(at, photo, frame, 2.5)
+    expect(zoomed.zoom).toBe(2.5)
+    expect(zoomed.x).toBeCloseTo(centerBefore.x, 1)
+
+    expect(zoomFraming(at, photo, frame, 9).zoom).toBe(3)
+    expect(zoomFraming(at, photo, frame, 0.2).zoom).toBe(1)
+  })
+
+  it('旋轉：每次 90 度，中心與放大重設為 50/50/1.0；可連續轉、可反向', () => {
+    expect(rotateFraming({ x: 20, y: 30, zoom: 2, rotation: 0 }, 1)).toEqual({ x: 50, y: 50, zoom: 1, rotation: 90 })
+    expect(rotateFraming({ x: 50, y: 50, zoom: 1, rotation: 270 }, 1).rotation).toBe(0)
+    expect(rotateFraming(null, -1).rotation).toBe(270)
+  })
+
+  it('framingToFields：有調整是四個值，沒調整（null）是四個 null', () => {
+    expect(framingToFields({ x: 30.5, y: 60, zoom: 1.5, rotation: 90 })).toEqual({
+      image_focus_x: 30.5, image_focus_y: 60, image_zoom: 1.5, image_rotation: 90,
+    })
+    expect(framingToFields(null)).toEqual({
+      image_focus_x: null, image_focus_y: null, image_zoom: null, image_rotation: null,
+    })
+  })
+})

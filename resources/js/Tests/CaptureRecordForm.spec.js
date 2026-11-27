@@ -108,8 +108,10 @@ describe('CaptureRecordForm', () => {
 
     expect(wrapper.emitted('submit')[0][0]).toEqual({
       notes: '只改備註',
-      image_position: 'center',
-      image_scale: 1,
+      image_focus_x: null,
+      image_focus_y: null,
+      image_zoom: null,
+      image_rotation: null,
       _method: 'PUT',
     })
   })
@@ -235,5 +237,69 @@ describe('CaptureRecordForm', () => {
     await flushPromises()
 
     expect(global.fetch).toHaveBeenCalledWith('/prefix/api/storage/signed-upload-url', expect.objectContaining({ method: 'POST' }))
+  })
+})
+describe('CaptureRecordForm 調整照片（#218）', () => {
+  const framing = { x: 30, y: 60, zoom: 1.5, rotation: 90 }
+
+  it('編輯模式顯示調整照片區塊，舊的「顯示位置」「縮放比例」不存在', () => {
+    const wrapper = mount(CaptureRecordForm, { props: { ...defaultProps, record: { ...legacyRecord, framing } } })
+
+    expect(wrapper.find('[data-testid="image-framing-editor"]').exists()).toBe(true)
+    expect(wrapper.find('#image_position').exists()).toBe(false)
+    expect(wrapper.find('#image_scale').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('顯示位置')
+  })
+
+  it('以紀錄現有的調整值開始，存檔時送出四個欄位', async () => {
+    const wrapper = mount(CaptureRecordForm, { props: { ...defaultProps, record: { ...legacyRecord, session_id: 19, framing } } })
+    await nextTick()
+    wrapper.vm.submitForm()
+
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+      image_focus_x: 30, image_focus_y: 60, image_zoom: 1.5, image_rotation: 90,
+    })
+  })
+
+  it('按「還原」後存檔，送出四個 null', async () => {
+    const wrapper = mount(CaptureRecordForm, { props: { ...defaultProps, record: { ...legacyRecord, session_id: 19, framing } } })
+    await nextTick()
+    await wrapper.get('[data-testid="framing-reset"]').trigger('click')
+    wrapper.vm.submitForm()
+
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+      image_focus_x: null, image_focus_y: null, image_zoom: null, image_rotation: null,
+    })
+  })
+
+  it('旋轉後存檔，送出旋轉角度並把中心與放大重設', async () => {
+    const wrapper = mount(CaptureRecordForm, { props: { ...defaultProps, record: { ...legacyRecord, session_id: 19, framing } } })
+    await nextTick()
+    await wrapper.get('[data-testid="rotate-right"]').trigger('click')
+    wrapper.vm.submitForm()
+
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+      image_focus_x: 50, image_focus_y: 50, image_zoom: 1, image_rotation: 180,
+    })
+  })
+
+  it('選了新照片後，隱藏調整區塊並提醒先存檔再調整', async () => {
+    global.fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ url: 'https://s3.example/upload', filename: 'new.jpg' }) })
+      .mockResolvedValueOnce({ ok: true })
+    const wrapper = mount(CaptureRecordForm, { props: { ...defaultProps, record: { ...legacyRecord, framing } } })
+    const input = wrapper.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [new File(['x'], 'new.jpg', { type: 'image/jpeg' })], configurable: true })
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="image-framing-editor"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="framing-after-replace"]').text()).toContain('先按「更新」')
+  })
+
+  it('新增模式沒有調整照片區塊', () => {
+    const wrapper = mount(CaptureRecordForm, { props: { ...defaultProps } })
+
+    expect(wrapper.find('[data-testid="image-framing-editor"]').exists()).toBe(false)
   })
 })

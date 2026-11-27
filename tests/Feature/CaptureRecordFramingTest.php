@@ -6,6 +6,7 @@ use App\Models\Fish;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -245,4 +246,17 @@ it('主圖紀錄沒調整過：framing 是 null', function () {
     ]);
 
     expect(Fish::with('displayCaptureRecord')->find($fish->id)->display_image_framing)->toBeNull();
+});
+
+it('編輯頁帶出這筆紀錄的調整值', function () {
+    [$editor, $fish, $record] = framingRecord([
+        'image_focus_x' => 30, 'image_focus_y' => 60, 'image_zoom' => 1.5, 'image_rotation' => 90,
+    ]);
+
+    $this->actingAs($editor)->get(framingUrl($fish, $record).'/edit')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('EditCaptureRecord')
+            ->where('record.framing', ['x' => 30, 'y' => 60, 'zoom' => 1.5, 'rotation' => 90])
+        );
 });

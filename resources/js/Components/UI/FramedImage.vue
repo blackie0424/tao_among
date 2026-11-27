@@ -33,7 +33,7 @@ const props = defineProps({
   ratio: { type: String, default: 'frame' },
 })
 
-const emit = defineEmits(['failed'])
+const emit = defineEmits(['failed', 'loaded'])
 
 const lazyImage = ref(null)
 const photo = ref(null)
@@ -43,6 +43,7 @@ let observer = null
 
 function onLoaded(size) {
   photo.value = size
+  emit('loaded', size)
 }
 
 function onFailed() {

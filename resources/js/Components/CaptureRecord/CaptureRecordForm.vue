@@ -3,16 +3,16 @@
 
     <!-- ── 圖片區塊（兩種模式共用） ── -->
     <div :class="isEditMode ? '' : (step === 1 ? 'space-y-4 md:space-y-6' : 'hidden')">
-      <!-- Edit mode：顯示現有圖片 -->
-      <div v-if="isEditMode && record.image_url && !imagePreview" class="mb-4">
-        <p class="text-sm text-gray-600 mb-2">當前照片：</p>
-        <LazyImage
-          :src="record.image_url"
-          alt="當前捕獲照片"
-          wrapperClass="fish-image-wrapper"
-          imgClass="fish-image"
-        />
-      </div>
+      <!-- Edit mode：調整現有照片（魚身中心、放大、旋轉）；已選新照片時，調整值會在存檔時清空 -->
+      <ImageFramingEditor
+        v-if="isEditMode && record.image_url && !replacingImage"
+        :src="record.image_url"
+        v-model="form.framing"
+        class="mb-4"
+      />
+      <p v-else-if="isEditMode && replacingImage" data-testid="framing-after-replace" class="mb-4 text-base text-gray-600">
+        更換照片後，原本的位置調整會清空。請先按「更新」，再回來調整新照片。
+      </p>
 
       <!-- 上傳區 -->
       <div
@@ -189,48 +189,6 @@
         ></textarea>
         <div v-if="errors.notes" class="text-red-500 text-base mt-1">{{ errors.notes }}</div>
       </div>
-
-      <!-- ── 圖片顯示調整（僅 edit mode） ── -->
-      <template v-if="isEditMode">
-        <div class="border-t border-gray-200 pt-6 space-y-6">
-          <h3 class="text-xl font-semibold text-gray-700">圖片顯示調整</h3>
-
-          <div>
-            <label for="image_position" class="block text-xl font-medium text-gray-700 mb-2">顯示位置</label>
-            <select
-              id="image_position"
-              v-model="form.image_position"
-              class="w-full px-3 py-2 text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="center">置中</option>
-              <option value="top">靠上</option>
-              <option value="bottom">靠下</option>
-              <option value="left">靠左</option>
-              <option value="right">靠右</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="image_scale" class="block text-xl font-medium text-gray-700 mb-2">
-              縮放比例：{{ Number(form.image_scale).toFixed(1) }}x
-            </label>
-            <input
-              id="image_scale"
-              v-model.number="form.image_scale"
-              type="range"
-              min="0.8"
-              max="2.0"
-              step="0.1"
-              class="w-full"
-            />
-            <div class="flex justify-between text-sm text-gray-500 mt-1">
-              <span>0.8x</span>
-              <span>1.4x</span>
-              <span>2.0x</span>
-            </div>
-          </div>
-        </div>
-      </template>
     </template>
 
   </form>
@@ -238,7 +196,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import LazyImage from '@/Components/UI/LazyImage.vue'
+import ImageFramingEditor from '@/Components/CaptureRecord/ImageFramingEditor.vue'
+import { framingToFields } from '@/composables/useImageFraming'
 import CaptureRecordSessionSelector from '@/Components/CaptureRecord/CaptureRecordSessionSelector.vue'
 import { useImageUpload } from '@/composables/useImageUpload'
 import { useCaptureFormFields } from '@/composables/useCaptureFormFields'
@@ -284,6 +243,9 @@ const {
 
 const { form, errors, validateCaptureFields, buildFormData } = useCaptureFormFields()
 
+// 編輯模式已選了新照片（預覽或已上傳）：舊照片的調整值會在存檔時清空
+const replacingImage = computed(() => !!imagePreview.value || !!uploadedFilename.value)
+
 // ── Edit mode: 初始化表單資料 ──
 onMounted(() => {
   if (props.record) {
@@ -294,8 +256,7 @@ onMounted(() => {
       ? String(props.record.capture_date).slice(0, 10)
       : ''
     form.notes = props.record.notes || ''
-    form.image_position = props.record.image_position || 'center'
-    form.image_scale = props.record.image_scale != null ? parseFloat(props.record.image_scale) : 1
+    form.framing = props.record.framing ?? null
   }
 })
 
@@ -390,8 +351,7 @@ function submitForm() {
     const formData = linkedToSession.value
       ? {
           notes: form.notes,
-          image_position: form.image_position,
-          image_scale: form.image_scale,
+          ...framingToFields(form.framing),
           _method: 'PUT',
         }
       : { ...buildFormData(), _method: 'PUT' }
