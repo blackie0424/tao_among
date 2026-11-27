@@ -29,7 +29,7 @@ export function footprintCorners({ x, z, width, depth, heading }) {
 }
 
 /** 點是否在多邊形裡（射線法，凹的多邊形也可以） */
-function isInPolygon(point, polygon) {
+export function isInPolygon(point, polygon) {
   return edgesOf(polygon).reduce((inside, [a, b]) => {
     const crosses =
       a.z > point.z !== b.z > point.z &&

@@ -6,11 +6,10 @@ import {
   ISLAND_SCALE,
   WALK_SPEED,
   insetOutline,
-  mountainColor,
 } from '@/island3d/islandMap'
 import {
+  LANDMARKS,
   footprintCorners,
-  footprintGapToPoint,
   footprintGapToSegment,
   footprintInside,
   footprintsOverlap,
@@ -18,6 +17,7 @@ import {
 import { PADDY_LAYOUTS, paddySize } from '@/island3d/paddyShape'
 import { createRouter } from '@/island3d/route'
 import { createWalkable } from '@/island3d/walkable'
+import { heightAt, islandHeightField } from '@/island3d/terrainHeight'
 
 const center = (code) => ISLAND_MAP.tribes.find((tribe) => tribe.code === code).center
 /** 一個部落的 3 格中心：主格、第 2 格、第 3 格 */
@@ -336,7 +336,7 @@ describe('island3d/islandMap 格子放大與橫貫公路的接點（#207 驗收�
   })
 })
 
-describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () => {
+describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 改成地形，見 terrainHeight.spec）', () => {
   const awayFromWalkable = (point) => {
     const nearest = walkable.clampToWalkable(point)
     return Math.hypot(nearest.x - point.x, nearest.z - point.z)
@@ -358,24 +358,14 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
       )
     )
 
-  it('山不壓到部落格子與公路：每座山的山腳離可走範圍至少 2', () => {
-    expect(ISLAND_DECOR.mountains.length).toBeGreaterThan(0)
-    ISLAND_DECOR.mountains.forEach((mountain) => {
-      expect(awayFromWalkable(mountain)).toBeGreaterThanOrEqual(mountain.radius + 2)
-    })
-  })
-
-  it('山在島上：每座山的中心都在海岸線裡面', () => {
-    ISLAND_DECOR.mountains.forEach((mountain) => {
-      expect(isInside(mountain, ISLAND_DECOR.coast)).toBe(true)
-    })
-  })
-
-  it('有山在島的中間（原點附近），橫貫公路從山區穿過', () => {
-    expect(ISLAND_DECOR.mountains.some((m) => Math.hypot(m.x, m.z) < 45)).toBe(true)
-    // 橫貫公路的折點南北兩側都有山
-    expect(ISLAND_DECOR.mountains.some((m) => m.z < 45)).toBe(true)
-    expect(ISLAND_DECOR.mountains.some((m) => m.z > 45)).toBe(true)
+  it('有山在島的中間（原點附近），橫貫公路從山區穿過（#223 改看地形高度）', () => {
+    const field = islandHeightField()
+    // 山田山頂（OpenStreetMap，換算成 (24.5, -0.8)）離原點 45 以內，地形超過 15 單位
+    expect(heightAt(field, { x: 24, z: 0 })).toBeGreaterThan(15)
+    // 橫貫公路大致南北走向，中段 (33.75, 45.75) 走在山坳：路是平地，東西兩側 15 單位都是坡（超過 1 單位）
+    expect(heightAt(field, { x: 33.75, z: 45.75 })).toBe(0)
+    expect(heightAt(field, { x: 18.75, z: 45.75 })).toBeGreaterThan(1)
+    expect(heightAt(field, { x: 48.75, z: 45.75 })).toBeGreaterThan(1)
   })
 
   it('部落格子與公路都在海岸線裡面（不會畫在海上）', () => {
@@ -469,77 +459,6 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
     })
   })
 
-  it('至少 8 座山、至少 4 種高度（#207 驗收條件 4）', () => {
-    expect(ISLAND_DECOR.mountains.length).toBeGreaterThanOrEqual(8)
-    expect(new Set(ISLAND_DECOR.mountains.map((m) => m.height)).size).toBeGreaterThanOrEqual(4)
-  })
-
-  it('最高的山對應紅頭山：在北半部、朗島與東清之間的內陸', () => {
-    const highest = ISLAND_DECOR.mountains.reduce((a, b) => (b.height > a.height ? b : a))
-
-    expect(highest.z).toBeLessThan(0)
-    expect(highest.x).toBeGreaterThan(center('iraraley').x)
-    expect(highest.x).toBeLessThan(center('iranmeilek').x)
-    expect(coastGap(highest)).toBeGreaterThan(30)
-  })
-
-  it('山在實際山頭的位置：離由經緯度換算的山頂（手寫）不超過 15 單位，越高的山頭在 3D 裡也越高', () => {
-    // [x, z, 實際高度（公尺）]，OpenStreetMap 的山頂位置（#207 的數值放大 1.5 倍）
-    const peaks = [
-      [-53.7, -30.0, 548], // 紅頭山
-      [-110.1, -50.85, 509], // 相愛山
-      [-58.8, -77.85, 495], // 殺蛇山
-      [124.35, 129.9, 483], // 大森山
-      [23.4, -108.15, 464], // 尖禿山
-      [-24.75, -55.35, 439], // 青蛇山
-      [24.45, -0.75, 432], // 山田山
-      [-38.25, 26.55, 408], // 飯山
-      [153.6, 94.35, 378], // 龍門溪山
-      [59.25, 59.1, 298], // 奧本嶺
-      [-45.6, 51.3, 236], // 台山
-    ]
-    const nearestPeak = (mountain) =>
-      peaks.reduce((a, b) =>
-        Math.hypot(b[0] - mountain.x, b[1] - mountain.z) <
-        Math.hypot(a[0] - mountain.x, a[1] - mountain.z)
-          ? b
-          : a
-      )
-    const matched = ISLAND_DECOR.mountains.map((mountain) => {
-      const [x, z, metres] = nearestPeak(mountain)
-      expect(Math.hypot(x - mountain.x, z - mountain.z)).toBeLessThanOrEqual(15)
-      return { metres, height: mountain.height }
-    })
-
-    expect(new Set(matched.map((m) => m.metres)).size).toBe(matched.length)
-    const byMetres = [...matched].sort((a, b) => a.metres - b.metres)
-    byMetres.slice(1).forEach((m, i) => expect(m.height).toBeGreaterThan(byMetres[i].height))
-  })
-
-  it('山的顏色：越高越深、同高同色', () => {
-    // 亮度用 RGB 加總比較（顏色是 #rrggbb）
-    const brightness = (hex) =>
-      [1, 3, 5].reduce((sum, i) => sum + parseInt(hex.slice(i, i + 2), 16), 0)
-
-    // 山的高度也放大 1.5 倍，深淺的分界跟著放大：#207 的 10、16、22 對應這裡的 15、24、33
-    expect(mountainColor(15)).toMatch(/^#[0-9a-f]{6}$/)
-    expect(mountainColor(22.5)).toBe(mountainColor(22.5))
-    expect(brightness(mountainColor(33))).toBeLessThan(brightness(mountainColor(24)))
-    expect(brightness(mountainColor(24))).toBeLessThan(brightness(mountainColor(15)))
-    const byHeight = [...ISLAND_DECOR.mountains].sort((a, b) => a.height - b.height)
-    byHeight.slice(1).forEach((m, i) => {
-      expect(brightness(mountainColor(m.height))).toBeLessThanOrEqual(
-        brightness(mountainColor(byHeight[i].height))
-      )
-    })
-  })
-
-  it('山不在沙灘上：中心離海岸線超過沙灘寬度', () => {
-    ISLAND_DECOR.mountains.forEach((mountain) => {
-      expect(coastGap(mountain)).toBeGreaterThan(ISLAND_DECOR.beachWidth)
-    })
-  })
-
   describe('水田（#207 驗收條件 5、#212 驗收條件 11）', () => {
     const paddies = ISLAND_DECOR.paddies
     const beside = paddies.filter((paddy) => paddy.tribe)
@@ -586,17 +505,49 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
       expect(new Set(paddies.map((paddy) => paddy.layout.join('x'))).size).toBe(4)
     })
 
-    it('部落旁的在格子外、靠山的那一側（比主格中心離海岸線更遠）、離該部落任一格的邊不超過 8', () => {
-      beside.forEach((paddy) => {
+    it('部落旁的在格子外、環島公路靠內陸那一側、佔地離路邊 0～2、離該部落任一格的邊不超過 8（#223 驗收條件 6）', () => {
+      // 野銀旁的環島公路沒有空位，放在橫貫公路旁（#223 規格修訂 1），另一條測試
+      beside.filter((paddy) => paddy.tribe !== 'ivalino').forEach((paddy) => {
+        const corners = footprintCorners(paddy)
         const fromEdge = Math.min(
           ...hexesOf(paddy.tribe).map((at) =>
-            distanceBetween(paddy, clampToHex(paddy, ISLAND_MAP.hexRadius, at))
+            Math.min(...corners.map((corner) => distanceBetween(corner, clampToHex(corner, ISLAND_MAP.hexRadius, at))))
           )
+        )
+        const fromRoad = Math.min(
+          ...ringSegments.map(([a, b]) => footprintGapToSegment(corners, a, b))
         )
 
         expect(walkable.tribeAt(paddy)).toBeNull()
-        expect(fartherInland(center(paddy.tribe), paddy)).toBe(true)
+        expect(fartherInland(nearestOnRing(paddy), paddy)).toBe(true)
+        expect(fromRoad).toBeGreaterThan(ISLAND_MAP.roadHalfWidth)
+        expect(fromRoad).toBeLessThanOrEqual(ISLAND_MAP.roadHalfWidth + 2)
         expect(fromEdge).toBeLessThanOrEqual(8)
+      })
+    })
+
+    it('野銀旁的在橫貫公路旁：佔地離橫貫公路的路邊 0～2、離野銀任一格的邊不超過 8（#223 規格修訂 1）', () => {
+      const paddy = beside.find((item) => item.tribe === 'ivalino')
+      const corners = footprintCorners(paddy)
+      const crossSegments = crossRoad.points.slice(1).map((to, i) => [crossRoad.points[i], to])
+      const fromRoad = Math.min(...crossSegments.map(([a, b]) => footprintGapToSegment(corners, a, b)))
+      const fromEdge = Math.min(
+        ...hexesOf('ivalino').map((at) =>
+          Math.min(...corners.map((corner) => distanceBetween(corner, clampToHex(corner, ISLAND_MAP.hexRadius, at))))
+        )
+      )
+
+      expect(walkable.tribeAt(paddy)).toBeNull()
+      expect(fromRoad).toBeGreaterThan(ISLAND_MAP.roadHalfWidth)
+      expect(fromRoad).toBeLessThanOrEqual(ISLAND_MAP.roadHalfWidth + 2)
+      expect(fromEdge).toBeLessThanOrEqual(8)
+    })
+
+    it('不壓到特色建築（#223 驗收條件 6）', () => {
+      paddies.forEach((paddy) => {
+        LANDMARKS.forEach((landmark) => {
+          expect(footprintsOverlap(footprintCorners(paddy), footprintCorners(landmark))).toBe(false)
+        })
       })
     })
 
@@ -630,16 +581,13 @@ describe('island3d/islandMap 山、海岸與船（#200 驗收條件 10）', () =
       })
     })
 
-    it('整塊都在海岸線裡面、不在沙灘上、離每座山的山腳至少 2', () => {
+    it('整塊都在海岸線裡面、不在沙灘上', () => {
       paddies.forEach((paddy) => {
         const corners = footprintCorners(paddy)
 
         expect(footprintInside(corners, ISLAND_DECOR.coast)).toBe(true)
         edgesOf(ISLAND_DECOR.coast).forEach(([a, b]) => {
           expect(footprintGapToSegment(corners, a, b)).toBeGreaterThan(ISLAND_DECOR.beachWidth)
-        })
-        ISLAND_DECOR.mountains.forEach((mountain) => {
-          expect(footprintGapToPoint(corners, mountain)).toBeGreaterThanOrEqual(mountain.radius + 2)
         })
       })
     })
@@ -682,17 +630,6 @@ describe('island3d/islandMap 島放大 1.5 倍（#212 驗收條件 1）', () => 
     expect(ringRoad.points.some((point) => closeTo(point, [172.5, 94.8]))).toBe(true)
     expect(crossRoad.points).toHaveLength(5)
     expect(closeTo(crossRoad.points[2], [33.75, 45.75])).toBe(true)
-  })
-
-  it('山的位置、山腳半徑、高度都是 #207 數值的 1.5 倍（手寫的抽樣）', () => {
-    // #207：紅頭山 (-35.8, -20.0) 半徑 14.1 高 21.9；台山 (-33.4, 28.0) 半徑 5.9 高 9.4
-    const find = (x, z) => ISLAND_DECOR.mountains.find((m) => closeTo(m, [x, z]))
-
-    expect(ISLAND_DECOR.mountains).toHaveLength(11)
-    expect(find(-53.7, -30.0).radius).toBeCloseTo(21.15, 9)
-    expect(find(-53.7, -30.0).height).toBeCloseTo(32.85, 9)
-    expect(find(-50.1, 42.0).radius).toBeCloseTo(8.85, 9)
-    expect(find(-50.1, 42.0).height).toBeCloseTo(14.1, 9)
   })
 
   it('船的位置是 #207 數值的 1.5 倍', () => {
@@ -801,15 +738,6 @@ describe('island3d/islandMap 每個部落 3 格（#212 驗收條件 2、3）', (
       positions.forEach(([x, z], i) => {
         const at = hexesOf(code)[i]
         expect(Math.hypot(at.x - x, at.z - z)).toBeLessThanOrEqual(1)
-      })
-    })
-  })
-
-  it('每座山的山腳離每一格至少 2', () => {
-    ALL_HEXES.forEach(({ at }) => {
-      ISLAND_DECOR.mountains.forEach((mountain) => {
-        const nearest = clampToHex(mountain, ISLAND_MAP.hexRadius, at)
-        expect(distanceBetween(mountain, nearest) - mountain.radius).toBeGreaterThanOrEqual(2)
       })
     })
   })
