@@ -52,28 +52,12 @@ describe('island3d/occlusion 點到的是不是山或船（#200 驗收條件 4�
   })
 })
 
-describe('island3d/occlusion 魚島上的山與船', () => {
+describe('island3d/occlusion 魚島上的船', () => {
   const walkable = createWalkable(ISLAND_MAP)
   const blockers = tapBlockers(ISLAND_DECOR)
 
-  it('每座山、每艘船都會擋點擊', () => {
-    expect(blockers).toHaveLength(ISLAND_DECOR.mountains.length + ISLAND_DECOR.boats.length)
-  })
-
-  it('從西邊低處往東看，山遮住後面的橫貫公路：點那裡沒有反應', () => {
-    // 橫貫公路上的一點 (30.75, 23.55)；鏡頭、山 (24.45, -0.75)、這一點在同一條線上
-    // （#207 的座標放大 1.5 倍，#212）
-    const onCrossRoad = { x: 30.75, z: 23.55 }
-
-    expect(walkable.isWalkable(onCrossRoad)).toBe(true)
-    expect(walkable.tribeAt(onCrossRoad)).toBeNull()
-    expect(isTapBlocked({ x: 13.95, y: 18, z: -41.25 }, onCrossRoad, blockers)).toBe(true)
-  })
-
-  it('同一個位置把鏡頭拉高、視線越過山頂：點得到橫貫公路', () => {
-    expect(isTapBlocked({ x: 13.95, y: 105, z: -41.25 }, { x: 30.75, z: 23.55 }, blockers)).toBe(
-      false
-    )
+  it('會擋點擊的是每艘船（山在 #223 改成地形，另外判定）', () => {
+    expect(blockers).toHaveLength(ISLAND_DECOR.boats.length)
   })
 
   it('點在船上（船在海上）：算被擋', () => {

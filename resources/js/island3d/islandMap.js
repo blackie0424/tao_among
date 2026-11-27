@@ -1,8 +1,9 @@
 // 魚島 3D：整座島的資料（#200、#207、#212）——6 個部落各 3 格的位置、兩條公路、走路速度，
-// 以及海岸線、沙灘、山、水田、船。繪圖、可走範圍、找路都讀這一份。不依賴 three.js。
+// 以及海岸線、沙灘、水田、船。繪圖、可走範圍、找路都讀這一份。不依賴 three.js。
+// 山在 #223 改成實際地形，見 terrainData.js、terrainHeight.js。
 // 座標是 three.js 的世界單位：x 越大越東、z 越大越南。
 //
-// 位置照蘭嶼的實際地圖（#207 規格修訂 1）：海岸線、公路、村落與山頂的位置取自 OpenStreetMap
+// 位置照蘭嶼的實際地圖（#207 規格修訂 1）：海岸線、公路、村落的位置取自 OpenStreetMap
 // （© OpenStreetMap contributors，ODbL），以北緯 22.045、東經 121.55 為原點，1 公里＝22.5 單位，
 // 換算、簡化後寫死在這裡；做法見 docs/design.md 8.8。#212 再整座放大（見 ISLAND_SCALE）。
 import { closestOnSegment } from './hexBounds'
@@ -272,26 +273,6 @@ export function insetOutline(polygon, width) {
   })
 }
 
-// 山的顏色由高度決定：這個高度以下最淺、這個高度以上最深，中間照比例
-const MOUNTAIN_LOW = { height: 8 * ISLAND_SCALE, color: [0x7d, 0xbb, 0x88] }
-const MOUNTAIN_HIGH = { height: 22 * ISLAND_SCALE, color: [0x2f, 0x7a, 0x45] }
-
-/** 一座山：[x, z, 山腳半徑, 高度] 是放大前的數值，整座照比例放大 */
-const mountain = ([x, z, radius, height]) => ({
-  ...point([x, z]),
-  radius: radius * ISLAND_SCALE,
-  height: height * ISLAND_SCALE,
-})
-
-/** 山的顏色（#rrggbb）：越高越深、同高同色 */
-export function mountainColor(height) {
-  const span = MOUNTAIN_HIGH.height - MOUNTAIN_LOW.height
-  const t = Math.min(1, Math.max(0, (height - MOUNTAIN_LOW.height) / span))
-  return MOUNTAIN_LOW.color
-    .map((low, i) => Math.round(low + (MOUNTAIN_HIGH.color[i] - low) * t))
-    .reduce((hex, channel) => hex + channel.toString(16).padStart(2, '0'), '#')
-}
-
 // 水田（芋頭田）：好幾小塊拼成一片，拼法決定大小（#211 規格修訂 1）；位置直接寫世界單位
 // （#212：#207 的位置放大後挪過；#211：拼成一片變大後再挪過、朝向調過）
 const paddy = ([x, z, degrees], layout, tribeCode) => ({
@@ -305,7 +286,6 @@ const paddy = ([x, z, degrees], layout, tribeCode) => ({
 
 /**
  * coast 海岸線（多邊形的頂點）；beachWidth 沙灘的寬度；inland 沙灘以內的陸地（海岸線往內縮）；
- * mountains 山（位置、山腳半徑、高度），照實際山頭的位置與相對高低，都不壓到部落、公路、地標、水田；
  * paddies 水田（佔地：位置、拼法、寬、深、朝向；tribe 是它在哪個部落旁，公路旁的沒有）；
  * boats 海上的船（位置與船頭朝向的角度）。
  */
@@ -313,20 +293,6 @@ export const ISLAND_DECOR = {
   coast: COAST,
   beachWidth: BEACH_WIDTH,
   inland: insetOutline(COAST, BEACH_WIDTH),
-  mountains: [
-    // 由高到低；最高的對應紅頭山
-    mountain([-35.8, -20.0, 14.1, 21.9]),
-    mountain([-73.4, -33.9, 7.0, 20.4]),
-    mountain([-39.2, -51.9, 13.2, 19.8]),
-    mountain([82.9, 86.6, 10.6, 19.3]),
-    mountain([15.6, -72.1, 10.7, 18.6]),
-    mountain([-16.5, -36.9, 12.3, 17.6]),
-    mountain([16.3, -0.5, 7.7, 17.3]),
-    mountain([-25.5, 17.7, 8.8, 16.3]),
-    mountain([102.0, 63.2, 5.8, 15.1]),
-    mountain([39.5, 39.4, 7.0, 11.9]),
-    mountain([-33.4, 28.0, 5.9, 9.4]),
-  ],
   paddies: [
     // 每個部落旁、緊貼環島公路靠內陸的那一側（佔地離路邊 0～2、離那個部落的格子不超過 8；#223）
     paddy([-113.2, -121.1, 80], '2x2', 'iraraley'),

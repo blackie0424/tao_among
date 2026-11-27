@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { hexVertices } from '@/island3d/hexBounds'
 import { ISLAND_DECOR, ISLAND_MAP, roadSegments, tribeHexes } from '@/island3d/islandMap'
 import { LANDMARKS, footprintCorners } from '@/island3d/landmarks'
+import { TERRAIN_RAW } from '@/island3d/terrainData'
 import {
   COAST_WIDTH,
   FLAT_MARGIN,
@@ -197,6 +198,47 @@ describe('island3d/terrainHeight 整座島的實際地形（#223 驗收條件 1�
   it('最高點約 27 單位（實際約 535 公尺 × 0.03375 × 1.5）', () => {
     expect(highest).toBeGreaterThanOrEqual(26)
     expect(highest).toBeLessThanOrEqual(28)
+  })
+
+  it('跟 OpenStreetMap 的 14 座山頭對照：換算位置 3 單位內的原始高度最大值，跟標高差不超過 40 公尺（#223 規格修訂 2）', () => {
+    // [名字, x, z, 標高（公尺）]：OpenStreetMap natural=peak 的位置與 ele（2026-11-27 取得），
+    // 用 #207 的換算（北緯 22.045、東經 121.55 為原點，1 公里＝33.75 單位）；跟地形資料是不同來源
+    const peaks = [
+      ['紅頭山', -53.8, -30.0, 548],
+      ['相愛山', -110.1, -50.9, 509],
+      ['殺蛇山', -58.9, -77.8, 495],
+      ['大森山', 124.4, 129.6, 482.74],
+      ['尖禿山', 23.4, -108.0, 464],
+      ['青蛇山', -24.8, -55.1, 439],
+      ['山田山', 24.5, -0.8, 432],
+      ['飯山', -38.2, 26.4, 408],
+      ['龍門溪山', 153.6, 94.1, 378],
+      ['奧本嶺', 59.1, 59.2, 298],
+      ['台山', -45.7, 51.4, 235.83],
+      ['鰭尾山', -156.7, -136.2, 203],
+      ['清水山', 37.9, -62.4, 171],
+      ['草山', 56.3, -70.1, 122],
+    ]
+    const { x0, z0, step, cols, rows, meters } = TERRAIN_RAW
+    const highestNear = (x, z) => {
+      let highest = -Infinity
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          if (Math.hypot(x0 + col * step - x, z0 + row * step - z) <= 3) {
+            highest = Math.max(highest, meters[row * cols + col])
+          }
+        }
+      }
+      return highest
+    }
+
+    expect(peaks).toHaveLength(14)
+    peaks.forEach(([name, x, z, elevation]) => {
+      expect({ name, gap: Math.abs(highestNear(x, z) - elevation) <= 40 }).toEqual({
+        name,
+        gap: true,
+      })
+    })
   })
 
   it('高度表蓋住整條海岸線', () => {

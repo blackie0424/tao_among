@@ -1,17 +1,14 @@
-// 魚島 3D：點畫面時，先點到的是不是山或船（#200 驗收條件 4：點山、海、船沒有反應）。
-// 不依賴 three.js。山與船都當成圓錐：山腳（船身）在地面、中心在 (x, z)、半徑 radius、高 height。
+// 魚島 3D：點畫面時，先點到的是不是船（#200 驗收條件 4：點山、海、船沒有反應；山在 #223 改成地形）。
+// 不依賴 three.js。船當成圓錐：船身在地面、中心在 (x, z)、半徑 radius、高 height。
 // 做法：從鏡頭到「視線打到地面的那一點」這一段直線，只要有一處在某個圓錐裡，就是被它擋住。
 
 // 船當成這麼大的圓錐（比模型略大，點在船邊也算點到船）
 const BOAT_RADIUS = 2
 const BOAT_HEIGHT = 2.5
 
-/** 會擋住點擊的東西：decor（islandMap.js 的 ISLAND_DECOR）裡的每座山與每艘船 */
+/** 會擋住點擊的圓錐：decor（islandMap.js 的 ISLAND_DECOR）裡的每艘船 */
 export function tapBlockers(decor) {
-  return [
-    ...decor.mountains,
-    ...decor.boats.map(({ x, z }) => ({ x, z, radius: BOAT_RADIUS, height: BOAT_HEIGHT })),
-  ]
+  return decor.boats.map(({ x, z }) => ({ x, z, radius: BOAT_RADIUS, height: BOAT_HEIGHT }))
 }
 
 /**

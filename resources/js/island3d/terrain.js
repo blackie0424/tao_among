@@ -1,9 +1,9 @@
 // 魚島 3D：把整座島不會動的部分畫出來（#200、#207、#212）——海、海邊的岩岸、陸地、部落格子與標示、
-// 公路、山、水田、船。
+// 公路、水田、船（山在 #223 改成地形）。
 // 位置都讀 islandMap.js；這個檔只管繪圖。
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { ISLAND_DECOR, ISLAND_MAP, mountainColor, roadSegments, tribeHexes } from './islandMap'
+import { ISLAND_DECOR, ISLAND_MAP, roadSegments, tribeHexes } from './islandMap'
 import { PADDY_COLORS, paddyShape } from './paddyShape'
 
 const HEX_SIDES = 6
@@ -32,7 +32,6 @@ const STEM_WIDTH = 0.03
 const STEM_TILT = 0.25
 const ROAD_LEVEL = 0.05
 const ROAD_JOINT_SEGMENTS = 16
-const MOUNTAIN_SIDES = 6
 const BOAT_LENGTH = 3
 const BOAT_BOB_HEIGHT = 0.06
 const BOAT_MODEL = '/island3d/boats/boat-fishing-small.glb'
@@ -327,20 +326,6 @@ function buildRoads() {
   return group
 }
 
-/** 山：島中間的幾座圓錐，只是裝飾；越高顏色越深 */
-function buildMountains() {
-  const group = new THREE.Group()
-  ISLAND_DECOR.mountains.forEach(({ x, z, radius, height }) => {
-    const cone = flatMesh(
-      new THREE.ConeGeometry(radius, height, MOUNTAIN_SIDES),
-      mountainColor(height)
-    )
-    cone.position.set(x, LAND_LEVEL + height / 2, z)
-    group.add(cone)
-  })
-  return group
-}
-
 function buildBoat(loader, { x, z, heading }) {
   const boat = new THREE.Group()
   boat.position.set(x, SEA_LEVEL, z)
@@ -368,7 +353,7 @@ export function bobBoats(boats, elapsedSeconds) {
 export function buildTerrain(loader) {
   const group = new THREE.Group()
   const boats = ISLAND_DECOR.boats.map((boat) => buildBoat(loader, boat))
-  group.add(buildSea(), buildBeach(), buildInland(), buildRoads(), buildMountains())
+  group.add(buildSea(), buildBeach(), buildInland(), buildRoads())
   group.add(buildPaddies(), ...boats)
   group.add(...ISLAND_MAP.tribes.flatMap(tribeHexes).map(buildHex))
   return { group, boats }
