@@ -250,17 +250,41 @@ describe('island3d/households 角色在哪一件的範圍裡（#201 驗收條件
 })
 
 describe('island3d/households 四件上方的名稱招牌（#201 驗收條件 15）', () => {
-  it('72 塊招牌：寫族語名稱，在那一件中心的正上方、比造型最高點高', () => {
-    const signs = householdSigns()
+  // 後端給的地點清單（手建，名稱故意和前端的種類代碼不同，確認招牌用的是後端的名稱）
+  const spots = Object.fromEntries(
+    ISLAND_MAP.tribes.map(({ code }) => [
+      code,
+      Array.from({ length: 12 }, (_, i) => ({
+        name: `${code}-第${Math.floor(i / 4) + 1}戶-${i % 4}`,
+      })),
+    ])
+  )
+
+  it('72 塊招牌：寫後端給的地點名稱，在那一件中心的正上方、比造型最高點高', () => {
+    const signs = householdSigns(spots)
 
     expect(signs).toHaveLength(72)
-    HOUSEHOLDS.flatMap(({ items }) => items).forEach((item, i) => {
-      const top = Math.max(
-        ...shapeParts(item.kind, item.width, item.depth).map((part) => part.y + part.height / 2)
-      )
-      expect(signs[i]).toMatchObject({ text: item.kind, x: item.x, z: item.z })
-      expect(signs[i].height).toBeGreaterThan(top)
+    HOUSEHOLDS.forEach(({ tribe, hex, items }, h) => {
+      items.forEach((item, slot) => {
+        const sign = signs[h * 4 + slot]
+        const top = Math.max(
+          ...shapeParts(item.kind, item.width, item.depth).map((part) => part.y + part.height / 2)
+        )
+        expect(sign).toMatchObject({
+          text: `${tribe}-第${hex + 1}戶-${slot}`,
+          x: item.x,
+          z: item.z,
+        })
+        expect(sign.height).toBeGreaterThan(top)
+      })
     })
+  })
+
+  it('後端沒給某個部落的地點：那個部落的招牌不畫', () => {
+    const { ivalino, ...withoutIvalino } = spots
+
+    expect(ivalino).toHaveLength(12)
+    expect(householdSigns(withoutIvalino)).toHaveLength(72 - 12)
   })
 })
 

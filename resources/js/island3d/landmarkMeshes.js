@@ -214,14 +214,20 @@ export function buildHouseholds(households = HOUSEHOLDS) {
 }
 
 /**
- * 四件上方的族語名稱招牌（#201 驗收條件 15）：做法和地標的招牌一樣，同一個名稱共用一份材質。
- * 回傳招牌的群組（給 showSigns 用）
+ * 四件上方的名稱招牌（#201 驗收條件 15）：名稱用後端給的地點清單 spots，做法和地標的招牌一樣，
+ * 同一個名稱共用一份材質。回傳招牌的群組（給 showSigns 用）
  */
-export function buildHouseholdSigns(households = HOUSEHOLDS) {
-  const materials = new Map(HOUSEHOLD_KIND_ORDER.map((kind) => [kind, signMaterial(kind)]))
+export function buildHouseholdSigns(spots, households = HOUSEHOLDS) {
+  const materials = new Map()
+  const materialOf = (text) => {
+    if (!materials.has(text)) {
+      materials.set(text, signMaterial(text))
+    }
+    return materials.get(text)
+  }
   const signs = new THREE.Group()
-  householdSigns(households).forEach(({ text, x, z, height }) =>
-    signs.add(signSprite(materials.get(text), x, height, z))
+  householdSigns(spots, households).forEach(({ text, x, z, height }) =>
+    signs.add(signSprite(materialOf(text), x, height, z))
   )
   return signs
 }

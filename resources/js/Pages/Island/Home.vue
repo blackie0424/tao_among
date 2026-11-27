@@ -10,6 +10,7 @@
     <div class="relative">
       <IslandWorld
         :tribe="currentTribe"
+        :spots="spots"
         @tribe-change="enterTribe"
         @spot-change="reachSpot"
         @member-tap="toggleDialog"

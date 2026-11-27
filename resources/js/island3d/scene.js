@@ -360,7 +360,7 @@ function trackQuality(renderer, governor, reportStats, now, frame) {
 }
 
 /** 場景裡的東西：整座島（terrain.js）、地標與家屋四件（landmarkMeshes.js）、家人（familyMeshes.js）、玩家、點地面的提示 */
-function buildWorld() {
+function buildWorld(spots) {
   const loader = new GLTFLoader()
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(COLORS.sky)
@@ -369,7 +369,7 @@ function buildWorld() {
   const landmarks = buildLandmarks(loader)
   const tapRings = createTapRings()
   const family = createFamily(loader)
-  const householdSigns = buildHouseholdSigns()
+  const householdSigns = buildHouseholdSigns(spots)
   buildLights(scene)
   scene.add(
     terrain.group,
@@ -505,7 +505,8 @@ function movePlayer(player, state, deltaSeconds, onTribeChange) {
  *   onStats({ level, framesPerSecond }),
  *   onTribeChange(部落代碼) 角色走進另一個部落的格子時呼叫,
  *   onSpotChange({ tribe, hex, slot } 或 null) 角色走進或離開某一件的範圍時呼叫（#201）,
- *   onMemberTap() 點到目前範圍那一件的家人時呼叫（#201 規格修訂 2）
+ *   onMemberTap() 點到目前範圍那一件的家人時呼叫（#201 規格修訂 2）,
+ *   spots 後端給的地點清單（部落 → 12 個地點），四件上方招牌的名稱用它
  * }
  * 回傳 { dispose } 給離開頁面時停掉。
  */
@@ -517,13 +518,14 @@ export function createIslandScene(container, options) {
     onTribeChange = () => {},
     onSpotChange = () => {},
     onMemberTap = () => {},
+    spots = {},
   } = options
   const level = initialQuality({ width: window.innerWidth, userAgent: navigator.userAgent })
   const renderer = buildRenderer(container, level)
   const governor = createQualityGovernor(level)
   const reportStats = createStatsReporter(onStats, governor)
   const camera = buildCamera(container)
-  const world = buildWorld()
+  const world = buildWorld(spots)
   const state = createPlayerState(startTribe)
   state.tapMember = memberTapper(state, world.family, onMemberTap)
   const unwatchResize = watchResize(container, renderer, camera)

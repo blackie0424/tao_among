@@ -42,6 +42,8 @@ import { islandTribeLabel } from '@/constants/island'
 
 const props = defineProps({
   tribe: { type: String, required: true },
+  // 後端給的地點清單（部落 → 12 個地點）：四件上方招牌的名稱用它（#201）
+  spots: { type: Object, required: true },
 })
 // tribe-change：角色走進另一個部落的格子，帶那個部落的代碼（左上角只顯示族語，#201）；
 // spot-change：角色走進某一件的範圍帶 { tribe, hex, slot }，離開帶 null；
@@ -75,6 +77,7 @@ onMounted(async () => {
       onTribeChange: (tribe) => emit('tribe-change', tribe),
       onSpotChange: (spot) => emit('spot-change', spot),
       onMemberTap: () => emit('member-tap'),
+      spots: props.spots,
       onStats: (next) => (stats.value = next),
     })
   } catch (error) {

@@ -314,6 +314,12 @@ describe('Island/Home 地圖頁', () => {
     const mockTouch = (coarse) =>
       vi.stubGlobal('matchMedia', (query) => ({ matches: coarse && query === '(pointer: coarse)' }))
 
+    it('後端給的地點清單傳給 3D 畫面（四件上方的招牌用後端的名稱）', async () => {
+      const wrapper = await mountPage()
+
+      expect(sceneOptions().spots).toEqual(wrapper.props('spots'))
+    })
+
     it('左上角的所在部落只顯示族語', async () => {
       const wrapper = await mountPage()
 
