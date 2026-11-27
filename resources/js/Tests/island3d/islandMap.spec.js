@@ -77,11 +77,15 @@ describe('island3d/islandMap 魚島的部落與公路（#200 驗收條件 1、5�
     ).toBeLessThan(60)
   })
 
-  it('野銀第 3 格在東南邊的環島公路旁 (90.9, 53.6)，原本那塊公路旁水田挪到 (104.5, 63)（#201 規格修訂 1）', () => {
+  it('野銀第 3 格在東南邊的環島公路旁 (90.9, 53.6)（#201 規格修訂 1）；它東邊那塊水田是野銀的、原本的公路旁水田往東挪到 (151.1, 85.3)（#223 規格修訂 1）', () => {
     expect(hexesOf('ivalino')[2]).toEqual({ x: 90.9, z: 53.6 })
     expect(ISLAND_DECOR.paddies.some(({ x, z }) => x === 93.3 && z === 55.8)).toBe(false)
-    expect(ISLAND_DECOR.paddies.find(({ x, z }) => x === 104.5 && z === 63)).toMatchObject({
-      heading: (60 * Math.PI) / 180,
+    expect(ISLAND_DECOR.paddies.find(({ x, z }) => x === 104.4 && z === 60)).toMatchObject({
+      tribe: 'ivalino',
+    })
+    expect(ISLAND_DECOR.paddies.find(({ x, z }) => x === 151.1 && z === 85.3)).toMatchObject({
+      layout: PADDY_LAYOUTS['3x3'],
+      heading: (155 * Math.PI) / 180,
     })
   })
 
@@ -506,8 +510,7 @@ describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 �
     })
 
     it('部落旁的在格子外、環島公路靠內陸那一側、佔地離路邊 0～2、離該部落任一格的邊不超過 8（#223 驗收條件 6）', () => {
-      // 野銀旁的環島公路沒有空位，放在橫貫公路旁（#223 規格修訂 1），另一條測試
-      beside.filter((paddy) => paddy.tribe !== 'ivalino').forEach((paddy) => {
+      beside.forEach((paddy) => {
         const corners = footprintCorners(paddy)
         const fromEdge = Math.min(
           ...hexesOf(paddy.tribe).map((at) =>
@@ -524,23 +527,6 @@ describe('island3d/islandMap 海岸與船（#200 驗收條件 10；山在 #223 �
         expect(fromRoad).toBeLessThanOrEqual(ISLAND_MAP.roadHalfWidth + 2)
         expect(fromEdge).toBeLessThanOrEqual(8)
       })
-    })
-
-    it('野銀旁的在橫貫公路旁：佔地離橫貫公路的路邊 0～2、離野銀任一格的邊不超過 8（#223 規格修訂 1）', () => {
-      const paddy = beside.find((item) => item.tribe === 'ivalino')
-      const corners = footprintCorners(paddy)
-      const crossSegments = crossRoad.points.slice(1).map((to, i) => [crossRoad.points[i], to])
-      const fromRoad = Math.min(...crossSegments.map(([a, b]) => footprintGapToSegment(corners, a, b)))
-      const fromEdge = Math.min(
-        ...hexesOf('ivalino').map((at) =>
-          Math.min(...corners.map((corner) => distanceBetween(corner, clampToHex(corner, ISLAND_MAP.hexRadius, at))))
-        )
-      )
-
-      expect(walkable.tribeAt(paddy)).toBeNull()
-      expect(fromRoad).toBeGreaterThan(ISLAND_MAP.roadHalfWidth)
-      expect(fromRoad).toBeLessThanOrEqual(ISLAND_MAP.roadHalfWidth + 2)
-      expect(fromEdge).toBeLessThanOrEqual(8)
     })
 
     it('不壓到特色建築（#223 驗收條件 6）', () => {
