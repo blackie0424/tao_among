@@ -67,13 +67,41 @@ function edgeGap(polygon, point) {
   )
 }
 
+// 離平地範圍這麼遠以外，收坡係數都是 1，不必算精確的距離
+const SLOPE_REACH = FLAT_MARGIN + SLOPE_WIDTH
+
+/** 平地範圍的外框（x、z 的最小最大值），往外再擴 SLOPE_REACH */
+function reachBox(zone) {
+  const points = zone.polygon ?? [zone.segment.from, zone.segment.to]
+  const pad = SLOPE_REACH + (zone.segment?.halfWidth ?? 0)
+  const xs = points.map((point) => point.x)
+  const zs = points.map((point) => point.z)
+  return {
+    minX: Math.min(...xs) - pad,
+    maxX: Math.max(...xs) + pad,
+    minZ: Math.min(...zs) - pad,
+    maxZ: Math.max(...zs) + pad,
+  }
+}
+
+const insideBox = (box, { x, z }) =>
+  x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ
+
+/** 點離最近的平地範圍多遠；外框沒碰到的範圍一定在 SLOPE_REACH 以外，跳過 */
+function nearestFlatGap(boxedZones, point) {
+  return boxedZones.reduce(
+    (nearest, { zone, box }) =>
+      insideBox(box, point) ? Math.min(nearest, zoneGap(zone, point)) : nearest,
+    SLOPE_REACH
+  )
+}
+
 /** 一個網格點收好平地後的高度 */
-function gridHeight(meters, point, { zones, inland }) {
+function gridHeight(meters, point, { boxedZones, inland }) {
   if (meters <= 0 || !isInPolygon(point, inland)) {
     return 0
   }
-  const nearestFlat = Math.min(...zones.map((zone) => zoneGap(zone, point)))
-  const slope = smoothstep((nearestFlat - FLAT_MARGIN) / SLOPE_WIDTH)
+  const slope = smoothstep((nearestFlatGap(boxedZones, point) - FLAT_MARGIN) / SLOPE_WIDTH)
   const coast = smoothstep(edgeGap(inland, point) / COAST_WIDTH)
   return meters * UNITS_PER_METER * slope * coast
 }
@@ -86,10 +114,14 @@ function gridHeight(meters, point, { zones, inland }) {
 export function heightField(raw, { zones, inland }) {
   const { x0, z0, step, cols, rows, meters } = raw
   const heights = new Float32Array(cols * rows)
+  const boxedZones = zones.map((zone) => ({ zone, box: reachBox(zone) }))
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const point = { x: x0 + col * step, z: z0 + row * step }
-      heights[row * cols + col] = gridHeight(meters[row * cols + col], point, { zones, inland })
+      heights[row * cols + col] = gridHeight(meters[row * cols + col], point, {
+        boxedZones,
+        inland,
+      })
     }
   }
   return { x0, z0, step, cols, rows, heights }
