@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ISLAND_DECOR, ISLAND_MAP } from '@/island3d/islandMap'
-import { isTapBlocked, tapBlockers } from '@/island3d/occlusion'
+import { isBlockedByTerrain, isTapBlocked, tapBlockers } from '@/island3d/occlusion'
+import { heightField, islandHeightField } from '@/island3d/terrainHeight'
 import { createWalkable } from '@/island3d/walkable'
 
 // 一座山：山腳在原點、半徑 10、高 20。鏡頭在南邊 (0, 30, 40) 往北看。
@@ -64,5 +65,89 @@ describe('island3d/occlusion 魚島上的船', () => {
     const [boat] = ISLAND_DECOR.boats
 
     expect(isTapBlocked({ x: boat.x, y: 30, z: boat.z + 30 }, boat, blockers)).toBe(true)
+  })
+})
+
+// ── 地形擋住點擊（#223 驗收條件 5）──
+
+// 很大的陸地：手建的高度表都在裡面，沒有海邊收坡
+const BIG_LAND = [
+  { x: -1000, z: -1000 },
+  { x: 1000, z: -1000 },
+  { x: 1000, z: 1000 },
+  { x: -1000, z: 1000 },
+]
+// 1 公尺換成的世界單位（0.03375 × 1.5），手建高度表用公尺寫
+const UNITS_PER_METER = 0.03375 * 1.5
+
+/** 手建的高度表：從 (-40, -40) 起每 2 單位一點、41 × 41；metersAt(x, z) 決定每點的公尺數 */
+function field(metersAt) {
+  const meters = []
+  for (let row = 0; row < 41; row += 1) {
+    for (let col = 0; col < 41; col += 1) {
+      meters.push(metersAt(-40 + col * 2, -40 + row * 2))
+    }
+  }
+  return heightField(
+    { x0: -40, z0: -40, step: 2, cols: 41, rows: 41, meters },
+    { zones: [], inland: BIG_LAND }
+  )
+}
+
+describe('island3d/occlusion 地形擋住點擊（#223 驗收條件 5）', () => {
+  // 一道南北走向的山脊：只有 x = 0 那一排網格點高 H，兩旁是 0，所以 z = 0 這條線上高度是 H × (1 − |x| / 2)
+  const RIDGE_METERS = 200
+  const H = RIDGE_METERS * UNITS_PER_METER
+  const ridge = field((x) => (x === 0 ? RIDGE_METERS : 0))
+  // 鏡頭在西邊 (-20, y, 0)，看向東邊地面 (20, 0, 0)：直線在 x = 0 的高度是 y / 2
+  const cameraAt = (heightAtRidge) => ({ x: -20, y: heightAtRidge * 2, z: 0 })
+  const ground = { x: 20, z: 0 }
+
+  it('短交會：直線只在山脊頂下 0.05 穿過（鑽進地形的那段不到 0.1 單位寬），也算擋住', () => {
+    expect(isBlockedByTerrain(cameraAt(H - 0.05), ground, ridge)).toBe(true)
+  })
+
+  it('擦邊：直線剛好碰到山脊頂（差不到 0.01）不算擋住', () => {
+    expect(isBlockedByTerrain(cameraAt(H - 0.005), ground, ridge)).toBe(false)
+    expect(isBlockedByTerrain(cameraAt(H), ground, ridge)).toBe(false)
+  })
+
+  it('看得到的平地：鏡頭和地面那一點之間沒有山，不擋', () => {
+    expect(isBlockedByTerrain({ x: -20, y: 30, z: 0 }, { x: -5, z: 0 }, ridge)).toBe(false)
+  })
+
+  it('被山擋住的平地：山後面的地面點，鏡頭低時擋住、拉高越過山頂就不擋', () => {
+    const hill = field((x, z) => Math.max(0, 400 - 40 * Math.hypot(x, z)))
+    expect(isBlockedByTerrain({ x: 0, y: 10, z: 30 }, { x: 0, z: -20 }, hill)).toBe(true)
+    expect(isBlockedByTerrain({ x: 0, y: 200, z: 30 }, { x: 0, z: -20 }, hill)).toBe(false)
+  })
+
+  it('點在山坡上：對到的地面點在山的底下，算擋住', () => {
+    const hill = field((x, z) => Math.max(0, 400 - 40 * Math.hypot(x, z)))
+    expect(isBlockedByTerrain({ x: 0, y: 30, z: 30 }, { x: 0, z: 2 }, hill)).toBe(true)
+  })
+})
+
+describe('island3d/occlusion 魚島的地形（#223 驗收條件 5）', () => {
+  const walkable = createWalkable(ISLAND_MAP)
+  const island = islandHeightField()
+  // 橫貫公路上的一點 (30.75, 23.55)；從西北邊低處看過去，中間隔著山田山（約 (24.5, -0.8)）
+  const onCrossRoad = { x: 30.75, z: 23.55 }
+
+  it('從低處看，山田山遮住後面的橫貫公路：點那裡沒有反應', () => {
+    expect(walkable.isWalkable(onCrossRoad)).toBe(true)
+    expect(isBlockedByTerrain({ x: 13.95, y: 18, z: -41.25 }, onCrossRoad, island)).toBe(true)
+  })
+
+  it('同一個位置把鏡頭拉高、視線越過山頂：點得到橫貫公路', () => {
+    expect(isBlockedByTerrain({ x: 13.95, y: 105, z: -41.25 }, onCrossRoad, island)).toBe(false)
+  })
+
+  it('部落格子的中心從正上方看：不擋', () => {
+    ISLAND_MAP.tribes.forEach(({ center }) => {
+      expect(isBlockedByTerrain({ x: center.x, y: 60, z: center.z + 1 }, center, island)).toBe(
+        false
+      )
+    })
   })
 })
