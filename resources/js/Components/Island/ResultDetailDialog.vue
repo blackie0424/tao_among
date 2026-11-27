@@ -72,6 +72,7 @@
       </ul>
 
       <Link
+        v-if="answerable"
         :href="`/island/tribes/${tribe}/fish/${fish.id}`"
         data-testid="answer-link"
         class="mt-4 flex min-h-touch-primary items-center justify-center rounded-island bg-island-accent text-elder-body font-extrabold text-white"
@@ -100,6 +101,8 @@ const props = defineProps({
   tribes: { type: Array, required: true },
   resultOptions: { type: Object, required: true },
   unknownProcessingMethod: { type: String, required: true },
+  // 3D 魚島的對話這一版只呈現，不顯示「我也來說」（#216）；平面版照舊
+  answerable: { type: Boolean, default: true },
 })
 const emit = defineEmits(['close'])
 
