@@ -3,17 +3,14 @@
 use App\Services\CaptureRecordImageDisplayBackup;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        // 全新資料庫沒有任何紀錄，沒有東西可備份；有紀錄時一定先備份成功才刪欄位（失敗會丟例外中止）
-        if (DB::table('capture_records')->exists()) {
-            app(CaptureRecordImageDisplayBackup::class)->write();
-        }
+        // 一定先備份成功（沒有舊值也寫空備份）才刪欄位；備份失敗會丟例外中止
+        app(CaptureRecordImageDisplayBackup::class)->write();
 
         Schema::table('capture_records', function (Blueprint $table) {
             $table->dropColumn(['image_position', 'image_scale']);
@@ -22,9 +19,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        // 先確認備份讀得到；讀不到就丟例外，不動資料表
+        // 先驗證備份（存在、可解析、每筆結構合法）；任何一項不過就丟例外，不動資料表
         $backup = app(CaptureRecordImageDisplayBackup::class);
-        $rows = DB::table('capture_records')->exists() ? $backup->read() : [];
+        $rows = $backup->read();
 
         Schema::table('capture_records', function (Blueprint $table) {
             $table->string('image_position')->nullable()->after('notes');

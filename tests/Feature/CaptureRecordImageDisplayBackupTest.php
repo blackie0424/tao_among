@@ -1,34 +1,34 @@
 <?php
 
-use App\Contracts\StorageServiceInterface;
 use App\Models\CaptureRecord;
 use App\Services\CaptureRecordImageDisplayBackup;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
 const BACKUP_PATH = 'backups/capture_records_image_display_legacy.json';
 
-/** 用記憶體當 S3：回傳 [$files（參考）, 注入的 mock] */
+/** 用記憶體當備份用的 disk：回傳檔案陣列（可直接改內容或刪檔）；$overrides 可換掉 put／get */
 function fakeBackupStorage(array $overrides = []): ArrayObject
 {
     $files = new ArrayObject;
-    $storage = Mockery::mock(StorageServiceInterface::class);
-    // 軟刪除紀錄時模型會清圖片檔，這裡不關心
-    $storage->shouldReceive('getImageFolder')->andReturn('images');
-    $storage->shouldReceive('delete')->andReturn(true);
-    $storage->shouldReceive('fileExists')->andReturnUsing(fn ($path) => isset($files[$path]));
-    $storage->shouldReceive('getContent')->andReturnUsing($overrides['getContent'] ?? fn ($path) => $files[$path]);
-    $storage->shouldReceive('putContent')->andReturnUsing($overrides['putContent'] ?? function ($path, $content) use ($files) {
+    $disk = Mockery::mock(Filesystem::class);
+    $disk->shouldReceive('exists')->andReturnUsing(fn ($path) => isset($files[$path]));
+    $disk->shouldReceive('get')->andReturnUsing($overrides['get'] ?? fn ($path) => $files[$path]);
+    $disk->shouldReceive('put')->andReturnUsing($overrides['put'] ?? function ($path, $content, $options = []) use ($files) {
         $files[$path] = $content;
+        $files[$path.'#options'] = $options; // 寫入時帶的選項（驗證私有寫入）
 
         return true;
     });
-    app()->instance(StorageServiceInterface::class, $storage);
+    Storage::set('legacy_backup_test', $disk);
+    config(['filesystems.legacy_backup_disk' => 'legacy_backup_test']);
 
     return $files;
 }
@@ -94,16 +94,26 @@ it('有紀錄但舊欄位都沒有值：寫出空備份再移除欄位', functio
         ->and(legacyColumnsExist())->toBeFalse();
 });
 
-it('全新資料庫（沒有任何紀錄）不備份，直接移除欄位', function () {
+it('全新資料庫（沒有任何紀錄）也寫出空備份再移除欄位', function () {
     $files = fakeBackupStorage();
 
     dropMigration()->up();
 
-    expect(isset($files[BACKUP_PATH]))->toBeFalse()->and(legacyColumnsExist())->toBeFalse();
+    expect(json_decode($files[BACKUP_PATH], true)['rows'])->toBe([])
+        ->and(legacyColumnsExist())->toBeFalse();
+});
+
+it('備份以私有方式寫入', function () {
+    $files = fakeBackupStorage();
+    legacyRecord(['image_position' => 'top', 'image_scale' => 1.5]);
+
+    app(CaptureRecordImageDisplayBackup::class)->write();
+
+    expect($files[BACKUP_PATH.'#options']['visibility'])->toBe('private');
 });
 
 it('備份寫入失敗：丟例外、不刪欄位', function (Closure $put) {
-    fakeBackupStorage(['putContent' => $put]);
+    fakeBackupStorage(['put' => $put]);
     legacyRecord(['image_position' => 'top', 'image_scale' => 1.5]);
 
     expect(fn () => dropMigration()->up())->toThrow(RuntimeException::class)
@@ -116,7 +126,7 @@ it('備份寫入失敗：丟例外、不刪欄位', function (Closure $put) {
 ]);
 
 it('讀回內容與資料表不符：丟例外、不刪欄位', function () {
-    fakeBackupStorage(['getContent' => fn () => json_encode(['rows' => []])]);
+    fakeBackupStorage(['get' => fn () => json_encode(['rows' => []])]);
     legacyRecord(['image_position' => 'top', 'image_scale' => 1.5]);
 
     expect(fn () => dropMigration()->up())->toThrow(RuntimeException::class, '不符')
@@ -157,7 +167,7 @@ it('down：補回欄位並寫回備份的值（含軟刪除）；備份後新增
         ->and($row($later)->image_position)->toBeNull();
 });
 
-it('down 找不到或讀不到備份：丟例外並說明人工還原，資料表不變', function (?string $content) {
+it('down 找不到、讀不到或結構損壞的備份：丟例外並說明人工還原，資料表不變', function (?string $content) {
     $files = fakeBackupStorage();
     legacyRecord(['image_position' => 'top', 'image_scale' => 1.5]);
     $migration = dropMigration();
@@ -173,4 +183,32 @@ it('down 找不到或讀不到備份：丟例外並說明人工還原，資料�
 })->with([
     '備份檔不存在' => [null],
     '備份檔損壞' => ['{not json'],
+    '沒有 rows' => ['{"backed_up_at":"x"}'],
+    '一筆是空物件' => ['{"rows":[{}]}'],
+    '編號不是整數' => ['{"rows":[{"id":"1","image_position":"top","image_scale":"1.5"}]}'],
+    '缺縮放欄位' => ['{"rows":[{"id":1,"image_position":"top"}]}'],
+    '位置不是字串' => ['{"rows":[{"id":1,"image_position":5,"image_scale":null}]}'],
+    '縮放不是數字' => ['{"rows":[{"id":1,"image_position":"top","image_scale":"big"}]}'],
 ]);
+
+it('up 之後所有紀錄被刪除且備份遺失：down 仍先驗證備份，丟例外、資料表不變', function () {
+    $files = fakeBackupStorage();
+    legacyRecord(['image_position' => 'top', 'image_scale' => 1.5]);
+    $migration = dropMigration();
+    $migration->up();
+    DB::table('capture_records')->delete();
+    unset($files[BACKUP_PATH]);
+
+    expect(fn () => $migration->down())->toThrow(RuntimeException::class, '找不到')
+        ->and(legacyColumnsExist())->toBeFalse();
+});
+
+it('空表 up 之後 down：讀得到空備份就補回欄位', function () {
+    fakeBackupStorage();
+    $migration = dropMigration();
+    $migration->up();
+
+    $migration->down();
+
+    expect(legacyColumnsExist())->toBeTrue();
+});

@@ -2,22 +2,21 @@
 
 namespace App\Services;
 
-use App\Contracts\StorageServiceInterface;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
  * 舊「圖片顯示調整」（image_position、image_scale）在欄位移除前的備份與還原。
- * 備份是 S3 上的一個 JSON 檔：所有舊欄位有值的捕獲紀錄（含軟刪除），寫入後讀回比對。
+ * 備份是 S3 上的一個私有 JSON 檔：所有舊欄位有值的捕獲紀錄（含軟刪除），寫入後讀回比對。
  */
 class CaptureRecordImageDisplayBackup
 {
     public const PATH = 'backups/capture_records_image_display_legacy.json';
 
-    public function __construct(private readonly StorageServiceInterface $storage) {}
-
     /**
-     * 寫入備份並讀回驗證；失敗一律丟例外（呼叫端不得繼續刪欄位）。
+     * 寫入備份並讀回驗證；失敗一律丟例外（呼叫端不得繼續刪欄位）。沒有舊值時也寫出空備份。
      * 已有備份檔時：內容相同視為成功（重跑），不同則中止、不覆蓋。
      *
      * @return int 備份的紀錄筆數
@@ -26,7 +25,7 @@ class CaptureRecordImageDisplayBackup
     {
         $rows = $this->currentRows();
 
-        if ($this->storage->fileExists(self::PATH)) {
+        if ($this->disk()->exists(self::PATH)) {
             if ($this->read() !== $rows) {
                 throw new RuntimeException('已有不同內容的舊顯示設定備份（'.self::PATH.'），為避免覆蓋已中止，請人工確認');
             }
@@ -36,7 +35,9 @@ class CaptureRecordImageDisplayBackup
 
         $content = json_encode(['backed_up_at' => now()->toIso8601String(), 'rows' => $rows], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
-        if (! $this->storage->putContent(self::PATH, $content, 'application/json')) {
+        // 備份是內部資料，一律私有寫入
+        $written = $this->disk()->put(self::PATH, $content, ['visibility' => 'private', 'ContentType' => 'application/json']);
+        if (! $written) {
             throw new RuntimeException('舊顯示設定備份寫入失敗：'.self::PATH);
         }
 
@@ -48,7 +49,7 @@ class CaptureRecordImageDisplayBackup
     }
 
     /**
-     * 讀取備份的紀錄；找不到或內容無法解析時丟例外，並說明人工還原方式。
+     * 讀取並驗證備份；找不到、無法解析、或任一筆結構不合法時丟例外，並說明人工還原方式。
      *
      * @return array<int, array{id:int, image_position:?string, image_scale:?string}>
      */
@@ -56,20 +57,26 @@ class CaptureRecordImageDisplayBackup
     {
         $hint = '請確認 S3 的 '.self::PATH.'，並依其中的 rows 手動把 image_position、image_scale 寫回 capture_records';
 
-        if (! $this->storage->fileExists(self::PATH)) {
+        if (! $this->disk()->exists(self::PATH)) {
             throw new RuntimeException('找不到舊顯示設定備份。'.$hint);
         }
 
-        $decoded = json_decode($this->storage->getContent(self::PATH), true);
+        $decoded = json_decode((string) $this->disk()->get(self::PATH), true);
         if (! is_array($decoded) || ! is_array($decoded['rows'] ?? null)) {
             throw new RuntimeException('舊顯示設定備份無法解析。'.$hint);
+        }
+
+        foreach ($decoded['rows'] as $index => $row) {
+            if (! $this->isValidRow($row)) {
+                throw new RuntimeException("舊顯示設定備份第 {$index} 筆結構不合法。".$hint);
+            }
         }
 
         return $decoded['rows'];
     }
 
     /**
-     * 把備份的值寫回（欄位需已存在）。備份後才新增的紀錄沒有舊值，不受影響；已被刪除的紀錄略過。
+     * 把備份的值寫回（欄位需已存在，且 $rows 需來自 read()）。備份後才新增的紀錄沒有舊值，不受影響；已被刪除的紀錄略過。
      *
      * @param  array<int, array{id:int, image_position:?string, image_scale:?string}>  $rows
      */
@@ -85,7 +92,22 @@ class CaptureRecordImageDisplayBackup
         return count($rows);
     }
 
-    /** 舊欄位有值的所有紀錄（含軟刪除），依編號排序；值一律轉成字串，方便比對 */
+    private function disk(): Filesystem
+    {
+        return Storage::disk(config('filesystems.legacy_backup_disk'));
+    }
+
+    /** 一筆備份：整數編號、位置為字串或空、縮放為數字（字串或數值）或空 */
+    private function isValidRow(mixed $row): bool
+    {
+        return is_array($row)
+            && array_key_exists('image_position', $row) && array_key_exists('image_scale', $row)
+            && is_int($row['id'] ?? null)
+            && ($row['image_position'] === null || is_string($row['image_position']))
+            && ($row['image_scale'] === null || is_numeric($row['image_scale']));
+    }
+
+    /** 舊欄位有值的所有紀錄（含軟刪除），依編號排序；縮放一律轉成字串，方便比對 */
     private function currentRows(): array
     {
         return DB::table('capture_records')
