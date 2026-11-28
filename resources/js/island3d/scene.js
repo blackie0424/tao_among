@@ -17,6 +17,7 @@ import {
   zoomByPinch,
   zoomByWheel,
 } from './cameraRig'
+import { createAnimals } from './animalMeshes'
 import { createFamily } from './familyMeshes'
 import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
 import { createFrameClock } from './frameClock'
@@ -362,7 +363,7 @@ function trackQuality(renderer, governor, reportStats, now, frame) {
   }
 }
 
-/** 場景裡的東西：整座島（terrain.js）、地標與家屋四件（landmarkMeshes.js）、家人（familyMeshes.js）、玩家、點地面的提示 */
+/** 場景裡的東西：整座島（terrain.js）、地標與家屋四件（landmarkMeshes.js）、家人（familyMeshes.js）、動物（animalMeshes.js）、玩家、點地面的提示 */
 function buildWorld(spots) {
   const loader = new GLTFLoader()
   const scene = new THREE.Scene()
@@ -372,6 +373,7 @@ function buildWorld(spots) {
   const landmarks = buildLandmarks(loader)
   const tapRings = createTapRings()
   const family = createFamily(loader)
+  const animals = createAnimals(loader, { field: islandHeightField() })
   const householdSigns = buildHouseholdSigns(spots)
   buildLights(scene)
   scene.add(
@@ -380,6 +382,7 @@ function buildWorld(spots) {
     buildHouseholds(),
     householdSigns,
     family.group,
+    animals.group,
     player.group,
     tapRings.group
   )
@@ -387,6 +390,7 @@ function buildWorld(spots) {
     scene,
     player,
     family,
+    animals,
     tapRings,
     boats: terrain.boats,
     signs: [landmarks.signs, householdSigns],
@@ -423,14 +427,18 @@ function memberTapper(state, family, onMemberTap) {
   }
 }
 
-/** 每張畫面要更新的東西：玩家、家人、船、鏡頭、標示與招牌、點地面的提示 */
+/** 每張畫面要更新的東西：玩家、家人、動物、船、鏡頭、標示與招牌、點地面的提示 */
 function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange }) {
-  const { player, family, tapRings, boats, signs } = world
+  const { player, family, animals, tapRings, boats, signs } = world
   state.elapsedSeconds = frame.elapsedSeconds
   movePlayer(player, state, frame.deltaSeconds, onTribeChange)
   reportSpot(state, onSpotChange)
   family.update(frame.elapsedSeconds, frame.deltaSeconds, {
     currentTribe: state.tribe,
+    reducedMotion,
+  })
+  animals.update(frame.elapsedSeconds, frame.deltaSeconds, {
+    player: state.position,
     reducedMotion,
   })
   if (!reducedMotion) {

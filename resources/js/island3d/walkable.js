@@ -27,7 +27,7 @@ const pointAt = (from, to, t) => ({
  * 直線 from–to 和凸多邊形重疊的那一段；沒有重疊是 null。vertices 的順序和 hexVertices 相同。
  * tolerance 是邊往外放寬多少（負的是往內縮）
  */
-function spanInPolygon(from, to, vertices, tolerance = SPAN_TOLERANCE) {
+export function spanInPolygon(from, to, vertices, tolerance = SPAN_TOLERANCE) {
   let start = 0
   let end = 1
   for (let i = 0; i < vertices.length; i++) {
