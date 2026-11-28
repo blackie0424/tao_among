@@ -92,7 +92,16 @@ const walker = (spot, x0) => ({
 })
 
 /** 手建的 akay：坐在 (20, 0)，第 0 格的戶；0～8 秒 sit、8～16 秒 wheelchair-look-left */
-const akay = { tribe: 'iraraley', hex: 0, spot: 'akay', look, zone: { x: 20, z: 0, radius: 2 }, heading: 0, index: 2, seat: { x: 20, z: 0 } }
+const akay = {
+  tribe: 'iraraley',
+  hex: 0,
+  spot: 'akay',
+  look,
+  zone: { x: 20, z: 0, radius: 2 },
+  heading: 0,
+  index: 2,
+  seat: { x: 20, z: 0 },
+}
 
 function familyOf(members) {
   const family = createFamily(instantLoader, members)
@@ -103,7 +112,13 @@ function familyOf(members) {
   /** 從 from 秒到 to 秒，每 0.5 秒一張畫面 */
   const run = (from, to, options) => {
     for (let t = from; t <= to + 1e-9; t += 0.5) {
-      family.update(t, 0.5, { currentTribe: 'iraraley', reducedMotion: false, spotKey: null, player: { x: 0, z: 0 }, ...options })
+      family.update(t, 0.5, {
+        currentTribe: 'iraraley',
+        reducedMotion: false,
+        spotKey: null,
+        player: { x: 0, z: 0 },
+        ...options,
+      })
     }
   }
   return { at, run }
