@@ -39,18 +39,21 @@ class IslandCharacter extends Model
      */
     public function collect(Fish $fish): bool
     {
-        if (! FishTribeResponse::hasRecord($this->user_id, $fish->id, $this->tribe)) {
-            return false;
-        }
-        IslandCollectedFish::insertOrIgnore([[
-            'island_character_id' => $this->id,
-            'fish_id' => $fish->id,
-            'collected_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]]);
+        // 檢查時鎖住那一筆記錄：同時在清空或刪除它的寫入會先完成，這裡才判斷，檢查與新增之間不會被改掉
+        return DB::transaction(function () use ($fish) {
+            if (! FishTribeResponse::hasRecord($this->user_id, $fish->id, $this->tribe, lock: true)) {
+                return false;
+            }
+            IslandCollectedFish::insertOrIgnore([[
+                'island_character_id' => $this->id,
+                'fish_id' => $fish->id,
+                'collected_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]]);
 
-        return true;
+            return true;
+        });
     }
 
     /**
