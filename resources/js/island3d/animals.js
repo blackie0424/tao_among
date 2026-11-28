@@ -26,8 +26,8 @@ export const ANIMAL_KINDS = {
       { body: '#262322', belly: '#f4f1ec' },
     ],
   },
-  kois: { model: 'kois', name: 'kois', height: 0.5, speed: 0.5, coats: [PIG_COAT] },
-  piglet: { model: 'kois', name: 'kois', height: 0.25, speed: 0.5, coats: [PIG_COAT] },
+  kois: { model: 'kois', name: 'kois', height: 0.5, speed: 0.9, coats: [PIG_COAT] },
+  piglet: { model: 'kois', name: 'kois', height: 0.25, speed: 0.9, coats: [PIG_COAT] },
   kagling: {
     model: 'kagling',
     name: 'kagling',
@@ -157,8 +157,8 @@ const ANIMAL_GROUPS = [
     'ivalino',
     ['kois'],
     [
-      [54.53, 27.28],
-      [51.53, 27.12],
+      [56.03, 27.36],
+      [50.03, 27.04],
     ]
   ),
   group(
@@ -189,16 +189,16 @@ const ANIMAL_GROUPS = [
     'imowrod',
     ['kois'],
     [
-      [18.68, 62.83],
-      [15.68, 62.67],
+      [20.18, 62.91],
+      [14.18, 62.59],
     ]
   ),
   group(
     'imowrod',
     ['kois'],
     [
-      [38.38, 87.97],
-      [37.06, 85.27],
+      [39.03, 89.32],
+      [36.4, 83.93],
     ]
   ),
   group(
@@ -254,8 +254,8 @@ const ANIMAL_GROUPS = [
     'cross-road',
     ['kois', 'piglet', 'piglet', 'piglet'],
     [
-      [32.96, 39.9],
-      [32.29, 34.95],
+      [33.56, 44.36],
+      [31.69, 30.49],
     ],
     [
       [0, 0],
