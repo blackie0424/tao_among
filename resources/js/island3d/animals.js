@@ -12,14 +12,14 @@ export const ANIMAL_KINDS = {
   ino: {
     model: 'ino',
     name: 'ino',
-    height: 0.7,
+    height: 0.8,
     speed: 0.9,
     coats: [{ body: '#e6bd7a' }, { body: '#2a2624' }],
   },
   cito: {
     model: 'cito',
     name: 'cito',
-    height: 0.4,
+    height: 0.6,
     speed: 0.5,
     coats: [
       { body: '#f0a24e', belly: '#fbf3e6' },
@@ -46,16 +46,36 @@ const LOOK_AHEAD_SECONDS = 0.1
 export const NAME_DISTANCE = 4
 
 const point = ([x, z]) => ({ x, z })
+const shifted = (p, offset) => ({ x: p.x + offset.x, z: p.z + offset.z })
+// 山羊群每隻來回一趟（停頓＋走一段）都是這麼久：停得久的走得快，所以每一輪開頭會在中心附近聚在一起，中間各自散開
+const HERD_LEG_SECONDS = 18
+
 /**
- * 一群動物：place 在哪（部落代碼、'cross-road' 橫貫公路、'ring-road' 環島公路旁）、kinds 每一隻的種類、
- * ends 路線兩端、offsets 每一隻離路線的固定偏移（同一群一起走、彼此錯開；單獨一隻是 [0, 0]）
+ * 一群一起走的動物：place 在哪（部落代碼、'cross-road' 橫貫公路、'ring-road' 環島公路旁）、kinds 每一隻的種類、
+ * 路線兩端、offsets 每一隻離路線的固定偏移（同一群一起走、彼此錯開；單獨一隻是 [0, 0]）
  */
 const group = (place, kinds, [from, to], offsets = [[0, 0]]) => ({
   place,
   kinds,
-  from: point(from),
-  to: point(to),
-  offsets: offsets.map(point),
+  members: offsets.map(point).map((offset) => ({
+    from: shifted(point(from), offset),
+    to: shifted(point(to), offset),
+  })),
+})
+
+/**
+ * 會散開再聚的一群（規格修訂 1）：每一隻 [起點, 終點, 停頓秒數]，起點、終點都寫成離中心 center 多遠；
+ * 起點在中心附近、終點往各自的方向走開
+ */
+const herd = (place, kind, center, members) => ({
+  place,
+  kinds: members.map(() => kind),
+  members: members.map(([from, to, pauseSeconds]) => {
+    const start = shifted(point(center), point(from))
+    const end = shifted(point(center), point(to))
+    const length = Math.hypot(end.x - start.x, end.z - start.z)
+    return { from: start, to: end, pauseSeconds, speed: length / (HERD_LEG_SECONDS - pauseSeconds) }
+  }),
 })
 
 // 位置照規格的條件找過（不穿過家屋四件、特色建築、水田、海；部落裡的不出格子；公路上的在路面或路邊 5 以內）
@@ -245,78 +265,61 @@ const ANIMAL_GROUPS = [
     ]
   ),
   // 部落之間的環島公路旁：山羊 5 群（紅頭到漁人那一段很短，不放）
-  group(
+  herd(
     'ring-road',
-    ['kagling', 'kagling', 'kagling'],
+    'kagling',
+    [-39.98, -137.14],
     [
-      [-42.18, -134.82],
-      [-37.79, -139.47],
-    ],
-    [
-      [0, 0],
-      [0.78, -0.92],
-      [-0.92, -0.78],
+      [[0, 0], [0, 5], 2],
+      [[0.78, -0.92], [2.59, 3.43], 3.5],
+      [[-0.92, -0.78], [5, 1.43], 5],
     ]
   ),
-  group(
+  herd(
     'ring-road',
-    ['kagling', 'kagling', 'kagling', 'kagling'],
+    'kagling',
+    [44.12, -7.86],
     [
-      [45.64, -10.68],
-      [42.6, -5.04],
-    ],
-    [
-      [0, 0],
-      [-0.62, 1.03],
-      [-1.03, -0.62],
-      [0.96, 0.23],
+      [[0, 0], [0, 5], 2],
+      [[-0.62, 1.03], [2.59, 3.43], 3.5],
+      [[-1.03, -0.62], [5, 1.43], 5],
+      [[0.96, 0.23], [4.39, -1.68], 2.8],
     ]
   ),
-  group(
+  herd(
     'ring-road',
-    ['kagling', 'kagling', 'kagling', 'kagling', 'kagling'],
+    'kagling',
+    [64.87, 120.73],
     [
-      [64.83, 123.93],
-      [64.9, 117.53],
-    ],
-    [
-      [0, 0],
-      [0.07, -1.2],
-      [1.2, 0.07],
-      [-0.96, 0.24],
-      [0.28, 1.17],
+      [[0, 0], [0, 5], 2],
+      [[0.07, -1.2], [2.59, 3.43], 3.5],
+      [[1.2, 0.07], [5, 1.43], 5],
+      [[-0.96, 0.24], [-0.41, -4.68], 2.8],
+      [[0.28, 1.17], [-5.2, -1.01], 4.2],
     ]
   ),
-  group(
+  herd(
     'ring-road',
-    ['kagling', 'kagling', 'kagling'],
+    'kagling',
+    [-69.99, 48.81],
     [
-      [-66.88, 49.53],
-      [-73.11, 48.08],
-    ],
-    [
-      [0, 0],
-      [-1.19, -0.21],
-      [-0.21, 1.19],
+      [[0, 0], [0, 5], 2],
+      [[-1.19, -0.21], [2.59, 3.43], 3.5],
+      [[-0.21, 1.19], [5, 1.43], 5],
     ]
   ),
-  group(
+  herd(
     'ring-road',
-    ['kagling', 'kagling', 'kagling', 'kagling'],
+    'kagling',
+    [-116.9, -125.56],
     [
-      [-119.03, -127.95],
-      [-114.77, -123.17],
-    ],
-    [
-      [0, 0],
-      [0.75, 0.94],
-      [-0.94, 0.75],
-      [0.54, -0.82],
+      [[0, 0], [3.01, 3.99], 2],
+      [[0.75, 0.94], [4.13, 1.19], 3.5],
+      [[-0.94, 0.75], [4.86, -1.86], 5],
+      [[0.54, -0.82], [2.49, -3.99], 2.8],
     ]
   ),
 ]
-
-const shifted = (p, offset) => ({ x: p.x + offset.x, z: p.z + offset.z })
 
 /**
  * 島上每一隻動物：{ kind 種類, name 族語名稱, model, height, coat 毛色, place 在哪, group 第幾群,
@@ -324,7 +327,7 @@ const shifted = (p, offset) => ({ x: p.x + offset.x, z: p.z + offset.z })
  */
 export function islandAnimals(groups = ANIMAL_GROUPS) {
   const seen = {}
-  return groups.flatMap(({ place, kinds, from, to, offsets }, g) =>
+  return groups.flatMap(({ place, kinds, members }, g) =>
     kinds.map((kind, k) => {
       const { model, name, height, speed, coats } = ANIMAL_KINDS[kind]
       seen[kind] = (seen[kind] ?? -1) + 1
@@ -336,12 +339,7 @@ export function islandAnimals(groups = ANIMAL_GROUPS) {
         coat: coats[seen[kind] % coats.length],
         place,
         group: g,
-        route: {
-          from: shifted(from, offsets[k]),
-          to: shifted(to, offsets[k]),
-          speed,
-          pauseSeconds: PAUSE_SECONDS,
-        },
+        route: { speed, pauseSeconds: PAUSE_SECONDS, ...members[k] },
         startSeconds: g * GROUP_OFFSET_SECONDS,
       }
     })
