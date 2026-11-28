@@ -264,3 +264,7 @@ it('#232 /island 帶角色編號（手上的魚依角色分開存）', function 
 
     expect(homeProps($player)['character_id'])->toBe(characterOf($player)->id);
 });
+
+it('#232 /island 帶叫法的字數上限（記錄視窗的補充叫法用）', function () {
+    expect(homeProps(collector())['name_max_length'])->toBe(FishTribeResponse::NAME_MAX_LENGTH);
+});

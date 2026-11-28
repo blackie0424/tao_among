@@ -61,19 +61,52 @@
         <div data-testid="held-fish">
           <dt class="text-elder-aux text-island-muted">手上的魚</dt>
           <dd class="text-elder-body font-bold">
-            <img
-              v-if="heldFish"
-              :src="heldFish.image_url"
-              alt="手上的魚"
-              width="96"
-              height="72"
-              class="aspect-[4/3] w-24 rounded-island bg-island-line object-cover"
-            />
+            <div v-if="heldFish" class="flex items-center gap-3">
+              <img
+                :src="heldFish.image_url"
+                alt="手上的魚"
+                width="96"
+                height="72"
+                class="aspect-[4/3] w-24 rounded-island bg-island-line object-cover"
+              />
+              <button type="button" :class="actionButton" @click="openRecord(heldId)">
+                {{ heldActionLabel }}
+              </button>
+            </div>
             <template v-else>還沒有，去海邊找一條</template>
           </dd>
         </div>
       </dl>
+      <button
+        type="button"
+        data-testid="open-collection"
+        :class="[actionButton, 'mt-3 w-full']"
+        @click="collectionOpen = true"
+      >
+        我的圖鑑（已收集 {{ collection.length }} 條）
+      </button>
     </section>
+
+    <IslandRecordPanel
+      v-if="recordFish"
+      :fish="recordFish"
+      :tribe="character.tribe"
+      :questions="recordFishId === recordTarget ? record_questions : null"
+      :name-max-length="name_max_length"
+      :reload-only="RECORD_RELOAD_ONLY"
+      :collectable="collectable"
+      :collect-notice="collectNotice"
+      @close="recordTarget = null"
+      @sent="onRecordSent"
+      @collect="collect(recordTarget)"
+    />
+    <IslandCollection
+      v-if="collectionOpen"
+      :collection="collection"
+      :fish-by-id="fishById"
+      @close="collectionOpen = false"
+      @edit="editFromCollection"
+    />
   </IslandLayout>
 </template>
 
@@ -83,6 +116,8 @@ import { Head, router } from '@inertiajs/vue3'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import IslandWorld from '@/Components/Island/IslandWorld.vue'
 import IslandSpotPrompt from '@/Components/Island/IslandSpotPrompt.vue'
+import IslandRecordPanel from '@/Components/Island/IslandRecordPanel.vue'
+import IslandCollection from '@/Components/Island/IslandCollection.vue'
 import { islandTribeLabel } from '@/constants/island'
 import { createHeldFish, heldFishKey } from '@/island3d/heldFish'
 
@@ -102,6 +137,7 @@ const props = defineProps({
   collection: { type: Array, required: true },
   fish_speech: { type: Object, required: true },
   record_questions: { type: Array, default: null },
+  name_max_length: { type: Number, required: true },
 })
 
 const LOCATION_URL = '/island/location'
@@ -251,7 +287,74 @@ function catchFish() {
 function onBeachAction(key) {
   if (key === 'close') {
     dialogOpen.value = false
+  } else {
+    openRecord(caught.value.fish.id)
   }
+}
+
+// ── 記錄視窗與圖鑑（#232）──
+// 寫入（記錄、收進圖鑑）後重新拿的資料：對話框、細節視窗、圖鑑都用新的
+const RECORD_RELOAD_ONLY = ['record_questions', 'island_fish', 'fish_speech', 'collection']
+const COLLECT_FAILED = '記錄已存好，還沒收進圖鑑'
+const actionButton =
+  'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold'
+const recordTarget = ref(null)
+const recordFish = computed(() => fishById.get(recordTarget.value) ?? null)
+const collectNotice = ref(null)
+const collectionOpen = ref(false)
+const isCollected = (id) => collectedNumberOf(id) !== null
+const recordLoaded = (id) => recordFishId.value === id
+// 只有手上（從海邊拿到）的魚才收得進圖鑑；已經有自己部落的回答、或上一次收進圖鑑失敗時才顯示「收進圖鑑」
+const collectable = computed(
+  () =>
+    recordTarget.value === heldId.value &&
+    !isCollected(heldId.value) &&
+    recordLoaded(heldId.value) &&
+    (hasOwnRecord() || collectNotice.value !== null)
+)
+const heldActionLabel = computed(() => {
+  if (isCollected(heldId.value)) return '改我的記錄'
+  return recordLoaded(heldId.value) && hasOwnRecord() ? '收進圖鑑' : '記下來'
+})
+
+function openRecord(id) {
+  dialogOpen.value = false
+  collectNotice.value = null
+  recordTarget.value = id
+  if (!recordLoaded(id)) loadRecord(id)
+}
+
+function editFromCollection(id) {
+  collectionOpen.value = false
+  openRecord(id)
+}
+
+// 手上的魚第一題記好就收進圖鑑（驗收條件 6）
+function onRecordSent() {
+  if (recordTarget.value === heldId.value && !isCollected(heldId.value)) {
+    collect(heldId.value)
+  }
+}
+
+// 收進圖鑑；被拒（自己部落沒有回答）顯示伺服器的訊息，其餘失敗（限流、逾時）顯示「記錄已存好，還沒收進圖鑑」可再按一次
+function collect(id) {
+  let rejected = null
+  router.post(
+    `/island/collection/${id}`,
+    {},
+    {
+      preserveState: true,
+      preserveScroll: true,
+      only: RECORD_RELOAD_ONLY,
+      onError: (errors) => (rejected = errors.fish ?? null),
+      onFinish: () => (collectNotice.value = isCollected(id) ? null : (rejected ?? COLLECT_FAILED)),
+    }
+  )
+}
+
+// 重新整理後手上的魚還沒收進圖鑑：先載入它的記錄，決定按鈕是「記下來」還是「收進圖鑑」
+if (heldId.value !== null && !isCollected(heldId.value)) {
+  loadRecord(heldId.value)
 }
 
 function toggleDialog() {

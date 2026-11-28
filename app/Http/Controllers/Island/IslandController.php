@@ -42,6 +42,7 @@ class IslandController extends Controller
             'collection' => $character->collection(),
             // #232 記錄視窗的三題：只在帶 record_fish 的 partial reload 才給
             'record_questions' => Inertia::optional(fn () => $this->recordQuestions($request, $character)),
+            'name_max_length' => FishTribeResponse::NAME_MAX_LENGTH,
             'result_options' => FishTribeResponse::islandResultOptions(),
             'unknown_processing_method' => FishTribeResponse::unknownProcessingMethod(),
         ]);

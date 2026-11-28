@@ -15,9 +15,9 @@
     <!-- 照片完整顯示不裁切；點照片或「放大」全螢幕看，可兩指放大 -->
     <div
       data-testid="fish-photo"
-      :data-size="mode === 'supplement' ? 'small' : 'large'"
+      :data-size="supplementing ? 'small' : 'large'"
       class="relative overflow-hidden rounded-island bg-white transition-[height] duration-300 motion-reduce:transition-none"
-      :class="mode === 'supplement' ? 'h-28' : 'h-52'"
+      :class="supplementing ? 'h-28' : 'h-52'"
     >
       <button
         ref="zoomButton"
@@ -78,90 +78,25 @@
         </button>
       </div>
 
-      <form
-        v-else-if="mode === 'supplement'"
-        key="supplement"
-        class="mt-3 space-y-2"
-        @submit.prevent="send(supplement)"
-      >
-        <label for="island-supplement" class="block px-1 text-elder-body font-bold"
-          >你知道的叫法</label
-        >
-        <input
-          id="island-supplement"
-          v-model="supplement"
-          type="text"
-          :maxlength="name_max_length"
-          :aria-invalid="errorMessage ? 'true' : 'false'"
-          :aria-describedby="errorMessage ? 'island-answer-error' : undefined"
-          class="min-h-touch-primary w-full rounded-island border-2 border-island-ink px-3 text-elder-body"
-        />
-        <p class="px-1 text-elder-aux text-island-muted">最多 {{ name_max_length }} 個字</p>
-        <p
-          v-if="errorMessage"
-          id="island-answer-error"
-          role="alert"
-          class="text-elder-body text-red-700"
-        >
-          {{ errorMessage }}
-        </p>
-        <div class="flex gap-2 pt-2">
-          <button
-            type="button"
-            :disabled="form.processing"
-            :class="secondaryButton"
-            @click="startAnswer"
-          >
-            取消
-          </button>
-          <button type="submit" :disabled="locked" :class="[primaryButton, 'flex-1']">
-            {{ submitLabel }}
-          </button>
-        </div>
-      </form>
-
-      <div v-else :key="`answer-${activeKey}`" class="mt-3 flex flex-col gap-2">
-        <!-- 點選項就送出，沒有送出鈕；被限流時在選項上方放一個停用的鈕告訴使用者還要等多久 -->
-        <button v-if="waitSeconds > 0" type="button" disabled :class="primaryButton">
-          {{ submitLabel }}
-        </button>
-        <button
-          v-for="(option, i) in current.options"
-          :key="i"
-          type="button"
-          data-testid="option"
-          :disabled="locked"
-          :aria-pressed="option === current.my_answer ? 'true' : 'false'"
-          class="flex min-h-touch-primary items-center justify-between rounded-island border-2 bg-white px-4 text-left text-elder-body font-extrabold transition-transform active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-none"
-          :class="option === current.my_answer ? 'border-island-accent' : 'border-white'"
-          @click="send(option)"
-        >
-          <span>{{ option }}</span>
-          <span aria-hidden="true">›</span>
-        </button>
-        <button
-          v-if="activeKey === 'name'"
-          type="button"
-          data-testid="option"
-          :disabled="locked"
-          class="flex min-h-touch-primary items-center justify-between rounded-island border-2 border-white bg-white px-4 text-left text-elder-body font-bold disabled:opacity-50"
-          @click="startSupplement"
-        >
-          <span>都不對，我來補充</span>
-          <span aria-hidden="true">✎</span>
-        </button>
-        <p v-if="errorMessage" role="alert" class="text-elder-body text-red-700">
-          {{ errorMessage }}
-        </p>
-        <button
-          type="button"
-          :disabled="form.processing"
-          class="min-h-touch-primary rounded-island text-elder-body font-bold underline disabled:opacity-50"
-          @click="showResult"
-        >
-          先不答，看結果
-        </button>
-      </div>
+      <IslandAnswerOptions
+        v-else
+        :key="`answer-${activeKey}`"
+        v-model:supplementing="supplementing"
+        class="mt-3"
+        :options="current.options"
+        :my-answer="current.my_answer"
+        :allow-supplement="activeKey === 'name'"
+        :locked="locked"
+        :processing="form.processing"
+        :wait-seconds="waitSeconds"
+        :submit-label="submitLabel"
+        :error-message="errorMessage"
+        :name-max-length="name_max_length"
+        cancel-label="先不答，看結果"
+        @choose="send"
+        @cancel="showResult"
+        @reset="form.clearErrors()"
+      />
     </Transition>
 
     <div class="mt-6 flex gap-2">
@@ -205,6 +140,7 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import IslandAnswerOptions from '@/Components/Island/IslandAnswerOptions.vue'
 import QuestionResult from '@/Components/Island/QuestionResult.vue'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import { useRateLimitCountdown } from '@/composables/useRateLimitCountdown'
@@ -230,14 +166,14 @@ const primaryButton =
 const secondaryButton =
   'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold disabled:opacity-50'
 
-// mode：result 看結果（每個分頁一進來）、answer 選選項、supplement 打補充的叫法
+// mode：result 看結果（每個分頁一進來）、answer 選選項；supplementing 正在打補充的叫法（選項元件裡切換）
 // 網址帶 question（#189 地點清單、NPC 的「我來說」）時一進來停在那一題；沒帶或值不對時停在第一題
 const requestedKey = new URLSearchParams(window.location.search).get('question')
 const activeKey = ref(
   props.questions.some((q) => q.key === requestedKey) ? requestedKey : props.questions[0].key
 )
 const mode = ref('result')
-const supplement = ref('')
+const supplementing = ref(false)
 const photoOpen = ref(false)
 const closePhotoButton = ref(null)
 const zoomButton = ref(null)
@@ -281,7 +217,7 @@ onUnmounted(() => document.removeEventListener('keydown', onPhotoKeydown))
 
 function setMode(next) {
   mode.value = next
-  supplement.value = ''
+  supplementing.value = false
   form.clearErrors()
 }
 
@@ -291,7 +227,6 @@ function openTab(key) {
 }
 
 const startAnswer = () => setMode('answer')
-const startSupplement = () => setMode('supplement')
 const showResult = () => setMode('result')
 
 /** 點選項（或送出補充）就送出這一題；回應可能在換分頁後才到，只有還停在同一題時才切回結果 */

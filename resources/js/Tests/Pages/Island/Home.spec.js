@@ -1,16 +1,29 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// #232：Inertia 的 partial reload 換成假的，由測試決定何時回來
-const inertia = vi.hoisted(() => ({ reload: vi.fn() }))
-vi.mock('@inertiajs/vue3', () => ({
-  router: { reload: inertia.reload },
-  Head: { render: () => null },
-  Link: {
-    props: ['href'],
-    template: '<a :href="href"><slot /></a>',
-  },
-}))
+// #232：Inertia 的 partial reload、送出換成假的，由測試決定何時回來
+const inertia = vi.hoisted(() => ({ reload: vi.fn(), post: vi.fn(), formPosts: [] }))
+vi.mock('@inertiajs/vue3', async () => {
+  const { reactive } = await import('vue')
+  return {
+    router: { reload: inertia.reload, post: inertia.post, on: () => () => {} },
+    useForm: (init) => {
+      const form = reactive({ ...init, errors: {}, processing: false })
+      form.clearErrors = () => {
+        form.errors = {}
+      }
+      form.post = (url, options) => {
+        inertia.formPosts.push({ url, question: form.question, value: form.value, options })
+      }
+      return form
+    },
+    Head: { render: () => null },
+    Link: {
+      props: ['href'],
+      template: '<a :href="href"><slot /></a>',
+    },
+  }
+})
 
 // 3D 繪圖模組換成假的：測試環境（jsdom）畫不出 3D，畫面由實機驗證
 const scene = vi.hoisted(() => ({ createIslandScene: vi.fn(), dispose: vi.fn() }))
@@ -99,6 +112,7 @@ const mountPage = async (overrides = {}) => {
       fish_speech: {},
       collection: [],
       record_questions: null,
+      name_max_length: 50,
       ...overrides,
     },
   })
@@ -141,6 +155,8 @@ describe('Island/Home 地圖頁', () => {
     scene.createIslandScene.mockReset().mockReturnValue({ dispose: scene.dispose })
     scene.dispose.mockReset()
     inertia.reload.mockReset()
+    inertia.post.mockReset()
+    inertia.formPosts.length = 0
     window.localStorage.clear()
     window.history.replaceState({}, '', '/island')
   })
@@ -1139,6 +1155,243 @@ describe('Island/Home 地圖頁', () => {
       window.localStorage.setItem(HELD_KEY, '99')
       const gone = await mountPage()
       expect(gone.get('[data-testid="held-fish"]').text()).toContain('還沒有，去海邊找一條')
+    })
+  })
+  describe('#232 記錄視窗與圖鑑', () => {
+    const HELD_KEY = 'island.heldFish.7'
+    const QUESTIONS = (answers = {}) => [
+      { key: 'name', options: ['魚K', 'kakan'], my_answer: answers.name ?? null },
+      {
+        key: 'food_category',
+        options: ['oyod', 'rahet'],
+        my_answer: answers.food_category ?? null,
+      },
+      {
+        key: 'processing_method',
+        options: ['去魚鱗', '我不知道'],
+        my_answer: answers.processing_method ?? null,
+      },
+    ]
+    const reachBeach = async (tribe) => {
+      sceneOptions().onBeachChange(tribe)
+      await flushPromises()
+    }
+    /** 最近一次 partial reload 回來：換成 questions，再呼叫 onSuccess */
+    const answerReload = async (wrapper, questions) => {
+      const options = inertia.reload.mock.calls.at(-1)[0]
+      await wrapper.setProps({ record_questions: questions })
+      options.onSuccess?.()
+      await flushPromises()
+    }
+    /** 在海邊找到第一條魚（編號 1；亂數在 beforeEach 固定為 0），載入記錄後停在找到魚的對話 */
+    const catchFirstFish = async (wrapper, answers = {}) => {
+      await reachBeach('iratay')
+      await pressSpace()
+      await answerReload(wrapper, QUESTIONS(answers))
+    }
+    const beachButton = (wrapper, label) =>
+      wrapper.findAll('[data-testid="beach-actions"] button').find((b) => b.text() === label)
+    const panel = (wrapper) => wrapper.find('[data-testid="record-panel"]')
+    const panelButton = (wrapper, label) =>
+      panel(wrapper)
+        .findAll('button')
+        .find((b) => b.text().replace(/[›✎✓]/g, '').trim() === label)
+    const lastCollectCall = () => inertia.post.mock.calls.at(-1)
+
+    // 亂數要在頁面掛上前固定（手上的魚模組在掛上時拿到亂數函式）：0 抽到第一條（編號 1）
+    beforeEach(() => vi.spyOn(Math, 'random').mockReturnValue(0))
+    afterEach(() => vi.restoreAllMocks())
+
+    it('「記下來」打開記錄視窗：記到自己的部落、三個分頁、只列選項不顯示結果', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper)
+
+      await beachButton(wrapper, '記下來').trigger('click')
+
+      expect(panel(wrapper).text()).toContain('記到 yayo（椰油）')
+      expect(
+        panel(wrapper)
+          .findAll('[role="tab"]')
+          .map((t) => t.text())
+      ).toEqual(['叫法', '分類', '處理'])
+      expect(
+        panel(wrapper)
+          .findAll('[data-testid="option"]')
+          .map((o) => o.text().replace(/[›✎]/g, '').trim())
+      ).toEqual(['魚K', 'kakan', '都不對，我來補充'])
+      expect(panel(wrapper).text()).not.toContain('多數')
+      expect(panel(wrapper).text()).not.toContain('人')
+    })
+
+    it('點選項就送出那一題，記到自己的部落；第一題成功後收進圖鑑', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper)
+      await beachButton(wrapper, '記下來').trigger('click')
+      await panel(wrapper).findAll('[role="tab"]')[1].trigger('click')
+
+      await panelButton(wrapper, 'oyod').trigger('click')
+
+      expect(inertia.formPosts.at(-1)).toMatchObject({
+        url: '/island/tribes/yayo/fish/1/answers',
+        question: 'food_category',
+        value: 'oyod',
+      })
+      inertia.formPosts.at(-1).options.onSuccess()
+      await flushPromises()
+      expect(lastCollectCall()[0]).toBe('/island/collection/1')
+    })
+
+    it('收進圖鑑失敗：顯示「記錄已存好，還沒收進圖鑑」，按「收進圖鑑」再試一次', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper)
+      await beachButton(wrapper, '記下來').trigger('click')
+      await panelButton(wrapper, '魚K').trigger('click')
+      inertia.formPosts.at(-1).options.onSuccess()
+      await flushPromises()
+
+      lastCollectCall()[2].onFinish()
+      await flushPromises()
+
+      expect(panel(wrapper).text()).toContain('記錄已存好，還沒收進圖鑑')
+      await panelButton(wrapper, '收進圖鑑').trigger('click')
+      expect(inertia.post).toHaveBeenCalledTimes(2)
+    })
+
+    it('收進圖鑑成功（圖鑑多了這條）：不顯示失敗的提示', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper)
+      await beachButton(wrapper, '記下來').trigger('click')
+      await panelButton(wrapper, '魚K').trigger('click')
+      inertia.formPosts.at(-1).options.onSuccess()
+      await flushPromises()
+
+      await wrapper.setProps({ collection: [{ fish_id: 1, number: 1, my: { name: '魚K' } }] })
+      lastCollectCall()[2].onFinish()
+      await flushPromises()
+
+      expect(panel(wrapper).text()).not.toContain('還沒收進圖鑑')
+    })
+
+    it('在 among 答過的魚：「收進圖鑑」打開記錄視窗，標出原本的答案，上方「收進圖鑑」按了就收', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper, { name: 'kakan' })
+
+      await beachButton(wrapper, '收進圖鑑').trigger('click')
+
+      expect(panel(wrapper).find('[aria-pressed="true"]').text()).toContain('kakan')
+      await panelButton(wrapper, '收進圖鑑').trigger('click')
+      expect(lastCollectCall()[0]).toBe('/island/collection/1')
+      expect(inertia.formPosts).toEqual([])
+    })
+
+    it('已經在圖鑑裡的魚改記錄：送出不再收進圖鑑', async () => {
+      const wrapper = await mountPage({ collection: [{ fish_id: 1, number: 1, my: {} }] })
+      await reachBeach('iratay')
+      await pressSpace()
+
+      await beachButton(wrapper, '改我的記錄').trigger('click')
+      await answerReload(wrapper, QUESTIONS())
+      await panelButton(wrapper, '魚K').trigger('click')
+      inertia.formPosts.at(-1).options.onSuccess()
+      await flushPromises()
+
+      expect(inertia.post).not.toHaveBeenCalled()
+    })
+
+    it('記錄還沒載入完成：視窗寫「載入中…」', async () => {
+      const wrapper = await mountPage({ collection: [{ fish_id: 1, number: 1, my: {} }] })
+      await reachBeach('iratay')
+      await pressSpace()
+
+      await beachButton(wrapper, '改我的記錄').trigger('click')
+
+      expect(panel(wrapper).text()).toContain('載入中…')
+    })
+
+    it('「好了」關掉記錄視窗', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper)
+      await beachButton(wrapper, '記下來').trigger('click')
+
+      await panelButton(wrapper, '好了').trigger('click')
+
+      expect(panel(wrapper).exists()).toBe(false)
+    })
+
+    it('地圖下方「手上的魚」的「記下來」也能打開記錄視窗', async () => {
+      window.localStorage.setItem(HELD_KEY, '2')
+      const wrapper = await mountPage()
+      await answerReload(wrapper, QUESTIONS())
+
+      await wrapper.get('[data-testid="held-fish"] button').trigger('click')
+
+      expect(panel(wrapper).exists()).toBe(true)
+    })
+
+    describe('我的圖鑑', () => {
+      const COLLECTION = [
+        {
+          fish_id: 14,
+          number: 1,
+          my: { name: null, food_category: 'rahet', processing_method: null },
+        },
+        {
+          fish_id: 2,
+          number: 2,
+          my: { name: 'arayo', food_category: 'oyod', processing_method: '去魚鱗' },
+        },
+      ]
+      const book = (wrapper) => wrapper.find('[data-testid="collection"]')
+
+      it('按鈕寫已收集幾條；打開後「已收集 X 條」，依編號列第 N 條、照片、自己記的三題（沒記寫「還沒記」）', async () => {
+        const wrapper = await mountPage({ collection: COLLECTION })
+
+        await wrapper.get('[data-testid="open-collection"]').trigger('click')
+
+        expect(book(wrapper).text()).toContain('已收集 2 條')
+        const cards = book(wrapper).findAll('[data-testid="collection-card"]')
+        expect(cards.map((card) => card.get('img').attributes('src'))).toEqual(['/b.jpg', '/a.jpg'])
+        expect(cards[0].text()).toContain('第 1 條')
+        expect(cards[0].text()).toContain('叫法還沒記')
+        expect(cards[0].text()).toContain('分類rahet')
+        expect(cards[1].text()).toContain('處理去魚鱗')
+      })
+
+      it('圖鑑是空的：「還沒有魚，去海邊找一條」', async () => {
+        const wrapper = await mountPage()
+
+        await wrapper.get('[data-testid="open-collection"]').trigger('click')
+
+        expect(book(wrapper).text()).toContain('已收集 0 條')
+        expect(book(wrapper).text()).toContain('還沒有魚，去海邊找一條')
+      })
+
+      it('「改我的記錄」載入那條魚的記錄並打開記錄視窗', async () => {
+        const wrapper = await mountPage({ collection: COLLECTION })
+        await wrapper.get('[data-testid="open-collection"]').trigger('click')
+
+        await book(wrapper)
+          .findAll('[data-testid="collection-card"]')[1]
+          .get('button')
+          .trigger('click')
+
+        expect(inertia.reload).toHaveBeenLastCalledWith(
+          expect.objectContaining({ data: { record_fish: 2 } })
+        )
+        expect(panel(wrapper).exists()).toBe(true)
+      })
+
+      it('「關閉」關掉圖鑑', async () => {
+        const wrapper = await mountPage({ collection: COLLECTION })
+        await wrapper.get('[data-testid="open-collection"]').trigger('click')
+
+        await book(wrapper)
+          .findAll('button')
+          .find((b) => b.text() === '關閉')
+          .trigger('click')
+
+        expect(book(wrapper).exists()).toBe(false)
+      })
     })
   })
 })
