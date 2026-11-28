@@ -96,6 +96,7 @@
       :reload-only="RECORD_RELOAD_ONLY"
       :collectable="collectable"
       :collect-notice="collectNotice"
+      :collecting="collecting"
       @close="recordTarget = null"
       @sent="onRecordSent"
       @collect="collect(recordTarget)"
@@ -183,13 +184,14 @@ const currentSpot = computed(() => {
 const isTouch = window.matchMedia?.('(pointer: coarse)').matches ?? false
 
 // ── 對話裡的魚（#216）──
-const fishById = new Map(props.island_fish.map((fish) => [fish.id, fish]))
+// 跟著 island_fish 更新（寫入後 partial reload 拿到新的結果、照片）
+const fishById = computed(() => new Map(props.island_fish.map((fish) => [fish.id, fish])))
 const currentSpotFish = computed(() => {
   const spot = reachedSpot.value
   const entries = spot
     ? (props.spot_fish[spot.tribe]?.[spot.hex * SPOTS_PER_HOUSEHOLD + spot.slot] ?? [])
     : []
-  return entries.map((entry) => ({ ...fishById.get(entry.id), ...entry }))
+  return entries.map((entry) => ({ ...fishById.value.get(entry.id), ...entry }))
 })
 
 // 「聽過了」只記在這次打開的頁面，依部落分開
@@ -217,9 +219,18 @@ const held = createHeldFish({
   fishIds: props.island_fish.map((fish) => fish.id),
 })
 const heldId = ref(held.get())
-const heldFish = computed(() => fishById.get(heldId.value) ?? null)
-// 打開海邊對話框時找到的結果（給對話框）；recordFishId 是 record_questions 目前是哪一條魚的
-const caught = ref(null)
+const heldFish = computed(() => fishById.value.get(heldId.value) ?? null)
+// 打開海邊對話框時找到的結果 { id, released }（id 沒有任何魚時為 null）；recordFishId 是 record_questions 目前是哪一條魚的
+const caughtResult = ref(null)
+const caught = computed(() => {
+  const result = caughtResult.value
+  if (result === null) return null
+  return {
+    fish: fishById.value.get(result.id) ?? null,
+    released: result.released,
+    collectedNumber: collectedNumberOf(result.id),
+  }
+})
 const recordFishId = ref(null)
 const collectedNumberOf = (id) =>
   props.collection.find((entry) => entry.fish_id === id)?.number ?? null
@@ -272,15 +283,11 @@ function loadRecord(id) {
 function catchFish() {
   const result = held.catchFish()
   if (result === null) {
-    caught.value = { fish: null, released: false, collectedNumber: null }
+    caughtResult.value = { id: null, released: false }
     return
   }
   heldId.value = result.id
-  caught.value = {
-    fish: fishById.get(result.id),
-    released: result.released !== null,
-    collectedNumber: collectedNumberOf(result.id),
-  }
+  caughtResult.value = { id: result.id, released: result.released !== null }
   loadRecord(result.id)
 }
 
@@ -299,7 +306,8 @@ const COLLECT_FAILED = '記錄已存好，還沒收進圖鑑'
 const actionButton =
   'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold'
 const recordTarget = ref(null)
-const recordFish = computed(() => fishById.get(recordTarget.value) ?? null)
+const recordFish = computed(() => fishById.value.get(recordTarget.value) ?? null)
+const collecting = ref(false)
 const collectNotice = ref(null)
 const collectionOpen = ref(false)
 const isCollected = (id) => collectedNumberOf(id) !== null
@@ -339,6 +347,7 @@ function onRecordSent() {
 // 收進圖鑑；被拒（自己部落沒有回答）顯示伺服器的訊息，其餘失敗（限流、逾時）顯示「記錄已存好，還沒收進圖鑑」可再按一次
 function collect(id) {
   let rejected = null
+  collecting.value = true
   router.post(
     `/island/collection/${id}`,
     {},
@@ -347,7 +356,10 @@ function collect(id) {
       preserveScroll: true,
       only: RECORD_RELOAD_ONLY,
       onError: (errors) => (rejected = errors.fish ?? null),
-      onFinish: () => (collectNotice.value = isCollected(id) ? null : (rejected ?? COLLECT_FAILED)),
+      onFinish: () => {
+        collecting.value = false
+        collectNotice.value = isCollected(id) ? null : (rejected ?? COLLECT_FAILED)
+      },
     }
   )
 }

@@ -8,7 +8,7 @@
     aria-modal="true"
     aria-labelledby="island-record-title"
     class="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-3 min-[801px]:items-center"
-    @keydown.esc="emit('close')"
+    @keydown.esc="close"
   >
     <div class="max-h-full w-full max-w-xl overflow-y-auto rounded-island bg-island-sea p-4">
       <div class="flex items-center gap-3">
@@ -83,7 +83,12 @@
         />
       </template>
 
-      <button type="button" :class="[secondaryButton, 'mt-4 w-full']" @click="emit('close')">
+      <button
+        type="button"
+        :disabled="!closable"
+        :class="[secondaryButton, 'mt-4 w-full']"
+        @click="close"
+      >
         好了
       </button>
     </div>
@@ -108,6 +113,8 @@ const props = defineProps({
   reloadOnly: { type: Array, required: true },
   collectable: { type: Boolean, default: false },
   collectNotice: { type: String, default: null },
+  // 上層正在收進圖鑑：收完才能關（送出第一題到收進圖鑑是同一段，中途關掉會漏收）
+  collecting: { type: Boolean, default: false },
 })
 const emit = defineEmits(['close', 'sent', 'collect'])
 
@@ -115,7 +122,7 @@ const TAB_LABELS = { name: '叫法', food_category: '分類', processing_method:
 const primaryButton =
   'flex min-h-touch-primary w-full items-center justify-center rounded-island bg-island-accent px-4 text-elder-body font-bold text-white disabled:opacity-50'
 const secondaryButton =
-  'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold'
+  'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold disabled:opacity-50'
 
 const activeKey = ref('name')
 const supplementing = ref(false)
@@ -123,7 +130,12 @@ const form = useForm({ question: '', value: '' })
 const { waitSeconds, initialWaitSeconds } = useRateLimitCountdown()
 
 const current = computed(() => props.questions.find((q) => q.key === activeKey.value))
-const locked = computed(() => form.processing || waitSeconds.value > 0)
+const locked = computed(() => form.processing || props.collecting || waitSeconds.value > 0)
+const closable = computed(() => !form.processing && !props.collecting)
+
+function close() {
+  if (closable.value) emit('close')
+}
 const errorMessage = computed(() => form.errors.value || form.errors.question || null)
 const submitLabel = computed(() => {
   if (form.processing) return '送出中…'

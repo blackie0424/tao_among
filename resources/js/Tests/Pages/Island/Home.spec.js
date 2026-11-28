@@ -12,8 +12,14 @@ vi.mock('@inertiajs/vue3', async () => {
       form.clearErrors = () => {
         form.errors = {}
       }
+      // 送出後 processing 為 true，直到測試呼叫 onSuccess（同 Inertia 的 useForm）
       form.post = (url, options) => {
-        inertia.formPosts.push({ url, question: form.question, value: form.value, options })
+        form.processing = true
+        const settle = {
+          ...options,
+          onSuccess: () => ((form.processing = false), options.onSuccess?.()),
+        }
+        inertia.formPosts.push({ url, question: form.question, value: form.value, options: settle })
       }
       return form
     },
@@ -1326,6 +1332,53 @@ describe('Island/Home 地圖頁', () => {
       await wrapper.get('[data-testid="held-fish"] button').trigger('click')
 
       expect(panel(wrapper).exists()).toBe(true)
+    })
+
+    it('第一題送出中：「好了」停用、按 Esc 也不關，成功後照樣收進圖鑑（review 第 1 項）', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper)
+      await beachButton(wrapper, '記下來').trigger('click')
+      await panelButton(wrapper, '魚K').trigger('click')
+      const pending = inertia.formPosts.at(-1)
+      await flushPromises()
+
+      expect(panelButton(wrapper, '好了').attributes('disabled')).toBeDefined()
+      await panel(wrapper).trigger('keydown', { key: 'Escape' })
+      expect(panel(wrapper).exists()).toBe(true)
+
+      pending.options.onSuccess()
+      await flushPromises()
+      expect(lastCollectCall()[0]).toBe('/island/collection/1')
+    })
+
+    it('收進圖鑑送出中：「好了」停用；結束後才能關（review 第 1 項）', async () => {
+      const wrapper = await mountPage()
+      await catchFirstFish(wrapper)
+      await beachButton(wrapper, '記下來').trigger('click')
+      await panelButton(wrapper, '魚K').trigger('click')
+      inertia.formPosts.at(-1).options.onSuccess()
+      await flushPromises()
+
+      expect(panelButton(wrapper, '好了').attributes('disabled')).toBeDefined()
+
+      lastCollectCall()[2].onFinish()
+      await flushPromises()
+      expect(panelButton(wrapper, '好了').attributes('disabled')).toBeUndefined()
+    })
+
+    it('寫入後重新拿到的魚資料（照片）直接用在手上的魚與圖鑑，不用重新整理（review 第 2 項）', async () => {
+      window.localStorage.setItem(HELD_KEY, '2')
+      const wrapper = await mountPage({ collection: [{ fish_id: 2, number: 1, my: {} }] })
+
+      await wrapper.setProps({
+        island_fish: ISLAND_FISH.map((fish) =>
+          fish.id === 2 ? { ...fish, image_url: '/a2.jpg' } : fish
+        ),
+      })
+      await wrapper.get('[data-testid="open-collection"]').trigger('click')
+
+      expect(wrapper.get('[data-testid="held-fish"] img').attributes('src')).toBe('/a2.jpg')
+      expect(wrapper.get('[data-testid="collection-card"] img').attributes('src')).toBe('/a2.jpg')
     })
 
     describe('我的圖鑑', () => {
