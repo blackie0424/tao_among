@@ -133,7 +133,7 @@ function buildLandmark(loader, landmark) {
 }
 
 /** 招牌的材質：文字貼圖，永遠正面朝鏡頭、大小不隨遠近改變、不被建物擋住 */
-const signMaterial = (text) =>
+export const signMaterial = (text) =>
   new THREE.SpriteMaterial({ map: labelTexture(text), sizeAttenuation: false, depthTest: false })
 
 /** 一塊招牌：放在 (x, 離地 height, z) */

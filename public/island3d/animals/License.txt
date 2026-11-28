@@ -1,0 +1,24 @@
+魚島 3D 的動物模型（#222）
+
+四個檔都是 CC0 1.0 Universal（公共領域），可商用、可轉散布，不需要標示作者；下面照樣記下來源。
+
+- ino.glb（狗）、cito.glb（貓）
+  來源：Quaternius, "Animal Pack Vol.2"（Animated Wolf, Eagle, Dog, Cat and Piranha）
+  https://opengameart.org/content/animated-animales-low-poly
+  原檔：Blends/Dog.blend、Blends/Cat.blend
+
+- kois.glb（豬）
+  來源：Quaternius, "Farm Animal Pack"（LowPoly Animated Farm Animal Pack）
+  https://quaternius.com/packs/farmanimal.html
+  原檔：Blends/Pig.blend（FBX 版缺走路動作，所以用 .blend）
+
+- kagling.glb（山羊）
+  來源：tomek, "3D goat animation for game"
+  https://opengameart.org/content/3d-goat-animation-for-game
+  原檔：goat.blend
+
+轉檔方式（Blender 4.2 LTS，2026-11-28）：
+- 只留站著、走路兩個動作，改名為 idle、walk（狗、貓原名 Idle／Walking；豬 Idle／Walk；山羊 goat_idle／goat_walk），其他動作刪掉。
+- 材質改成用途名稱，讓程式換毛色：body（身體）；貓另有 belly（白色部分）、pink（耳朵）；豬另有 detail。
+- 山羊原檔附的地面（Plane）與燈光（Sun）刪掉。
+- 匯出 glTF 2.0 二進位（.glb），含動作、不含鏡頭與燈光。毛色在程式裡換（animals.js），模型檔保留原本顏色。

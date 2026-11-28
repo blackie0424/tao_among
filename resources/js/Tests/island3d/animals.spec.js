@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  ANIMAL_KINDS,
-  animalPlacement,
-  islandAnimals,
-  isNameVisible,
-} from '@/island3d/animals'
+import { ANIMAL_KINDS, animalPlacement, islandAnimals, isNameVisible } from '@/island3d/animals'
 import { ACTOR_HEIGHT } from '@/island3d/figures'
 import { closestOnSegment, hexVertices } from '@/island3d/hexBounds'
 import { householdObstacles } from '@/island3d/households'
@@ -65,9 +60,7 @@ const gapToRoad = (point, { from, to }) => distance(point, closestOnSegment(poin
 const RING_SEGMENTS = roadSegments({ ...ISLAND_MAP, roads: [ISLAND_MAP.roads[0]] })
 const CROSS_SEGMENTS = roadSegments({ ...ISLAND_MAP, roads: [ISLAND_MAP.roads[1]] })
 const withinOneSegment = ({ from, to }, segments, reach) =>
-  segments.some(
-    (segment) => gapToRoad(from, segment) <= reach && gapToRoad(to, segment) <= reach
-  )
+  segments.some((segment) => gapToRoad(from, segment) <= reach && gapToRoad(to, segment) <= reach)
 
 describe('island3d/animals 出現地點與數量（#222 驗收條件 1）', () => {
   it('狗：6 個部落各 2 隻；貓：6 個部落各 1 隻', () => {
@@ -209,7 +202,10 @@ describe('island3d/animals 走動（#222 驗收條件 4）', () => {
         const along = closestOnSegment(now.position, from, to)
         expect(distance(now.position, along)).toBeLessThan(TOLERANCE)
         if (now.pose === 'walk' && next.pose === 'walk') {
-          const heading = Math.atan2(next.position.x - now.position.x, next.position.z - now.position.z)
+          const heading = Math.atan2(
+            next.position.x - now.position.x,
+            next.position.z - now.position.z
+          )
           expect(Math.cos(now.heading - heading)).toBeGreaterThan(0.99)
         }
         if (now.pose === 'idle' && next.pose === 'idle') {
@@ -228,9 +224,9 @@ describe('island3d/animals 走動（#222 驗收條件 4）', () => {
           const placements = group.map((animal) => animalPlacement(animal, t, { field: flat }))
           expect(new Set(placements.map((p) => p.pose)).size).toBe(1)
           placements.forEach((a, i) =>
-            placements.slice(i + 1).forEach((b) =>
-              expect(distance(a.position, b.position)).toBeGreaterThan(0.3)
-            )
+            placements
+              .slice(i + 1)
+              .forEach((b) => expect(distance(a.position, b.position)).toBeGreaterThan(0.3))
           )
         })
       )
