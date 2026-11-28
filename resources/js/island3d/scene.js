@@ -22,6 +22,7 @@ import {
   zoomByWheel,
 } from './cameraRig'
 import { createCameraOcclusion } from './cameraOcclusion'
+import { nameLabelsOf, scaleNameLabels } from './nameLabels'
 import { createAnimals } from './animalMeshes'
 import { createFamily } from './familyMeshes'
 import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
@@ -412,21 +413,9 @@ function buildWorld(spots) {
     occlusion,
     boats: terrain.boats,
     signs: [landmarks.signs, householdSigns],
-    // 拉近時放大的名字標示：地標招牌、家屋招牌、動物的名稱（#228 驗收條件 4）
-    labels: [
-      ...landmarks.signs.children,
-      ...householdSigns.children,
-      ...animals.figures.map((figure) => figure.label),
-    ],
+    // 拉近時放大的名字標示（#228 驗收條件 4）
+    labels: nameLabelsOf({ landmarks, householdSigns, animals }),
   }
-}
-
-/** 名字標示放大成原本大小的 factor 倍；原本的大小第一次時記在 userData.baseScale */
-function scaleLabels(labels, factor) {
-  labels.forEach((label) => {
-    label.userData.baseScale ??= label.scale.clone()
-    label.scale.copy(label.userData.baseScale).multiplyScalar(factor)
-  })
 }
 
 function buildCamera(container) {
@@ -483,7 +472,7 @@ function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChang
   const range = rangeOf(camera, state.rig)
   // 以進入時的距離為基準換算，同一個鏡頭距離下招牌顯示和 #228 以前一樣
   signs.forEach((group) => showSigns(group, zoomBeyondEntry(state.rig, range)))
-  scaleLabels(labels, labelScale(state.rig, range))
+  scaleNameLabels(labels, labelScale(state.rig, range))
   tapRings.update(state, camera)
 }
 
