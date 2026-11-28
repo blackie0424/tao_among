@@ -272,6 +272,8 @@ describe('island3d/households 四件上方的名稱招牌（#201 驗收條件 15
         )
         expect(sign).toMatchObject({
           text: `${tribe}-第${hex + 1}戶-${slot}`,
+          tribe,
+          hex,
           x: item.x,
           z: item.z,
         })

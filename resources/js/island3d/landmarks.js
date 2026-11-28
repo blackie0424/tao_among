@@ -465,3 +465,21 @@ const SIGN_HIDE_ZOOM = 0.5
 export function signsVisible(zoom) {
   return zoom <= SIGN_HIDE_ZOOM
 }
+
+// 特色建築招牌離玩家這個距離以內才顯示（#226 驗收條件 2；起始值，依畫面調整）
+export const SIGN_NEAR_DISTANCE = 30
+
+/**
+ * 這塊招牌要不要顯示（#226）。sign：{ kind 'household' 家屋／'landmark' 特色建築, tribe, hex（家屋才有）, x, z }；
+ * view：{ player 玩家位置, hex 顯示格 { tribe, hex }（islandMap.js 的 nearestHex）, zoom 鏡頭遠近（zoomBeyondEntry） }。
+ * 拉遠超過一半全部隱藏；家屋只顯示顯示格那一格的；特色建築只顯示 SIGN_NEAR_DISTANCE 以內的
+ */
+export function isSignVisible(sign, { player, hex, zoom }) {
+  if (!signsVisible(zoom)) {
+    return false
+  }
+  if (sign.kind === 'household') {
+    return sign.tribe === hex.tribe && sign.hex === hex.hex
+  }
+  return Math.hypot(sign.x - player.x, sign.z - player.z) <= SIGN_NEAR_DISTANCE
+}

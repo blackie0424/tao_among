@@ -27,7 +27,7 @@ import { createAnimals } from './animalMeshes'
 import { createFamily } from './familyMeshes'
 import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
 import { createFrameClock } from './frameClock'
-import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED } from './islandMap'
+import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED, nearestHex } from './islandMap'
 import { householdObstacles, spotAt, spotKey } from './households'
 import { islandHeightField } from './terrainHeight'
 import { buildHouseholdSigns, buildHouseholds, buildLandmarks, showSigns } from './landmarkMeshes'
@@ -470,8 +470,14 @@ function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChang
   followPlayer(camera, state)
   occlusion.update({ ...state.position, y: CHEST_HEIGHT }, camera.position)
   const range = rangeOf(camera, state.rig)
-  // 以進入時的距離為基準換算，同一個鏡頭距離下招牌顯示和 #228 以前一樣
-  signs.forEach((group) => showSigns(group, zoomBeyondEntry(state.rig, range)))
+  // 鏡頭遠近以進入時的距離為基準換算，同一個鏡頭距離下拉遠隱藏的門檻和 #228 以前一樣；
+  // 另外只顯示所在格的家屋招牌與附近的特色建築招牌（#226）
+  const view = {
+    player: state.position,
+    hex: nearestHex(ISLAND_MAP, state.position),
+    zoom: zoomBeyondEntry(state.rig, range),
+  }
+  signs.forEach((group) => showSigns(group, view))
   scaleNameLabels(labels, labelScale(state.rig, range))
   tapRings.update(state, camera)
 }

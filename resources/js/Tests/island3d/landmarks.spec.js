@@ -11,6 +11,8 @@ import {
   shapeParts,
   signHeight,
   signHeightAbove,
+  SIGN_NEAR_DISTANCE,
+  isSignVisible,
   signsVisible,
 } from '@/island3d/landmarks'
 import { heightAt, islandHeightField } from '@/island3d/terrainHeight'
@@ -632,5 +634,51 @@ describe('island3d/landmarks 認得出來的特徵（#211 驗收條件 1～6、1
         expect(part).not.toHaveProperty('text')
       })
     })
+  })
+})
+
+describe('island3d/landmarks 招牌只顯示所在格與附近的（#226）', () => {
+  const player = { x: 0, z: 0 }
+  const hex = { tribe: 'yayo', hex: 1 }
+  const view = (overrides = {}) => ({ player, hex, zoom: 0, ...overrides })
+  const household = (tribe, hexIndex, x = 100, z = 0) => ({
+    kind: 'household',
+    tribe,
+    hex: hexIndex,
+    x,
+    z,
+  })
+  const landmark = (x, z, tribe = 'yayo') => ({ kind: 'landmark', tribe, x, z })
+
+  it('附近的距離是 30', () => {
+    expect(SIGN_NEAR_DISTANCE).toBe(30)
+  })
+
+  it('家屋招牌：顯示格那一格的顯示，跟距離無關（驗收條件 1）', () => {
+    expect(isSignVisible(household('yayo', 1, 500, 500), view())).toBe(true)
+  })
+
+  it('家屋招牌：同部落的另外兩格、其他部落的格都隱藏，就算離玩家不到 30（驗收條件 1）', () => {
+    expect(isSignVisible(household('yayo', 0, 1, 1), view())).toBe(false)
+    expect(isSignVisible(household('yayo', 2, 1, 1), view())).toBe(false)
+    expect(isSignVisible(household('iratay', 1, 1, 1), view())).toBe(false)
+  })
+
+  it('特色建築招牌：30 以內（含 30）顯示，超過隱藏，跟部落無關（驗收條件 2）', () => {
+    expect(isSignVisible(landmark(30, 0), view())).toBe(true)
+    expect(isSignVisible(landmark(18, 24, 'iratay'), view())).toBe(true)
+    expect(isSignVisible(landmark(30.01, 0), view())).toBe(false)
+    expect(isSignVisible(landmark(0, -31, 'yayo'), view())).toBe(false)
+  })
+
+  it('距離只算地面上的水平距離（x, z）', () => {
+    expect(isSignVisible(landmark(10, 10), view({ player: { x: 10, y: 50, z: -10 } }))).toBe(true)
+  })
+
+  it('拉遠超過一半：不論上面的結果全部隱藏；剛好一半照上面決定（驗收條件 4）', () => {
+    expect(isSignVisible(household('yayo', 1), view({ zoom: 0.51 }))).toBe(false)
+    expect(isSignVisible(landmark(1, 1), view({ zoom: 0.51 }))).toBe(false)
+    expect(isSignVisible(household('yayo', 1), view({ zoom: 0.5 }))).toBe(true)
+    expect(isSignVisible(landmark(1, 1), view({ zoom: 0.5 }))).toBe(true)
   })
 })

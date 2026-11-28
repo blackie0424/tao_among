@@ -85,13 +85,14 @@ describe('island3d/nameLabels 三種名字標示跟著鏡頭距離放大（#228 
 
   it('隱藏中的標示放大後仍然隱藏：離角色太遠的動物名稱、拉遠時隱藏的招牌', () => {
     const { landmarks, householdSigns, animals, labels } = buildAll()
-    showSigns(landmarks.signs, 0.9)
-    showSigns(householdSigns, 0.9)
+    const zoomedOut = { player: { x: 0, z: 0 }, hex: { tribe: 'yayo', hex: 0 }, zoom: 0.9 }
+    showSigns(landmarks.signs, zoomedOut)
+    showSigns(householdSigns, zoomedOut)
 
     scaleNameLabels(labels, labelScale(closest, range))
 
     expect(animals.figures.every((figure) => figure.label.visible === false)).toBe(true)
-    expect(landmarks.signs.visible).toBe(false)
-    expect(householdSigns.visible).toBe(false)
+    expect(landmarks.signs.children.every((sign) => sign.visible === false)).toBe(true)
+    expect(householdSigns.children.every((sign) => sign.visible === false)).toBe(true)
   })
 })

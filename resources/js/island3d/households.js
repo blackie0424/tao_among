@@ -178,7 +178,7 @@ export function spotKey(spot) {
 }
 
 /**
- * 四件上方的名稱招牌（#201 驗收條件 15，規格修訂 2）：{ text 名稱, x, z 那一件的中心, height 離地多高 }，依戶、再依件排。
+ * 四件上方的名稱招牌（#201 驗收條件 15，規格修訂 2）：{ text 名稱, tribe 部落, hex 第幾格, x, z 那一件的中心, height 離地多高 }，依戶、再依件排。
  * 名稱用後端給的地點清單 spots（部落 → 12 個地點，依戶、再依件排；驗收條件 12）；後端沒給的部落不畫。
  * 高度照特色建築招牌的做法，在造型最高點上方
  */
@@ -188,6 +188,8 @@ export function householdSigns(spots, households = HOUSEHOLDS) {
     .flatMap(({ tribe, hex, items }) =>
       items.map(({ kind, x, z, width, depth }, slot) => ({
         text: spots[tribe][hex * items.length + slot].name,
+        tribe,
+        hex,
         x,
         z,
         height: signHeightAbove(shapeParts(kind, width, depth)),
