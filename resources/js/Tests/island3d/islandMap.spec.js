@@ -6,6 +6,7 @@ import {
   ISLAND_SCALE,
   WALK_SPEED,
   insetOutline,
+  nearestHex,
 } from '@/island3d/islandMap'
 import {
   LANDMARKS,
@@ -805,5 +806,55 @@ describe('island3d/islandMap 18 格都走得到、所在部落（#212 驗收條�
 
     expect(walkable.isWalkable(onRoad)).toBe(true)
     expect(walkable.tribeAt(onRoad)).toBeNull()
+  })
+})
+
+describe('island3d/islandMap 顯示格：中心離玩家最近的那一格（#226 驗收條件 1、3）', () => {
+  // 手建的地圖：A 部落兩格（主格 (0,0)、第 2 格 (40,0)），B 部落一格 (0,100)、C 部落只寫 center
+  const map = {
+    tribes: [
+      {
+        code: 'a',
+        center: { x: 0, z: 0 },
+        hexes: [
+          { x: 0, z: 0 },
+          { x: 40, z: 0 },
+        ],
+      },
+      { code: 'b', center: { x: 0, z: 100 }, hexes: [{ x: 0, z: 100 }] },
+      { code: 'c', center: { x: 200, z: 0 } },
+    ],
+  }
+
+  it('站在格子裡：就是那一格', () => {
+    expect(nearestHex(map, { x: 3, z: -2 })).toEqual({ tribe: 'a', hex: 0 })
+    expect(nearestHex(map, { x: 41, z: 2 })).toEqual({ tribe: 'a', hex: 1 })
+  })
+
+  it('同部落兩格之間：還沒過中間點是原本那格，過了就換下一格', () => {
+    expect(nearestHex(map, { x: 19.9, z: 0 })).toEqual({ tribe: 'a', hex: 0 })
+    expect(nearestHex(map, { x: 20.1, z: 0 })).toEqual({ tribe: 'a', hex: 1 })
+  })
+
+  it('不同部落之間（走在公路上）：過了中間點就換成另一個部落的格', () => {
+    expect(nearestHex(map, { x: 0, z: 49.9 })).toEqual({ tribe: 'a', hex: 0 })
+    expect(nearestHex(map, { x: 0, z: 50.1 })).toEqual({ tribe: 'b', hex: 0 })
+  })
+
+  it('只寫 center 的部落算一格', () => {
+    expect(nearestHex(map, { x: 190, z: 0 })).toEqual({ tribe: 'c', hex: 0 })
+  })
+
+  it('距離剛好相等：取順序在前的', () => {
+    expect(nearestHex(map, { x: 20, z: 0 })).toEqual({ tribe: 'a', hex: 0 })
+    expect(nearestHex(map, { x: 0, z: 50 })).toEqual({ tribe: 'a', hex: 0 })
+  })
+
+  it('實際的島：站在每一格的中心，顯示格就是那一格', () => {
+    ISLAND_MAP.tribes.forEach(({ code, hexes }) => {
+      hexes.forEach((center, index) => {
+        expect(nearestHex(ISLAND_MAP, center)).toEqual({ tribe: code, hex: index })
+      })
+    })
   })
 })

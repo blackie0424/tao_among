@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { HOUSEHOLD_KIND_ORDER, HOUSEHOLD_KINDS, HOUSEHOLDS, householdSigns } from './households'
-import { LANDMARKS, shapeParts, signHeight, signsVisible } from './landmarks'
+import { LANDMARKS, isSignVisible, shapeParts, signHeight } from './landmarks'
 import { INLAND_LEVEL, LABEL_ASPECT, fitModelToFootprint, labelTexture } from './terrain'
 
 // 四角錐的底是邊長 1 的正方形：ConeGeometry 的半徑是中心到頂點
@@ -136,22 +136,38 @@ function buildLandmark(loader, landmark) {
 export const signMaterial = (text) =>
   new THREE.SpriteMaterial({ map: labelTexture(text), sizeAttenuation: false, depthTest: false })
 
-/** 一塊招牌：放在 (x, 離地 height, z) */
-function signSprite(material, x, height, z) {
+/**
+ * 一塊招牌：放在 (sign.x, 離地 height, sign.z)。sign 是判斷要不要顯示用的資料
+ * （landmarks.js 的 isSignVisible：kind、tribe、hex、x、z，另記 text），記在 userData.sign
+ */
+function signSprite(material, height, sign) {
   const sprite = new THREE.Sprite(material)
-  sprite.position.set(x, INLAND_LEVEL + height, z)
+  sprite.position.set(sign.x, INLAND_LEVEL + height, sign.z)
   sprite.scale.set(SIGN_SCREEN_HEIGHT * LABEL_ASPECT, SIGN_SCREEN_HEIGHT, 1)
+  sprite.userData.sign = sign
   return sprite
 }
 
 /** 招牌：地標最高點上方的文字 */
 function buildSign(landmark) {
-  return signSprite(signMaterial(landmark.sign), landmark.x, signHeight(landmark), landmark.z)
+  const { tribe, sign: text, x, z } = landmark
+  return signSprite(signMaterial(text), signHeight(landmark), {
+    kind: 'landmark',
+    text,
+    tribe,
+    x,
+    z,
+  })
 }
 
-/** 鏡頭拉遠超過門檻時把招牌藏起來（zoom：0 最近、1 最遠） */
-export function showSigns(signs, zoom) {
-  signs.visible = signsVisible(zoom)
+/**
+ * 逐塊決定招牌顯示或隱藏（#226）：view 是 { player 玩家位置, hex 顯示格, zoom 鏡頭遠近（0 最近、1 最遠） }，
+ * 規則見 landmarks.js 的 isSignVisible
+ */
+export function showSigns(signs, view) {
+  signs.children.forEach((sprite) => {
+    sprite.visible = isSignVisible(sprite.userData.sign, view)
+  })
 }
 
 /**
@@ -226,8 +242,8 @@ export function buildHouseholdSigns(spots, households = HOUSEHOLDS) {
     return materials.get(text)
   }
   const signs = new THREE.Group()
-  householdSigns(spots, households).forEach(({ text, x, z, height }) =>
-    signs.add(signSprite(materialOf(text), x, height, z))
+  householdSigns(spots, households).forEach(({ height, ...sign }) =>
+    signs.add(signSprite(materialOf(sign.text), height, { kind: 'household', ...sign }))
   )
   return signs
 }

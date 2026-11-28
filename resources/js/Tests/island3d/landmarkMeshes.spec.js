@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as THREE from 'three'
-import { buildHouseholds, unitGeometry } from '@/island3d/landmarkMeshes'
+import {
+  buildHouseholdSigns,
+  buildHouseholds,
+  buildLandmarks,
+  showSigns,
+  unitGeometry,
+} from '@/island3d/landmarkMeshes'
 import { HOUSEHOLD_KINDS, HOUSEHOLD_KIND_ORDER, HOUSEHOLDS } from '@/island3d/households'
 
 // 零件的形狀（和 landmarks.spec.js 的 PART_SHAPES 一樣）
@@ -115,5 +121,52 @@ describe('island3d/landmarkMeshes 家屋四件（#201 驗收條件 1）', () => 
         expect(Math.sin(turned.y)).toBeCloseTo(Math.sin(item.heading), 4)
       })
     })
+  })
+})
+
+describe('island3d/landmarkMeshes 每一塊招牌照所在格與距離顯示（#226 驗收條件 1、2、4）', () => {
+  // jsdom 沒有 canvas 的 2D 繪圖：給一個什麼都不畫的假的，招牌貼圖照樣做得出來
+  const quietContext = new Proxy({}, { get: () => () => {}, set: () => true })
+  const idleLoader = { load() {} }
+  const spots = Object.fromEntries(
+    HOUSEHOLDS.map(({ tribe }) => [
+      tribe,
+      Array.from({ length: 12 }, (_, i) => ({ name: `${tribe}-${i}` })),
+    ])
+  )
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(quietContext)
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  const shownTexts = (group) =>
+    group.children.filter((sign) => sign.visible).map((sign) => sign.userData.sign.text)
+  // 站在農會（椰油，x -131.5、z -41.9）旁邊，所在格是椰油第 2 格
+  const nearFarmers = { player: { x: -131.5, z: -45 }, hex: { tribe: 'yayo', hex: 1 } }
+
+  it('家屋招牌：只有顯示格那一戶的 4 件顯示', () => {
+    const signs = buildHouseholdSigns(spots)
+
+    showSigns(signs, { ...nearFarmers, zoom: 0 })
+
+    expect(shownTexts(signs)).toEqual(['yayo-4', 'yayo-5', 'yayo-6', 'yayo-7'])
+  })
+
+  it('特色建築招牌：只有 30 以內的顯示', () => {
+    const { signs } = buildLandmarks(idleLoader)
+
+    showSigns(signs, { ...nearFarmers, zoom: 0 })
+
+    expect(shownTexts(signs)).toEqual(['農會'])
+  })
+
+  it('拉遠超過一半：每一塊都隱藏；拉回來再照所在格顯示', () => {
+    const signs = buildHouseholdSigns(spots)
+
+    showSigns(signs, { ...nearFarmers, zoom: 0.9 })
+    expect(shownTexts(signs)).toEqual([])
+
+    showSigns(signs, { ...nearFarmers, zoom: 0.5 })
+    expect(shownTexts(signs)).toEqual(['yayo-4', 'yayo-5', 'yayo-6', 'yayo-7'])
   })
 })

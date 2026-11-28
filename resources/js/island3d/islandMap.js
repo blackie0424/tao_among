@@ -151,6 +151,20 @@ export const ISLAND_MAP = {
 /** 一個部落所有格子的中心；只有一格的地圖（測試用的小地圖）可以只寫 center */
 export const tribeHexes = (tribe) => tribe.hexes ?? [tribe.center]
 
+/**
+ * 顯示格（#226）：所有部落的所有格子裡，中心離 point 水平距離最近的那一格 { tribe 部落代碼, hex 第幾格（0 是主格） }。
+ * 站在格子裡就是那一格；走在兩格之間，過了中間點就換成另一格。距離相同時取順序在前的（部落、再格子）
+ */
+export function nearestHex(map, point) {
+  const gap = (center) => Math.hypot(center.x - point.x, center.z - point.z)
+  const { tribe, hex } = map.tribes
+    .flatMap((tribe) =>
+      tribeHexes(tribe).map((center, hex) => ({ tribe: tribe.code, hex, center }))
+    )
+    .reduce((best, candidate) => (gap(candidate.center) < gap(best.center) ? candidate : best))
+  return { tribe, hex }
+}
+
 /** 地圖上所有公路的每一段：[{ from, to }] */
 export function roadSegments(map) {
   return map.roads.flatMap(({ points, closed }) => {
