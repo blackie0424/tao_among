@@ -74,24 +74,34 @@ const SPEECH_A_IRATAY = '這是 魚A。我們 iratay 多數人說它是 oyod；�
 const SPEECH_UNNAMED_IRATAY =
   '這是 這條還沒有名字的魚。我們 iratay 還沒有分類的答案；怎麼處理還沒有答案。'
 const SPEECH_A_IVALINO = '這是 魚A。我們 ivalino 還沒有分類的答案；怎麼處理還沒有答案。'
-/** 一個部落的 12 個地點，$filled 是 { 第幾筆: [魚] } */
-const tribeSpotFish = (filled) => Array.from({ length: 12 }, (_, index) => filled[index] ?? [])
-const SPOT_FISH = {
-  iratay: tribeSpotFish({
-    0: [
-      {
-        id: 1,
-        speech: '這是 魚K。我們 iratay 還沒有分類的答案；怎麼處理還沒有答案。',
-        has_detail: false,
-      },
-    ],
-    1: [
-      { id: 2, speech: SPEECH_A_IRATAY, has_detail: true },
-      { id: 14, speech: SPEECH_UNNAMED_IRATAY, has_detail: false },
-    ],
-  }),
-  ivalino: tribeSpotFish({ 1: [{ id: 2, speech: SPEECH_A_IVALINO, has_detail: false }] }),
+// #232：家人說的話依部落、魚編號給（fish_speech）；#216 的對話改成問玩家自己的魚（手上＋圖鑑）
+const NOWHERE_LINE = '這條魚，全島還沒有人說過它是哪一類、怎麼處理。'
+const FISH_SPEECH = {
+  iratay: {
+    1: {
+      speech: '這是 魚K。我們 iratay 還沒有分類的答案；怎麼處理還沒有答案。',
+      has_detail: false,
+    },
+    2: { speech: SPEECH_A_IRATAY, has_detail: true },
+    14: { speech: SPEECH_UNNAMED_IRATAY, has_detail: false },
+  },
+  ivalino: {
+    1: {
+      speech: '這是 魚K。我們 ivalino 還沒有分類的答案；怎麼處理還沒有答案。',
+      has_detail: false,
+    },
+    2: { speech: SPEECH_A_IVALINO, has_detail: false },
+    14: {
+      speech: '這是 這條還沒有名字的魚。我們 ivalino 還沒有分類的答案；怎麼處理還沒有答案。',
+      has_detail: false,
+    },
+  },
 }
+/** 圖鑑裡有魚A（編號 2）、沒有名字的魚（編號 14） */
+const COLLECTION_A_B = [
+  { fish_id: 2, number: 1, my: {} },
+  { fish_id: 14, number: 2, my: {} },
+]
 
 // 每個測試結束時拆掉頁面，免得前一個頁面的鍵盤監聽留在 window 上
 const mounted = []
@@ -108,7 +118,6 @@ const mountPage = async (overrides = {}) => {
         ivalino: tribeSpots(),
       },
       island_fish: ISLAND_FISH,
-      spot_fish: SPOT_FISH,
       result_options: {
         food_category: ['oyod', 'rahet', 'kakanen no rarakeh'],
         processing_method: ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '我不知道'],
@@ -126,6 +135,8 @@ const mountPage = async (overrides = {}) => {
   await flushPromises()
   return wrapper
 }
+
+const mountBasePage = mountPage
 
 const valueOf = (wrapper, label) =>
   wrapper
@@ -539,6 +550,9 @@ describe('Island/Home 地圖頁', () => {
   })
 
   describe('#216 問好後家人回應、選魚的照片、家人講那條魚', () => {
+    // #232：圖鑑裡有兩條魚，家人說的話照 fish_speech
+    const mountPage = (overrides = {}) =>
+      mountBasePage({ collection: COLLECTION_A_B, fish_speech: FISH_SPEECH, ...overrides })
     const photos = (wrapper) => dialog(wrapper).findAll('[data-testid="fish-photo"]')
     const npcLine = (wrapper) => dialog(wrapper).get('[data-testid="npc-line"]').text()
     const playerLine = (wrapper) => dialog(wrapper).find('[data-testid="player-line"]')
@@ -551,7 +565,7 @@ describe('Island/Home 地圖頁', () => {
       await pressSpace()
       return wrapper
     }
-    /** 打開對話框並按到 ③「你想認識哪一條魚？」＋照片 */
+    /** 打開對話框並按到 ③「你帶了什麼魚來？」＋照片 */
     const openToPhotos = async (spot) => {
       const wrapper = await openAt(spot)
       await pressSpace()
@@ -564,7 +578,7 @@ describe('Island/Home 地圖頁', () => {
       await pressSpace()
     }
 
-    it('一句一句來：① 只有玩家的問好語 → ② 只有家人「阿海，你好」→ ③ 家人「你想認識哪一條魚？」才出現照片；句子右下角提示「按空白鍵」', async () => {
+    it('一句一句來：① 只有玩家的問好語 → ② 只有家人「阿海，你好」→ ③ 家人「你帶了什麼魚來？」才出現照片；句子右下角提示「按空白鍵」', async () => {
       const wrapper = await openAt()
       expect(playerLine(wrapper).text()).toBe('akay kong')
       expect(dialog(wrapper).find('[data-testid="npc-line"]').exists()).toBe(false)
@@ -578,7 +592,7 @@ describe('Island/Home 地圖頁', () => {
       expect(dialog(wrapper).text()).not.toContain('akay kong')
 
       await pressSpace()
-      expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
+      expect(npcLine(wrapper)).toBe('你帶了什麼魚來？')
       expect(dialog(wrapper).text()).not.toContain('阿海，你好')
       expect(photos(wrapper)).toHaveLength(2)
     })
@@ -592,10 +606,11 @@ describe('Island/Home 地圖頁', () => {
       expect(npcLine(wrapper)).toBe(SPEECH_A_IRATAY)
       expect(hint(wrapper)).toBe('按空白鍵')
 
+      await wrapper.setProps({ collection: [] })
       await reachSpot({ tribe: 'iratay', hex: 0, slot: 2 })
       await pressSpace()
       await pressSpace()
-      expect(npcLine(wrapper)).toBe('阿海，你好。這裡還沒有魚。')
+      expect(npcLine(wrapper)).toBe('阿海，你好。你手上沒有魚，先去海邊找一條再來問我。')
       expect(hint(wrapper)).toBe('按空白鍵')
     })
 
@@ -608,6 +623,7 @@ describe('Island/Home 地圖頁', () => {
       await pick(wrapper, 0)
       expect(hint(wrapper)).toBe('點一下')
 
+      await wrapper.setProps({ collection: [] })
       await reachSpot({ tribe: 'iratay', hex: 0, slot: 2 })
       await pressSpace()
       await pressSpace()
@@ -622,7 +638,7 @@ describe('Island/Home 地圖頁', () => {
       await clickDialog(wrapper)
       expect(npcLine(wrapper)).toBe('阿海，你好')
       await clickDialog(wrapper)
-      expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
+      expect(npcLine(wrapper)).toBe('你帶了什麼魚來？')
     })
 
     it('點照片：④ 玩家「ikongo o ya?」＋剛才選的那條魚的照片（規格修訂 2），再按一下 ⑤ 家人才講那條魚', async () => {
@@ -636,7 +652,7 @@ describe('Island/Home 地圖頁', () => {
       expect(photos(wrapper)).toHaveLength(0)
 
       await clickDialog(wrapper)
-      expect(npcLine(wrapper)).toBe(SPEECH_UNNAMED_IRATAY)
+      expect(npcLine(wrapper)).toBe(NOWHERE_LINE)
       expect(dialog(wrapper).get('[data-testid="asked-photo"]').attributes('src')).toBe('/b.jpg')
       expect(playerLine(wrapper).exists()).toBe(false)
     })
@@ -776,7 +792,7 @@ describe('Island/Home 地圖頁', () => {
       })
     })
 
-    it('照片上不寫魚名，無障礙名稱是「第 n 條魚」，依地點清單的順序', async () => {
+    it('照片上不寫魚名，無障礙名稱是「第 n 條魚」，依圖鑑的順序', async () => {
       const wrapper = await openToPhotos()
 
       expect(photos(wrapper).map((photo) => photo.attributes('aria-label'))).toEqual([
@@ -790,20 +806,25 @@ describe('Island/Home 地圖頁', () => {
       expect(dialog(wrapper).text()).not.toContain('魚A')
     })
 
-    it('vahay 用 kaminan 的問好語，列的是 vahay 的魚', async () => {
+    it('vahay 用 kaminan 的問好語；不論哪一件，列的都是玩家自己的魚（#232）', async () => {
       const wrapper = await openAt({ tribe: 'iratay', hex: 0, slot: 0 })
       expect(playerLine(wrapper).text()).toBe('kaminan kong')
 
       await pressSpace()
       await pressSpace()
-      expect(photos(wrapper).map((photo) => photo.get('img').attributes('src'))).toEqual(['/k.jpg'])
+      expect(photos(wrapper).map((photo) => photo.get('img').attributes('src'))).toEqual([
+        '/a.jpg',
+        '/b.jpg',
+      ])
     })
 
-    it('這個地點沒有魚：② 家人說「阿海，你好。這裡還沒有魚。」，不列照片；再按就關掉', async () => {
-      const wrapper = await openAt({ tribe: 'iratay', hex: 0, slot: 2 })
+    it('手上沒魚、圖鑑也是空的：② 家人提醒先去海邊找魚，不列照片；再按就關掉（#232）', async () => {
+      const wrapper = await mountPage({ collection: [] })
+      await reachSpot({ tribe: 'iratay', hex: 0, slot: 2 })
+      await pressSpace()
 
       await pressSpace()
-      expect(npcLine(wrapper)).toBe('阿海，你好。這裡還沒有魚。')
+      expect(npcLine(wrapper)).toBe('阿海，你好。你手上沒有魚，先去海邊找一條再來問我。')
       expect(photos(wrapper)).toHaveLength(0)
 
       await pressSpace()
@@ -828,7 +849,7 @@ describe('Island/Home 地圖頁', () => {
 
       await pick(wrapper, 1)
 
-      expect(npcLine(wrapper)).toBe(SPEECH_UNNAMED_IRATAY)
+      expect(npcLine(wrapper)).toBe(NOWHERE_LINE)
       expect(whoSaid(wrapper).exists()).toBe(false)
     })
 
@@ -871,12 +892,12 @@ describe('Island/Home 地圖頁', () => {
       await dialog(wrapper).get('[data-testid="ask-another"]').trigger('click')
       await finishTyping()
 
-      expect(npcLine(wrapper)).toBe('你想認識哪一條魚？')
+      expect(npcLine(wrapper)).toBe('你帶了什麼魚來？')
       expect(photos(wrapper)[0].text()).toContain('聽過了')
       expect(photos(wrapper)[1].text()).not.toContain('聽過了')
     })
 
-    it('關掉再打開：從 ① 重新開始，「聽過了」保留；走到另一個部落同一件：列那個部落的魚、說那個部落的話，「聽過了」分開記', async () => {
+    it('關掉再打開：從 ① 重新開始，「聽過了」保留；走到另一個部落同一件：說那個部落的話，「聽過了」分開記', async () => {
       const wrapper = await openToPhotos()
       await pick(wrapper, 0)
 
@@ -891,10 +912,11 @@ describe('Island/Home 地圖頁', () => {
       await pressSpace()
       await pressSpace()
       await pressSpace()
-      expect(photos(wrapper)).toHaveLength(1)
+      expect(photos(wrapper)).toHaveLength(2)
       expect(photos(wrapper)[0].text()).not.toContain('聽過了')
       await pick(wrapper, 0)
-      expect(npcLine(wrapper)).toBe(SPEECH_A_IVALINO)
+      // #232：ivalino 沒有說法、iratay 有 → 家人說不知道，指引去問 iratay
+      expect(npcLine(wrapper)).toBe('我不知道這條魚。你去問 iratay（漁人）的人看看。')
       expect(whoSaid(wrapper).exists()).toBe(false)
     })
 
@@ -1445,6 +1467,228 @@ describe('Island/Home 地圖頁', () => {
 
         expect(book(wrapper).exists()).toBe(false)
       })
+    })
+  })
+  describe('#232 拿著魚問家人', () => {
+    const HELD_KEY = 'island.heldFish.7'
+    const YAYO_SPEECH = '這是 魚A。我們 yayo 多數人說它是 oyod；多數人說抓回來剝皮吃。'
+    // 魚A 在 yayo（角色自己的部落）有說法：分類 oyod 3 人、處理方式剝皮 2 人
+    const FISH_WITH_YAYO = ISLAND_FISH.map((fish) =>
+      fish.id === 2
+        ? {
+            ...fish,
+            results: {
+              food_category: {
+                yayo: [
+                  { value: 'oyod', count: 3 },
+                  { value: 'rahet', count: 1 },
+                ],
+              },
+              processing_method: { yayo: [{ value: '剝皮', count: 2 }] },
+            },
+          }
+        : fish
+    )
+    const SPEECH = {
+      ...FISH_SPEECH,
+      yayo: {
+        1: { speech: '魚K 的話', has_detail: false },
+        2: { speech: YAYO_SPEECH, has_detail: true },
+        14: { speech: '無名的話', has_detail: false },
+      },
+    }
+    const mountAsking = (overrides = {}) =>
+      mountBasePage({
+        spots: { iratay: tribeSpots(), ivalino: tribeSpots(), yayo: tribeSpots() },
+        island_fish: FISH_WITH_YAYO,
+        fish_speech: SPEECH,
+        collection: COLLECTION_A_B,
+        ...overrides,
+      })
+    const photos = (wrapper) => dialog(wrapper).findAll('[data-testid="fish-photo"]')
+    const npcLine = (wrapper) => dialog(wrapper).get('[data-testid="npc-line"]').text()
+    /** 走到某部落第 1 戶的 pananadengan，按到 ③「你帶了什麼魚來？」 */
+    const openPhotos = async (tribe) => {
+      await reachSpot({ tribe, hex: 0, slot: 1 })
+      await pressSpace()
+      await pressSpace()
+      await pressSpace()
+    }
+    const askFish = async (wrapper, index) => {
+      await photos(wrapper)[index].trigger('click')
+      await pressSpace()
+    }
+    const cells = (wrapper, question) =>
+      dialog(wrapper)
+        .findAll(`[data-question="${question}"] td`)
+        .map((td) => td.text())
+    const dialogButton = (wrapper, label) =>
+      dialog(wrapper)
+        .findAll('button')
+        .find((b) => b.text() === label)
+
+    it('③「你帶了什麼魚來？」：手上的魚排第一並標「手上」，接著圖鑑；手上的魚已在圖鑑裡只出現一次', async () => {
+      window.localStorage.setItem(HELD_KEY, '14')
+      const wrapper = await mountAsking()
+
+      await openPhotos('iratay')
+
+      expect(npcLine(wrapper)).toBe('你帶了什麼魚來？')
+      expect(photos(wrapper).map((p) => p.get('img').attributes('src'))).toEqual([
+        '/b.jpg',
+        '/a.jpg',
+      ])
+      expect(photos(wrapper)[0].find('[data-testid="held-tag"]').exists()).toBe(true)
+      expect(photos(wrapper)[1].find('[data-testid="held-tag"]').exists()).toBe(false)
+    })
+
+    it('手上的魚不在圖鑑裡：排在圖鑑前面', async () => {
+      window.localStorage.setItem(HELD_KEY, '1')
+      const wrapper = await mountAsking()
+
+      await openPhotos('iratay')
+
+      expect(photos(wrapper).map((p) => p.get('img').attributes('src'))).toEqual([
+        '/k.jpg',
+        '/a.jpg',
+        '/b.jpg',
+      ])
+    })
+
+    it('這個部落有說法：家人的話＋並排「你記的／這裡多數說」，沒記寫「還沒記」、多數平手全列', async () => {
+      const wrapper = await mountAsking({
+        collection: [
+          { fish_id: 2, number: 1, my: { food_category: 'oyod', processing_method: null } },
+        ],
+      })
+
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+
+      expect(npcLine(wrapper)).toBe(YAYO_SPEECH)
+      expect(cells(wrapper, 'food_category')).toEqual(['oyod', 'oyod'])
+      expect(cells(wrapper, 'processing_method')).toEqual(['還沒記', '剝皮'])
+    })
+
+    it('這一題這個部落沒有有效回答：「這裡多數說」寫「還沒有人說」、不出現「改成…」', async () => {
+      const fish = FISH_WITH_YAYO.map((item) =>
+        item.id === 2
+          ? {
+              ...item,
+              results: {
+                food_category: { yayo: [{ value: 'oyod', count: 1 }] },
+                processing_method: { yayo: [{ value: '我不知道', count: 4 }] },
+              },
+            }
+          : item
+      )
+      const wrapper = await mountAsking({
+        island_fish: fish,
+        collection: [
+          { fish_id: 2, number: 1, my: { food_category: 'oyod', processing_method: '去魚鱗' } },
+        ],
+      })
+
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+
+      expect(cells(wrapper, 'processing_method')).toEqual(['去魚鱗', '還沒有人說'])
+      expect(dialog(wrapper).find('[data-testid="change-processing_method"]').exists()).toBe(false)
+    })
+
+    it('在自己的部落、自己記的不在多數裡：「改成 {選項}」把自己的記錄改成多數；「維持我的」收起來', async () => {
+      const wrapper = await mountAsking({
+        collection: [
+          { fish_id: 2, number: 1, my: { food_category: 'rahet', processing_method: '去魚鱗' } },
+        ],
+      })
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+
+      await dialogButton(wrapper, '改成 oyod').trigger('click')
+      expect(inertia.post).toHaveBeenLastCalledWith(
+        '/island/tribes/yayo/fish/2/answers',
+        { question: 'food_category', value: 'oyod' },
+        expect.objectContaining({
+          only: ['record_questions', 'island_fish', 'fish_speech', 'collection'],
+        })
+      )
+
+      dialog(wrapper)
+        .get('[data-testid="change-processing_method"]')
+        .findAll('button')
+        .at(-1)
+        .trigger('click')
+      await flushPromises()
+      expect(dialog(wrapper).find('[data-testid="change-processing_method"]').exists()).toBe(false)
+    })
+
+    it('在別的部落：有說法也不出現「改成…」（只改自己部落的記錄）', async () => {
+      const speech = { ...SPEECH, iratay: { ...SPEECH.iratay } }
+      const fish = FISH_WITH_YAYO.map((item) =>
+        item.id === 2
+          ? {
+              ...item,
+              results: {
+                food_category: { iratay: [{ value: 'oyod', count: 2 }] },
+                processing_method: {},
+              },
+            }
+          : item
+      )
+      const wrapper = await mountAsking({
+        fish_speech: speech,
+        island_fish: fish,
+        collection: [{ fish_id: 2, number: 1, my: { food_category: 'rahet' } }],
+      })
+
+      await openPhotos('iratay')
+      await askFish(wrapper, 0)
+
+      expect(cells(wrapper, 'food_category')).toEqual(['rahet', 'oyod'])
+      expect(dialog(wrapper).find('[data-testid="change-food_category"]').exists()).toBe(false)
+    })
+
+    it('這個部落沒有、別的部落有：說不知道並指引那些部落；不出現並排', async () => {
+      const wrapper = await mountAsking()
+
+      await openPhotos('ivalino')
+      await askFish(wrapper, 0)
+
+      expect(npcLine(wrapper)).toBe('我不知道這條魚。你去問 iratay（漁人）、yayo（椰油）的人看看。')
+      expect(dialog(wrapper).find('[data-testid="comparison"]').exists()).toBe(false)
+    })
+
+    it('全島都沒有：說全島還沒有人說過', async () => {
+      const wrapper = await mountAsking()
+
+      await openPhotos('yayo')
+      await askFish(wrapper, 1)
+
+      expect(npcLine(wrapper)).toBe(NOWHERE_LINE)
+    })
+
+    it('在自己的部落問手上還沒收進圖鑑的魚：「記下來」打開記錄視窗；別的部落沒有', async () => {
+      window.localStorage.setItem(HELD_KEY, '1')
+      const wrapper = await mountAsking()
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+
+      await dialog(wrapper).get('[data-testid="record-asked"]').trigger('click')
+      expect(wrapper.find('[data-testid="record-panel"]').exists()).toBe(true)
+      expect(inertia.reload).toHaveBeenLastCalledWith(
+        expect.objectContaining({ data: { record_fish: 1 } })
+      )
+    })
+
+    it('「好」關掉對話框', async () => {
+      const wrapper = await mountAsking()
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+
+      await dialog(wrapper).get('[data-testid="answer-done"]').trigger('click')
+
+      expect(dialog(wrapper).exists()).toBe(false)
     })
   })
 })

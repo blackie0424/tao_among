@@ -556,27 +556,20 @@ function panelAnswers(Fish $fish, string $tribe, array $people): void
     }
 }
 
-/** 某部落第 $index 個地點（第 hex 戶 × 4 ＋ 第 slot 件）列出的魚編號，依序 */
-function panelSpotIds(array $props, string $tribe, int $index): array
-{
-    return array_column($props['spot_fish'][$tribe][$index], 'id');
-}
-
-/** 某部落某條魚的那一筆（家人說的話、有沒有可以看的說法） */
+/** 某部落某條魚的那一筆（家人說的話、有沒有可以看的說法）；#232 起從 fish_speech（依部落、魚編號）取 */
 function panelEntry(array $props, string $tribe, int $fishId): array
 {
-    foreach ($props['spot_fish'][$tribe] as $spot) {
-        foreach ($spot as $entry) {
-            if ($entry['id'] === $fishId) {
-                return $entry;
-            }
-        }
+    if (! isset($props['fish_speech'][$tribe][$fishId])) {
+        throw new RuntimeException("{$tribe} 沒有 {$fishId} 號魚");
     }
-    throw new RuntimeException("{$tribe} 沒有 {$fishId} 號魚");
+
+    return ['id' => $fishId, ...$props['fish_speech'][$tribe][$fishId]];
 }
 
-it('#216 每個部落 12 個地點：編號除以 12 餘 1～4 第 1 戶、5～8 第 2 戶、9～11 與 0 第 3 戶，每戶依序 vahay、pananadengan、zazawan、tagakal；軟刪除不列', function () {
-    foreach ([1, 2, 4, 5, 9, 11, 12, 13, 24] as $id) {
+// #216 的「每個部落 12 個地點列的魚（spot_fish）」與地點裡的排序：#232 對話改成問玩家自己的魚，spot_fish 已拿掉
+
+it('#232 不再帶 spot_fish；fish_speech 每個部落都列全部未軟刪除的魚', function () {
+    foreach ([1, 2, 13] as $id) {
         Fish::factory()->create(['id' => $id]);
     }
     Fish::factory()->create(['id' => 25])->delete();
@@ -584,35 +577,11 @@ it('#216 每個部落 12 個地點：編號除以 12 餘 1～4 第 1 戶、5～8
 
     $props = $this->get('/island')->assertOk()->inertiaProps();
 
+    expect($props)->not->toHaveKey('spot_fish');
     foreach (ISLAND_TRIBES as $tribe) {
-        expect($props['spot_fish'][$tribe])->toHaveCount(12)
-            ->and(panelSpotIds($props, $tribe, 0))->toBe([1, 13])   // 第 1 戶 vahay
-            ->and(panelSpotIds($props, $tribe, 1))->toBe([2])       // 第 1 戶 pananadengan
-            ->and(panelSpotIds($props, $tribe, 2))->toBe([])        // 第 1 戶 zazawan
-            ->and(panelSpotIds($props, $tribe, 3))->toBe([4])       // 第 1 戶 tagakal
-            ->and(panelSpotIds($props, $tribe, 4))->toBe([5])       // 第 2 戶 vahay
-            ->and(panelSpotIds($props, $tribe, 8))->toBe([9])       // 第 3 戶 vahay
-            ->and(panelSpotIds($props, $tribe, 10))->toBe([11])     // 第 3 戶 zazawan
-            ->and(panelSpotIds($props, $tribe, 11))->toBe([12, 24]); // 第 3 戶 tagakal
+        expect(array_keys($props['fish_speech'][$tribe]))->toBe([1, 2, 13]);
     }
-    expect(array_column($props['island_fish'], 'id'))->toEqualCanonicalizing([1, 2, 4, 5, 9, 11, 12, 13, 24]);
-});
-
-it('#216 地點裡的順序照這個部落：兩題都有結果 → 一題 → 都沒有，同組回答多的在前，再依編號；別的部落各自排', function () {
-    $none = Fish::factory()->create(['id' => 1]);
-    $one = Fish::factory()->create(['id' => 13]);
-    $both = Fish::factory()->create(['id' => 25]);
-    $bothMore = Fish::factory()->create(['id' => 37]);
-    panelAnswers($one, 'iratay', [['oyod', null]]);
-    panelAnswers($both, 'iratay', [['oyod', '去魚鱗']]);
-    panelAnswers($bothMore, 'iratay', [['oyod', '去魚鱗'], ['rahet', '剝皮']]);
-    panelAnswers($none, 'yayo', [['oyod', '去魚鱗']]);
-    $this->actingAs(islandPlayer());
-
-    $props = $this->get('/island')->inertiaProps();
-
-    expect(panelSpotIds($props, 'iratay', 0))->toBe([37, 25, 13, 1])
-        ->and(panelSpotIds($props, 'yayo', 0))->toBe([1, 13, 25, 37]);
+    expect(array_column($props['island_fish'], 'id'))->toBe([1, 2, 13]);
 });
 
 it('#216 每條魚帶一次編號、照片、魚名（還沒有名字為空）與各部落結果人數', function () {

@@ -66,15 +66,4 @@ final class IslandSpot
 
         return $spots;
     }
-
-    /**
-     * 3D 魚島（#201、#216）：這條魚在 householdProps() 裡的第幾筆（0 起算，第 hex 戶 × 4 ＋ 第 slot 件）。
-     * 編號除以 12 的餘數 1～4 是第 1 戶、5～8 第 2 戶、9～11 與 0 第 3 戶，每戶依序 vahay、pananadengan、zazawan、tagakal。
-     */
-    public static function householdIndexOf(int $fishId): int
-    {
-        $spotCount = self::HOUSEHOLDS * self::COUNT;
-
-        return ($fishId + $spotCount - 1) % $spotCount;
-    }
 }

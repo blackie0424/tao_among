@@ -28,12 +28,15 @@
         :tribes="tribes"
         :result-options="result_options"
         :unknown-processing-method="unknown_processing_method"
+        :answer="answer"
         :beach="reachedBeach !== null && !currentSpot"
         :caught="caught"
         :beach-actions="beachActions"
         @activate="toggleDialog"
         @ask="markHeard"
         @beach-action="onBeachAction"
+        @change="changeToMajority"
+        @record="openRecord(askedId)"
       />
     </div>
     <p class="mt-2 px-1 text-elder-aux text-island-muted">
@@ -121,6 +124,7 @@ import IslandRecordPanel from '@/Components/Island/IslandRecordPanel.vue'
 import IslandCollection from '@/Components/Island/IslandCollection.vue'
 import { islandTribeLabel } from '@/constants/island'
 import { createHeldFish, heldFishKey } from '@/island3d/heldFish'
+import { comparisonRows, familyAnswer } from '@/island3d/fishTalk'
 
 const props = defineProps({
   character: { type: Object, required: true },
@@ -128,9 +132,8 @@ const props = defineProps({
   current_tribe: { type: String, required: true },
   // 每個部落 12 個地點（3 戶 × 4 件）的名稱、稱呼、問好語（#201）
   spots: { type: Object, required: true },
-  // #216：每條魚一次（編號、照片、魚名、各部落結果人數）；每個部落 12 個地點列的魚（編號、家人說的話、有沒有可以看的說法）
+  // #216：每條魚一次（編號、照片、魚名、各部落結果人數）
   island_fish: { type: Array, required: true },
-  spot_fish: { type: Object, required: true },
   result_options: { type: Object, required: true },
   unknown_processing_method: { type: String, required: true },
   // #232：角色編號（手上的魚依角色分開存）、圖鑑、每個部落每條魚家人說的話、記錄視窗的三題（延後載入）
@@ -186,12 +189,20 @@ const isTouch = window.matchMedia?.('(pointer: coarse)').matches ?? false
 // ── 對話裡的魚（#216）──
 // 跟著 island_fish 更新（寫入後 partial reload 拿到新的結果、照片）
 const fishById = computed(() => new Map(props.island_fish.map((fish) => [fish.id, fish])))
+// #232 可以問的魚：手上的魚排第一、接著圖鑑依編號（手上的魚已在圖鑑裡時只列一次）；
+// has_detail 是這一戶所在部落有沒有說法（給「誰說的？」）
 const currentSpotFish = computed(() => {
-  const spot = reachedSpot.value
-  const entries = spot
-    ? (props.spot_fish[spot.tribe]?.[spot.hex * SPOTS_PER_HOUSEHOLD + spot.slot] ?? [])
-    : []
-  return entries.map((entry) => ({ ...fishById.value.get(entry.id), ...entry }))
+  const tribe = reachedSpot.value?.tribe
+  const ids = [heldId.value, ...props.collection.map((entry) => entry.fish_id)].filter(
+    (id, index, all) => id !== null && all.indexOf(id) === index
+  )
+  return ids
+    .filter((id) => fishById.value.has(id))
+    .map((id) => ({
+      ...fishById.value.get(id),
+      has_detail: props.fish_speech[tribe]?.[id]?.has_detail === true,
+      held: id === heldId.value,
+    }))
 })
 
 // 「聽過了」只記在這次打開的頁面，依部落分開
@@ -199,6 +210,7 @@ const heardByTribe = ref({})
 const currentHeard = computed(() => new Set(heardByTribe.value[reachedSpot.value?.tribe] ?? []))
 
 function markHeard(id) {
+  askedId.value = id
   const tribe = reachedSpot.value.tribe
   heardByTribe.value = {
     ...heardByTribe.value,
@@ -360,6 +372,62 @@ function collect(id) {
         collecting.value = false
         collectNotice.value = isCollected(id) ? null : (rejected ?? COLLECT_FAILED)
       },
+    }
+  )
+}
+
+// ── 拿著魚問家人（#232 驗收條件 8–10）──
+const askedId = ref(null)
+const changing = ref(false)
+// 自己部落這條魚的記錄：圖鑑裡有就用圖鑑的；手上還沒收進圖鑑的用載入的記錄；都沒有當成沒記
+function myRecordOf(id) {
+  const entry = props.collection.find((item) => item.fish_id === id)
+  if (entry) return entry.my
+  if (!recordLoaded(id)) return {}
+  return Object.fromEntries(
+    (props.record_questions ?? []).map((question) => [question.key, question.my_answer])
+  )
+}
+
+const answer = computed(() => {
+  const id = askedId.value
+  const tribe = reachedSpot.value?.tribe
+  if (id === null || !tribe) return null
+  const { kind, line } = familyAnswer({
+    fishId: id,
+    tribe,
+    tribes: props.tribes,
+    fishSpeech: props.fish_speech,
+  })
+  const ownTribe = tribe === props.character.tribe
+  return {
+    line,
+    ownTribe,
+    busy: changing.value,
+    rows:
+      kind === 'known'
+        ? comparisonRows({
+            my: myRecordOf(id),
+            results: fishById.value.get(id)?.results,
+            tribe,
+            unknown: props.unknown_processing_method,
+          })
+        : null,
+    canRecord: ownTribe && id === heldId.value && !isCollected(id),
+  }
+})
+
+// 「改成…」：把自己在自己部落那一題的記錄改成多數（同記錄視窗的寫入），寫入後重新拿資料
+function changeToMajority({ question, value }) {
+  changing.value = true
+  router.post(
+    `/island/tribes/${props.character.tribe}/fish/${askedId.value}/answers`,
+    { question, value },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      only: RECORD_RELOAD_ONLY,
+      onFinish: () => (changing.value = false),
     }
   )
 }

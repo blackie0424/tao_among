@@ -51,26 +51,22 @@ class IslandController extends Controller
     /**
      * 3D 魚島的對話（#216）：打開 /island 時一次給。
      * island_fish：每條魚一次（編號、照片、魚名、各部落結果人數，給細節視窗）；
-     * spot_fish：每個部落 12 個地點（順序同 spots），各列這個地點的魚（順序同地點清單）、家人說的話、有沒有可以看的說法。
-     * fish_speech（#232）：同樣的家人說的話與有沒有說法，依部落、魚編號查（拿著魚問家人時用）。
+     * fish_speech（#232）：每個部落每條魚家人說的話與有沒有說法，依部落、魚編號查（拿著魚問家人時用；
+     * 取代 #216 依地點分組的 spot_fish——對話改成問玩家自己的魚，不再列這個地點的魚）。
      */
     private function householdFishProps(): array
     {
         $fishes = Fish::with('displayCaptureRecord')->orderBy('id')->get();
         $counts = FishTribeResponse::islandResultCounts($fishes->pluck('id')->all());
-        $names = $fishes->mapWithKeys(fn (Fish $fish) => [$fish->id => $fish->name])->all();
-        $spotFish = [];
         $fishSpeech = [];
         foreach (config('fish_options.tribes') as $tribe) {
-            $spotFish[$tribe] = array_fill(0, IslandSpot::HOUSEHOLDS * IslandSpot::COUNT, []);
             $fishSpeech[$tribe] = [];
-            foreach ($this->islandOrderQuery($tribe)->pluck('id') as $id) {
-                [$categories, $methods] = $this->majorities($counts[$id] ?? null, $tribe);
-                $fishSpeech[$tribe][$id] = [
-                    'speech' => IslandNpcSpeech::say($this->displayName($names[$id]), $tribe, $categories, $methods, null, false),
+            foreach ($fishes as $fish) {
+                [$categories, $methods] = $this->majorities($counts[$fish->id] ?? null, $tribe);
+                $fishSpeech[$tribe][$fish->id] = [
+                    'speech' => IslandNpcSpeech::say($this->displayName($fish->name), $tribe, $categories, $methods, null, false),
                     'has_detail' => $categories !== [] || $methods !== [],
                 ];
-                $spotFish[$tribe][IslandSpot::householdIndexOf($id)][] = ['id' => $id, ...$fishSpeech[$tribe][$id]];
             }
         }
 
@@ -81,7 +77,6 @@ class IslandController extends Controller
                 'image_url' => $fish->display_image_url,
                 'results' => $counts[$fish->id] ?? ['food_category' => [], 'processing_method' => []],
             ])->values(),
-            'spot_fish' => $spotFish,
             'fish_speech' => $fishSpeech,
         ];
     }
