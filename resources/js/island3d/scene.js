@@ -429,9 +429,9 @@ function memberTapper(state, family, onMemberTap) {
 
 /** 每張畫面要更新的東西：玩家、家人、動物、船、鏡頭、標示與招牌、點地面的提示 */
 function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange }) {
-  const { player, family, animals, tapRings, boats, signs } = world
+  const { family, animals, tapRings, boats, signs } = world
   state.elapsedSeconds = frame.elapsedSeconds
-  movePlayer(player, state, frame.deltaSeconds, onTribeChange)
+  movePlayer(world, state, frame.deltaSeconds, onTribeChange)
   reportSpot(state, onSpotChange)
   family.update(frame.elapsedSeconds, frame.deltaSeconds, {
     currentTribe: state.tribe,
@@ -490,7 +490,7 @@ const stepBetween = (from, to) => ({ x: to.x - from.x, z: to.z - from.z })
 const hasMoved = (step) => step.x !== 0 || step.z !== 0
 
 /** 每張畫面依輸入移動玩家；走進另一個部落的格子時呼叫 onTribeChange(部落代碼) */
-function movePlayer(player, state, deltaSeconds, onTribeChange) {
+function movePlayer({ player, family }, state, deltaSeconds, onTribeChange) {
   const before = state.position
   const next = stepMovement(state.input, before, deltaSeconds, {
     speed: WALK_SPEED,
@@ -500,7 +500,9 @@ function movePlayer(player, state, deltaSeconds, onTribeChange) {
   state.input = next.input
   state.position = next.position
   const step = stepBetween(before, next.position)
-  player.update(next.position, hasMoved(step) ? step : null, isMoving(next.input), deltaSeconds)
+  // 沒在走時，在某一件的範圍裡就轉向那位家人，兩個人面對面（#219 規格修訂 1）
+  const facing = hasMoved(step) ? step : family.facingFor(state.spotKey, next.position)
+  player.update(next.position, facing, isMoving(next.input), deltaSeconds)
 
   // 走在公路上（不在任何格子裡）時，所在部落不變
   const tribe = state.world.tribeAt(next.position)

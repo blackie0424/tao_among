@@ -155,7 +155,8 @@ function facePlayer(member, placement, player) {
 /**
  * 72 位家人。回傳 { group 要加進場景的東西, figures 每位家人的人形,
  *   update(seconds, deltaSeconds, { currentTribe, reducedMotion, spotKey, player }),
- *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey） }。
+ *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey）,
+ *   facingFor(spot, from) 玩家停下時該朝哪位家人 }。
  * 只有所在部落的家人走動、換姿勢、更新動畫；其他部落的停在範圍中心（akay 正面坐），換完動作就不再更新。
  * spotKey 是玩家目前在哪一件的範圍裡、player 是玩家位置（#219）：那一件的家人停下面向玩家。
  * 每位家人有自己的走路時鐘：停下的那幾張畫面時鐘不前進，離開後從停下的地方接著走、不會跳。
@@ -175,6 +176,15 @@ export function createFamily(loader, members = familyMembers()) {
     isTapped(raycaster, spot) {
       const i = members.findIndex((member) => member.spot === spot)
       return i !== -1 && raycaster.intersectObject(figures[i].hit).length > 0
+    },
+    /** 玩家站在 from、在 spot 那一件的範圍裡時該朝的方向（指向那位家人）；不在範圍裡回傳 null（#219 規格修訂 1） */
+    facingFor(spot, from) {
+      const i = spot === null ? -1 : members.findIndex((member) => member.spot === spot)
+      if (i === -1) {
+        return null
+      }
+      const { position } = figures[i].group
+      return { x: position.x - from.x, z: position.z - from.z }
     },
     update(seconds, deltaSeconds, { currentTribe, reducedMotion, spotKey = null, player }) {
       members.forEach((member, i) => {

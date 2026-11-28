@@ -183,3 +183,43 @@ describe('island3d/familyMeshes akay 在範圍裡不換坐姿（#219 驗收條�
     expect(at(0).pose).toBe('sit')
   })
 })
+
+describe('island3d/familyMeshes 玩家停下時轉向家人（#219 規格修訂 1，驗收條件 4）', () => {
+  it('在 A 的範圍裡：玩家該朝的方向＝玩家位置指向 A 停下的位置', () => {
+    const family = createFamily(instantLoader, [walker('A', 0), walker('B', 10)])
+    const frame = (seconds, spotKey) =>
+      family.update(seconds, 0.5, {
+        currentTribe: 'iraraley',
+        reducedMotion: false,
+        spotKey,
+        player: { x: -2, z: -2 },
+      })
+    frame(3, null)
+    frame(3.5, 'A')
+    expect(family.facingFor('A', { x: -2, z: -2 })).toEqual({ x: 0, z: 2 })
+    expect(family.facingFor('A', { x: 1, z: 0 })).toEqual({ x: -3, z: 0 })
+  })
+
+  it('akay 也一樣：指向 akay 坐的位置', () => {
+    const family = createFamily(instantLoader, [akay])
+    family.update(1, 0.5, {
+      currentTribe: 'iraraley',
+      reducedMotion: false,
+      spotKey: 'akay',
+      player: { x: 20, z: 2 },
+    })
+    expect(family.facingFor('akay', { x: 20, z: 2 })).toEqual({ x: 0, z: -2 })
+  })
+
+  it('不在任何範圍裡、或範圍裡沒有這位家人：沒有指定方向（玩家維持最後走的方向）', () => {
+    const family = createFamily(instantLoader, [walker('A', 0)])
+    family.update(3, 0.5, {
+      currentTribe: 'iraraley',
+      reducedMotion: false,
+      spotKey: null,
+      player: { x: 0, z: 0 },
+    })
+    expect(family.facingFor(null, { x: 0, z: 0 })).toBeNull()
+    expect(family.facingFor('nobody', { x: 0, z: 0 })).toBeNull()
+  })
+})
