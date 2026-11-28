@@ -33,6 +33,8 @@ class IslandController extends Controller
 
         return Inertia::render('Island/Home', [
             'character' => $this->characterProps($character),
+            // #232 手上的魚存在瀏覽器、依角色分開
+            'character_id' => $character->id,
             'tribes' => config('fish_options.tribes'),
             'current_tribe' => $this->currentTribe($request, $character),
             'spots' => $this->householdSpotsByTribe(),

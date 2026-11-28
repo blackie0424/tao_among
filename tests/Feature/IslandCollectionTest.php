@@ -256,3 +256,11 @@ it('#232 record_fish 是軟刪除、不存在或不是數字：記錄視窗的�
         ->assertInertia(fn ($page) => $page->reloadOnly('record_questions', fn ($reload) => $reload
             ->where('record_questions', null)));
 })->with(['軟刪除' => '5', '不存在' => '999', '不是數字' => 'abc']);
+
+// AC 4：手上的魚存在瀏覽器、依角色分開，要角色編號當鍵
+
+it('#232 /island 帶角色編號（手上的魚依角色分開存）', function () {
+    $player = collector();
+
+    expect(homeProps($player)['character_id'])->toBe(characterOf($player)->id);
+});
