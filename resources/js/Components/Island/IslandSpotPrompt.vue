@@ -98,6 +98,13 @@
                 :heard="heard"
                 @pick="ask"
               />
+              <p
+                v-if="step === STEPS.answer && answer?.recordState"
+                data-testid="record-loading"
+                class="mt-3 text-elder-body"
+              >
+                {{ RECORD_STATE_TEXT[answer.recordState] }}
+              </p>
               <table
                 v-if="step === STEPS.answer && answer?.rows"
                 data-testid="comparison"
@@ -255,7 +262,8 @@ const props = defineProps({
   caught: { type: Object, default: null },
   beachActions: { type: Array, default: null },
   // #232 ⑤ 家人的回答：{ line 家人說的話, rows 並排（這個部落有說法時；否則 null）, ownTribe 是不是玩家自己的部落,
-  // canRecord 可以「記下來」（自己部落、手上還沒記的魚）, busy 正在改記錄或被限流, notice 改記錄的錯誤或倒數 }
+  // canRecord 可以「記下來」（自己部落、手上還沒記的魚）, busy 正在改記錄或被限流, notice 改記錄的錯誤或倒數,
+  // recordState 手上的魚自己的記錄 loading 載入中／failed 讀不到（這時沒有並排與「記下來」），已知為 null }
   answer: { type: Object, default: null },
 })
 // change：在自己的部落把那一題改成多數 { question, value }；record：記下手上的魚
@@ -265,6 +273,8 @@ const emit = defineEmits(['activate', 'ask', 'beach-action', 'change', 'record']
 const ASK = 'ikongo o ya?'
 const WHICH_FISH = '你帶了什麼魚來？'
 const QUESTION_LABELS = { food_category: '分類', processing_method: '處理' }
+// 手上的魚自己的記錄還沒載入或讀不到時（不當成沒記）
+const RECORD_STATE_TEXT = { loading: '載入中…', failed: '讀不到你的記錄，請稍後再問一次' }
 // #232 海邊
 const BEACH_NAME = '海邊'
 const BEACH_LINES = {

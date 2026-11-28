@@ -72,7 +72,12 @@
                 height="72"
                 class="aspect-[4/3] w-24 rounded-island bg-island-line object-cover"
               />
-              <button type="button" :class="actionButton" @click="openRecord(heldId)">
+              <button
+                type="button"
+                :disabled="heldLoading"
+                :class="actionButton"
+                @click="openRecord(heldId)"
+              >
                 {{ heldActionLabel }}
               </button>
             </div>
@@ -115,7 +120,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import IslandWorld from '@/Components/Island/IslandWorld.vue'
@@ -212,6 +217,9 @@ const currentHeard = computed(() => new Set(heardByTribe.value[reachedSpot.value
 
 function markHeard(id) {
   askedId.value = id
+  changeError.value = null
+  // 手上還沒收進圖鑑的魚要用自己部落的記錄比對：資料不是這條的就重新載入（未知不當成沒回答）
+  if (needsLoadedRecord(id) && !recordLoaded(id)) loadRecord(id)
   const tribe = reachedSpot.value.tribe
   heardByTribe.value = {
     ...heardByTribe.value,
@@ -283,13 +291,19 @@ function reachBeach(tribe) {
 }
 
 // 載入這條魚自己部落的三題（記錄視窗、判斷「收進圖鑑」用）
+// 載入失敗（沒拿到這條魚的資料）時記下 recordFailedId，問家人時照實說讀不到
+const recordFailedId = ref(null)
 function loadRecord(id) {
+  recordFailedId.value = null
   router.reload({
     only: ['record_questions'],
     data: { record_fish: id },
     preserveState: true,
     preserveScroll: true,
     onSuccess: () => (recordFishId.value = id),
+    onFinish: () => {
+      if (recordFishId.value !== id) recordFailedId.value = id
+    },
   })
 }
 
@@ -317,7 +331,7 @@ function onBeachAction(key) {
 const RECORD_RELOAD_ONLY = ['record_questions', 'island_fish', 'fish_speech', 'collection']
 const COLLECT_FAILED = '記錄已存好，還沒收進圖鑑'
 const actionButton =
-  'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold'
+  'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold disabled:opacity-50'
 const recordTarget = ref(null)
 const recordFish = computed(() => fishById.value.get(recordTarget.value) ?? null)
 const collecting = ref(false)
@@ -333,8 +347,11 @@ const collectable = computed(
     recordLoaded(heldId.value) &&
     (hasOwnRecord() || collectNotice.value !== null)
 )
+// 還沒收進圖鑑時要看自己部落有沒有回答：記錄還在載入就先不決定（未知不當成沒回答）
+const heldLoading = computed(() => recordStateOf(heldId.value) === 'loading')
 const heldActionLabel = computed(() => {
   if (isCollected(heldId.value)) return '改我的記錄'
+  if (heldLoading.value) return '載入中…'
   return recordLoaded(heldId.value) && hasOwnRecord() ? '收進圖鑑' : '記下來'
 })
 
@@ -397,10 +414,23 @@ function myRecordOf(id) {
   )
 }
 
+// 手上、還沒收進圖鑑的魚：自己的記錄只能從載入的資料拿
+const needsLoadedRecord = (id) => id === heldId.value && !isCollected(id)
+
+function recordStateOf(id) {
+  if (!needsLoadedRecord(id) || recordLoaded(id)) return null
+  return recordFailedId.value === id ? 'failed' : 'loading'
+}
+
+watch(dialogOpen, (open) => {
+  if (!open) changeError.value = null
+})
+
 const answer = computed(() => {
   const id = askedId.value
   const tribe = reachedSpot.value?.tribe
   if (id === null || !tribe) return null
+  const recordState = recordStateOf(id)
   const { kind, line } = familyAnswer({
     fishId: id,
     tribe,
@@ -413,8 +443,9 @@ const answer = computed(() => {
     ownTribe,
     busy: changing.value || changeWaitSeconds.value > 0,
     notice: changeNotice.value,
+    recordState,
     rows:
-      kind === 'known'
+      kind === 'known' && recordState === null
         ? comparisonRows({
             my: myRecordOf(id),
             results: fishById.value.get(id)?.results,
@@ -424,7 +455,11 @@ const answer = computed(() => {
         : null,
     // 「記下來」只給手上還沒記的魚：已在圖鑑、或自己部落已經有回答（「有回答」同驗收條件 3、6）都不出現
     canRecord:
-      ownTribe && id === heldId.value && !isCollected(id) && !(recordLoaded(id) && hasOwnRecord()),
+      recordState === null &&
+      ownTribe &&
+      id === heldId.value &&
+      !isCollected(id) &&
+      !(recordLoaded(id) && hasOwnRecord()),
   }
 })
 
