@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,6 +25,60 @@ class IslandCharacter extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** #232 圖鑑：在海邊收集過的魚 */
+    public function collectedFish(): HasMany
+    {
+        return $this->hasMany(IslandCollectedFish::class);
+    }
+
+    /**
+     * #232 把海邊拿到的魚收進圖鑑：自己部落要有這條魚的記錄才收（回傳 false）；
+     * 已經收過的不變（收集時間維持第一次）。
+     */
+    public function collect(Fish $fish): bool
+    {
+        if (! FishTribeResponse::hasRecord($this->user_id, $fish->id, $this->tribe)) {
+            return false;
+        }
+        IslandCollectedFish::insertOrIgnore([[
+            'island_character_id' => $this->id,
+            'fish_id' => $fish->id,
+            'collected_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]]);
+
+        return true;
+    }
+
+    /**
+     * #232 圖鑑：依收集時間（同時間依收集紀錄編號）排，軟刪除的魚不列、編號依序從 1 補齊；
+     * my＝自己部落這條魚的記錄（沒記的題目為 null）。
+     *
+     * @return list<array{fish_id: int, number: int, my: array{name: ?string, food_category: ?string, processing_method: ?string}}>
+     */
+    public function collection(): array
+    {
+        $fishIds = $this->collectedFish()
+            ->whereHas('fish')
+            ->orderBy('collected_at')
+            ->orderBy('id')
+            ->pluck('fish_id');
+        $records = FishTribeResponse::where(['user_id' => $this->user_id, 'tribe' => $this->tribe])
+            ->whereIn('fish_id', $fishIds)
+            ->get()
+            ->keyBy('fish_id');
+
+        return $fishIds->values()->map(fn (int $fishId, int $index) => [
+            'fish_id' => $fishId,
+            'number' => $index + 1,
+            'my' => array_map(
+                fn (string $question) => $records->get($fishId)?->{$question},
+                array_combine(FishTribeResponse::ISLAND_QUESTIONS, FishTribeResponse::ISLAND_QUESTIONS)
+            ),
+        ])->all();
     }
 
     public static function of(?User $user): ?self

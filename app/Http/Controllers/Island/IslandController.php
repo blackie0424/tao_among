@@ -37,6 +37,9 @@ class IslandController extends Controller
             'current_tribe' => $this->currentTribe($request, $character),
             'spots' => $this->householdSpotsByTribe(),
             ...$this->householdFishProps(),
+            'collection' => $character->collection(),
+            // #232 記錄視窗的三題：只在帶 record_fish 的 partial reload 才給
+            'record_questions' => Inertia::optional(fn () => $this->recordQuestions($request, $character)),
             'result_options' => FishTribeResponse::islandResultOptions(),
             'unknown_processing_method' => FishTribeResponse::unknownProcessingMethod(),
         ]);
@@ -46,6 +49,7 @@ class IslandController extends Controller
      * 3D 魚島的對話（#216）：打開 /island 時一次給。
      * island_fish：每條魚一次（編號、照片、魚名、各部落結果人數，給細節視窗）；
      * spot_fish：每個部落 12 個地點（順序同 spots），各列這個地點的魚（順序同地點清單）、家人說的話、有沒有可以看的說法。
+     * fish_speech（#232）：同樣的家人說的話與有沒有說法，依部落、魚編號查（拿著魚問家人時用）。
      */
     private function householdFishProps(): array
     {
@@ -53,15 +57,17 @@ class IslandController extends Controller
         $counts = FishTribeResponse::islandResultCounts($fishes->pluck('id')->all());
         $names = $fishes->mapWithKeys(fn (Fish $fish) => [$fish->id => $fish->name])->all();
         $spotFish = [];
+        $fishSpeech = [];
         foreach (config('fish_options.tribes') as $tribe) {
             $spotFish[$tribe] = array_fill(0, IslandSpot::HOUSEHOLDS * IslandSpot::COUNT, []);
+            $fishSpeech[$tribe] = [];
             foreach ($this->islandOrderQuery($tribe)->pluck('id') as $id) {
                 [$categories, $methods] = $this->majorities($counts[$id] ?? null, $tribe);
-                $spotFish[$tribe][IslandSpot::householdIndexOf($id)][] = [
-                    'id' => $id,
+                $fishSpeech[$tribe][$id] = [
                     'speech' => IslandNpcSpeech::say($this->displayName($names[$id]), $tribe, $categories, $methods, null, false),
                     'has_detail' => $categories !== [] || $methods !== [],
                 ];
+                $spotFish[$tribe][IslandSpot::householdIndexOf($id)][] = ['id' => $id, ...$fishSpeech[$tribe][$id]];
             }
         }
 
@@ -73,7 +79,26 @@ class IslandController extends Controller
                 'results' => $counts[$fish->id] ?? ['food_category' => [], 'processing_method' => []],
             ])->values(),
             'spot_fish' => $spotFish,
+            'fish_speech' => $fishSpeech,
         ];
+    }
+
+    /**
+     * #232 記錄視窗：角色自己部落這條魚三題的選項與自己的回答（不給結果，記錄時不看別人怎麼說）。
+     * record_fish 不是數字、魚不存在或已軟刪除時為 null。
+     */
+    private function recordQuestions(Request $request, IslandCharacter $character): ?array
+    {
+        $fishId = filter_var($request->query('record_fish'), FILTER_VALIDATE_INT);
+        $fish = $fishId === false ? null : Fish::find($fishId);
+        if ($fish === null) {
+            return null;
+        }
+
+        return array_map(
+            fn (array $question) => ['key' => $question['key'], 'options' => $question['options'], 'my_answer' => $question['my_answer']],
+            FishTribeResponse::islandQuestions($fish->id, $character->tribe, $fish->name, $character->user_id)
+        );
     }
 
     /** 3D 魚島（#201）：6 個部落 × 12 個地點（3 戶 × 4 個地點）的名稱、稱呼與問好語，打開 /island 時一次給。 */
