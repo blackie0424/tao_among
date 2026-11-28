@@ -124,6 +124,14 @@
                   </tr>
                 </tbody>
               </table>
+              <p
+                v-if="step === STEPS.answer && answer?.notice"
+                data-testid="change-notice"
+                role="alert"
+                class="mt-2 text-elder-body font-bold text-red-700"
+              >
+                {{ answer.notice }}
+              </p>
               <div
                 v-if="step === STEPS.answer && changeableRows.length"
                 class="mt-2 flex flex-col gap-2"
@@ -247,7 +255,7 @@ const props = defineProps({
   caught: { type: Object, default: null },
   beachActions: { type: Array, default: null },
   // #232 ⑤ 家人的回答：{ line 家人說的話, rows 並排（這個部落有說法時；否則 null）, ownTribe 是不是玩家自己的部落,
-  // canRecord 可以「記下來」（自己部落、手上還沒收進圖鑑的魚）, busy 正在改記錄 }
+  // canRecord 可以「記下來」（自己部落、手上還沒記的魚）, busy 正在改記錄或被限流, notice 改記錄的錯誤或倒數 }
   answer: { type: Object, default: null },
 })
 // change：在自己的部落把那一題改成多數 { question, value }；record：記下手上的魚

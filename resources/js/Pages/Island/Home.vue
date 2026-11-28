@@ -125,6 +125,7 @@ import IslandCollection from '@/Components/Island/IslandCollection.vue'
 import { islandTribeLabel } from '@/constants/island'
 import { createHeldFish, heldFishKey } from '@/island3d/heldFish'
 import { comparisonRows, familyAnswer } from '@/island3d/fishTalk'
+import { useRateLimitCountdown } from '@/composables/useRateLimitCountdown'
 
 const props = defineProps({
   character: { type: Object, required: true },
@@ -379,6 +380,13 @@ function collect(id) {
 // ── 拿著魚問家人（#232 驗收條件 8–10）──
 const askedId = ref(null)
 const changing = ref(false)
+// 「改成…」的寫入照作答頁：被拒顯示錯誤、被限流顯示倒數（期間不能再送）
+const changeError = ref(null)
+const { waitSeconds: changeWaitSeconds } = useRateLimitCountdown()
+const changeNotice = computed(() => {
+  if (changeWaitSeconds.value > 0) return `送出太多次了，請等 ${changeWaitSeconds.value} 秒再試`
+  return changeError.value
+})
 // 自己部落這條魚的記錄：圖鑑裡有就用圖鑑的；手上還沒收進圖鑑的用載入的記錄；都沒有當成沒記
 function myRecordOf(id) {
   const entry = props.collection.find((item) => item.fish_id === id)
@@ -403,7 +411,8 @@ const answer = computed(() => {
   return {
     line,
     ownTribe,
-    busy: changing.value,
+    busy: changing.value || changeWaitSeconds.value > 0,
+    notice: changeNotice.value,
     rows:
       kind === 'known'
         ? comparisonRows({
@@ -413,13 +422,17 @@ const answer = computed(() => {
             unknown: props.unknown_processing_method,
           })
         : null,
-    canRecord: ownTribe && id === heldId.value && !isCollected(id),
+    // 「記下來」只給手上還沒記的魚：已在圖鑑、或自己部落已經有回答（「有回答」同驗收條件 3、6）都不出現
+    canRecord:
+      ownTribe && id === heldId.value && !isCollected(id) && !(recordLoaded(id) && hasOwnRecord()),
   }
 })
 
 // 「改成…」：把自己在自己部落那一題的記錄改成多數（同記錄視窗的寫入），寫入後重新拿資料
 function changeToMajority({ question, value }) {
+  if (changeWaitSeconds.value > 0) return
   changing.value = true
+  changeError.value = null
   router.post(
     `/island/tribes/${props.character.tribe}/fish/${askedId.value}/answers`,
     { question, value },
@@ -427,6 +440,7 @@ function changeToMajority({ question, value }) {
       preserveState: true,
       preserveScroll: true,
       only: RECORD_RELOAD_ONLY,
+      onError: (errors) => (changeError.value = errors.value ?? errors.question ?? null),
       onFinish: () => (changing.value = false),
     }
   )

@@ -2,11 +2,19 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // #232：Inertia 的 partial reload、送出換成假的，由測試決定何時回來
-const inertia = vi.hoisted(() => ({ reload: vi.fn(), post: vi.fn(), formPosts: [] }))
+const inertia = vi.hoisted(() => ({ reload: vi.fn(), post: vi.fn(), formPosts: [], handlers: [] }))
 vi.mock('@inertiajs/vue3', async () => {
   const { reactive } = await import('vue')
   return {
-    router: { reload: inertia.reload, post: inertia.post, on: () => () => {} },
+    router: {
+      reload: inertia.reload,
+      post: inertia.post,
+      // 限流倒數（useRateLimitCountdown）聽 invalid 事件：記下來，由測試觸發
+      on: (name, handler) => {
+        inertia.handlers.push({ name, handler })
+        return () => {}
+      },
+    },
     useForm: (init) => {
       const form = reactive({ ...init, errors: {}, processing: false })
       form.clearErrors = () => {
@@ -174,6 +182,7 @@ describe('Island/Home 地圖頁', () => {
     inertia.reload.mockReset()
     inertia.post.mockReset()
     inertia.formPosts.length = 0
+    inertia.handlers.length = 0
     window.localStorage.clear()
     window.history.replaceState({}, '', '/island')
   })
@@ -1621,6 +1630,64 @@ describe('Island/Home 地圖頁', () => {
         .trigger('click')
       await flushPromises()
       expect(dialog(wrapper).find('[data-testid="change-processing_method"]').exists()).toBe(false)
+    })
+
+    it('「改成…」被限流：顯示還要等幾秒並倒數，倒數期間「改成…」停用（review 第 1 項）', async () => {
+      const wrapper = await mountAsking({
+        collection: [{ fish_id: 2, number: 1, my: { food_category: 'rahet' } }],
+      })
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+      await dialogButton(wrapper, '改成 oyod').trigger('click')
+
+      const event = {
+        detail: { response: { status: 429, headers: { 'retry-after': '45' } } },
+        preventDefault: vi.fn(),
+      }
+      inertia.handlers.filter((h) => h.name === 'invalid').forEach((h) => h.handler(event))
+      inertia.post.mock.calls.at(-1)[2].onFinish()
+      await flushPromises()
+
+      expect(dialog(wrapper).get('[data-testid="change-notice"]').text()).toBe(
+        '送出太多次了，請等 45 秒再試'
+      )
+      expect(dialogButton(wrapper, '改成 oyod').attributes('disabled')).toBeDefined()
+    })
+
+    it('「改成…」被拒：顯示伺服器的錯誤訊息（review 第 1 項）', async () => {
+      const wrapper = await mountAsking({
+        collection: [{ fish_id: 2, number: 1, my: { food_category: 'rahet' } }],
+      })
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+      await dialogButton(wrapper, '改成 oyod').trigger('click')
+
+      const options = inertia.post.mock.calls.at(-1)[2]
+      options.onError({ value: '請選一個選項' })
+      options.onFinish()
+      await flushPromises()
+
+      expect(dialog(wrapper).get('[data-testid="change-notice"]').text()).toBe('請選一個選項')
+    })
+
+    it('手上的魚自己部落已經有回答、還沒收進圖鑑：問自己部落時不出現「記下來」（review 第 2 項）', async () => {
+      window.localStorage.setItem(HELD_KEY, '1')
+      const wrapper = await mountAsking()
+      const options = inertia.reload.mock.calls.at(-1)[0]
+      await wrapper.setProps({
+        record_questions: [
+          { key: 'name', options: [], my_answer: null },
+          { key: 'food_category', options: [], my_answer: 'oyod' },
+          { key: 'processing_method', options: [], my_answer: null },
+        ],
+      })
+      options.onSuccess()
+      await flushPromises()
+
+      await openPhotos('yayo')
+      await askFish(wrapper, 0)
+
+      expect(dialog(wrapper).find('[data-testid="record-asked"]').exists()).toBe(false)
     })
 
     it('在別的部落：有說法也不出現「改成…」（只改自己部落的記錄）', async () => {
