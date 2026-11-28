@@ -166,9 +166,7 @@ export function createFamily(loader, members = familyMembers()) {
   const figures = members.map(() => createMemberFigure())
   group.add(...figures.map((figure) => figure.group))
   loadModels(loader, members, figures)
-  // 每位家人停下過多少秒（走路時鐘＝seconds 減這個）、上一張畫面是不是停著
-  const stoppedSeconds = members.map(() => 0)
-  const wasStopped = members.map(() => false)
+  const stopClocks = members.map(() => createStopClock())
 
   return {
     group,
@@ -190,31 +188,49 @@ export function createFamily(loader, members = familyMembers()) {
       members.forEach((member, i) => {
         const active = member.tribe === currentTribe
         const stopped = active && spotKey !== null && member.spot === spotKey
-        // 進入那一張與離開那一張都不前進，位置才會和停下時一樣
-        if (stopped || wasStopped[i]) {
-          stoppedSeconds[i] += deltaSeconds
-        }
-        wasStopped[i] = stopped
-        const placement = memberPlacement(member, seconds - stoppedSeconds[i], {
+        const stoppedSeconds = stopClocks[i](stopped, deltaSeconds)
+        const placement = memberPlacement(member, seconds - stoppedSeconds, {
           active,
           reducedMotion,
         })
-        const { position, heading, pose } = stopped
-          ? facePlayer(member, placement, player)
-          : placement
-        const figure = figures[i]
-        figure.group.position.set(position.x, 0, position.z)
-        figure.group.rotation.y = heading
-        const changed = figure.play(pose)
-        figure.advance(
-          animationSeconds(deltaSeconds, {
-            active,
-            reducedMotion,
-            changed,
-            fadeSeconds: ACTION_FADE_SECONDS,
-          })
+        showMember(
+          figures[i],
+          stopped ? facePlayer(member, placement, player) : placement,
+          deltaSeconds,
+          { active, reducedMotion }
         )
       })
     },
   }
+}
+
+/**
+ * 一位家人的停下計時（#219）：回傳 tick(stopped, deltaSeconds) → 到目前為止停下過多少秒（走路時鐘＝seconds 減這個）。
+ * 進入那一張與離開那一張都算停下，位置才會和停下時一樣。
+ */
+function createStopClock() {
+  let stoppedSeconds = 0
+  let wasStopped = false
+  return (stopped, deltaSeconds) => {
+    if (stopped || wasStopped) {
+      stoppedSeconds += deltaSeconds
+    }
+    wasStopped = stopped
+    return stoppedSeconds
+  }
+}
+
+/** 把一位家人擺到 { position, heading, pose }，並把動畫往前推 */
+function showMember(figure, { position, heading, pose }, deltaSeconds, { active, reducedMotion }) {
+  figure.group.position.set(position.x, 0, position.z)
+  figure.group.rotation.y = heading
+  const changed = figure.play(pose)
+  figure.advance(
+    animationSeconds(deltaSeconds, {
+      active,
+      reducedMotion,
+      changed,
+      fadeSeconds: ACTION_FADE_SECONDS,
+    })
+  )
 }
