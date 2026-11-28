@@ -7,11 +7,15 @@ import {
   cameraTarget,
   createCameraRig,
   createGesture,
+  labelScale,
   reduceGesture,
   rotateCamera,
+  terrainClearPitch,
+  zoomBeyondEntry,
   zoomByPinch,
   zoomByWheel,
 } from '@/island3d/cameraRig'
+import { markerScale } from '@/island3d/tapMarker'
 import { ISLAND_DECOR, ISLAND_MAP } from '@/island3d/islandMap'
 
 // 鏡頭的俯角沿用 #199：在角色後方 13、上方 12 的方向（距離 17.692）
@@ -38,7 +42,7 @@ const rigOf = (overrides) => ({ heading: 0, pitch: DEFAULT_PITCH, zoom: 0, ...ov
 const typesOf = (effects) => effects.map((effect) => effect?.type ?? null)
 
 describe('island3d/cameraRig 轉鏡頭（#200 驗收條件 6）', () => {
-  it('一開始鏡頭沒有轉、在最近的距離', () => {
+  it('一開始鏡頭沒有轉、俯角同 #199；沒給畫面大小時在最近的距離', () => {
     const rig = createCameraRig()
 
     expect(rig.heading).toBe(0)
@@ -134,11 +138,13 @@ describe('island3d/cameraRig 上下轉（#200 驗收條件 6，規格修訂 2）
     expect(farthest(degrees(75))).toBeCloseTo(259.08, 1)
   })
 
-  it('最近的距離不受俯角影響', () => {
-    const nearest = (pitch) => cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch }).nearest
+  it('最近與進入時的距離不受俯角影響', () => {
+    const range = (pitch) => cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch })
 
-    expect(nearest(degrees(25))).toBeCloseTo(17.692, 2)
-    expect(nearest(degrees(75))).toBeCloseTo(17.692, 2)
+    expect(range(degrees(25)).nearest).toBe(8)
+    expect(range(degrees(75)).nearest).toBe(8)
+    expect(range(degrees(25)).entry).toBeCloseTo(17.692, 2)
+    expect(range(degrees(75)).entry).toBeCloseTo(17.692, 2)
   })
 })
 
@@ -178,16 +184,16 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
     expect(zoomByPinch(rigOf({ heading: 1.2, zoom: 0.5 }), 2, RANGE).heading).toBe(1.2)
   })
 
-  it('最近的距離等於 #199：橫式是 17.69；直式畫面拉遠到看得完一個格子的寬度，最多 2.4 倍', () => {
+  it('進入時的距離等於 #199：橫式是 17.69；直式畫面拉遠到看得完一個格子的寬度，最多 2.4 倍', () => {
     expect(
-      cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH }).nearest
+      cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH }).entry
     ).toBeCloseTo(17.692, 2)
-    expect(cameraRange({ aspect: 0.5, viewRadius: 100, pitch: DEFAULT_PITCH }).nearest).toBeCloseTo(
+    expect(cameraRange({ aspect: 0.5, viewRadius: 100, pitch: DEFAULT_PITCH }).entry).toBeCloseTo(
       35.384,
       2
     )
     expect(
-      cameraRange({ aspect: 0.25, viewRadius: 100, pitch: DEFAULT_PITCH }).nearest
+      cameraRange({ aspect: 0.25, viewRadius: 100, pitch: DEFAULT_PITCH }).entry
     ).toBeCloseTo(42.461, 2)
   })
 
@@ -475,5 +481,176 @@ describe('island3d/cameraRig 手勢（#200 驗收條件 6、7）', () => {
     const { effects } = play([finger('move', 1, 300, 300), finger('move', 1, 400, 300)])
 
     expect(typesOf(effects)).toEqual([null, null])
+  })
+})
+
+describe('island3d/cameraRig 再拉近（#228 驗收條件 1、2）', () => {
+  const ASPECTS = { landscape: 16 / 9, portrait: 0.5 }
+  const rangeAt = (aspect) => cameraRange({ aspect, viewRadius: 100, pitch: DEFAULT_PITCH })
+
+  it('最近的距離是 8，橫式、直式都一樣（直式最近時不再往後拉）', () => {
+    expect(rangeAt(ASPECTS.landscape).nearest).toBe(8)
+    expect(rangeAt(ASPECTS.portrait).nearest).toBe(8)
+    expect(rangeAt(0.25).nearest).toBe(8)
+  })
+
+  it('進入時的鏡頭距離等於以前的最近距離：橫式 17.69、直式（寬高比 0.5）35.38', () => {
+    const landscape = createCameraRig({ aspect: ASPECTS.landscape, viewRadius: 100 })
+    const portrait = createCameraRig({ aspect: ASPECTS.portrait, viewRadius: 100 })
+
+    expect(cameraDistance(landscape, rangeAt(ASPECTS.landscape))).toBeCloseTo(17.692, 2)
+    expect(cameraDistance(portrait, rangeAt(ASPECTS.portrait))).toBeCloseTo(35.384, 2)
+    expect(landscape.heading).toBe(0)
+    expect(landscape.pitch).toBeCloseTo(DEFAULT_PITCH, 10)
+  })
+
+  it('從進入時的距離可以拉到最近的 8，到了不再變', () => {
+    const range = rangeAt(ASPECTS.landscape)
+    const entered = createCameraRig({ aspect: ASPECTS.landscape, viewRadius: 100 })
+    const closest = zoomByWheel(entered, -5000)
+
+    expect(cameraDistance(closest, range)).toBeCloseTo(8, 5)
+    expect(cameraDistance(zoomByPinch(closest, 2, range), range)).toBeCloseTo(8, 5)
+  })
+
+  it('最近到進入時的距離之間，對準的都是角色；比進入時遠才移向島中心，最遠是島中心', () => {
+    const range = { nearest: 8, entry: 20, farthest: 200 }
+    const player = { x: 40, z: -20 }
+    const island = { x: 0, z: 0 }
+    // 距離 110 是 20 與 200 的正中間
+    const middle = rigOf({ zoom: Math.log(110 / 8) / Math.log(200 / 8) })
+
+    expect(cameraTarget(rigOf({ zoom: 0 }), player, range, island)).toEqual(player)
+    expect(cameraTarget(rigOf({ zoom: Math.log(20 / 8) / Math.log(25) }), player, range, island)).toEqual(
+      player
+    )
+    expect(cameraTarget(middle, player, range, island).x).toBeCloseTo(20, 5)
+    expect(cameraTarget(middle, player, range, island).z).toBeCloseTo(-10, 5)
+    expect(cameraTarget(rigOf({ zoom: 1 }), player, range, island)).toEqual(island)
+  })
+})
+
+describe('island3d/cameraRig 招牌與點地面圓圈不受影響（#228 驗收條件 3）', () => {
+  // 以前（#228 之前）的 zoom：在 17.692（直式 35.384）到最遠之間等比例變化
+  const oldZoom = (distance, entry, farthest) => Math.log(distance / entry) / Math.log(farthest / entry)
+  const zoomAtDistance = (distance, range) =>
+    rigOf({ zoom: Math.log(distance / range.nearest) / Math.log(range.farthest / range.nearest) })
+
+  it('橫式：同一個鏡頭距離下，換算出的程度和以前的 zoom 一樣；比進入時近是 0', () => {
+    const range = cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH })
+
+    expect(zoomBeyondEntry(zoomAtDistance(17.692, range), range)).toBeCloseTo(0, 3)
+    expect(zoomBeyondEntry(zoomAtDistance(64.784, range), range)).toBeCloseTo(0.5, 3)
+    expect(zoomBeyondEntry(zoomAtDistance(100, range), range)).toBeCloseTo(
+      oldZoom(100, 17.692, 237.23),
+      3
+    )
+    expect(zoomBeyondEntry(zoomAtDistance(237.23, range), range)).toBeCloseTo(1, 3)
+    expect(zoomBeyondEntry(zoomAtDistance(8, range), range)).toBe(0)
+    expect(zoomBeyondEntry(zoomAtDistance(12, range), range)).toBe(0)
+  })
+
+  it('直式：進入時的距離比橫式遠，同一個鏡頭距離下也和以前一樣', () => {
+    const range = cameraRange({ aspect: 9 / 16, viewRadius: 100, pitch: DEFAULT_PITCH })
+    const entry = 17.692 * (16 / 9)
+
+    expect(zoomBeyondEntry(zoomAtDistance(entry, range), range)).toBeCloseTo(0, 3)
+    expect(zoomBeyondEntry(zoomAtDistance(200, range), range)).toBeCloseTo(
+      oldZoom(200, entry, 435.44),
+      3
+    )
+    expect(zoomBeyondEntry(zoomAtDistance(20, range), range)).toBe(0)
+  })
+
+  it('點地面圓圈以進入時的距離為基準：橫式 17.692、直式 31.452 時是 1', () => {
+    const landscape = cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH })
+    const portrait = cameraRange({ aspect: 9 / 16, viewRadius: 100, pitch: DEFAULT_PITCH })
+
+    expect(markerScale(17.692, landscape.entry)).toBeCloseTo(1, 3)
+    expect(markerScale(70.768, landscape.entry)).toBeCloseTo(2, 3)
+    expect(markerScale(31.452, portrait.entry)).toBeCloseTo(1, 3)
+  })
+})
+
+describe('island3d/cameraRig 名字標示放大（#228 驗收條件 4）', () => {
+  const zoomAtDistance = (distance, range) =>
+    rigOf({ zoom: Math.log(distance / range.nearest) / Math.log(range.farthest / range.nearest) })
+
+  it('橫式：進入時的距離或更遠是 1；最近 8 是 2.2；等比中點 11.897 是 1.483', () => {
+    const range = cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH })
+
+    expect(labelScale(zoomAtDistance(17.692, range), range)).toBeCloseTo(1, 3)
+    expect(labelScale(zoomAtDistance(100, range), range)).toBe(1)
+    expect(labelScale(zoomAtDistance(8, range), range)).toBeCloseTo(2.2, 5)
+    expect(labelScale(zoomAtDistance(11.897, range), range)).toBeCloseTo(1.483, 3)
+  })
+
+  it('直式：進入時的距離 35.38 是 1，最近 8 也是 2.2', () => {
+    const range = cameraRange({ aspect: 0.5, viewRadius: 100, pitch: DEFAULT_PITCH })
+
+    expect(labelScale(zoomAtDistance(35.384, range), range)).toBeCloseTo(1, 3)
+    expect(labelScale(zoomAtDistance(8, range), range)).toBeCloseTo(2.2, 5)
+  })
+
+  it('拉近的過程平滑變大，沒有跳變', () => {
+    const range = cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH })
+    const scales = [17, 15, 13, 11, 9].map((distance) => labelScale(zoomAtDistance(distance, range), range))
+
+    scales.forEach((scale) => {
+      expect(scale).toBeGreaterThan(1)
+      expect(scale).toBeLessThan(2.2)
+    })
+    scales.slice(1).forEach((scale, i) => expect(scale).toBeGreaterThan(scales[i]))
+  })
+})
+
+describe('island3d/cameraRig 山擋住時抬高（#228 驗收條件 6）', () => {
+  // 手建的高度表：每格 1，x −5～5、z −5～15。wallAt(z, height) 只有 z 那一排高 height，兩旁是 0
+  const fieldOf = (heightAt) => {
+    const cols = 11
+    const rows = 21
+    const heights = new Float32Array(cols * rows)
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < cols; col += 1) {
+        heights[row * cols + col] = heightAt(-5 + col, -5 + row)
+      }
+    }
+    return { x0: -5, z0: -5, step: 1, cols, rows, heights }
+  }
+  const wallAt = (wallZ, height) => fieldOf((x, z) => (z === wallZ ? height : 0))
+  // 角色在原點、鏡頭沒轉（在 +z 那一側）、最近的距離 8
+  const RANGE = { nearest: 8, entry: 17.692, farthest: 200 }
+  const player = { x: 0, z: 0 }
+  const lowest = rigOf({ pitch: degrees(25), zoom: 0 })
+
+  it('沒有山擋住：用使用者的俯角', () => {
+    expect(terrainClearPitch(lowest, RANGE, player, fieldOf(() => 0))).toBe(degrees(25))
+  })
+
+  it('角色背後 4 有一道高 5 的窄山脊：25 度到 49 度都被擋，抬到 50 度', () => {
+    expect(terrainClearPitch(lowest, RANGE, player, wallAt(4, 5))).toBeCloseTo(degrees(50), 10)
+  })
+
+  it('抬高不改使用者的俯角：之後拖曳從原本的角度繼續算', () => {
+    terrainClearPitch(lowest, RANGE, player, wallAt(4, 5))
+
+    expect(lowest.pitch).toBe(degrees(25))
+    expect(rotateCamera(lowest, 0, 100).pitch).toBeCloseTo(degrees(50), 10)
+  })
+
+  it('到上限 75 度都被擋：用使用者的俯角，不處理', () => {
+    expect(terrainClearPitch(lowest, RANGE, player, wallAt(2, 100))).toBe(degrees(25))
+  })
+
+  it('比進入時的距離遠（對準點移向島中心）：不抬高', () => {
+    const farther = rigOf({ pitch: degrees(25), zoom: 0.5 })
+
+    expect(terrainClearPitch(farther, RANGE, player, wallAt(4, 5))).toBe(degrees(25))
+  })
+
+  it('剛好在進入時的距離：仍然抬高', () => {
+    const entered = rigOf({ pitch: degrees(25), zoom: Math.log(17.692 / 8) / Math.log(200 / 8) })
+
+    expect(terrainClearPitch(entered, RANGE, player, wallAt(4, 5))).toBeGreaterThan(degrees(25))
   })
 })

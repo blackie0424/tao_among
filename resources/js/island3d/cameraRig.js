@@ -1,23 +1,32 @@
-// 魚島 3D：鏡頭規則與手勢判斷（#200 驗收條件 6、7）。不依賴 three.js。
-// 鏡頭繞著它對準的位置轉。對準的位置最近時是角色，拉遠時移向島的中心，
+// 魚島 3D：鏡頭規則與手勢判斷（#200 驗收條件 6、7；#228 再拉近）。不依賴 three.js。
+// 鏡頭繞著它對準的位置轉。對準的位置從最近到進入時的距離都是角色，再拉遠時移向島的中心，
 // 最遠時是島的中心（整座島置中）。rig 是 { heading, pitch, zoom }：
 //   heading 鏡頭轉的角度（弧度）：0 時鏡頭在對準位置的 +z 那一側往 -z 看
 //   pitch   俯視的角度（弧度）：越大越從正上方往下看
 //   zoom    0 是最近、1 是最遠
 // 狀態都是不可變的：每個函式回傳新的狀態。
+import { isBlockedByTerrain } from './occlusion'
 
 // 上下視角（度）
 export const CAMERA_FIELD_OF_VIEW = 45
 const DEGREES_TO_RADIANS = Math.PI / 180
-// 進入頁面時的俯角與最近的距離沿用 #199：鏡頭在角色後方 13、上方 12 的方向
-const NEAR_BACK = 13
-const NEAR_UP = 12
-const NEAREST_DISTANCE = Math.hypot(NEAR_BACK, NEAR_UP)
-const DEFAULT_PITCH = Math.atan2(NEAR_UP, NEAR_BACK)
+// 進入頁面時的俯角與距離沿用 #199：鏡頭在角色後方 13、上方 12 的方向
+const ENTRY_BACK = 13
+const ENTRY_UP = 12
+const ENTRY_DISTANCE = Math.hypot(ENTRY_BACK, ENTRY_UP)
+const DEFAULT_PITCH = Math.atan2(ENTRY_UP, ENTRY_BACK)
+// 最近的距離（#228）：上下視角 45 度時，身高 1.7 的家人約佔畫面高度 1/4
+const NEAREST_DISTANCE = 8
+// 名字標示在最近的距離放大到這麼多倍（#228 驗收條件 4）
+const NEAREST_LABEL_SCALE = 2.2
+// 角色胸口離地多高：看鏡頭到角色之間有沒有東西擋住時，從這裡看（#228 驗收條件 5、6）
+export const CHEST_HEIGHT = 1.2
+// 山擋住時，俯角每次往上加這麼多來找看得到角色的角度（#228 驗收條件 6）
+const LIFT_STEP = 1 * DEGREES_TO_RADIANS
 // 俯角的上下限：再低會看到地平線、山會擋住角色；再高就接近正上方
 const MIN_PITCH = 25 * DEGREES_TO_RADIANS
 const MAX_PITCH = 75 * DEGREES_TO_RADIANS
-// 畫面比這個寬高比窄（直式手機）時，最近的距離往後拉，讓一個格子的寬度進到畫面；最多拉這麼多倍
+// 畫面比這個寬高比窄（直式手機）時，進入時的距離往後拉，讓一個格子的寬度進到畫面；最多拉這麼多倍
 const NEAREST_FIT_ASPECT = 1
 const NEAREST_MAX_PULLBACK = 2.4
 // 左右拖曳一個像素轉多少：拖 360 像素轉半圈
@@ -32,8 +41,17 @@ const TAP_SLOP_PIXELS = 8
 const clamp01 = (value) => Math.min(1, Math.max(0, value))
 const between = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
 
-export function createCameraRig() {
-  return { heading: 0, pitch: DEFAULT_PITCH, zoom: 0 }
+/**
+ * 進入頁面時的鏡頭：沒有轉、俯角同 #199。view 是 { aspect 畫面寬高比, viewRadius 最遠要看得到的半徑 }，
+ * 有給時鏡頭在進入時的距離（#228 驗收條件 2）；沒給時在最近的距離
+ */
+export function createCameraRig(view = null) {
+  const rig = { heading: 0, pitch: DEFAULT_PITCH, zoom: 0 }
+  if (view === null) {
+    return rig
+  }
+  const { nearest, entry, farthest } = cameraRange({ ...view, pitch: DEFAULT_PITCH })
+  return { ...rig, zoom: Math.log(entry / nearest) / Math.log(farthest / nearest) }
 }
 
 /**
@@ -79,8 +97,10 @@ export function boundingCircle(points) {
 }
 
 /**
- * 鏡頭距離的上下限。aspect 是畫面的寬高比，viewRadius 是拉到最遠時要看得到的半徑（整座島），
+ * 鏡頭距離的上下限與進入時的距離。aspect 是畫面的寬高比，viewRadius 是拉到最遠時要看得到的半徑（整座島），
  * pitch 是當下的俯角。
+ * 最近：固定的距離，和寬高比無關（#228 驗收條件 1）。
+ * 進入時：#199 的距離，直式畫面往後拉（#228 驗收條件 2）。
  * 最遠：以對準的位置為中心、半徑 viewRadius 的地面圓剛好整個在畫面裡（不論鏡頭轉到哪個角度）。
  */
 export function cameraRange({ aspect, viewRadius: radius, pitch }) {
@@ -91,18 +111,47 @@ export function cameraRange({ aspect, viewRadius: radius, pitch }) {
   const fitVertical = Math.sin(pitch) / tanVertical + Math.cos(pitch)
   const fitHorizontal = Math.sqrt(1 / tanHorizontal ** 2 + Math.cos(pitch) ** 2)
   return {
-    nearest: NEAREST_DISTANCE * pullback,
+    nearest: NEAREST_DISTANCE,
+    entry: ENTRY_DISTANCE * pullback,
     farthest: radius * Math.max(fitVertical, fitHorizontal),
   }
 }
 
+/** 進入時的距離；手建的範圍沒有給時當成最近的距離 */
+const entryOf = (range) => range.entry ?? range.nearest
+
+/**
+ * 比進入時拉遠了多少：進入時的距離或更近是 0、最遠是 1，中間等比例變化。
+ * 等於 #228 以前的 zoom，招牌隱藏與點地面圓圈用它，同一個鏡頭距離下顯示和以前一樣（#228 驗收條件 3）
+ */
+export function zoomBeyondEntry(rig, range) {
+  const entry = entryOf(range)
+  const distance = cameraDistance(rig, range)
+  return clamp01(Math.log(distance / entry) / Math.log(range.farthest / entry))
+}
+
+/**
+ * 名字標示放大幾倍（#228 驗收條件 4）：進入時的距離或更遠是 1；更近時隨距離的對數平滑變大，
+ * 最近時是 NEAREST_LABEL_SCALE
+ */
+export function labelScale(rig, range) {
+  const entry = entryOf(range)
+  const distance = cameraDistance(rig, range)
+  if (distance >= entry) {
+    return 1
+  }
+  const exponent = Math.log(NEAREST_LABEL_SCALE) / Math.log(entry / range.nearest)
+  return (entry / distance) ** exponent
+}
+
 /**
  * 鏡頭對準地面上的哪裡：在角色 player 與島中心 islandCenter 之間，依鏡頭距離移動——
- * 最近時是角色、最遠時是島中心。這樣移動時，角色離對準位置的距離不會超過當下看得到的範圍，
+ * 進入時的距離或更近時是角色、最遠時是島中心。這樣移動時，角色離對準位置的距離不會超過當下看得到的範圍，
  * 所以任何縮放程度下角色都在畫面裡。
  */
 export function cameraTarget(rig, player, range, islandCenter) {
-  const toIsland = (cameraDistance(rig, range) - range.nearest) / (range.farthest - range.nearest)
+  const entry = entryOf(range)
+  const toIsland = Math.max(0, (cameraDistance(rig, range) - entry) / (range.farthest - entry))
   // 寫成兩邊各乘比例再相加：拉到最遠（比例是 1）時剛好等於島的中心，不留浮點誤差
   return {
     x: player.x * (1 - toIsland) + islandCenter.x * toIsland,
@@ -119,6 +168,30 @@ export function cameraPlacement(rig, target, range) {
     y: distance * Math.sin(rig.pitch),
     z: target.z + Math.cos(rig.heading) * back,
   }
+}
+
+/** 要試的俯角：從 pitch 開始每次加 LIFT_STEP，最後一個是俯角上限 */
+function liftCandidates(pitch) {
+  const candidates = []
+  for (let candidate = pitch; candidate < MAX_PITCH; candidate += LIFT_STEP) {
+    candidates.push(candidate)
+  }
+  return [...candidates, MAX_PITCH]
+}
+
+/**
+ * 這張畫面擺鏡頭用的俯角（#228 驗收條件 6）：鏡頭距離不超過進入時的距離（對準的是角色）時，
+ * 角色胸口到鏡頭的直線被地形 field 擋住，就從使用者的俯角往上找第一個不被擋的；
+ * 找到上限都被擋、沒被擋、或比進入時更遠，都是使用者的俯角。不改 rig。
+ */
+export function terrainClearPitch(rig, range, player, field) {
+  if (cameraDistance(rig, range) > entryOf(range)) {
+    return rig.pitch
+  }
+  const chest = { x: player.x, y: CHEST_HEIGHT, z: player.z }
+  const isClear = (pitch) =>
+    !isBlockedByTerrain(cameraPlacement({ ...rig, pitch }, player, range), chest, field)
+  return liftCandidates(rig.pitch).find(isClear) ?? rig.pitch
 }
 
 // ── 手勢 ──

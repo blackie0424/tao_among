@@ -72,16 +72,17 @@ function triangleBreaks(camera, ground, { x0, z0, step }) {
 }
 
 /**
- * 從鏡頭 camera（{ x, y, z }）看向地面上的 ground（{ x, z }，y = 0）時，中間有沒有被地形 field
- * （terrainHeight.js 的高度表）擋住。精確判定：三角形裡直線與地形的高度差是一次式，
+ * 從鏡頭 camera（{ x, y, z }）看向 ground（{ x, z }，y 沒給時是地面 0；#228 看角色胸口時離地）時，
+ * 中間有沒有被地形 field（terrainHeight.js 的高度表）擋住。精確判定：三角形裡直線與地形的高度差是一次式，
  * 所以只要檢查直線進出每個三角形的那幾點。
  */
 export function isBlockedByTerrain(camera, ground, field) {
+  const groundY = ground.y ?? 0
   return triangleBreaks(camera, ground, field).some((t) => {
     const point = {
       x: camera.x + (ground.x - camera.x) * t,
       z: camera.z + (ground.z - camera.z) * t,
     }
-    return camera.y * (1 - t) < heightAt(field, point) - TERRAIN_TOLERANCE
+    return camera.y + (groundY - camera.y) * t < heightAt(field, point) - TERRAIN_TOLERANCE
   })
 }
