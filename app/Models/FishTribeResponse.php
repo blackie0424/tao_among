@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\StorageServiceInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
@@ -239,6 +240,19 @@ class FishTribeResponse extends Model
             'name_max_length' => self::NAME_MAX_LENGTH,
             'recording_max_seconds' => self::RECORDING_MAX_SECONDS,
         ];
+    }
+
+    /**
+     * #232「有回答」：這個人在這個部落這條魚的叫法、分類、處理方式至少一欄有值（「我不知道」也算）；只有錄音不算。
+     * $lock 時鎖住那一筆（要在交易裡呼叫），讓同時清空或刪除它的寫入先完成再判斷。
+     */
+    public static function hasRecord(int $userId, int $fishId, string $tribe, bool $lock = false): bool
+    {
+        $row = self::where(['user_id' => $userId, 'fish_id' => $fishId, 'tribe' => $tribe])
+            ->when($lock, fn (Builder $query) => $query->lockForUpdate())
+            ->first();
+
+        return $row !== null && collect(self::ISLAND_QUESTIONS)->contains(fn (string $question) => ($row->{$question} ?? '') !== '');
     }
 
     /** 目前使用者對這條魚已送出的回答（錄音以網址提供）。 */

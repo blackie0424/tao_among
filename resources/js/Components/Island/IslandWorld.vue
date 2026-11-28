@@ -47,8 +47,9 @@ const props = defineProps({
 })
 // tribe-change：角色走進另一個部落的格子，帶那個部落的代碼（左上角只顯示族語，#201）；
 // spot-change：角色走進某一件的範圍帶 { tribe, hex, slot }，離開帶 null；
-// member-tap：點到目前範圍那一件的家人（規格修訂 2）
-const emit = defineEmits(['tribe-change', 'spot-change', 'member-tap'])
+// member-tap：點到目前範圍那一件的家人（規格修訂 2）；
+// beach-change：角色走進海邊的範圍帶部落代碼，離開帶 null（#232）
+const emit = defineEmits(['tribe-change', 'spot-change', 'member-tap', 'beach-change'])
 
 const QUALITY_NAMES = { high: '高', medium: '中', low: '低' }
 
@@ -77,6 +78,7 @@ onMounted(async () => {
       onTribeChange: (tribe) => emit('tribe-change', tribe),
       onSpotChange: (spot) => emit('spot-change', spot),
       onMemberTap: () => emit('member-tap'),
+      onBeachChange: (beach) => emit('beach-change', beach),
       spots: props.spots,
       onStats: (next) => (stats.value = next),
     })

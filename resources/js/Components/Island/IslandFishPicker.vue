@@ -1,5 +1,6 @@
 <template>
-  <!-- 魚島 3D（#216）：這個地點的魚照片，點一張就是問那條魚。照片不寫魚名（要問的就是「這是什麼」）。
+  <!-- 魚島 3D（#216）：可以問的魚的照片，點一張就是問那條魚。照片不寫魚名（要問的就是「這是什麼」）。
+       #232 列的是玩家自己的魚（手上的魚排第一、標「手上」，接著圖鑑）。
        電腦（寬度 800 以上）排成一排、兩端有箭頭；手機一次一張、左右滑停在一張上（原生橫向捲動＋捲動對齊） -->
   <div class="relative">
     <ul
@@ -28,6 +29,13 @@
             loading="lazy"
             class="aspect-[4/3] w-full object-cover"
           />
+          <span
+            v-if="item.held"
+            data-testid="held-tag"
+            class="absolute right-2 top-2 rounded-lg bg-island-accent px-2 py-0.5 text-sm font-bold text-white"
+          >
+            手上
+          </span>
           <span
             v-if="heard.has(item.id)"
             class="absolute left-2 top-2 rounded-lg bg-island-ink px-2 py-0.5 text-sm font-bold text-white"

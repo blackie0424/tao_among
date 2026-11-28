@@ -11,6 +11,7 @@ const PYRAMID_RADIUS = Math.SQRT1_2
 const PYRAMID_SIDES = 4
 // 招牌在畫面上這麼大（畫面高度的比例）
 const SIGN_SCREEN_HEIGHT = 0.03
+const BEACH_SIGN_TEXT = '海邊'
 
 // 平放的圓框：管子的半徑是外徑的這個比例
 const RING_TUBE = 0.1
@@ -227,6 +228,30 @@ export function buildHouseholds(households = HOUSEHOLDS) {
     group.add(mesh)
   })
   return group
+}
+
+// #232 海邊招牌離地多高
+const BEACH_SIGN_HEIGHT = 2
+
+/**
+ * 海邊的招牌（#232 驗收條件 1）：每個海邊一塊「海邊」，和特色建築一樣只在附近顯示（kind landmark）。
+ * 回傳招牌的群組（給 showSigns 用）
+ */
+export function buildBeachSigns(beaches) {
+  const material = signMaterial(BEACH_SIGN_TEXT)
+  const signs = new THREE.Group()
+  beaches.forEach(({ tribe, x, z }) =>
+    signs.add(
+      signSprite(material, BEACH_SIGN_HEIGHT, {
+        kind: 'landmark',
+        text: BEACH_SIGN_TEXT,
+        tribe,
+        x,
+        z,
+      })
+    )
+  )
+  return signs
 }
 
 /**

@@ -3,14 +3,17 @@
        spot 是這一件的資料（名稱、稱呼、問好語）；橫條只顯示稱呼與操作說明，地點名稱在建物上方的招牌（規格修訂 2）。
        點橫條發出 activate，由上層切換 open。
        #216：對話一句一句來（規格修訂 1）：① 玩家問好 → ② 家人「{角色名}，你好」→ ③「你想認識哪一條魚？」＋照片
-       → 點照片 ④ 玩家「ikongo o ya?」→ ⑤ 家人講那條魚。①②④ 按空白鍵或點對話框空白的地方是下一句，③⑤ 是關掉（發出 activate） -->
+       → 點照片 ④ 玩家「ikongo o ya?」→ ⑤ 家人講那條魚。
+       #232：③ 是「你帶了什麼魚來？」＋玩家自己的魚；⑤ 是 answer（家人回答、並排、可以改成多數或記下來，發出 change／record）；
+       玩家沒有魚時 ② 提醒先去海邊找魚。①②④ 按空白鍵或點對話框空白的地方是下一句，③⑤ 是關掉（發出 activate）
+       #232：在海邊（beach）時，橫條是「海邊」＋找魚的說明；對話是（放回手上的魚 →）找到一條魚＋照片＋按鈕（發出 beach-action） -->
   <div>
     <!-- 螢幕報讀器只讀這一行的整句（規格修訂 3）。這一行一直都在、對話框沒開時是空的，
          打開後換成第一句，報讀器才會讀到（live region 要先存在，內容改變才會報讀） -->
     <p data-testid="line-for-reader" class="sr-only" aria-live="polite">
-      {{ spot && open ? line : '' }}
+      {{ active && open ? line : '' }}
     </p>
-    <div v-if="spot" class="pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
+    <div v-if="active" class="pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
       <div
         v-if="open"
         data-testid="spot-dialog"
@@ -43,7 +46,9 @@
             >
               {{ speaker }}
             </p>
-            <p v-else class="text-elder-aux font-bold text-island-muted">{{ spot.npc }}</p>
+            <p v-else-if="spot" class="text-elder-aux font-bold text-island-muted">
+              {{ spot.npc }}
+            </p>
             <!-- 字一個一個跑（規格修訂 3），報讀器讀上面那一行整句 -->
             <p
               :data-testid="isPlayerStep ? 'player-line' : 'npc-line'"
@@ -54,6 +59,36 @@
               {{ shownLine }}
             </p>
 
+            <!-- #232 找到的那條魚：照片跟著這一句出現，已經在圖鑑裡時多一行、句子跑完才出現按鈕 -->
+            <template v-if="step === STEPS.found">
+              <img
+                data-testid="found-photo"
+                :src="caught.fish.image_url"
+                alt=""
+                width="170"
+                height="128"
+                class="mt-2 aspect-[4/3] w-full rounded-island bg-island-line object-cover min-[801px]:w-[170px]"
+              />
+              <p v-if="caught.collectedNumber !== null" class="mt-2 text-elder-body font-bold">
+                圖鑑裡已經有這條（第 {{ caught.collectedNumber }} 條）
+              </p>
+              <div
+                v-if="!typing && beachActions"
+                data-testid="beach-actions"
+                class="mt-3 flex flex-wrap gap-2"
+              >
+                <button
+                  v-for="action in beachActions"
+                  :key="action.key"
+                  type="button"
+                  :class="actionButton"
+                  @click="emit('beach-action', action.key)"
+                >
+                  {{ action.label }}
+                </button>
+              </div>
+            </template>
+
             <!-- 句子跑完才出現：③ 的照片、⑤ 的按鈕 -->
             <template v-if="!typing">
               <IslandFishPicker
@@ -63,7 +98,74 @@
                 :heard="heard"
                 @pick="ask"
               />
-              <div v-else-if="step === STEPS.answer && askedFish" class="mt-3 flex flex-wrap gap-2">
+              <p
+                v-if="step === STEPS.answer && answer?.recordState"
+                data-testid="record-loading"
+                class="mt-3 text-elder-body"
+              >
+                {{ RECORD_STATE_TEXT[answer.recordState] }}
+              </p>
+              <table
+                v-if="step === STEPS.answer && answer?.rows"
+                data-testid="comparison"
+                class="mt-3 w-full border-separate border-spacing-1 text-elder-aux"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col"><span class="sr-only">題目</span></th>
+                    <th scope="col" class="text-left text-island-muted">你記的</th>
+                    <th scope="col" class="text-left text-island-muted">這裡多數說</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in answer.rows" :key="row.question" :data-question="row.question">
+                    <th scope="row" class="text-left text-island-muted">
+                      {{ QUESTION_LABELS[row.question] }}
+                    </th>
+                    <td class="rounded-lg bg-island-sea/40 px-2 py-1 font-bold">
+                      {{ row.mine ?? NOT_RECORDED }}
+                    </td>
+                    <td class="rounded-lg bg-island-sea/40 px-2 py-1 font-bold">
+                      {{ row.leaders.length ? row.leaders.join('、') : NOBODY_SAID }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p
+                v-if="step === STEPS.answer && answer?.notice"
+                data-testid="change-notice"
+                role="alert"
+                class="mt-2 text-elder-body font-bold text-red-700"
+              >
+                {{ answer.notice }}
+              </p>
+              <div
+                v-if="step === STEPS.answer && changeableRows.length"
+                class="mt-2 flex flex-col gap-2"
+              >
+                <div
+                  v-for="row in changeableRows"
+                  :key="row.question"
+                  :data-testid="`change-${row.question}`"
+                  class="flex flex-wrap items-center gap-2"
+                >
+                  <span class="text-elder-aux font-bold">{{ QUESTION_LABELS[row.question] }}</span>
+                  <button
+                    v-for="leader in row.leaders"
+                    :key="leader"
+                    type="button"
+                    :disabled="answer.busy"
+                    :class="actionButton"
+                    @click="emit('change', { question: row.question, value: leader })"
+                  >
+                    改成 {{ leader }}
+                  </button>
+                  <button type="button" :class="actionButton" @click="keep(row.question)">
+                    維持我的
+                  </button>
+                </div>
+              </div>
+              <div v-if="step === STEPS.answer && askedFish" class="mt-3 flex flex-wrap gap-2">
                 <button
                   v-if="askedFish.has_detail"
                   ref="whoSaidButton"
@@ -75,12 +177,29 @@
                   誰說的？
                 </button>
                 <button
+                  v-if="answer?.canRecord"
+                  type="button"
+                  data-testid="record-asked"
+                  :class="actionButton"
+                  @click="emit('record')"
+                >
+                  記下來
+                </button>
+                <button
                   type="button"
                   data-testid="ask-another"
                   :class="actionButton"
                   @click="step = STEPS.pick"
                 >
                   問別條
+                </button>
+                <button
+                  type="button"
+                  data-testid="answer-done"
+                  :class="actionButton"
+                  @click="emit('activate')"
+                >
+                  好
                 </button>
               </div>
             </template>
@@ -100,7 +219,7 @@
         class="pointer-events-auto flex w-full max-w-xl flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-island bg-white px-4 py-2.5 text-left shadow-lg"
         @click="emit('activate')"
       >
-        <span class="text-elder-body font-extrabold">{{ spot.npc }}</span>
+        <span class="text-elder-body font-extrabold">{{ spot ? spot.npc : BEACH_NAME }}</span>
         <span class="text-elder-aux font-bold text-island-accent">{{ hint }}</span>
       </button>
     </div>
@@ -122,45 +241,102 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import IslandFishPicker from '@/Components/Island/IslandFishPicker.vue'
 import ResultDetailDialog from '@/Components/Island/ResultDetailDialog.vue'
+import { NOBODY_SAID, NOT_RECORDED } from '@/island3d/fishTalk'
 
 const props = defineProps({
   spot: { type: Object, default: null },
   open: { type: Boolean, default: false },
   speaker: { type: String, required: true },
   touch: { type: Boolean, default: false },
-  // #216：這一戶所在的部落、這個地點的魚（依序，每筆有 id、name、image_url、results、speech、has_detail）、已經問過的魚編號
+  // #216：這一戶所在的部落、可以問的魚（#232 改成玩家自己的魚，每筆有 id、name、image_url、results、has_detail、held）、已經問過的魚編號
   tribe: { type: String, required: true },
   fish: { type: Array, default: () => [] },
   heard: { type: Set, default: () => new Set() },
   tribes: { type: Array, required: true },
   resultOptions: { type: Object, required: true },
   unknownProcessingMethod: { type: String, required: true },
+  // #232 海邊：beach 走進了海邊的範圍；caught 打開對話框時找到的結果
+  // { fish 那條魚（沒有任何魚為 null）, released 有沒有先放回手上的魚, collectedNumber 已在圖鑑時是第幾條 }；
+  // beachActions 找到魚後的按鈕 [{ key, label }]，記錄還沒載入完成時為 null
+  beach: { type: Boolean, default: false },
+  caught: { type: Object, default: null },
+  beachActions: { type: Array, default: null },
+  // #232 ⑤ 家人的回答：{ line 家人說的話, rows 並排（這個部落有說法時；否則 null）, ownTribe 是不是玩家自己的部落,
+  // canRecord 可以「記下來」（自己部落、手上還沒記的魚）, busy 正在改記錄或被限流, notice 改記錄的錯誤或倒數,
+  // recordState 手上的魚自己的記錄 loading 載入中／failed 讀不到（這時沒有並排與「記下來」），已知為 null }
+  answer: { type: Object, default: null },
 })
-const emit = defineEmits(['activate', 'ask'])
+// change：在自己的部落把那一題改成多數 { question, value }；record：記下手上的魚
+const emit = defineEmits(['activate', 'ask', 'beach-action', 'change', 'record'])
 
 // 玩家問「這是什麼？」的族語
 const ASK = 'ikongo o ya?'
-const WHICH_FISH = '你想認識哪一條魚？'
+const WHICH_FISH = '你帶了什麼魚來？'
+const QUESTION_LABELS = { food_category: '分類', processing_method: '處理' }
+// 手上的魚自己的記錄還沒載入或讀不到時（不當成沒記）
+const RECORD_STATE_TEXT = { loading: '載入中…', failed: '讀不到你的記錄，請稍後再問一次' }
+// #232 海邊
+const BEACH_NAME = '海邊'
+const BEACH_LINES = {
+  released: '你把手上的魚放回海裡。',
+  found: '你找到一條魚！',
+  empty: '海裡現在沒有魚。',
+}
 // 字一個一個跑時每個字的間隔（毫秒，規格修訂 3）
 const TYPING_INTERVAL_MS = 50
 // 對話的步驟：① 問好、② 你好、③ 選魚、④ 問、⑤ 講那條魚
-const STEPS = { greet: 'greet', hello: 'hello', pick: 'pick', ask: 'ask', answer: 'answer' }
+// #232 海邊：released 放回手上的魚、found 找到一條魚、empty 海裡沒有魚
+const STEPS = {
+  greet: 'greet',
+  hello: 'hello',
+  pick: 'pick',
+  ask: 'ask',
+  answer: 'answer',
+  released: 'released',
+  found: 'found',
+  empty: 'empty',
+}
 const actionButton =
   'flex min-h-touch-primary items-center justify-center rounded-island border-2 border-island-line bg-white px-4 text-elder-body font-bold'
 
-// 電腦按空白鍵；觸控裝置點那位家人
-const hint = computed(() => (props.touch ? '點一下對方' : '按空白鍵'))
+// 有家人的地點或海邊才有提示（同時只會有一個）
+const active = computed(() => Boolean(props.spot) || props.beach)
+// 電腦按空白鍵；觸控裝置點那位家人（海邊是點提示找魚）
+const hint = computed(() => {
+  if (!props.spot) return props.touch ? '點一下找魚' : '按空白鍵找魚'
+  return props.touch ? '點一下對方' : '按空白鍵'
+})
 const hello = computed(() =>
-  props.fish.length ? `${props.speaker}，你好` : `${props.speaker}，你好。這裡還沒有魚。`
+  props.fish.length
+    ? `${props.speaker}，你好`
+    : `${props.speaker}，你好。你手上沒有魚，先去海邊找一條再來問我。`
 )
 
-const step = ref(STEPS.greet)
+// 打開時的第一句：家人是 ① 問好；海邊依找到的結果
+function firstStep() {
+  if (props.spot || !props.caught) return STEPS.greet
+  if (!props.caught.fish) return STEPS.empty
+  return props.caught.released ? STEPS.released : STEPS.found
+}
+
+const step = ref(firstStep())
 const askedId = ref(null)
 const askedFish = computed(() => props.fish.find((item) => item.id === askedId.value) ?? null)
 const showsAskedPhoto = computed(
   () => askedFish.value !== null && (step.value === STEPS.ask || step.value === STEPS.answer)
 )
 const detailOpen = ref(false)
+// 「維持我的」收起來的題目（換一條魚問就重來）
+const kept = ref(new Set())
+const changeableRows = computed(() =>
+  props.answer?.ownTribe && props.answer.rows
+    ? props.answer.rows.filter((row) => row.differs && !kept.value.has(row.question))
+    : []
+)
+
+function keep(question) {
+  kept.value = new Set([...kept.value, question])
+}
 const whoSaidButton = ref(null)
 
 // 這一步的那一句：①④ 玩家說、②③⑤ 家人說
@@ -175,8 +351,10 @@ const line = computed(() => {
       return WHICH_FISH
     case STEPS.ask:
       return ASK
+    case STEPS.answer:
+      return props.answer?.line ?? ''
     default:
-      return askedFish.value?.speech ?? ''
+      return BEACH_LINES[step.value]
   }
 })
 const lineClass = computed(() => {
@@ -230,6 +408,7 @@ onBeforeUnmount(stopTyping)
 
 function ask(id) {
   askedId.value = id
+  kept.value = new Set()
   step.value = STEPS.ask
   emit('ask', id)
 }
@@ -244,6 +423,8 @@ function next() {
     step.value = STEPS.pick
   } else if (step.value === STEPS.ask) {
     step.value = STEPS.answer
+  } else if (step.value === STEPS.released) {
+    step.value = STEPS.found
   } else {
     emit('activate')
   }
@@ -252,9 +433,9 @@ defineExpose({ next })
 
 // 關掉對話框或換到別的地方：下次從 ① 重新開始
 watch(
-  () => [props.open, props.spot],
+  () => [props.open, props.spot, props.beach],
   () => {
-    step.value = STEPS.greet
+    step.value = firstStep()
     askedId.value = null
     detailOpen.value = false
   }

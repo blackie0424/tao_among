@@ -13,6 +13,7 @@ use App\Http\Controllers\FishController;
 use App\Http\Controllers\FishNoteController;
 use App\Http\Controllers\FishReportController;
 use App\Http\Controllers\FishResponseController;
+use App\Http\Controllers\Island\IslandCollectionController;
 use App\Http\Controllers\Island\IslandController;
 use App\Http\Controllers\Island\IslandResponseController;
 use App\Http\Controllers\LineLoginController;
@@ -65,6 +66,7 @@ Route::middleware(EnsureIslandCharacter::class)->group(function () {
     Route::get('/island/tribes/{tribe}/spots/{spot}/talk', [IslandController::class, 'talk'])->name('island.talk');
     Route::get('/island/tribes/{tribe}/fish/{id}', [IslandResponseController::class, 'show'])->whereNumber('id')->name('island.fish');
     Route::post('/island/tribes/{tribe}/fish/{id}/answers', [IslandResponseController::class, 'store'])->middleware('throttle:island-response')->whereNumber('id')->name('island.fish.answers.store');
+    Route::post('/island/collection/{fish}', [IslandCollectionController::class, 'store'])->middleware('throttle:island-response')->whereNumber('fish')->name('island.collection.store');
 });
 Route::get('/island/character', [IslandController::class, 'character'])->name('island.character');
 Route::post('/island/character', [IslandController::class, 'storeCharacter'])->middleware('throttle:island-character')->name('island.character.store');
