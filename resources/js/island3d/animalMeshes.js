@@ -40,14 +40,18 @@ function animatedExtent(model, animations) {
   return { bottom: box.min.y, top: box.max.y }
 }
 
+/** 依量好的最低、最高點（縮放前）把模型縮放到最高點剛好是 height、最低點在地面（y = 0） */
+function scaleToHeight(model, { bottom, top }, height) {
+  const scale = height / (top - bottom)
+  model.scale.setScalar(scale)
+  model.position.y = -bottom * scale
+}
+
 /** 把模型縮放到兩個動作全程的最高點剛好是 height，最低點在地面（y = 0） */
 export function fitAnimal(model, animations, height) {
   model.scale.setScalar(1)
   model.position.y = 0
-  const { bottom, top } = animatedExtent(model, animations)
-  const scale = height / (top - bottom)
-  model.scale.setScalar(scale)
-  model.position.y = -bottom * scale
+  scaleToHeight(model, animatedExtent(model, animations), height)
 }
 
 /** 換毛色：coat 是材質名稱 → 顏色；同一個材質＋顏色只做一份 */
@@ -113,22 +117,28 @@ function createFigure(animal, labelMaterial) {
   }
 }
 
-/** 每種模型載入一次；載入成功後依每隻的高度縮放、換毛色，複製給用這款的每一隻；失敗就不畫那一種 */
+/** 一種模型載入後：全程高度只量一次，再複製給用這款的每一隻，依各自的高度縮放、換毛色 */
+function dressAll(model, gltf, animals, figures, cache) {
+  const extent = animatedExtent(gltf.scene, gltf.animations)
+  animals.forEach((animal, i) => {
+    if (animal.model !== model) {
+      return
+    }
+    const copy = cloneSkinned(gltf.scene)
+    scaleToHeight(copy, extent, animal.height)
+    copy.rotation.y = MODEL_TURN[model]
+    dressCoat(copy, animal.coat, cache)
+    figures[i].dress(copy, gltf.animations)
+  })
+}
+
+/** 每種模型載入一次；失敗就不畫那一種（名稱也不顯示） */
 function loadModels(loader, animals, figures) {
   const cache = new Map()
   new Set(animals.map((animal) => animal.model)).forEach((model) =>
     loader.load(
       MODEL_URL(model),
-      (gltf) =>
-        animals.forEach((animal, i) => {
-          if (animal.model === model) {
-            const copy = cloneSkinned(gltf.scene)
-            fitAnimal(copy, gltf.animations, animal.height)
-            copy.rotation.y = MODEL_TURN[model]
-            dressCoat(copy, animal.coat, cache)
-            figures[i].dress(copy, gltf.animations)
-          }
-        }),
+      (gltf) => dressAll(model, gltf, animals, figures, cache),
       undefined,
       (error) => console.warn(`魚島 3D：動物模型 ${model} 載入失敗，不畫這一種`, error)
     )
