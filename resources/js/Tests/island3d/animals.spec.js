@@ -15,7 +15,15 @@ const TRIBES = ['iraraley', 'iranmeilek', 'ivalino', 'imowrod', 'iratay', 'yayo'
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z)
 const ofKind = (list, kind) => list.filter((animal) => animal.kind === kind)
 const ofPlace = (place) => ANIMALS.filter((animal) => animal.place === place)
-const groupsOf = (list) => Object.values(Object.groupBy(list, (animal) => animal.group))
+// 照第幾群分組（CI 的 Node 沒有 Object.groupBy）
+const groupsOf = (list) => [
+  ...list
+    .reduce(
+      (groups, animal) => groups.set(animal.group, [...(groups.get(animal.group) ?? []), animal]),
+      new Map()
+    )
+    .values(),
+]
 // 看 60 秒，每 0.25 秒看一次
 const MOMENTS = Array.from({ length: 241 }, (_, i) => i * 0.25)
 
