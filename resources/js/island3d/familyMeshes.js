@@ -83,6 +83,10 @@ function createMemberFigure() {
   return {
     group,
     hit,
+    /** 目前的動作（模型載入前是 null） */
+    get pose() {
+      return current
+    },
     dress(model, animations) {
       figure.clear()
       figure.add(model)
@@ -133,29 +137,61 @@ function loadModels(loader, members, figures) {
 }
 
 /**
- * 72 位家人。回傳 { group 要加進場景的東西, update(seconds, deltaSeconds, { currentTribe, reducedMotion }),
+ * 玩家在不在這位家人的範圍裡（#219）：在的話停下、面向玩家；akay 只停住坐姿、不轉身。
+ * placement 是 memberPlacement 的結果；回傳要畫的 { position, heading, pose }。
+ */
+function facePlayer(member, placement, player) {
+  if (member.seat) {
+    return placement
+  }
+  const { position } = placement
+  return {
+    position,
+    heading: Math.atan2(player.x - position.x, player.z - position.z),
+    pose: 'idle',
+  }
+}
+
+/**
+ * 72 位家人。回傳 { group 要加進場景的東西, figures 每位家人的人形,
+ *   update(seconds, deltaSeconds, { currentTribe, reducedMotion, spotKey, player }),
  *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey） }。
  * 只有所在部落的家人走動、換姿勢、更新動畫；其他部落的停在範圍中心（akay 正面坐），換完動作就不再更新。
+ * spotKey 是玩家目前在哪一件的範圍裡、player 是玩家位置（#219）：那一件的家人停下面向玩家。
+ * 每位家人有自己的走路時鐘：停下的那幾張畫面時鐘不前進，離開後從停下的地方接著走、不會跳。
  */
 export function createFamily(loader, members = familyMembers()) {
   const group = new THREE.Group()
   const figures = members.map(() => createMemberFigure())
   group.add(...figures.map((figure) => figure.group))
   loadModels(loader, members, figures)
+  // 每位家人停下過多少秒（走路時鐘＝seconds 減這個）、上一張畫面是不是停著
+  const stoppedSeconds = members.map(() => 0)
+  const wasStopped = members.map(() => false)
 
   return {
     group,
+    figures,
     isTapped(raycaster, spot) {
       const i = members.findIndex((member) => member.spot === spot)
       return i !== -1 && raycaster.intersectObject(figures[i].hit).length > 0
     },
-    update(seconds, deltaSeconds, { currentTribe, reducedMotion }) {
+    update(seconds, deltaSeconds, { currentTribe, reducedMotion, spotKey = null, player }) {
       members.forEach((member, i) => {
         const active = member.tribe === currentTribe
-        const { position, heading, pose } = memberPlacement(member, seconds, {
+        const stopped = active && spotKey !== null && member.spot === spotKey
+        // 進入那一張與離開那一張都不前進，位置才會和停下時一樣
+        if (stopped || wasStopped[i]) {
+          stoppedSeconds[i] += deltaSeconds
+        }
+        wasStopped[i] = stopped
+        const placement = memberPlacement(member, seconds - stoppedSeconds[i], {
           active,
           reducedMotion,
         })
+        const { position, heading, pose } = stopped
+          ? facePlayer(member, placement, player)
+          : placement
         const figure = figures[i]
         figure.group.position.set(position.x, 0, position.z)
         figure.group.rotation.y = heading

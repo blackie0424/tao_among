@@ -436,6 +436,8 @@ function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChang
   family.update(frame.elapsedSeconds, frame.deltaSeconds, {
     currentTribe: state.tribe,
     reducedMotion,
+    spotKey: state.spotKey,
+    player: state.position,
   })
   animals.update(frame.elapsedSeconds, frame.deltaSeconds, {
     player: state.position,
