@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import {
   CAMERA_FIELD_OF_VIEW,
+  CHEST_HEIGHT,
   cameraDistance,
   cameraPlacement,
   boundingCircle,
@@ -12,11 +13,15 @@ import {
   cameraTarget,
   createCameraRig,
   createGesture,
+  labelScale,
   reduceGesture,
   rotateCamera,
+  terrainClearPitch,
+  zoomBeyondEntry,
   zoomByPinch,
   zoomByWheel,
 } from './cameraRig'
+import { createCameraOcclusion } from './cameraOcclusion'
 import { createAnimals } from './animalMeshes'
 import { createFamily } from './familyMeshes'
 import { ACTION_FADE_SECONDS, ACTOR_HEIGHT, placeholderFigure } from './figures'
@@ -315,18 +320,23 @@ function createTapRings() {
     group,
     update(state, camera) {
       const range = rangeOf(camera, state.rig)
-      const scale = markerScale(cameraDistance(state.rig, range), range.nearest)
+      // 以進入時的距離為基準，同一個鏡頭距離下大小和 #228 以前一樣
+      const scale = markerScale(cameraDistance(state.rig, range), range.entry)
       placeTapRing(destination, destinationOf(state.input), scale)
       placeTapRing(rejected, rejectedPointAt(state.marker, state.elapsedSeconds), scale)
     },
   }
 }
 
-/** 鏡頭最近時看著角色，拉遠時移向島的中心；角度與距離來自 state.rig */
+/**
+ * 鏡頭在進入時的距離以內看著角色，拉遠時移向島的中心；角度與距離來自 state.rig。
+ * 山擋住角色時，這張畫面的俯角抬高（#228 驗收條件 6），state.rig 不變
+ */
 function followPlayer(camera, state) {
   const range = rangeOf(camera, state.rig)
   const target = cameraTarget(state.rig, state.position, range, ISLAND_BOUNDS.center)
-  const placement = cameraPlacement(state.rig, target, range)
+  const pitch = terrainClearPitch(state.rig, range, state.position, islandHeightField())
+  const placement = cameraPlacement({ ...state.rig, pitch }, target, range)
   camera.position.set(placement.x, placement.y, placement.z)
   camera.lookAt(target.x, 0, target.z)
   camera.near = Math.max(CAMERA_MIN_NEAR, cameraDistance(state.rig, range) * CAMERA_NEAR_RATIO)
@@ -375,11 +385,18 @@ function buildWorld(spots) {
   const family = createFamily(loader)
   const animals = createAnimals(loader, { field: islandHeightField() })
   const householdSigns = buildHouseholdSigns(spots)
+  const households = buildHouseholds()
+  // 擋住角色時變半透明的：家屋四件與每個地標（招牌不算，#228 驗收條件 5）
+  const occlusion = createCameraOcclusion({
+    households: households.children,
+    landmarks: landmarks.group.children.filter((child) => child !== landmarks.signs),
+  })
   buildLights(scene)
   scene.add(
     terrain.group,
     landmarks.group,
-    buildHouseholds(),
+    households,
+    occlusion.group,
     householdSigns,
     family.group,
     animals.group,
@@ -392,9 +409,24 @@ function buildWorld(spots) {
     family,
     animals,
     tapRings,
+    occlusion,
     boats: terrain.boats,
     signs: [landmarks.signs, householdSigns],
+    // 拉近時放大的名字標示：地標招牌、家屋招牌、動物的名稱（#228 驗收條件 4）
+    labels: [
+      ...landmarks.signs.children,
+      ...householdSigns.children,
+      ...animals.figures.map((figure) => figure.label),
+    ],
   }
+}
+
+/** 名字標示放大成原本大小的 factor 倍；原本的大小第一次時記在 userData.baseScale */
+function scaleLabels(labels, factor) {
+  labels.forEach((label) => {
+    label.userData.baseScale ??= label.scale.clone()
+    label.scale.copy(label.userData.baseScale).multiplyScalar(factor)
+  })
 }
 
 function buildCamera(container) {
@@ -429,7 +461,7 @@ function memberTapper(state, family, onMemberTap) {
 
 /** 每張畫面要更新的東西：玩家、家人、動物、船、鏡頭、標示與招牌、點地面的提示 */
 function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange }) {
-  const { family, animals, tapRings, boats, signs } = world
+  const { family, animals, tapRings, occlusion, boats, signs, labels } = world
   state.elapsedSeconds = frame.elapsedSeconds
   movePlayer(world, state, frame.deltaSeconds, onTribeChange)
   reportSpot(state, onSpotChange)
@@ -447,16 +479,20 @@ function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChang
     bobBoats(boats, frame.elapsedSeconds)
   }
   followPlayer(camera, state)
-  signs.forEach((group) => showSigns(group, state.rig.zoom))
+  occlusion.update({ ...state.position, y: CHEST_HEIGHT }, camera.position)
+  const range = rangeOf(camera, state.rig)
+  // 以進入時的距離為基準換算，同一個鏡頭距離下招牌顯示和 #228 以前一樣
+  signs.forEach((group) => showSigns(group, zoomBeyondEntry(state.rig, range)))
+  scaleLabels(labels, labelScale(state.rig, range))
   tapRings.update(state, camera)
 }
 
 /**
- * 玩家一開始的狀態：站在 startTribe 部落主格的中心、沒有輸入、鏡頭沒轉且在最近的距離。
+ * 玩家一開始的狀態：站在 startTribe 部落主格的中心、沒有輸入、鏡頭沒轉且在進入時的距離（aspect 是畫面寬高比）。
  * world 是這座島的走路規則（可走範圍＋找路）；tribe 是最後走進的部落；spotKey 是目前在哪一件的範圍裡；
  * marker 是點地面的提示；elapsedSeconds 是開始到現在經過的秒數（每張畫面更新）
  */
-function createPlayerState(startTribe) {
+function createPlayerState(startTribe, aspect) {
   // 家屋四件擋路（#201）
   const walkable = createWalkable(ISLAND_MAP, householdObstacles())
   const { center } = ISLAND_MAP.tribes.find((tribe) => tribe.code === startTribe)
@@ -464,7 +500,7 @@ function createPlayerState(startTribe) {
     input: createMovementInput(),
     position: { ...center },
     world: { ...walkable, findRoute: createRouter(ISLAND_MAP, walkable) },
-    rig: createCameraRig(),
+    rig: createCameraRig({ aspect, viewRadius: ISLAND_BOUNDS.radius }),
     gesture: createGesture(),
     marker: createTapMarker(),
     elapsedSeconds: 0,
@@ -541,7 +577,7 @@ export function createIslandScene(container, options) {
   const reportStats = createStatsReporter(onStats, governor)
   const camera = buildCamera(container)
   const world = buildWorld(spots)
-  const state = createPlayerState(startTribe)
+  const state = createPlayerState(startTribe, camera.aspect)
   state.tapMember = memberTapper(state, world.family, onMemberTap)
   const unwatchResize = watchResize(container, renderer, camera)
   const clock = createFrameClock()

@@ -192,9 +192,10 @@ describe('island3d/cameraRig 拉遠拉近（#200 驗收條件 7）', () => {
       35.384,
       2
     )
-    expect(
-      cameraRange({ aspect: 0.25, viewRadius: 100, pitch: DEFAULT_PITCH }).entry
-    ).toBeCloseTo(42.461, 2)
+    expect(cameraRange({ aspect: 0.25, viewRadius: 100, pitch: DEFAULT_PITCH }).entry).toBeCloseTo(
+      42.461,
+      2
+    )
   })
 
   it('最遠的距離依寬高比計算（要看得到的範圍半徑 100）：橫式 237.2、直式 9:16 是 435.4', () => {
@@ -521,9 +522,9 @@ describe('island3d/cameraRig 再拉近（#228 驗收條件 1、2）', () => {
     const middle = rigOf({ zoom: Math.log(110 / 8) / Math.log(200 / 8) })
 
     expect(cameraTarget(rigOf({ zoom: 0 }), player, range, island)).toEqual(player)
-    expect(cameraTarget(rigOf({ zoom: Math.log(20 / 8) / Math.log(25) }), player, range, island)).toEqual(
-      player
-    )
+    expect(
+      cameraTarget(rigOf({ zoom: Math.log(20 / 8) / Math.log(25) }), player, range, island)
+    ).toEqual(player)
     expect(cameraTarget(middle, player, range, island).x).toBeCloseTo(20, 5)
     expect(cameraTarget(middle, player, range, island).z).toBeCloseTo(-10, 5)
     expect(cameraTarget(rigOf({ zoom: 1 }), player, range, island)).toEqual(island)
@@ -532,7 +533,8 @@ describe('island3d/cameraRig 再拉近（#228 驗收條件 1、2）', () => {
 
 describe('island3d/cameraRig 招牌與點地面圓圈不受影響（#228 驗收條件 3）', () => {
   // 以前（#228 之前）的 zoom：在 17.692（直式 35.384）到最遠之間等比例變化
-  const oldZoom = (distance, entry, farthest) => Math.log(distance / entry) / Math.log(farthest / entry)
+  const oldZoom = (distance, entry, farthest) =>
+    Math.log(distance / entry) / Math.log(farthest / entry)
   const zoomAtDistance = (distance, range) =>
     rigOf({ zoom: Math.log(distance / range.nearest) / Math.log(range.farthest / range.nearest) })
 
@@ -594,7 +596,9 @@ describe('island3d/cameraRig 名字標示放大（#228 驗收條件 4）', () =>
 
   it('拉近的過程平滑變大，沒有跳變', () => {
     const range = cameraRange({ aspect: 16 / 9, viewRadius: 100, pitch: DEFAULT_PITCH })
-    const scales = [17, 15, 13, 11, 9].map((distance) => labelScale(zoomAtDistance(distance, range), range))
+    const scales = [17, 15, 13, 11, 9].map((distance) =>
+      labelScale(zoomAtDistance(distance, range), range)
+    )
 
     scales.forEach((scale) => {
       expect(scale).toBeGreaterThan(1)
@@ -624,7 +628,14 @@ describe('island3d/cameraRig 山擋住時抬高（#228 驗收條件 6）', () =>
   const lowest = rigOf({ pitch: degrees(25), zoom: 0 })
 
   it('沒有山擋住：用使用者的俯角', () => {
-    expect(terrainClearPitch(lowest, RANGE, player, fieldOf(() => 0))).toBe(degrees(25))
+    expect(
+      terrainClearPitch(
+        lowest,
+        RANGE,
+        player,
+        fieldOf(() => 0)
+      )
+    ).toBe(degrees(25))
   })
 
   it('角色背後 4 有一道高 5 的窄山脊：25 度到 49 度都被擋，抬到 50 度', () => {

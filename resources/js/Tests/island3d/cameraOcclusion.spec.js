@@ -55,7 +55,9 @@ describe('island3d/cameraOcclusion 家屋以戶為單位變半透明（#228 驗�
     expect(proxy.material.opacity).toBe(0.25)
     expect(proxy.material.transparent).toBe(true)
     expect(proxy.geometry).toBe(kind.geometry)
-    expect(new THREE.Vector3().setFromMatrixPosition(proxy.matrix)).toEqual(new THREE.Vector3(0, 1, 5))
+    expect(new THREE.Vector3().setFromMatrixPosition(proxy.matrix)).toEqual(
+      new THREE.Vector3(0, 1, 5)
+    )
     expect(kind.material.opacity).toBe(1)
   })
 
