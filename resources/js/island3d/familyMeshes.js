@@ -83,6 +83,10 @@ function createMemberFigure() {
   return {
     group,
     hit,
+    /** 目前的動作（模型載入前是 null） */
+    get pose() {
+      return current
+    },
     dress(model, animations) {
       figure.clear()
       figure.add(model)
@@ -133,42 +137,100 @@ function loadModels(loader, members, figures) {
 }
 
 /**
- * 72 位家人。回傳 { group 要加進場景的東西, update(seconds, deltaSeconds, { currentTribe, reducedMotion }),
- *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey） }。
+ * 玩家在不在這位家人的範圍裡（#219）：在的話停下、面向玩家；akay 只停住坐姿、不轉身。
+ * placement 是 memberPlacement 的結果；回傳要畫的 { position, heading, pose }。
+ */
+function facePlayer(member, placement, player) {
+  if (member.seat) {
+    return placement
+  }
+  const { position } = placement
+  return {
+    position,
+    heading: Math.atan2(player.x - position.x, player.z - position.z),
+    pose: 'idle',
+  }
+}
+
+/**
+ * 72 位家人。回傳 { group 要加進場景的東西, figures 每位家人的人形,
+ *   update(seconds, deltaSeconds, { currentTribe, reducedMotion, spotKey, player }),
+ *   isTapped(raycaster, spot) 點到的是不是 spot 那一件的家人（spot 是 spotKey）,
+ *   facingFor(spot, from) 玩家停下時該朝哪位家人 }。
  * 只有所在部落的家人走動、換姿勢、更新動畫；其他部落的停在範圍中心（akay 正面坐），換完動作就不再更新。
+ * spotKey 是玩家目前在哪一件的範圍裡、player 是玩家位置（#219）：那一件的家人停下面向玩家。
+ * 每位家人有自己的走路時鐘：停下的那幾張畫面時鐘不前進，離開後從停下的地方接著走、不會跳。
  */
 export function createFamily(loader, members = familyMembers()) {
   const group = new THREE.Group()
   const figures = members.map(() => createMemberFigure())
   group.add(...figures.map((figure) => figure.group))
   loadModels(loader, members, figures)
+  const stopClocks = members.map(() => createStopClock())
 
   return {
     group,
+    figures,
     isTapped(raycaster, spot) {
       const i = members.findIndex((member) => member.spot === spot)
       return i !== -1 && raycaster.intersectObject(figures[i].hit).length > 0
     },
-    update(seconds, deltaSeconds, { currentTribe, reducedMotion }) {
+    /** 玩家站在 from、在 spot 那一件的範圍裡時該朝的方向（指向那位家人）；不在範圍裡回傳 null（#219 規格修訂 1） */
+    facingFor(spot, from) {
+      const i = spot === null ? -1 : members.findIndex((member) => member.spot === spot)
+      if (i === -1) {
+        return null
+      }
+      const { position } = figures[i].group
+      return { x: position.x - from.x, z: position.z - from.z }
+    },
+    update(seconds, deltaSeconds, { currentTribe, reducedMotion, spotKey = null, player }) {
       members.forEach((member, i) => {
         const active = member.tribe === currentTribe
-        const { position, heading, pose } = memberPlacement(member, seconds, {
+        const stopped = active && spotKey !== null && member.spot === spotKey
+        const stoppedSeconds = stopClocks[i](stopped, deltaSeconds)
+        const placement = memberPlacement(member, seconds - stoppedSeconds, {
           active,
           reducedMotion,
         })
-        const figure = figures[i]
-        figure.group.position.set(position.x, 0, position.z)
-        figure.group.rotation.y = heading
-        const changed = figure.play(pose)
-        figure.advance(
-          animationSeconds(deltaSeconds, {
-            active,
-            reducedMotion,
-            changed,
-            fadeSeconds: ACTION_FADE_SECONDS,
-          })
+        showMember(
+          figures[i],
+          stopped ? facePlayer(member, placement, player) : placement,
+          deltaSeconds,
+          { active, reducedMotion }
         )
       })
     },
   }
+}
+
+/**
+ * 一位家人的停下計時（#219）：回傳 tick(stopped, deltaSeconds) → 到目前為止停下過多少秒（走路時鐘＝seconds 減這個）。
+ * 進入那一張與離開那一張都算停下，位置才會和停下時一樣。
+ */
+function createStopClock() {
+  let stoppedSeconds = 0
+  let wasStopped = false
+  return (stopped, deltaSeconds) => {
+    if (stopped || wasStopped) {
+      stoppedSeconds += deltaSeconds
+    }
+    wasStopped = stopped
+    return stoppedSeconds
+  }
+}
+
+/** 把一位家人擺到 { position, heading, pose }，並把動畫往前推 */
+function showMember(figure, { position, heading, pose }, deltaSeconds, { active, reducedMotion }) {
+  figure.group.position.set(position.x, 0, position.z)
+  figure.group.rotation.y = heading
+  const changed = figure.play(pose)
+  figure.advance(
+    animationSeconds(deltaSeconds, {
+      active,
+      reducedMotion,
+      changed,
+      fadeSeconds: ACTION_FADE_SECONDS,
+    })
+  )
 }
