@@ -30,7 +30,14 @@ import { createFrameClock } from './frameClock'
 import { ISLAND_DECOR, ISLAND_MAP, WALK_SPEED, nearestHex } from './islandMap'
 import { householdObstacles, spotAt, spotKey } from './households'
 import { islandHeightField } from './terrainHeight'
-import { buildHouseholdSigns, buildHouseholds, buildLandmarks, showSigns } from './landmarkMeshes'
+import {
+  buildBeachSigns,
+  buildHouseholdSigns,
+  buildHouseholds,
+  buildLandmarks,
+  showSigns,
+} from './landmarkMeshes'
+import { BEACH_SPOTS, beachAt } from './beachSpots'
 import {
   clearInput,
   createMovementInput,
@@ -386,6 +393,7 @@ function buildWorld(spots) {
   const family = createFamily(loader)
   const animals = createAnimals(loader, { field: islandHeightField() })
   const householdSigns = buildHouseholdSigns(spots)
+  const beachSigns = buildBeachSigns(BEACH_SPOTS)
   const households = buildHouseholds()
   // 擋住角色時變半透明的：家屋四件與每個地標（招牌不算，#228 驗收條件 5）
   const occlusion = createCameraOcclusion({
@@ -399,6 +407,7 @@ function buildWorld(spots) {
     households,
     occlusion.group,
     householdSigns,
+    beachSigns,
     family.group,
     animals.group,
     player.group,
@@ -412,7 +421,7 @@ function buildWorld(spots) {
     tapRings,
     occlusion,
     boats: terrain.boats,
-    signs: [landmarks.signs, householdSigns],
+    signs: [landmarks.signs, householdSigns, beachSigns],
     // 拉近時放大的名字標示（#228 驗收條件 4）
     labels: nameLabelsOf({ landmarks, householdSigns, animals }),
   }
@@ -437,6 +446,15 @@ function reportSpot(state, onSpotChange) {
   }
 }
 
+/** 角色走進或離開海邊的範圍時呼叫 onBeachChange（部落代碼或 null）（#232） */
+function reportBeach(state, onBeachChange) {
+  const beach = beachAt(state.position)
+  if (beach !== state.beach) {
+    state.beach = beach
+    onBeachChange(beach)
+  }
+}
+
 /** 點家人：點到目前範圍那一件的家人就呼叫 onMemberTap 並回傳 true（不走過去），否則回傳 false */
 function memberTapper(state, family, onMemberTap) {
   return (raycaster) => {
@@ -449,11 +467,13 @@ function memberTapper(state, family, onMemberTap) {
 }
 
 /** 每張畫面要更新的東西：玩家、家人、動物、船、鏡頭、標示與招牌、點地面的提示 */
-function advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange }) {
+function advanceWorld(world, state, camera, frame, callbacks) {
+  const { reducedMotion, onTribeChange, onSpotChange, onBeachChange } = callbacks
   const { family, animals, tapRings, occlusion, boats, signs, labels } = world
   state.elapsedSeconds = frame.elapsedSeconds
   movePlayer(world, state, frame.deltaSeconds, onTribeChange)
   reportSpot(state, onSpotChange)
+  reportBeach(state, onBeachChange)
   family.update(frame.elapsedSeconds, frame.deltaSeconds, {
     currentTribe: state.tribe,
     reducedMotion,
@@ -501,6 +521,8 @@ function createPlayerState(startTribe, aspect) {
     elapsedSeconds: 0,
     tribe: startTribe,
     spotKey: null,
+    // 目前在哪個部落的海邊範圍裡（#232）
+    beach: null,
     // 點到目前範圍那一件的家人時回傳 true（開對話、不走過去）；在 createIslandScene 接上
     tapMember: () => false,
   }
@@ -552,6 +574,7 @@ function movePlayer({ player, family }, state, deltaSeconds, onTribeChange) {
  *   onTribeChange(部落代碼) 角色走進另一個部落的格子時呼叫,
  *   onSpotChange({ tribe, hex, slot } 或 null) 角色走進或離開某一件的範圍時呼叫（#201）,
  *   onMemberTap() 點到目前範圍那一件的家人時呼叫（#201 規格修訂 2）,
+ *   onBeachChange(部落代碼或 null) 角色走進或離開海邊的範圍時呼叫（#232）,
  *   spots 後端給的地點清單（部落 → 12 個地點），四件上方招牌的名稱用它
  * }
  * 回傳 { dispose } 給離開頁面時停掉。
@@ -564,6 +587,7 @@ export function createIslandScene(container, options) {
     onTribeChange = () => {},
     onSpotChange = () => {},
     onMemberTap = () => {},
+    onBeachChange = () => {},
     spots = {},
   } = options
   const level = initialQuality({ width: window.innerWidth, userAgent: navigator.userAgent })
@@ -584,7 +608,12 @@ export function createIslandScene(container, options) {
     if (frame === null) {
       return // 分頁在背景：不移動、不繪圖
     }
-    advanceWorld(world, state, camera, frame, { reducedMotion, onTribeChange, onSpotChange })
+    advanceWorld(world, state, camera, frame, {
+      reducedMotion,
+      onTribeChange,
+      onSpotChange,
+      onBeachChange,
+    })
     renderer.render(world.scene, camera)
     trackQuality(renderer, governor, reportStats, now, frame)
   })

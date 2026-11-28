@@ -14,6 +14,7 @@
         @tribe-change="enterTribe"
         @spot-change="reachSpot"
         @member-tap="toggleDialog"
+        @beach-change="reachBeach"
       />
       <IslandSpotPrompt
         ref="spotPrompt"
@@ -27,8 +28,12 @@
         :tribes="tribes"
         :result-options="result_options"
         :unknown-processing-method="unknown_processing_method"
+        :beach="reachedBeach !== null && !currentSpot"
+        :caught="caught"
+        :beach-actions="beachActions"
         @activate="toggleDialog"
         @ask="markHeard"
+        @beach-action="onBeachAction"
       />
     </div>
     <p class="mt-2 px-1 text-elder-aux text-island-muted">
@@ -52,6 +57,21 @@
           <dt class="text-elder-aux text-island-muted">你的部落</dt>
           <dd class="text-elder-body font-bold">{{ islandTribeLabel(character.tribe) }}</dd>
         </div>
+        <!-- #232 手上的魚：只存在這台瀏覽器 -->
+        <div data-testid="held-fish">
+          <dt class="text-elder-aux text-island-muted">手上的魚</dt>
+          <dd class="text-elder-body font-bold">
+            <img
+              v-if="heldFish"
+              :src="heldFish.image_url"
+              alt="手上的魚"
+              width="96"
+              height="72"
+              class="aspect-[4/3] w-24 rounded-island bg-island-line object-cover"
+            />
+            <template v-else>還沒有，去海邊找一條</template>
+          </dd>
+        </div>
       </dl>
     </section>
   </IslandLayout>
@@ -59,11 +79,12 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import IslandLayout from '@/Layouts/IslandLayout.vue'
 import IslandWorld from '@/Components/Island/IslandWorld.vue'
 import IslandSpotPrompt from '@/Components/Island/IslandSpotPrompt.vue'
 import { islandTribeLabel } from '@/constants/island'
+import { createHeldFish, heldFishKey } from '@/island3d/heldFish'
 
 const props = defineProps({
   character: { type: Object, required: true },
@@ -76,6 +97,11 @@ const props = defineProps({
   spot_fish: { type: Object, required: true },
   result_options: { type: Object, required: true },
   unknown_processing_method: { type: String, required: true },
+  // #232：角色編號（手上的魚依角色分開存）、圖鑑、每個部落每條魚家人說的話、記錄視窗的三題（延後載入）
+  character_id: { type: Number, required: true },
+  collection: { type: Array, required: true },
+  fish_speech: { type: Object, required: true },
+  record_questions: { type: Array, default: null },
 })
 
 const LOCATION_URL = '/island/location'
@@ -147,8 +173,92 @@ function reachSpot(spot) {
   dialogOpen.value = false
 }
 
+// ── 海邊找魚、手上的魚（#232）──
+const reachedBeach = ref(null)
+const held = createHeldFish({
+  storage: browserStorage(),
+  key: heldFishKey(props.character_id),
+  fishIds: props.island_fish.map((fish) => fish.id),
+})
+const heldId = ref(held.get())
+const heldFish = computed(() => fishById.get(heldId.value) ?? null)
+// 打開海邊對話框時找到的結果（給對話框）；recordFishId 是 record_questions 目前是哪一條魚的
+const caught = ref(null)
+const recordFishId = ref(null)
+const collectedNumberOf = (id) =>
+  props.collection.find((entry) => entry.fish_id === id)?.number ?? null
+const hasOwnRecord = () =>
+  (props.record_questions ?? []).some((question) => (question.my_answer ?? '') !== '')
+
+// 找到魚後的按鈕：在圖鑑裡 → 改記錄；不在圖鑑裡要等記錄載入，有自己部落的回答 → 收進圖鑑，沒有 → 記下來
+const beachActions = computed(() => {
+  const fish = caught.value?.fish
+  if (!fish) return null
+  if (caught.value.collectedNumber !== null) {
+    return [
+      { key: 'record', label: '改我的記錄' },
+      { key: 'close', label: '好' },
+    ]
+  }
+  if (recordFishId.value !== fish.id) return null
+  return [
+    { key: 'record', label: hasOwnRecord() ? '收進圖鑑' : '記下來' },
+    { key: 'close', label: '先不記' },
+  ]
+})
+
+function browserStorage() {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
+function reachBeach(tribe) {
+  reachedBeach.value = tribe
+  if (!currentSpot.value) {
+    dialogOpen.value = false
+  }
+}
+
+// 載入這條魚自己部落的三題（記錄視窗、判斷「收進圖鑑」用）
+function loadRecord(id) {
+  router.reload({
+    only: ['record_questions'],
+    data: { record_fish: id },
+    preserveState: true,
+    preserveScroll: true,
+    onSuccess: () => (recordFishId.value = id),
+  })
+}
+
+function catchFish() {
+  const result = held.catchFish()
+  if (result === null) {
+    caught.value = { fish: null, released: false, collectedNumber: null }
+    return
+  }
+  heldId.value = result.id
+  caught.value = {
+    fish: fishById.get(result.id),
+    released: result.released !== null,
+    collectedNumber: collectedNumberOf(result.id),
+  }
+  loadRecord(result.id)
+}
+
+function onBeachAction(key) {
+  if (key === 'close') {
+    dialogOpen.value = false
+  }
+}
+
 function toggleDialog() {
   if (currentSpot.value) {
+    dialogOpen.value = !dialogOpen.value
+  } else if (reachedBeach.value !== null) {
+    if (!dialogOpen.value) catchFish()
     dialogOpen.value = !dialogOpen.value
   }
 }
@@ -161,7 +271,7 @@ function focusInDialog() {
 }
 
 function onKeydown(event) {
-  if (event.key === ' ' && currentSpot.value && !focusInDialog()) {
+  if (event.key === ' ' && (currentSpot.value || reachedBeach.value !== null) && !focusInDialog()) {
     event.preventDefault()
     if (dialogOpen.value) {
       spotPrompt.value.next()

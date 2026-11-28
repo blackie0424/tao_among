@@ -1,7 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+// #232：Inertia 的 partial reload 換成假的，由測試決定何時回來
+const inertia = vi.hoisted(() => ({ reload: vi.fn() }))
 vi.mock('@inertiajs/vue3', () => ({
+  router: { reload: inertia.reload },
   Head: { render: () => null },
   Link: {
     props: ['href'],
@@ -92,6 +95,10 @@ const mountPage = async (overrides = {}) => {
         processing_method: ['去魚鱗', '不去魚鱗', '剝皮', '不食用', '我不知道'],
       },
       unknown_processing_method: '我不知道',
+      character_id: 7,
+      fish_speech: {},
+      collection: [],
+      record_questions: null,
       ...overrides,
     },
   })
@@ -133,6 +140,8 @@ describe('Island/Home 地圖頁', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     scene.createIslandScene.mockReset().mockReturnValue({ dispose: scene.dispose })
     scene.dispose.mockReset()
+    inertia.reload.mockReset()
+    window.localStorage.clear()
     window.history.replaceState({}, '', '/island')
   })
 
@@ -937,6 +946,199 @@ describe('Island/Home 地圖頁', () => {
         await arrow(wrapper, 'next').trigger('click')
         expect(strip.element.scrollBy).toHaveBeenCalledWith({ left: 300, behavior: 'auto' })
       })
+    })
+  })
+  describe('#232 海邊找魚、手上的魚', () => {
+    const HELD_KEY = 'island.heldFish.7'
+    /** 角色走進或離開海邊的範圍（3D 畫面回報部落代碼或 null） */
+    const reachBeach = async (tribe) => {
+      sceneOptions().onBeachChange(tribe)
+      await flushPromises()
+    }
+    /** 亂數固定：0 抽到第一條（編號 1）、0.99 抽到最後一條（編號 14） */
+    const fixRandom = (value) => vi.spyOn(Math, 'random').mockReturnValue(value)
+    const npcLine = (wrapper) => wrapper.get('[data-testid="npc-line"]').text()
+    const buttonTexts = (wrapper) =>
+      wrapper.findAll('[data-testid="beach-actions"] button').map((button) => button.text())
+    /** 記錄視窗資料的 partial reload 回來：setProps 換成這條魚的三題，再呼叫 onSuccess */
+    const answerReload = async (wrapper, questions) => {
+      const options = inertia.reload.mock.calls.at(-1)[0]
+      await wrapper.setProps({ record_questions: questions })
+      options.onSuccess?.()
+      await flushPromises()
+    }
+    const QUESTIONS = (answers = {}) =>
+      ['name', 'food_category', 'processing_method'].map((key) => ({
+        key,
+        options: ['x'],
+        my_answer: answers[key] ?? null,
+      }))
+
+    afterEach(() => vi.restoreAllMocks())
+
+    it('3D 畫面有海邊的回報；走進海邊出現「海邊」＋「按空白鍵找魚」，走出去消失', async () => {
+      const wrapper = await mountPage()
+
+      await reachBeach('iratay')
+      expect(prompt(wrapper).text()).toContain('海邊')
+      expect(prompt(wrapper).text()).toContain('按空白鍵找魚')
+
+      await reachBeach(null)
+      expect(prompt(wrapper).exists()).toBe(false)
+    })
+
+    it('觸控裝置寫「點一下找魚」', async () => {
+      mockTouch(true)
+      const wrapper = await mountPage()
+
+      await reachBeach('iratay')
+
+      expect(prompt(wrapper).text()).toContain('點一下找魚')
+    })
+
+    it('按空白鍵：「你找到一條魚！」和那條魚的照片（不寫魚名），存在這個角色的瀏覽器儲存', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+
+      await pressSpace()
+
+      expect(npcLine(wrapper)).toBe('你找到一條魚！')
+      expect(wrapper.get('[data-testid="found-photo"]').attributes('src')).toBe('/k.jpg')
+      expect(dialog(wrapper).text()).not.toContain('魚K')
+      expect(window.localStorage.getItem(HELD_KEY)).toBe('1')
+    })
+
+    it('點提示也能找魚', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+
+      await prompt(wrapper).trigger('click')
+      await finishTyping()
+
+      expect(npcLine(wrapper)).toBe('你找到一條魚！')
+    })
+
+    it('手上已經有魚：先說「你把手上的魚放回海裡。」，按一下才是「你找到一條魚！」', async () => {
+      window.localStorage.setItem(HELD_KEY, '2')
+      fixRandom(0.99)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+
+      await pressSpace()
+      expect(npcLine(wrapper)).toBe('你把手上的魚放回海裡。')
+
+      await pressSpace()
+      expect(npcLine(wrapper)).toBe('你找到一條魚！')
+      expect(wrapper.get('[data-testid="found-photo"]').attributes('src')).toBe('/b.jpg')
+    })
+
+    it('找到魚後載入這條魚自己部落的記錄：沒有回答 → 「記下來」「先不記」', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+      await pressSpace()
+
+      expect(inertia.reload).toHaveBeenCalledWith(
+        expect.objectContaining({ only: ['record_questions'], data: { record_fish: 1 } })
+      )
+      await answerReload(wrapper, QUESTIONS())
+
+      expect(buttonTexts(wrapper)).toEqual(['記下來', '先不記'])
+    })
+
+    it('自己部落已經有這條魚的回答（例如在 among 答過）→ 「收進圖鑑」「先不記」', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+      await pressSpace()
+
+      await answerReload(wrapper, QUESTIONS({ food_category: 'oyod' }))
+
+      expect(buttonTexts(wrapper)).toEqual(['收進圖鑑', '先不記'])
+    })
+
+    it('記錄還沒載入完成前不顯示按鈕', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+      await pressSpace()
+
+      expect(buttonTexts(wrapper)).toEqual([])
+    })
+
+    it('已經在圖鑑裡：多一行「圖鑑裡已經有這條（第 N 條）」，按鈕「改我的記錄」「好」', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage({
+        collection: [
+          { fish_id: 2, number: 1, my: {} },
+          { fish_id: 1, number: 2, my: { food_category: 'oyod' } },
+        ],
+      })
+      await reachBeach('iratay')
+      await pressSpace()
+
+      expect(dialog(wrapper).text()).toContain('圖鑑裡已經有這條（第 2 條）')
+      expect(buttonTexts(wrapper)).toEqual(['改我的記錄', '好'])
+    })
+
+    it('「先不記」關掉對話框，魚留在手上', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+      await pressSpace()
+      await answerReload(wrapper, QUESTIONS())
+
+      await wrapper.findAll('[data-testid="beach-actions"] button')[1].trigger('click')
+
+      expect(dialog(wrapper).exists()).toBe(false)
+      expect(window.localStorage.getItem(HELD_KEY)).toBe('1')
+    })
+
+    it('找到魚之後再按空白鍵關掉對話框', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      await reachBeach('iratay')
+      await pressSpace()
+
+      await pressSpace()
+
+      expect(dialog(wrapper).exists()).toBe(false)
+    })
+
+    it('沒有任何魚：「海裡現在沒有魚。」，沒有按鈕、不存手上的魚', async () => {
+      const wrapper = await mountPage({ island_fish: [] })
+      await reachBeach('iratay')
+
+      await pressSpace()
+
+      expect(npcLine(wrapper)).toBe('海裡現在沒有魚。')
+      expect(buttonTexts(wrapper)).toEqual([])
+      expect(window.localStorage.getItem(HELD_KEY)).toBeNull()
+    })
+
+    it('地圖下方「手上的魚」：沒魚寫「還沒有，去海邊找一條」，找到後顯示照片', async () => {
+      fixRandom(0)
+      const wrapper = await mountPage()
+      const held = () => wrapper.get('[data-testid="held-fish"]')
+
+      expect(held().text()).toContain('還沒有，去海邊找一條')
+
+      await reachBeach('iratay')
+      await pressSpace()
+
+      expect(held().get('img').attributes('src')).toBe('/k.jpg')
+    })
+
+    it('重新整理後手上的魚還在；手上的魚已經不在魚清單裡（軟刪除）當成沒魚', async () => {
+      window.localStorage.setItem(HELD_KEY, '2')
+      const kept = await mountPage()
+      expect(kept.get('[data-testid="held-fish"] img').attributes('src')).toBe('/a.jpg')
+
+      window.localStorage.setItem(HELD_KEY, '99')
+      const gone = await mountPage()
+      expect(gone.get('[data-testid="held-fish"]').text()).toContain('還沒有，去海邊找一條')
     })
   })
 })
