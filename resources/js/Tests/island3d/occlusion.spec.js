@@ -122,6 +122,15 @@ describe('island3d/occlusion 地形擋住點擊（#223 驗收條件 5）', () =>
     expect(isBlockedByTerrain({ x: 0, y: 200, z: 30 }, { x: 0, z: -20 }, hill)).toBe(false)
   })
 
+  it('終點可以離地（#228 角色胸口）：同一個鏡頭，看地面被山脊擋住，看離地 2.4 的那一點剛好越過', () => {
+    // 直線在 x = 0 的高度是（鏡頭高 + 終點高）÷ 2：看地面時比山脊頂低 1.2，看離地 2.4 時剛好碰到山脊頂
+    const camera = { x: -20, y: H * 2 - 2.4, z: 0 }
+
+    expect(isBlockedByTerrain(camera, { x: 20, z: 0 }, ridge)).toBe(true)
+    expect(isBlockedByTerrain(camera, { x: 20, y: 2.4, z: 0 }, ridge)).toBe(false)
+    expect(isBlockedByTerrain(camera, { x: 20, y: 2.3, z: 0 }, ridge)).toBe(true)
+  })
+
   it('點在山坡上：對到的地面點在山的底下，算擋住', () => {
     const hill = field((x, z) => Math.max(0, 400 - 40 * Math.hypot(x, z)))
     expect(isBlockedByTerrain({ x: 0, y: 30, z: 30 }, { x: 0, z: 2 }, hill)).toBe(true)
